@@ -3,8 +3,8 @@ package domain
 import "testing"
 
 func TestBuiltInTreesHaveDepthAndSeeds(t *testing.T) {
-	if len(BuiltInTrees) < 5 {
-		t.Fatalf("expected at least 5 built-in trees, got %d", len(BuiltInTrees))
+	if len(BuiltInTrees) < 9 {
+		t.Fatalf("expected at least 9 built-in trees, got %d", len(BuiltInTrees))
 	}
 	for _, tree := range BuiltInTrees {
 		if len(tree.TGOs) < 50 {
@@ -58,6 +58,10 @@ func TestGeneratedTemplatesStayLarge(t *testing.T) {
 		{WritingType: "thought leadership", ExperienceLevel: "intermediate", DesiredTone: "clear and sharp", BiggestWeaknesses: []string{"structure"}, DesiredOutcomes: []string{"essays"}, DifficultyIntensity: "medium", WritingGoals: "publish thought leadership"},
 		{WritingType: "professional writing", ExperienceLevel: "intermediate", DesiredTone: "direct", BiggestWeaknesses: []string{"clarity"}, DesiredOutcomes: []string{"memos"}, DifficultyIntensity: "medium", WritingGoals: "improve workplace communication"},
 		{WritingType: "fiction", ExperienceLevel: "beginner", DesiredTone: "playful", BiggestWeaknesses: []string{"spelling"}, DesiredOutcomes: []string{"school stories"}, DifficultyIntensity: "low", WritingGoals: "learn to write better stories"},
+		{WritingType: "academic writing", ExperienceLevel: "intermediate", DesiredTone: "analytical", BiggestWeaknesses: []string{"thesis"}, DesiredOutcomes: []string{"papers"}, DifficultyIntensity: "medium", WritingGoals: "write stronger essays"},
+		{WritingType: "technical writing", ExperienceLevel: "intermediate", DesiredTone: "clear", BiggestWeaknesses: []string{"docs structure"}, DesiredOutcomes: []string{"documentation"}, DifficultyIntensity: "medium", WritingGoals: "write better docs"},
+		{WritingType: "persuasive writing", ExperienceLevel: "intermediate", DesiredTone: "confident", BiggestWeaknesses: []string{"argument"}, DesiredOutcomes: []string{"op-eds"}, DifficultyIntensity: "medium", WritingGoals: "write stronger persuasive pieces"},
+		{WritingType: "memoir", ExperienceLevel: "intermediate", DesiredTone: "reflective", BiggestWeaknesses: []string{"reflection"}, DesiredOutcomes: []string{"essays"}, DifficultyIntensity: "medium", WritingGoals: "write personal narrative"},
 	}
 	for _, profile := range cases {
 		def := GenerateTreeDefinition("writer", "Writer", profile)

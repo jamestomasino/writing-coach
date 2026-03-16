@@ -32,6 +32,26 @@ The application now ships with a deeper reference catalog of writing curricula. 
   - 52 TGOs
   - emphasis: objective clarity, structural signposting, tone calibration, actionability, scannability
 
+- `academic-essay-track`
+  - analytical essays, research papers, and close reading
+  - 52 TGOs
+  - emphasis: thesis clarity, evidence handling, analysis depth, source integration, revision
+
+- `technical-writing-track`
+  - documentation, references, tutorials, and support content
+  - 52 TGOs
+  - emphasis: user goal alignment, step clarity, scannability, accuracy, example quality
+
+- `persuasive-writing-track`
+  - argument, advocacy, opinion, and rhetorical persuasion
+  - 52 TGOs
+  - emphasis: claim clarity, audience alignment, reasoning quality, objection handling, rhetorical force
+
+- `memoir-personal-narrative-track`
+  - memoir, personal essays, and reflective narrative
+  - 52 TGOs
+  - emphasis: scene grounding, voice presence, reflection depth, emotional compression, memory handling
+
 ## Design constraints
 
 - Each tree keeps exactly 3 seed TGOs.

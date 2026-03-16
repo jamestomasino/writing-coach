@@ -35,6 +35,14 @@ func GenerateTreeDefinition(userSlug, userName string, profile OnboardingProfile
 	switch templateKey {
 	case "youth-foundations":
 		def = youthFoundationsTree
+	case "academic-essay":
+		def = academicEssayTree
+	case "technical-writing":
+		def = technicalWritingTree
+	case "persuasive-writing":
+		def = persuasiveWritingTree
+	case "memoir-personal-narrative":
+		def = memoirNarrativeTree
 	case "thought-leadership":
 		def = thoughtLeadershipTree
 	case "professional-writing":
@@ -76,6 +84,14 @@ func generatedTreeTitle(userName string, profile OnboardingProfile, fallback str
 	switch selectTemplate(profile) {
 	case "youth-foundations":
 		return fmt.Sprintf("%s's Foundations Track", name)
+	case "academic-essay":
+		return fmt.Sprintf("%s's Academic Essay Track", name)
+	case "technical-writing":
+		return fmt.Sprintf("%s's Technical Writing Track", name)
+	case "persuasive-writing":
+		return fmt.Sprintf("%s's Persuasive Writing Track", name)
+	case "memoir-personal-narrative":
+		return fmt.Sprintf("%s's Memoir Track", name)
 	case "thought-leadership":
 		return fmt.Sprintf("%s's Thought Leadership Track", name)
 	case "professional-writing":
@@ -104,6 +120,14 @@ func selectTemplate(profile OnboardingProfile) string {
 	toneAndGoals := strings.ToLower(strings.Join([]string{profile.DesiredTone, profile.WritingGoals}, " "))
 
 	switch writingType {
+	case "academic", "academic writing", "essay", "essay writing", "research", "research writing":
+		return "academic-essay"
+	case "technical", "technical writing", "documentation", "docs":
+		return "technical-writing"
+	case "persuasive", "persuasive writing", "argument", "argumentative writing", "advocacy":
+		return "persuasive-writing"
+	case "memoir", "personal narrative", "nonfiction narrative":
+		return "memoir-personal-narrative"
 	case "thought leadership", "thought-leadership":
 		return "thought-leadership"
 	case "professional", "professional writing", "professional-writing":
@@ -115,10 +139,25 @@ func selectTemplate(profile OnboardingProfile) string {
 		if strings.Contains(toneAndGoals, "myth") || strings.Contains(toneAndGoals, "fantasy") || strings.Contains(toneAndGoals, "tragic") {
 			return "mythic-tragedy"
 		}
+		if strings.Contains(toneAndGoals, "memoir") || strings.Contains(toneAndGoals, "personal narrative") {
+			return "memoir-personal-narrative"
+		}
 		return "story-craft"
 	default:
 		if experience == "beginner" {
 			return "youth-foundations"
+		}
+		if strings.Contains(toneAndGoals, "academic") || strings.Contains(toneAndGoals, "essay") || strings.Contains(toneAndGoals, "research") {
+			return "academic-essay"
+		}
+		if strings.Contains(toneAndGoals, "technical writing") || strings.Contains(toneAndGoals, "documentation") || strings.Contains(toneAndGoals, "docs") {
+			return "technical-writing"
+		}
+		if strings.Contains(toneAndGoals, "persuasive") || strings.Contains(toneAndGoals, "argument") || strings.Contains(toneAndGoals, "advocacy") {
+			return "persuasive-writing"
+		}
+		if strings.Contains(toneAndGoals, "memoir") || strings.Contains(toneAndGoals, "personal narrative") {
+			return "memoir-personal-narrative"
 		}
 		if strings.Contains(toneAndGoals, "thought leadership") {
 			return "thought-leadership"
