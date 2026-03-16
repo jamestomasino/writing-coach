@@ -1,0 +1,44 @@
+{
+  "name": "compass",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.6",
+    "@mdx-js/loader": "^3.1.0",
+    "@mdx-js/react": "^3.1.0",
+    "@next/mdx": "16.1.6",
+    "@shikijs/colorized-brackets": "^3.8.1",
+    "@tailwindcss/postcss": "^4.2.0",
+    "clsx": "^2.1.1",
+    "geist": "^1.4.2",
+    "input-otp": "^1.4.2",
+    "next": "16.1.6",
+    "node-webvtt": "^1.9.4",
+    "postcss": "^8.5.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "shiki": "^3.8.1",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^24.1.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3"
+  }
+}

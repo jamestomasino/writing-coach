@@ -15,6 +15,7 @@ If `OPENAI_API_KEY` is set in the environment, prompt generation and review gene
 ## Architecture
 
 High-level architecture and implementation phases live in [docs/architecture.md](/home/tomasino/writing-coach/docs/architecture.md).
+The planned web stack, Tailwind Plus kit mapping, and screen strategy live in [docs/web-foundation-plan.md](/home/tomasino/writing-coach/docs/web-foundation-plan.md).
 
 ## Planned Commands
 
