@@ -217,7 +217,7 @@ func (s Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	for _, tgo := range activeTGOs {
 		activeSet[tgo.Code] = true
 	}
-	upcoming := domain.NextUnlockedTGOs(completedSet, activeSet, 3)
+	upcoming := domain.NextUnlockedTGOs(appContext.TreeSlug, completedSet, activeSet, 3)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"context":              requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
@@ -374,7 +374,7 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 	reviewResult, scores := s.Reviews.ReviewSubmission(r.Context(), sub, activeTGOs)
 	reviewResult.UserID = appContext.UserID
 	reviewResult.TreeID = appContext.TreeID
-	recommendation, err := s.Curriculum.SyncTGOs(r.Context(), s.Store, appContext.EnrollmentID, reviewResult)
+	recommendation, err := s.Curriculum.SyncTGOs(r.Context(), s.Store, appContext.TreeSlug, appContext.EnrollmentID, reviewResult)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return

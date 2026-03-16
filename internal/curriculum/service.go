@@ -26,7 +26,7 @@ func (Service) DescribeNextStep(state domain.CurriculumState) string {
 	return "Primary pressure remains on " + state.CurrentFocus + "."
 }
 
-func (Service) SyncTGOs(ctx context.Context, store *db.Store, enrollmentID int64, review domain.Review) (Recommendation, error) {
+func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, enrollmentID int64, review domain.Review) (Recommendation, error) {
 	active, err := store.ActiveTGOs(ctx, enrollmentID)
 	if err != nil {
 		return Recommendation{}, err
@@ -61,7 +61,7 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, enrollmentID int64
 		}
 		completedSet[assessment.TGOCode] = true
 		delete(activeSet, assessment.TGOCode)
-		nextOptions := domain.NextUnlockedTGOs(completedSet, activeSet, 1)
+		nextOptions := domain.NextUnlockedTGOs(treeSlug, completedSet, activeSet, 1)
 		if len(nextOptions) == 0 {
 			continue
 		}

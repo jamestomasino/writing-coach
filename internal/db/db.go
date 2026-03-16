@@ -65,7 +65,7 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 		}
 	}
 
-	for _, tgo := range domain.TGOCatalog {
+	for _, tgo := range domain.AllTGOs() {
 		if _, err := s.SQL.ExecContext(ctx, `
 			INSERT INTO tgo_catalog (code, title, description, stage, stage_order)
 			SELECT ?, ?, ?, ?, ?
@@ -75,23 +75,30 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 		}
 	}
 
+	for _, tree := range domain.BuiltInTrees {
+		if _, err := s.SQL.ExecContext(ctx, `
+			INSERT INTO tgo_trees (slug, title, description)
+			SELECT ?, ?, ?
+			WHERE NOT EXISTS (SELECT 1 FROM tgo_trees WHERE slug = ?)
+		`, tree.Slug, tree.Title, tree.Description, tree.Slug); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, treeSlug string) (int64, int64, int64, error) {
+	treeDef, ok := domain.BuiltInTreeBySlug(treeSlug)
+	if !ok {
+		return 0, 0, 0, fmt.Errorf("unknown tree slug %q", treeSlug)
+	}
+
 	if _, err := s.SQL.ExecContext(ctx, `
 		INSERT INTO users (slug, name)
 		SELECT ?, ?
 		WHERE NOT EXISTS (SELECT 1 FROM users WHERE slug = ?)
 	`, userSlug, userName, userSlug); err != nil {
-		return 0, 0, 0, err
-	}
-
-	if _, err := s.SQL.ExecContext(ctx, `
-		INSERT INTO tgo_trees (slug, title, description)
-		SELECT ?, ?, ?
-		WHERE NOT EXISTS (SELECT 1 FROM tgo_trees WHERE slug = ?)
-	`, treeSlug, domain.WriterTrackName, "Advanced mythopoeic tragic fiction track", treeSlug); err != nil {
 		return 0, 0, 0, err
 	}
 
@@ -104,7 +111,7 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 		return 0, 0, 0, err
 	}
 
-	for _, tgo := range domain.TGOCatalog {
+	for _, tgo := range treeDef.TGOs {
 		if _, err := s.SQL.ExecContext(ctx, `
 			INSERT INTO tree_tgos (tree_id, tgo_code)
 			SELECT ?, ?
@@ -130,10 +137,10 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 		INSERT INTO user_curriculum_state (enrollment_id, current_focus, difficulty_level)
 		SELECT ?, ?, ?
 		WHERE NOT EXISTS (SELECT 1 FROM user_curriculum_state WHERE enrollment_id = ?)
-	`, enrollmentID, "causal clarity", 2, enrollmentID); err != nil {
+	`, enrollmentID, treeDef.SeedCodes[0], 2, enrollmentID); err != nil {
 		return 0, 0, 0, err
 	}
-	for idx, code := range domain.SeedTGOs() {
+	for idx, code := range domain.SeedTGOs(treeSlug) {
 		slot := idx + 1
 		if _, err := s.SQL.ExecContext(ctx, `
 			INSERT INTO enrollment_active_tgos (enrollment_id, slot, tgo_code)

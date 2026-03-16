@@ -11,6 +11,14 @@ var SupportedSkills = []string{
 	"mythic tone",
 	"tragic inevitability",
 	"narrative clarity",
+	"word choice",
+	"sentence variety",
+	"sentence complexity",
+	"clarity and coherence",
+	"paragraph control",
+	"narrative sequencing",
+	"descriptive precision",
+	"dialogue basics",
 }
 
 func IsSupportedSkill(skill string) bool {

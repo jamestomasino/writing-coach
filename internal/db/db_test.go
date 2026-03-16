@@ -77,3 +77,35 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 		t.Fatal("expected progress lines")
 	}
 }
+
+func TestEnsureDefaultUserTreeSeedsTreeSpecificTGOs(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_, _, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "kid", "Kid", "youth-writing-foundations")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+
+	active, err := store.ActiveTGOs(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("active tgos: %v", err)
+	}
+	if len(active) != 3 {
+		t.Fatalf("active len = %d", len(active))
+	}
+	if active[0].Code != "word-choice" {
+		t.Fatalf("first active tgo = %q", active[0].Code)
+	}
+}

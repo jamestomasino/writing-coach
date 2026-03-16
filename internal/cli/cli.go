@@ -322,7 +322,7 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	reviewResult, scores := c.Reviews.ReviewSubmission(ctx, sub, activeTGOs)
 	reviewResult.UserID = c.AppContext.UserID
 	reviewResult.TreeID = c.AppContext.TreeID
-	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, c.AppContext.EnrollmentID, reviewResult)
+	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, c.AppContext.TreeSlug, c.AppContext.EnrollmentID, reviewResult)
 	if err != nil {
 		return err
 	}
@@ -443,7 +443,7 @@ func (c CLI) runProgress(ctx context.Context) error {
 	for _, tgo := range activeTGOs {
 		activeSet[tgo.Code] = true
 	}
-	upcomingTGOs := domain.NextUnlockedTGOs(completedSet, activeSet, 3)
+	upcomingTGOs := domain.NextUnlockedTGOs(c.AppContext.TreeSlug, completedSet, activeSet, 3)
 	fmt.Printf("user: %s\n", c.AppContext.UserSlug)
 	fmt.Printf("tree: %s\n", c.AppContext.TreeSlug)
 	fmt.Printf("current focus: %s\n", state.CurrentFocus)
