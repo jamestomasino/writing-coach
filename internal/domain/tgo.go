@@ -123,7 +123,7 @@ func SeedTGOs(treeSlug string) []string {
 	if !ok {
 		return mythicTragedyTree.SeedCodes
 	}
-	return append([]string(nil), tree.SeedCodes...)
+	return SeedCodesForDefinition(tree)
 }
 
 func NextUnlockedTGOs(treeSlug string, completed map[string]bool, active map[string]bool, limit int) []TGO {
@@ -131,6 +131,18 @@ func NextUnlockedTGOs(treeSlug string, completed map[string]bool, active map[str
 	if !ok {
 		tree = mythicTragedyTree
 	}
+	return NextUnlockedFromDefinition(tree, completed, active, limit)
+}
+
+func SeedCodesForDefinition(tree TGOTreeDefinition) []string {
+	return append([]string(nil), tree.SeedCodes...)
+}
+
+func PrioritySkillsForDefinition(tree TGOTreeDefinition) []string {
+	return append([]string(nil), tree.PrioritySkills...)
+}
+
+func NextUnlockedFromDefinition(tree TGOTreeDefinition, completed map[string]bool, active map[string]bool, limit int) []TGO {
 	var out []TGO
 	for _, tgo := range tree.TGOs {
 		if completed[tgo.Code] || active[tgo.Code] || !prereqsMet(tgo, completed) {

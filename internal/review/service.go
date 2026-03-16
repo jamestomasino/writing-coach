@@ -16,6 +16,12 @@ type Service struct {
 	fallback  deterministicReviewer
 }
 
+type Result struct {
+	Review         domain.Review
+	Scores         []domain.SkillScore
+	AnalyzerReport analyzer.Report
+}
+
 func NewService(client *openai.Client, analyzers analyzer.Service) Service {
 	return Service{
 		client:    client,
@@ -25,6 +31,11 @@ func NewService(client *openai.Client, analyzers analyzer.Service) Service {
 }
 
 func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {
+	result := s.ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
+	return result.Review, result.Scores
+}
+
+func (s Service) ReviewSubmissionDetailed(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO) Result {
 	report := s.analyzers.Analyze(ctx, sub.Content)
 
 	if s.client != nil && s.client.Enabled() {
@@ -40,18 +51,18 @@ func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, ac
 		if err == nil {
 			reviewResult.ReviewKind = "openai"
 			reviewResult.AnalyzerFindings = analyzer.TopFindings(report, 6)
-			return reviewResult, scores
+			return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 		}
 
 		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs)
 		reviewResult.ReviewKind = "deterministic-fallback"
 		reviewResult.ProviderNote = err.Error()
-		return reviewResult, scores
+		return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 	}
 
 	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs)
 	reviewResult.ReviewKind = "deterministic"
-	return reviewResult, scores
+	return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 }
 
 func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO, completedTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {

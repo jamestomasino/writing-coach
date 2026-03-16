@@ -88,6 +88,8 @@ This enables:
 - a youth foundations tree for your son
 - later trees for essays, scene craft, fantasy foundations, or other writing goals
 
+Tree definitions are now persisted in the database so new curricula can be created over the API and enrolled without another code release.
+
 ## Persistence Model
 
 SQLite is the system of record. The schema should support direct reporting and preserve enough history to re-evaluate earlier work if rubrics change.

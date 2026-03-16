@@ -64,6 +64,26 @@ func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 		t.Fatal("expected embedded TGO metadata")
 	}
 
+	customTreeResp, err := http.Post(testServer.URL+"/api/trees", "application/json", strings.NewReader(`{
+		"slug":"essay-basics",
+		"title":"Essay Basics",
+		"description":"A simple expository track",
+		"seed_codes":["claim-clarity","sentence-flow","paragraph-focus"],
+		"priority_skills":["clarity and coherence","paragraph control"],
+		"tgos":[
+			{"code":"claim-clarity","title":"Claim Clarity","description":"State the main point clearly.","stage":"foundation","stage_order":1,"mastery_hint":"The thesis is immediately legible."},
+			{"code":"sentence-flow","title":"Sentence Flow","description":"Keep prose readable.","stage":"foundation","stage_order":2,"mastery_hint":"Sentences connect cleanly."},
+			{"code":"paragraph-focus","title":"Paragraph Focus","description":"Each paragraph serves one purpose.","stage":"foundation","stage_order":3,"mastery_hint":"Paragraphs stay unified."}
+		]
+	}`))
+	if err != nil {
+		t.Fatalf("create tree: %v", err)
+	}
+	defer customTreeResp.Body.Close()
+	if customTreeResp.StatusCode != http.StatusCreated {
+		t.Fatalf("custom tree status: %d", customTreeResp.StatusCode)
+	}
+
 	createResp, err := http.Post(testServer.URL+"/api/enrollments", "application/json", strings.NewReader(`{"user_slug":"kid","user_name":"Kid","tree_slug":"youth-writing-foundations"}`))
 	if err != nil {
 		t.Fatalf("create enrollment: %v", err)
@@ -117,6 +137,15 @@ func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 	defer treeResp.Body.Close()
 	if treeResp.StatusCode != http.StatusOK {
 		t.Fatalf("tree status: %d", treeResp.StatusCode)
+	}
+
+	customTreeGetResp, err := http.Get(testServer.URL + "/api/trees/essay-basics")
+	if err != nil {
+		t.Fatalf("get custom tree: %v", err)
+	}
+	defer customTreeGetResp.Body.Close()
+	if customTreeGetResp.StatusCode != http.StatusOK {
+		t.Fatalf("custom tree get status: %d", customTreeGetResp.StatusCode)
 	}
 
 	boardResp, err := http.Get(testServer.URL + "/api/enrollments/2/board")
@@ -227,6 +256,23 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	defer singleReviewResp.Body.Close()
 	if singleReviewResp.StatusCode != http.StatusOK {
 		t.Fatalf("review get status: %d", singleReviewResp.StatusCode)
+	}
+	var singleReviewPayload struct {
+		Review struct {
+			Artifacts struct {
+				AnalyzerReport map[string]any `json:"analyzer_report"`
+				Recommendation map[string]any `json:"recommendation"`
+			} `json:"artifacts"`
+		} `json:"review"`
+	}
+	if err := json.NewDecoder(singleReviewResp.Body).Decode(&singleReviewPayload); err != nil {
+		t.Fatalf("decode single review: %v", err)
+	}
+	if len(singleReviewPayload.Review.Artifacts.AnalyzerReport) == 0 {
+		t.Fatal("expected analyzer report artifact")
+	}
+	if len(singleReviewPayload.Review.Artifacts.Recommendation) == 0 {
+		t.Fatal("expected recommendation artifact")
 	}
 }
 

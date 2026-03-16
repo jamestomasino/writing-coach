@@ -106,8 +106,10 @@ WRITING_COACH_HTTP_ADDR=:8090 make serve
 Core endpoints:
 
 - `GET /api/users`
+- `POST /api/users`
 - `GET /api/users/{slug}`
 - `GET /api/trees`
+- `POST /api/trees`
 - `GET /api/trees/{slug}`
 - `GET /api/enrollments`
 - `POST /api/enrollments`
@@ -145,6 +147,7 @@ Ory Kratos integration:
 - the API will validate browser/session authentication through Kratos `GET /sessions/whoami`
 - when Kratos auth is enabled, each authenticated identity maps deterministically to its own internal writer profile
 - this avoids storing password hashes in `writing-coach` itself
+- `GET /api/auth/session` returns the resolved auth mode, Kratos identity, and effective user/tree context for the browser client
 
 Examples:
 
@@ -203,6 +206,8 @@ The repository currently contains:
 - a Go CLI plus JSON API server
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior
+- persisted review artifacts for analyzer output, recommendation state, and revision comparisons
+- DB-backed tree definitions so new curricula can be created over the API instead of only in code
 
 ## Deployment
 
@@ -287,7 +292,7 @@ server {
 
 ## Next Milestones
 
-- add custom tree authoring and editing, not just built-in trees
+- add tree editing and versioning, not just creation
 - make prompt and review generation adapt more strongly to each tree's pedagogy
-- store richer review artifacts for later audit and calibration
+- tighten admin/auth boundaries around tree authoring before exposing it publicly
 - build the first web UI against the stabilized API

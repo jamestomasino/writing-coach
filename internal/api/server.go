@@ -51,6 +51,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
 	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)
 	mux.HandleFunc("GET /api/trees", s.handleTreesList)
+	mux.HandleFunc("POST /api/trees", s.handleTreeCreate)
 	mux.HandleFunc("GET /api/trees/{slug}", s.handleTreeGet)
 	mux.HandleFunc("GET /api/enrollments", s.handleEnrollmentsList)
 	mux.HandleFunc("POST /api/enrollments", s.handleEnrollmentsCreate)
@@ -188,6 +189,7 @@ type reviewResponse struct {
 	MetricWordCount    int                     `json:"metric_word_count"`
 	TGOAssessments     []tgoAssessmentResponse `json:"tgo_assessments"`
 	CompletedTGOChecks []tgoAssessmentResponse `json:"completed_tgo_checks"`
+	Artifacts          *reviewArtifactsPayload `json:"artifacts,omitempty"`
 }
 
 type comparisonResponse struct {
@@ -197,6 +199,12 @@ type comparisonResponse struct {
 	RemovedWords         []string `json:"removed_words"`
 	AddressedWeaknesses  []string `json:"addressed_weaknesses"`
 	PersistingWeaknesses []string `json:"persisting_weaknesses"`
+}
+
+type reviewArtifactsPayload struct {
+	AnalyzerReport map[string]any `json:"analyzer_report,omitempty"`
+	Recommendation map[string]any `json:"recommendation,omitempty"`
+	Comparison     map[string]any `json:"comparison,omitempty"`
 }
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -292,7 +300,57 @@ func (s Server) handleTreesList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	includeTGOs := r.URL.Query().Get("include_tgos") == "1"
-	writeJSON(w, http.StatusOK, map[string]any{"trees": toTreeResponses(trees, includeTGOs)})
+	writeJSON(w, http.StatusOK, map[string]any{"trees": s.toTreeResponses(r.Context(), trees, includeTGOs)})
+}
+
+func (s Server) handleTreeCreate(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Slug           string        `json:"slug"`
+		Title          string        `json:"title"`
+		Description    string        `json:"description"`
+		SeedCodes      []string      `json:"seed_codes"`
+		PrioritySkills []string      `json:"priority_skills"`
+		TGOs           []tgoResponse `json:"tgos"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	if strings.TrimSpace(payload.Slug) == "" || strings.TrimSpace(payload.Title) == "" || len(payload.TGOs) == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("slug, title, and at least one TGO are required"))
+		return
+	}
+	def := domain.TGOTreeDefinition{
+		Slug:           payload.Slug,
+		Title:          payload.Title,
+		Description:    payload.Description,
+		SeedCodes:      append([]string(nil), payload.SeedCodes...),
+		PrioritySkills: append([]string(nil), payload.PrioritySkills...),
+	}
+	for _, item := range payload.TGOs {
+		def.TGOs = append(def.TGOs, domain.TGO{
+			Code:          item.Code,
+			Title:         item.Title,
+			Description:   item.Description,
+			Stage:         item.Stage,
+			StageOrder:    item.StageOrder,
+			Prerequisites: append([]string(nil), item.Prerequisites...),
+			MasteryHint:   item.MasteryHint,
+		})
+	}
+	if len(def.SeedCodes) == 0 && len(def.TGOs) >= 3 {
+		def.SeedCodes = []string{def.TGOs[0].Code, def.TGOs[1].Code, def.TGOs[2].Code}
+	}
+	if err := s.Store.SaveTreeDefinition(r.Context(), def); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tree, err := s.Store.TreeBySlug(r.Context(), def.Slug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"tree": s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0]})
 }
 
 func (s Server) handleTreeGet(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +363,7 @@ func (s Server) handleTreeGet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, status, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"tree": toTreeResponses([]domain.TGOTree{tree}, true)[0]})
+	writeJSON(w, http.StatusOK, map[string]any{"tree": s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0]})
 }
 
 func (s Server) handleEnrollmentsList(w http.ResponseWriter, r *http.Request) {
@@ -645,17 +703,26 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	reviewResult, scores := s.Reviews.ReviewSubmission(r.Context(), sub, activeTGOs, completedTGOs)
-	reviewResult.UserID = appContext.UserID
-	reviewResult.TreeID = appContext.TreeID
-	recommendation, err := s.Curriculum.SyncTGOs(r.Context(), s.Store, appContext.TreeSlug, appContext.EnrollmentID, reviewResult)
+	reviewResult := s.Reviews.ReviewSubmissionDetailed(r.Context(), sub, activeTGOs, completedTGOs)
+	reviewResult.Review.UserID = appContext.UserID
+	reviewResult.Review.TreeID = appContext.TreeID
+	recommendation, err := s.Curriculum.SyncTGOs(r.Context(), s.Store, appContext.TreeSlug, appContext.EnrollmentID, reviewResult.Review)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	reviewResult.NextFocus = recommendation.Focus
-	reviewID, err := s.Store.SaveReview(r.Context(), reviewResult, scores)
+	reviewResult.Review.NextFocus = recommendation.Focus
+	reviewID, err := s.Store.SaveReview(r.Context(), reviewResult.Review, reviewResult.Scores)
 	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.Store.SaveReviewArtifacts(r.Context(), domain.ReviewArtifacts{
+		ReviewID:           reviewID,
+		AnalyzerReportJSON: mustJSON(reviewResult.AnalyzerReport),
+		RecommendationJSON: mustJSON(recommendation),
+		ComparisonJSON:     mustJSON(s.reviewComparisonPayload(r.Context(), sub, reviewResult.Review)),
+	}); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -663,11 +730,11 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	reviewResult.ID = reviewID
+	reviewResult.Review.ID = reviewID
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"context":        requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"review":         toReviewResponse(reviewResult),
-		"skill_scores":   toScoreResponses(scores),
+		"review":         toReviewResponse(reviewResult.Review),
+		"skill_scores":   toScoreResponses(reviewResult.Scores),
 		"recommendation": recommendation,
 	})
 }
@@ -735,6 +802,19 @@ func (s Server) handleReviewGet(w http.ResponseWriter, r *http.Request) {
 	}
 	if !belongsToContext(reviewResult.UserID, reviewResult.TreeID, appContext) {
 		writeError(w, http.StatusNotFound, fmt.Errorf("review not found"))
+		return
+	}
+	artifacts, err := s.Store.GetReviewArtifacts(r.Context(), reviewResult.ID)
+	if err == nil {
+		response := toReviewResponse(reviewResult)
+		response.Artifacts = decodeReviewArtifacts(artifacts)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+			"review":  response,
+		})
+		return
+	} else if !db.IsNotFound(err) {
+		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -928,12 +1008,17 @@ func (s Server) writeEnrollmentBoard(ctx context.Context, w http.ResponseWriter,
 }
 
 func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter, appContext session.Context, state domain.CurriculumState, activeTGOs, completedTGOs []domain.TGO) {
-	progress, err := s.Store.ProgressReport(ctx, appContext.UserID, appContext.TreeID, appContext.TreeSlug, 5)
+	treeDef, err := s.Store.TreeDefinitionBySlug(ctx, appContext.TreeSlug)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	strongest, weakest, err := s.Store.StrongestWeakestSkills(ctx, appContext.UserID, appContext.TreeID, appContext.TreeSlug, 5)
+	progress, err := s.Store.ProgressReport(ctx, appContext.UserID, appContext.TreeID, treeDef.PrioritySkills, 5)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	strongest, weakest, err := s.Store.StrongestWeakestSkills(ctx, appContext.UserID, appContext.TreeID, treeDef.PrioritySkills, 5)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -967,7 +1052,7 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 	for _, tgo := range activeTGOs {
 		activeSet[tgo.Code] = true
 	}
-	upcoming := domain.NextUnlockedTGOs(appContext.TreeSlug, completedSet, activeSet, 3)
+	upcoming := domain.NextUnlockedFromDefinition(treeDef, completedSet, activeSet, 3)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"context":                   requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
@@ -1057,6 +1142,39 @@ func belongsToContext(userID, treeID int64, appContext session.Context) bool {
 	return userID == appContext.UserID && treeID == appContext.TreeID
 }
 
+func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submission, currentReview domain.Review) map[string]any {
+	previous, err := s.Store.PreviousSubmission(ctx, sub)
+	if err != nil {
+		return nil
+	}
+	previousReview, err := s.Store.LatestReviewForSubmission(ctx, previous.ID)
+	if err != nil {
+		return nil
+	}
+	comparison := review.CompareSubmissions(sub, previous, currentReview, previousReview)
+	return map[string]any{
+		"summary":               comparison.Summary,
+		"word_delta":            comparison.WordDelta,
+		"added_words":           comparison.AddedWords,
+		"removed_words":         comparison.RemovedWords,
+		"addressed_weaknesses":  comparison.AddressedWeaknesses,
+		"persisting_weaknesses": comparison.PersistingWeaknesses,
+	}
+}
+
+func decodeReviewArtifacts(artifacts domain.ReviewArtifacts) *reviewArtifactsPayload {
+	payload := &reviewArtifactsPayload{}
+	_ = json.Unmarshal([]byte(artifacts.AnalyzerReportJSON), &payload.AnalyzerReport)
+	_ = json.Unmarshal([]byte(artifacts.RecommendationJSON), &payload.Recommendation)
+	_ = json.Unmarshal([]byte(artifacts.ComparisonJSON), &payload.Comparison)
+	return payload
+}
+
+func mustJSON(v any) string {
+	bytes, _ := json.Marshal(v)
+	return string(bytes)
+}
+
 func writeError(w http.ResponseWriter, status int, err error) {
 	writeJSON(w, status, errorResponse{Error: err.Error()})
 }
@@ -1107,7 +1225,7 @@ func toUserResponses(users []domain.User) []userResponse {
 	return out
 }
 
-func toTreeResponses(trees []domain.TGOTree, includeTGOs bool) []treeResponse {
+func (s Server) toTreeResponses(ctx context.Context, trees []domain.TGOTree, includeTGOs bool) []treeResponse {
 	var out []treeResponse
 	for _, tree := range trees {
 		item := treeResponse{
@@ -1118,7 +1236,7 @@ func toTreeResponses(trees []domain.TGOTree, includeTGOs bool) []treeResponse {
 			CreatedAt:   db.Since(tree.CreatedAt),
 		}
 		if includeTGOs {
-			if def, ok := domain.BuiltInTreeBySlug(tree.Slug); ok {
+			if def, err := s.Store.TreeDefinitionBySlug(ctx, tree.Slug); err == nil {
 				item.SeedCodes = append([]string(nil), def.SeedCodes...)
 				item.PrioritySkills = append([]string(nil), def.PrioritySkills...)
 				item.TGOs = toTGOResponses(def.TGOs)

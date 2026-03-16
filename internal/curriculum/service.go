@@ -27,6 +27,10 @@ func (Service) DescribeNextStep(state domain.CurriculumState) string {
 }
 
 func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, enrollmentID int64, review domain.Review) (Recommendation, error) {
+	treeDef, err := store.TreeDefinitionBySlug(ctx, treeSlug)
+	if err != nil {
+		return Recommendation{}, err
+	}
 	active, err := store.ActiveTGOs(ctx, enrollmentID)
 	if err != nil {
 		return Recommendation{}, err
@@ -79,7 +83,7 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 		}
 		completedSet[assessment.TGOCode] = true
 		delete(activeSet, assessment.TGOCode)
-		nextOptions := domain.NextUnlockedTGOs(treeSlug, completedSet, activeSet, 1)
+		nextOptions := domain.NextUnlockedFromDefinition(treeDef, completedSet, activeSet, 1)
 		if len(nextOptions) == 0 {
 			continue
 		}

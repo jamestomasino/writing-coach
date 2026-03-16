@@ -422,11 +422,15 @@ func (c CLI) runProgress(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	items, err := c.Store.ProgressReport(ctx, c.AppContext.UserID, c.AppContext.TreeID, c.AppContext.TreeSlug, 5)
+	treeDef, err := c.Store.TreeDefinitionBySlug(ctx, c.AppContext.TreeSlug)
 	if err != nil {
 		return err
 	}
-	strongest, weakest, err := c.Store.StrongestWeakestSkills(ctx, c.AppContext.UserID, c.AppContext.TreeID, c.AppContext.TreeSlug, 5)
+	items, err := c.Store.ProgressReport(ctx, c.AppContext.UserID, c.AppContext.TreeID, treeDef.PrioritySkills, 5)
+	if err != nil {
+		return err
+	}
+	strongest, weakest, err := c.Store.StrongestWeakestSkills(ctx, c.AppContext.UserID, c.AppContext.TreeID, treeDef.PrioritySkills, 5)
 	if err != nil {
 		return err
 	}
@@ -458,7 +462,7 @@ func (c CLI) runProgress(ctx context.Context) error {
 	for _, tgo := range activeTGOs {
 		activeSet[tgo.Code] = true
 	}
-	upcomingTGOs := domain.NextUnlockedTGOs(c.AppContext.TreeSlug, completedSet, activeSet, 3)
+	upcomingTGOs := domain.NextUnlockedFromDefinition(treeDef, completedSet, activeSet, 3)
 	fmt.Printf("user: %s\n", c.AppContext.UserSlug)
 	fmt.Printf("tree: %s\n", c.AppContext.TreeSlug)
 	fmt.Printf("current focus: %s\n", state.CurrentFocus)

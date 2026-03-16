@@ -72,7 +72,11 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 		t.Fatalf("save review: %v", err)
 	}
 
-	report, err := store.ProgressReport(context.Background(), userID, treeID, "mythic-tragedy-apprenticeship", 5)
+	treeDef, err := store.TreeDefinitionBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("tree definition: %v", err)
+	}
+	report, err := store.ProgressReport(context.Background(), userID, treeID, treeDef.PrioritySkills, 5)
 	if err != nil {
 		t.Fatalf("progress report: %v", err)
 	}
@@ -85,6 +89,21 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 	}
 	if len(loaded.CompletedTGOChecks) != 1 || loaded.CompletedTGOChecks[0].TGOCode != "causal-clarity" {
 		t.Fatalf("completed tgo checks = %#v", loaded.CompletedTGOChecks)
+	}
+	if err := store.SaveReviewArtifacts(context.Background(), domain.ReviewArtifacts{
+		ReviewID:           loaded.ID,
+		AnalyzerReportJSON: `{"metrics":{"word_count":6}}`,
+		RecommendationJSON: `{"focus":"tragic inevitability"}`,
+		ComparisonJSON:     `{"summary":"tighter than before"}`,
+	}); err != nil {
+		t.Fatalf("save review artifacts: %v", err)
+	}
+	artifacts, err := store.GetReviewArtifacts(context.Background(), loaded.ID)
+	if err != nil {
+		t.Fatalf("get review artifacts: %v", err)
+	}
+	if artifacts.RecommendationJSON == "" || artifacts.AnalyzerReportJSON == "" {
+		t.Fatalf("artifacts = %#v", artifacts)
 	}
 }
 

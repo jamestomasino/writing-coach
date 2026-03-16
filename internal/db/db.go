@@ -73,14 +73,17 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 		`, tgo.Code, tgo.Title, tgo.Description, tgo.Stage, tgo.StageOrder, tgo.Code); err != nil {
 			return err
 		}
+		if _, err := s.SQL.ExecContext(ctx, `
+			UPDATE tgo_catalog
+			SET title = ?, description = ?, stage = ?, stage_order = ?
+			WHERE code = ?
+		`, tgo.Title, tgo.Description, tgo.Stage, tgo.StageOrder, tgo.Code); err != nil {
+			return err
+		}
 	}
 
 	for _, tree := range domain.BuiltInTrees {
-		if _, err := s.SQL.ExecContext(ctx, `
-			INSERT INTO tgo_trees (slug, title, description)
-			SELECT ?, ?, ?
-			WHERE NOT EXISTS (SELECT 1 FROM tgo_trees WHERE slug = ?)
-		`, tree.Slug, tree.Title, tree.Description, tree.Slug); err != nil {
+		if err := s.SaveTreeDefinition(ctx, tree); err != nil {
 			return err
 		}
 	}
@@ -89,9 +92,12 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 }
 
 func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, treeSlug string) (int64, int64, int64, error) {
-	treeDef, ok := domain.BuiltInTreeBySlug(treeSlug)
-	if !ok {
-		return 0, 0, 0, fmt.Errorf("unknown tree slug %q", treeSlug)
+	treeDef, err := s.TreeDefinitionBySlug(ctx, treeSlug)
+	if err != nil {
+		if IsNotFound(err) {
+			return 0, 0, 0, fmt.Errorf("unknown tree slug %q", treeSlug)
+		}
+		return 0, 0, 0, err
 	}
 
 	if _, err := s.SQL.ExecContext(ctx, `
@@ -109,16 +115,6 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 	tree, err := s.TreeBySlug(ctx, treeSlug)
 	if err != nil {
 		return 0, 0, 0, err
-	}
-
-	for _, tgo := range treeDef.TGOs {
-		if _, err := s.SQL.ExecContext(ctx, `
-			INSERT INTO tree_tgos (tree_id, tgo_code)
-			SELECT ?, ?
-			WHERE NOT EXISTS (SELECT 1 FROM tree_tgos WHERE tree_id = ? AND tgo_code = ?)
-		`, tree.ID, tgo.Code, tree.ID, tgo.Code); err != nil {
-			return 0, 0, 0, err
-		}
 	}
 
 	if _, err := s.SQL.ExecContext(ctx, `
@@ -140,7 +136,7 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 	`, enrollmentID, treeDef.SeedCodes[0], 2, enrollmentID); err != nil {
 		return 0, 0, 0, err
 	}
-	for idx, code := range domain.SeedTGOs(treeSlug) {
+	for idx, code := range domain.SeedCodesForDefinition(treeDef) {
 		slot := idx + 1
 		if _, err := s.SQL.ExecContext(ctx, `
 			INSERT INTO enrollment_active_tgos (enrollment_id, slot, tgo_code)
@@ -168,6 +164,103 @@ func (s *Store) TreeBySlug(ctx context.Context, slug string) (domain.TGOTree, er
 		SELECT id, slug, title, description, created_at FROM tgo_trees WHERE slug = ?
 	`, slug).Scan(&tree.ID, &tree.Slug, &tree.Title, &tree.Description, &tree.CreatedAt)
 	return tree, err
+}
+
+func (s *Store) TreeDefinitionBySlug(ctx context.Context, slug string) (domain.TGOTreeDefinition, error) {
+	var def domain.TGOTreeDefinition
+	var seedCodesJSON, prioritySkillsJSON string
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT slug, title, description, seed_codes_json, priority_skills_json
+		FROM tgo_trees
+		WHERE slug = ?
+	`, slug).Scan(&def.Slug, &def.Title, &def.Description, &seedCodesJSON, &prioritySkillsJSON)
+	if err != nil {
+		return domain.TGOTreeDefinition{}, err
+	}
+	if def.SeedCodes, err = DecodeStringSlice(seedCodesJSON); err != nil {
+		return domain.TGOTreeDefinition{}, err
+	}
+	if def.PrioritySkills, err = DecodeStringSlice(prioritySkillsJSON); err != nil {
+		return domain.TGOTreeDefinition{}, err
+	}
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, tt.prerequisites_json, tt.mastery_hint
+		FROM tree_tgos tt
+		JOIN tgo_trees t ON t.id = tt.tree_id
+		JOIN tgo_catalog c ON c.code = tt.tgo_code
+		WHERE t.slug = ?
+		ORDER BY c.stage_order ASC, c.id ASC
+	`, slug)
+	if err != nil {
+		return domain.TGOTreeDefinition{}, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var tgo domain.TGO
+		var prereqsJSON string
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &prereqsJSON, &tgo.MasteryHint); err != nil {
+			return domain.TGOTreeDefinition{}, err
+		}
+		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
+			return domain.TGOTreeDefinition{}, err
+		}
+		def.TGOs = append(def.TGOs, tgo)
+	}
+	return def, rows.Err()
+}
+
+func (s *Store) SaveTreeDefinition(ctx context.Context, def domain.TGOTreeDefinition) error {
+	tx, err := s.SQL.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if _, err = tx.ExecContext(ctx, `
+		INSERT INTO tgo_trees (slug, title, description, seed_codes_json, priority_skills_json)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(slug) DO UPDATE SET
+			title = excluded.title,
+			description = excluded.description,
+			seed_codes_json = excluded.seed_codes_json,
+			priority_skills_json = excluded.priority_skills_json
+	`, def.Slug, def.Title, def.Description, mustJSON(def.SeedCodes), mustJSON(def.PrioritySkills)); err != nil {
+		return err
+	}
+
+	var treeID int64
+	if err = tx.QueryRowContext(ctx, `SELECT id FROM tgo_trees WHERE slug = ?`, def.Slug).Scan(&treeID); err != nil {
+		return err
+	}
+
+	for _, tgo := range def.TGOs {
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO tgo_catalog (code, title, description, stage, stage_order)
+			VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT(code) DO UPDATE SET
+				title = excluded.title,
+				description = excluded.description,
+				stage = excluded.stage,
+				stage_order = excluded.stage_order
+		`, tgo.Code, tgo.Title, tgo.Description, tgo.Stage, tgo.StageOrder); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO tree_tgos (tree_id, tgo_code, prerequisites_json, mastery_hint)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(tree_id, tgo_code) DO UPDATE SET
+				prerequisites_json = excluded.prerequisites_json,
+				mastery_hint = excluded.mastery_hint
+		`, treeID, tgo.Code, mustJSON(tgo.Prerequisites), tgo.MasteryHint); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {
@@ -545,11 +638,25 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 	return reviewID, nil
 }
 
+func (s *Store) SaveReviewArtifacts(ctx context.Context, artifacts domain.ReviewArtifacts) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO review_artifacts (review_id, analyzer_report_json, recommendation_json, comparison_json)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(review_id) DO UPDATE SET
+			analyzer_report_json = excluded.analyzer_report_json,
+			recommendation_json = excluded.recommendation_json,
+			comparison_json = excluded.comparison_json
+	`, artifacts.ReviewID, artifacts.AnalyzerReportJSON, artifacts.RecommendationJSON, artifacts.ComparisonJSON)
+	return err
+}
+
 func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TGO, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, a.slot
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, a.slot, tt.prerequisites_json, tt.mastery_hint
 		FROM enrollment_active_tgos a
 		JOIN tgo_catalog c ON c.code = a.tgo_code
+		LEFT JOIN user_tree_enrollments e ON e.id = a.enrollment_id
+		LEFT JOIN tree_tgos tt ON tt.tree_id = e.tree_id AND tt.tgo_code = c.code
 		WHERE a.enrollment_id = ?
 		ORDER BY a.slot ASC
 	`, enrollmentID)
@@ -560,12 +667,12 @@ func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TG
 	var tgos []domain.TGO
 	for rows.Next() {
 		var tgo domain.TGO
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot); err != nil {
+		var prereqsJSON string
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
 			return nil, err
 		}
-		if canonical, ok := domain.TGOByCode(tgo.Code); ok {
-			tgo.Prerequisites = canonical.Prerequisites
-			tgo.MasteryHint = canonical.MasteryHint
+		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
+			return nil, err
 		}
 		tgos = append(tgos, tgo)
 	}
@@ -574,9 +681,11 @@ func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TG
 
 func (s *Store) CompletedTGOs(ctx context.Context, enrollmentID int64) ([]domain.TGO, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, 0
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, 0, tt.prerequisites_json, tt.mastery_hint
 		FROM enrollment_completed_tgos x
 		JOIN tgo_catalog c ON c.code = x.tgo_code
+		LEFT JOIN user_tree_enrollments e ON e.id = x.enrollment_id
+		LEFT JOIN tree_tgos tt ON tt.tree_id = e.tree_id AND tt.tgo_code = c.code
 		WHERE x.enrollment_id = ?
 		ORDER BY x.completed_at ASC
 	`, enrollmentID)
@@ -587,12 +696,12 @@ func (s *Store) CompletedTGOs(ctx context.Context, enrollmentID int64) ([]domain
 	var tgos []domain.TGO
 	for rows.Next() {
 		var tgo domain.TGO
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot); err != nil {
+		var prereqsJSON string
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
 			return nil, err
 		}
-		if canonical, ok := domain.TGOByCode(tgo.Code); ok {
-			tgo.Prerequisites = canonical.Prerequisites
-			tgo.MasteryHint = canonical.MasteryHint
+		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
+			return nil, err
 		}
 		tgos = append(tgos, tgo)
 	}
@@ -809,6 +918,25 @@ func (s *Store) ReviewTGOAssessments(ctx context.Context, reviewID int64) ([]dom
 	return assessments, rows.Err()
 }
 
+func (s *Store) GetReviewArtifacts(ctx context.Context, reviewID int64) (domain.ReviewArtifacts, error) {
+	var artifacts domain.ReviewArtifacts
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT review_id, analyzer_report_json, recommendation_json, comparison_json, created_at
+		FROM review_artifacts
+		WHERE review_id = ?
+	`, reviewID).Scan(
+		&artifacts.ReviewID,
+		&artifacts.AnalyzerReportJSON,
+		&artifacts.RecommendationJSON,
+		&artifacts.ComparisonJSON,
+		&artifacts.CreatedAt,
+	)
+	if err != nil {
+		return domain.ReviewArtifacts{}, err
+	}
+	return artifacts, nil
+}
+
 func (s *Store) UpdateCurriculumState(ctx context.Context, enrollmentID int64, focus string, difficulty int, reviewID int64) error {
 	_, err := s.SQL.ExecContext(ctx, `
 		UPDATE user_curriculum_state
@@ -898,14 +1026,14 @@ func (s *Store) LatestSkillScores(ctx context.Context, submissionID int64) (map[
 	return values, rows.Err()
 }
 
-func (s *Store) ProgressReport(ctx context.Context, userID, treeID int64, treeSlug string, limit int) ([]string, error) {
+func (s *Store) ProgressReport(ctx context.Context, userID, treeID int64, prioritySkills []string, limit int) ([]string, error) {
 	averages, err := s.SkillAverages(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
 
 	var lines []string
-	for _, skill := range domain.PrioritySkillsForTree(treeSlug) {
+	for _, skill := range prioritySkills {
 		avg, ok := averages[skill]
 		if !ok {
 			continue
@@ -958,7 +1086,7 @@ func (s *Store) RecurringAnalyzerFindings(ctx context.Context, userID, treeID in
 	return collectRecurringJSONStrings(rows, 4)
 }
 
-func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64, treeSlug string, limit int) ([]string, []string, error) {
+func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64, prioritySkills []string, limit int) ([]string, []string, error) {
 	averages, err := s.SkillAverages(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, nil, err
@@ -976,7 +1104,7 @@ func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64
 	}
 	sort.Slice(pairs, func(i, j int) bool {
 		if pairs[i].avg == pairs[j].avg {
-			return domain.SkillPriority(treeSlug, pairs[i].skill) > domain.SkillPriority(treeSlug, pairs[j].skill)
+			return skillPriority(prioritySkills, pairs[i].skill) > skillPriority(prioritySkills, pairs[j].skill)
 		}
 		return pairs[i].avg > pairs[j].avg
 	})
@@ -1145,6 +1273,15 @@ func DecodeStringSlice(raw string) ([]string, error) {
 		return nil, err
 	}
 	return values, nil
+}
+
+func skillPriority(prioritySkills []string, skill string) int {
+	for idx, value := range prioritySkills {
+		if value == skill {
+			return len(prioritySkills) - idx
+		}
+	}
+	return 0
 }
 
 func scanExercise(scanner interface{ Scan(...any) error }) (domain.Exercise, error) {

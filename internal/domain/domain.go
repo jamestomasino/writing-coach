@@ -87,6 +87,14 @@ type Review struct {
 	MetricWordCount    int
 }
 
+type ReviewArtifacts struct {
+	ReviewID           int64
+	AnalyzerReportJSON string
+	RecommendationJSON string
+	ComparisonJSON     string
+	CreatedAt          time.Time
+}
+
 type SkillScore struct {
 	SubmissionID int64
 	Skill        string
