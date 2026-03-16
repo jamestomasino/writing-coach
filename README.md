@@ -84,6 +84,8 @@ Core endpoints:
 - `GET /api/health`
 - `GET /api/ready`
 - `GET /api/auth/session`
+- `GET /api/onboarding`
+- `POST /api/onboarding`
 - `GET /api/admins`
 - `POST /api/admins`
 - `DELETE /api/admins/{email}`
@@ -117,7 +119,7 @@ Ory Kratos integration:
 - the API will validate browser/session authentication through Kratos `GET /sessions/whoami`
 - when Kratos auth is enabled, each authenticated identity maps deterministically to its own internal writer profile
 - this avoids storing password hashes in `writing-coach` itself
-- `GET /api/auth/session` returns the resolved auth mode, Kratos identity, and effective user/tree context for the browser client
+- `GET /api/auth/session` returns the resolved auth mode, Kratos identity, onboarding state, and effective user/tree context for the browser client
 
 Examples:
 
@@ -181,6 +183,7 @@ The repository currently contains:
 - a documented architecture plan
 - a Go API server behind the browser client
 - a Next.js web app built from the Catalyst component kit
+- a questionnaire-driven onboarding flow that generates a user-specific TGO tree
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior
 - persisted review artifacts for analyzer output, recommendation state, and revision comparisons
@@ -257,6 +260,6 @@ server {
 ## Next Milestones
 
 - replace the stopgap admin provisioning screen with a true invite flow
-- add onboarding and tree generation from the writing-goals questionnaire
+- replace admin-side user provisioning with a true invite flow
 - emit real inline review annotations instead of summary-only coach notes
 - add richer tree and curriculum browsing screens in the web app

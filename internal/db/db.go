@@ -117,11 +117,7 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 		return 0, 0, 0, err
 	}
 
-	if _, err := s.SQL.ExecContext(ctx, `
-		INSERT INTO users (slug, name)
-		SELECT ?, ?
-		WHERE NOT EXISTS (SELECT 1 FROM users WHERE slug = ?)
-	`, userSlug, userName, userSlug); err != nil {
+	if err := s.EnsureUser(ctx, userSlug, userName); err != nil {
 		return 0, 0, 0, err
 	}
 
@@ -163,16 +159,49 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 			return 0, 0, 0, err
 		}
 	}
+	if user.ActiveTreeSlug == "" {
+		if err := s.SetUserActiveTree(ctx, user.ID, treeSlug); err != nil {
+			return 0, 0, 0, err
+		}
+	}
 
 	return user.ID, tree.ID, enrollmentID, nil
+}
+
+func (s *Store) EnsureUser(ctx context.Context, userSlug, userName string) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO users (slug, name)
+		SELECT ?, ?
+		WHERE NOT EXISTS (SELECT 1 FROM users WHERE slug = ?)
+	`, userSlug, userName, userSlug)
+	return err
 }
 
 func (s *Store) UserBySlug(ctx context.Context, slug string) (domain.User, error) {
 	var user domain.User
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, slug, name, created_at FROM users WHERE slug = ?
-	`, slug).Scan(&user.ID, &user.Slug, &user.Name, &user.CreatedAt)
+		SELECT id, slug, name, active_tree_slug, created_at FROM users WHERE slug = ?
+	`, slug).Scan(&user.ID, &user.Slug, &user.Name, &user.ActiveTreeSlug, &user.CreatedAt)
 	return user, err
+}
+
+func (s *Store) UserActiveTreeSlug(ctx context.Context, userSlug string) (string, error) {
+	var activeTreeSlug string
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT active_tree_slug
+		FROM users
+		WHERE slug = ?
+	`, userSlug).Scan(&activeTreeSlug)
+	return activeTreeSlug, err
+}
+
+func (s *Store) SetUserActiveTree(ctx context.Context, userID int64, treeSlug string) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		UPDATE users
+		SET active_tree_slug = ?
+		WHERE id = ?
+	`, treeSlug, userID)
+	return err
 }
 
 func (s *Store) IsAdminEmail(ctx context.Context, email string) (bool, error) {
@@ -444,7 +473,7 @@ func (s *Store) TreeVersionByNumber(ctx context.Context, treeSlug string, versio
 
 func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT id, slug, name, created_at
+		SELECT id, slug, name, active_tree_slug, created_at
 		FROM users
 		ORDER BY slug ASC
 	`)
@@ -456,12 +485,64 @@ func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {
 	var users []domain.User
 	for rows.Next() {
 		var user domain.User
-		if err := rows.Scan(&user.ID, &user.Slug, &user.Name, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Slug, &user.Name, &user.ActiveTreeSlug, &user.CreatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, user)
 	}
 	return users, rows.Err()
+}
+
+func (s *Store) OnboardingProfileByUserID(ctx context.Context, userID int64) (domain.OnboardingProfile, error) {
+	var profile domain.OnboardingProfile
+	var weaknessesJSON, outcomesJSON string
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT user_id, writing_type, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json, difficulty_intensity, writing_goals, generated_tree_slug, template_key
+		FROM user_onboarding_profiles
+		WHERE user_id = ?
+	`, userID).Scan(
+		&profile.UserID,
+		&profile.WritingType,
+		&profile.ExperienceLevel,
+		&profile.DesiredTone,
+		&weaknessesJSON,
+		&outcomesJSON,
+		&profile.DifficultyIntensity,
+		&profile.WritingGoals,
+		&profile.GeneratedTreeSlug,
+		&profile.TemplateKey,
+	)
+	if err != nil {
+		return domain.OnboardingProfile{}, err
+	}
+	if profile.BiggestWeaknesses, err = DecodeStringSlice(weaknessesJSON); err != nil {
+		return domain.OnboardingProfile{}, err
+	}
+	if profile.DesiredOutcomes, err = DecodeStringSlice(outcomesJSON); err != nil {
+		return domain.OnboardingProfile{}, err
+	}
+	return profile, nil
+}
+
+func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.OnboardingProfile) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO user_onboarding_profiles (
+			user_id, writing_type, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json,
+			difficulty_intensity, writing_goals, generated_tree_slug, template_key, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(user_id) DO UPDATE SET
+			writing_type = excluded.writing_type,
+			experience_level = excluded.experience_level,
+			desired_tone = excluded.desired_tone,
+			biggest_weaknesses_json = excluded.biggest_weaknesses_json,
+			desired_outcomes_json = excluded.desired_outcomes_json,
+			difficulty_intensity = excluded.difficulty_intensity,
+			writing_goals = excluded.writing_goals,
+			generated_tree_slug = excluded.generated_tree_slug,
+			template_key = excluded.template_key,
+			updated_at = CURRENT_TIMESTAMP
+	`, profile.UserID, profile.WritingType, profile.ExperienceLevel, profile.DesiredTone, mustJSON(profile.BiggestWeaknesses), mustJSON(profile.DesiredOutcomes), profile.DifficultyIntensity, profile.WritingGoals, profile.GeneratedTreeSlug, profile.TemplateKey)
+	return err
 }
 
 func (s *Store) ListTrees(ctx context.Context) ([]domain.TGOTree, error) {

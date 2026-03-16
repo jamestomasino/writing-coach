@@ -176,6 +176,7 @@ This is enough for:
 
 The current first slice is now implemented in `web/`:
 
+- `/onboarding`
 - `/`
 - `/new-assignment`
 - `/reviews/[id]`
@@ -187,7 +188,6 @@ The current first slice is now implemented in `web/`:
 
 Remaining gaps before the workflow feels fully complete:
 
-- onboarding and goal-questionnaire driven tree generation
 - a real invite flow instead of admin-side user provisioning
 - true inline review annotations
 - richer tree browsing and editing views

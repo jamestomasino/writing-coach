@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,6 +50,8 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/ready", s.handleReady)
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
+	mux.HandleFunc("GET /api/onboarding", s.handleOnboardingGet)
+	mux.HandleFunc("POST /api/onboarding", s.handleOnboardingUpsert)
 	mux.HandleFunc("GET /api/admins", s.handleAdminsList)
 	mux.HandleFunc("POST /api/admins", s.handleAdminsCreate)
 	mux.HandleFunc("DELETE /api/admins/{email}", s.handleAdminsDelete)
@@ -94,10 +97,12 @@ type requestContextResponse struct {
 }
 
 type authSessionResponse struct {
-	Authenticated bool                    `json:"authenticated"`
-	AuthMode      string                  `json:"auth_mode"`
-	Identity      *authIdentityResponse   `json:"identity,omitempty"`
-	Context       *requestContextResponse `json:"context,omitempty"`
+	Authenticated      bool                    `json:"authenticated"`
+	AuthMode           string                  `json:"auth_mode"`
+	Identity           *authIdentityResponse   `json:"identity,omitempty"`
+	Context            *requestContextResponse `json:"context,omitempty"`
+	OnboardingComplete bool                    `json:"onboarding_complete"`
+	ActiveTreeSlug     string                  `json:"active_tree_slug,omitempty"`
 }
 
 type authIdentityResponse struct {
@@ -107,10 +112,30 @@ type authIdentityResponse struct {
 }
 
 type userResponse struct {
-	ID        int64  `json:"id"`
-	Slug      string `json:"slug"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"created_at"`
+	ID             int64  `json:"id"`
+	Slug           string `json:"slug"`
+	Name           string `json:"name"`
+	ActiveTreeSlug string `json:"active_tree_slug,omitempty"`
+	CreatedAt      string `json:"created_at"`
+}
+
+type onboardingResponse struct {
+	Profile            *onboardingProfileResponse `json:"profile,omitempty"`
+	OnboardingComplete bool                       `json:"onboarding_complete"`
+	Tree               *treeResponse              `json:"tree,omitempty"`
+	Context            *requestContextResponse    `json:"context,omitempty"`
+}
+
+type onboardingProfileResponse struct {
+	WritingType         string   `json:"writing_type"`
+	ExperienceLevel     string   `json:"experience_level"`
+	DesiredTone         string   `json:"desired_tone"`
+	BiggestWeaknesses   []string `json:"biggest_weaknesses"`
+	DesiredOutcomes     []string `json:"desired_outcomes"`
+	DifficultyIntensity string   `json:"difficulty_intensity"`
+	WritingGoals        string   `json:"writing_goals"`
+	GeneratedTreeSlug   string   `json:"generated_tree_slug"`
+	TemplateKey         string   `json:"template_key"`
 }
 
 type treeResponse struct {
@@ -259,8 +284,142 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 			UserID:   appContext.UserID,
 			TreeID:   appContext.TreeID,
 		}
+		if user, err := s.Store.UserBySlug(r.Context(), appContext.UserSlug); err == nil {
+			resp.ActiveTreeSlug = user.ActiveTreeSlug
+			if profile, err := s.Store.OnboardingProfileByUserID(r.Context(), user.ID); err == nil {
+				resp.OnboardingComplete = profile.Complete()
+			}
+		}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s Server) handleOnboardingGet(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	profile, err := s.Store.OnboardingProfileByUserID(r.Context(), appContext.UserID)
+	if err != nil {
+		if db.IsNotFound(err) || errors.Is(err, sql.ErrNoRows) {
+			writeJSON(w, http.StatusOK, onboardingResponse{
+				OnboardingComplete: false,
+				Context:            &requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+			})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tree, err := s.Store.TreeBySlug(r.Context(), profile.GeneratedTreeSlug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	treeResponses := s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)
+	treeResponse := treeResponses[0]
+	writeJSON(w, http.StatusOK, onboardingResponse{
+		Profile:            toOnboardingProfileResponse(profile),
+		OnboardingComplete: profile.Complete(),
+		Tree:               &treeResponse,
+		Context:            &requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+	})
+}
+
+func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	var payload struct {
+		WritingType         string   `json:"writing_type"`
+		ExperienceLevel     string   `json:"experience_level"`
+		DesiredTone         string   `json:"desired_tone"`
+		BiggestWeaknesses   []string `json:"biggest_weaknesses"`
+		DesiredOutcomes     []string `json:"desired_outcomes"`
+		DifficultyIntensity string   `json:"difficulty_intensity"`
+		WritingGoals        string   `json:"writing_goals"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	profile := domain.OnboardingProfile{
+		UserID:              appContext.UserID,
+		WritingType:         strings.TrimSpace(payload.WritingType),
+		ExperienceLevel:     strings.TrimSpace(payload.ExperienceLevel),
+		DesiredTone:         strings.TrimSpace(payload.DesiredTone),
+		BiggestWeaknesses:   sanitizeStringList(payload.BiggestWeaknesses),
+		DesiredOutcomes:     sanitizeStringList(payload.DesiredOutcomes),
+		DifficultyIntensity: strings.TrimSpace(payload.DifficultyIntensity),
+		WritingGoals:        strings.TrimSpace(payload.WritingGoals),
+	}
+	if !profile.Complete() {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("all onboarding fields are required"))
+		return
+	}
+
+	user, err := s.Store.UserBySlug(r.Context(), appContext.UserSlug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
+	treeDef := domain.GenerateTreeDefinition(appContext.UserSlug, user.Name, profile)
+	profile.GeneratedTreeSlug = treeDef.Slug
+
+	if err := s.Store.SaveTreeDefinition(r.Context(), treeDef); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.Store.SaveOnboardingProfile(r.Context(), profile); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.Store.SetUserActiveTree(r.Context(), appContext.UserID, treeDef.Slug); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(r.Context(), appContext.UserSlug, user.Name, treeDef.Slug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	completed, err := s.Store.CompletedTGOs(r.Context(), enrollmentID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	completedSet := make(map[string]bool, len(completed))
+	for _, tgo := range completed {
+		completedSet[tgo.Code] = true
+	}
+	seed := nextSeedCodes(treeDef, completedSet)
+	if err := s.Store.SetActiveTGOs(r.Context(), enrollmentID, seed); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.Store.UpdateCurriculumState(r.Context(), enrollmentID, seed[0], 2, 0); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tree := domain.TGOTree{
+		ID:          treeID,
+		Slug:        treeDef.Slug,
+		Title:       treeDef.Title,
+		Description: treeDef.Description,
+	}
+	treeResponses := s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)
+	treeResponse := treeResponses[0]
+	writeJSON(w, http.StatusOK, onboardingResponse{
+		Profile:            toOnboardingProfileResponse(profile),
+		OnboardingComplete: true,
+		Tree:               &treeResponse,
+		Context:            &requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: treeDef.Slug, UserID: appContext.UserID, TreeID: treeID},
+	})
 }
 
 func (s Server) handleAdminsList(w http.ResponseWriter, r *http.Request) {
@@ -1390,9 +1549,20 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 
 func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Context, error) {
 	if ident, ok := identityFromContext(ctx); ok {
-		treeSlug := firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree"), s.Config.DefaultTreeSlug)
 		userSlug := slugFromIdentity(ident)
 		userName := displayNameFromIdentity(ident)
+		if err := s.Store.EnsureUser(ctx, userSlug, userName); err != nil {
+			return session.Context{}, err
+		}
+		treeSlug := strings.TrimSpace(firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree")))
+		if treeSlug == "" {
+			activeTreeSlug, err := s.Store.UserActiveTreeSlug(ctx, userSlug)
+			if err == nil && strings.TrimSpace(activeTreeSlug) != "" {
+				treeSlug = activeTreeSlug
+			} else {
+				treeSlug = s.Config.DefaultTreeSlug
+			}
+		}
 
 		userID, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(ctx, userSlug, userName, treeSlug)
 		if err != nil {
@@ -1408,8 +1578,19 @@ func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Co
 	}
 
 	userSlug := firstNonEmpty(r.URL.Query().Get("user"), r.Header.Get("X-Writing-Coach-User"), s.Config.DefaultUserSlug)
-	treeSlug := firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree"), s.Config.DefaultTreeSlug)
 	userName := firstNonEmpty(r.URL.Query().Get("user_name"), s.Config.WriterName)
+	if err := s.Store.EnsureUser(ctx, userSlug, userName); err != nil {
+		return session.Context{}, err
+	}
+	treeSlug := strings.TrimSpace(firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree")))
+	if treeSlug == "" {
+		activeTreeSlug, err := s.Store.UserActiveTreeSlug(ctx, userSlug)
+		if err == nil && strings.TrimSpace(activeTreeSlug) != "" {
+			treeSlug = activeTreeSlug
+		} else {
+			treeSlug = s.Config.DefaultTreeSlug
+		}
+	}
 
 	userID, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(ctx, userSlug, userName, treeSlug)
 	if err != nil {
@@ -1467,6 +1648,57 @@ func prereqsMetForSelection(tgo domain.TGO, completed map[string]bool) bool {
 		}
 	}
 	return true
+}
+
+func sanitizeStringList(items []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item == "" || seen[item] {
+			continue
+		}
+		seen[item] = true
+		out = append(out, item)
+	}
+	return out
+}
+
+func nextSeedCodes(treeDef domain.TGOTreeDefinition, completed map[string]bool) []string {
+	var selected []string
+	active := map[string]bool{}
+	for _, code := range treeDef.SeedCodes {
+		if completed[code] {
+			continue
+		}
+		selected = append(selected, code)
+		active[code] = true
+		if len(selected) == 3 {
+			return selected
+		}
+	}
+	for _, tgo := range domain.NextUnlockedFromDefinition(treeDef, completed, active, 10) {
+		if completed[tgo.Code] || active[tgo.Code] {
+			continue
+		}
+		selected = append(selected, tgo.Code)
+		active[tgo.Code] = true
+		if len(selected) == 3 {
+			break
+		}
+	}
+	if len(selected) < 3 {
+		for _, tgo := range treeDef.TGOs {
+			if completed[tgo.Code] || active[tgo.Code] {
+				continue
+			}
+			selected = append(selected, tgo.Code)
+			if len(selected) == 3 {
+				break
+			}
+		}
+	}
+	return selected
 }
 
 func (s Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
@@ -1605,13 +1837,28 @@ func toUserResponses(users []domain.User) []userResponse {
 	var out []userResponse
 	for _, user := range users {
 		out = append(out, userResponse{
-			ID:        user.ID,
-			Slug:      user.Slug,
-			Name:      user.Name,
-			CreatedAt: db.Since(user.CreatedAt),
+			ID:             user.ID,
+			Slug:           user.Slug,
+			Name:           user.Name,
+			ActiveTreeSlug: user.ActiveTreeSlug,
+			CreatedAt:      db.Since(user.CreatedAt),
 		})
 	}
 	return out
+}
+
+func toOnboardingProfileResponse(profile domain.OnboardingProfile) *onboardingProfileResponse {
+	return &onboardingProfileResponse{
+		WritingType:         profile.WritingType,
+		ExperienceLevel:     profile.ExperienceLevel,
+		DesiredTone:         profile.DesiredTone,
+		BiggestWeaknesses:   append([]string(nil), profile.BiggestWeaknesses...),
+		DesiredOutcomes:     append([]string(nil), profile.DesiredOutcomes...),
+		DifficultyIntensity: profile.DifficultyIntensity,
+		WritingGoals:        profile.WritingGoals,
+		GeneratedTreeSlug:   profile.GeneratedTreeSlug,
+		TemplateKey:         profile.TemplateKey,
+	}
 }
 
 func (s Server) toTreeResponses(ctx context.Context, trees []domain.TGOTree, includeTGOs bool) []treeResponse {

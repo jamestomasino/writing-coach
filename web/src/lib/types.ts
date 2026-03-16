@@ -8,6 +8,8 @@ export type RequestContext = {
 export type AuthSession = {
   authenticated: boolean
   auth_mode: string
+  onboarding_complete: boolean
+  active_tree_slug?: string
   identity?: {
     subject: string
     email?: string
@@ -110,5 +112,23 @@ export type UserRecord = {
   id: number
   slug: string
   name: string
+  active_tree_slug?: string
   created_at: string
+}
+
+export type OnboardingProfile = {
+  writing_type: string
+  experience_level: string
+  desired_tone: string
+  biggest_weaknesses: string[]
+  desired_outcomes: string[]
+  difficulty_intensity: string
+  writing_goals: string
+  generated_tree_slug: string
+  template_key: string
+}
+
+export type OnboardingState = {
+  onboarding_complete: boolean
+  profile?: OnboardingProfile
 }

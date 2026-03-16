@@ -428,6 +428,75 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	}
 }
 
+func TestOnboardingCreatesAndActivatesGeneratedTree(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Post(
+		testServer.URL+"/api/onboarding?user=tester",
+		"application/json",
+		strings.NewReader(`{
+			"writing_type":"thought leadership",
+			"experience_level":"intermediate",
+			"desired_tone":"analytical and decisive",
+			"biggest_weaknesses":["sentence economy","claim clarity"],
+			"desired_outcomes":["write thought leadership with authority","develop a distinctive voice"],
+			"difficulty_intensity":"steady",
+			"writing_goals":"I want to publish stronger essays with clearer arguments."
+		}`),
+	)
+	if err != nil {
+		t.Fatalf("post onboarding: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("onboarding status: %d", resp.StatusCode)
+	}
+	var onboardingPayload struct {
+		OnboardingComplete bool `json:"onboarding_complete"`
+		Tree               struct {
+			Slug string `json:"slug"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&onboardingPayload); err != nil {
+		t.Fatalf("decode onboarding: %v", err)
+	}
+	if !onboardingPayload.OnboardingComplete {
+		t.Fatal("expected onboarding to complete")
+	}
+	if onboardingPayload.Tree.Slug != "tester-track" {
+		t.Fatalf("tree slug = %q", onboardingPayload.Tree.Slug)
+	}
+
+	sessionResp, err := http.Get(testServer.URL + "/api/auth/session?user=tester")
+	if err != nil {
+		t.Fatalf("get auth session: %v", err)
+	}
+	defer sessionResp.Body.Close()
+	if sessionResp.StatusCode != http.StatusOK {
+		t.Fatalf("auth session status: %d", sessionResp.StatusCode)
+	}
+	var sessionPayload struct {
+		OnboardingComplete bool   `json:"onboarding_complete"`
+		ActiveTreeSlug     string `json:"active_tree_slug"`
+		Context            struct {
+			TreeSlug string `json:"tree_slug"`
+		} `json:"context"`
+	}
+	if err := json.NewDecoder(sessionResp.Body).Decode(&sessionPayload); err != nil {
+		t.Fatalf("decode auth session: %v", err)
+	}
+	if !sessionPayload.OnboardingComplete {
+		t.Fatal("expected auth session to report onboarding complete")
+	}
+	if sessionPayload.ActiveTreeSlug != "tester-track" {
+		t.Fatalf("active tree slug = %q", sessionPayload.ActiveTreeSlug)
+	}
+	if sessionPayload.Context.TreeSlug != "tester-track" {
+		t.Fatalf("context tree slug = %q", sessionPayload.Context.TreeSlug)
+	}
+}
+
 func TestAPIAuthMiddleware(t *testing.T) {
 	testServer := newTestServerWithToken(t, "secret-token")
 	defer testServer.Close()

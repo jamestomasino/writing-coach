@@ -46,6 +46,10 @@ export function CurrentAssignmentView() {
           }
           return
         }
+        if (!session.onboarding_complete) {
+          router.replace('/onboarding')
+          return
+        }
 
         const dashboard = await getDashboard()
         const exercises = await getExercises(1)
@@ -87,7 +91,7 @@ export function CurrentAssignmentView() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router])
 
   const wordCount = useMemo(() => countWords(draft), [draft])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import type { AuthSession, Comparison, Dashboard, Exercise, Review, Submission, UserRecord } from './types'
+import type { AuthSession, Comparison, Dashboard, Exercise, OnboardingState, Review, Submission, UserRecord } from './types'
 
 type ErrorBody = { error?: string }
 
@@ -28,6 +28,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function getSession() {
   return request<AuthSession>('/api/auth/session')
+}
+
+export function getOnboarding() {
+  return request<OnboardingState>('/api/onboarding')
 }
 
 export function getDashboard() {
@@ -121,6 +125,21 @@ export async function listUsers() {
 
 export async function provisionUser(input: { slug: string; name: string }) {
   return request('/api/users', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function saveOnboarding(input: {
+  writing_type: string
+  experience_level: string
+  desired_tone: string
+  biggest_weaknesses: string[]
+  desired_outcomes: string[]
+  difficulty_intensity: string
+  writing_goals: string
+}) {
+  return request<OnboardingState>('/api/onboarding', {
     method: 'POST',
     body: JSON.stringify(input),
   })

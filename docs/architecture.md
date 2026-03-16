@@ -90,6 +90,8 @@ This enables:
 
 Tree definitions are now persisted in the database so new curricula can be created over the API and enrolled without another code release. Tree saves also create version snapshots so curriculum edits remain auditable.
 
+Users can now also complete an onboarding questionnaire that generates a personal tree definition from their writing type, experience, tone goals, weaknesses, outcomes, and desired training intensity. The generated tree becomes that user's active track.
+
 ## Persistence Model
 
 SQLite is the system of record. The schema should support direct reporting and preserve enough history to re-evaluate earlier work if rubrics change.

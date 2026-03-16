@@ -3,10 +3,11 @@ package domain
 import "time"
 
 type User struct {
-	ID        int64
-	Slug      string
-	Name      string
-	CreatedAt time.Time
+	ID             int64
+	Slug           string
+	Name           string
+	ActiveTreeSlug string
+	CreatedAt      time.Time
 }
 
 type TGOTree struct {

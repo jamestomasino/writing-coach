@@ -19,6 +19,16 @@ var SupportedSkills = []string{
 	"narrative sequencing",
 	"descriptive precision",
 	"dialogue basics",
+	"claim clarity",
+	"audience alignment",
+	"sentence economy",
+	"structural signposting",
+	"insight density",
+	"evidence integration",
+	"authority and voice",
+	"tone calibration",
+	"actionability",
+	"scannability",
 }
 
 func IsSupportedSkill(skill string) bool {

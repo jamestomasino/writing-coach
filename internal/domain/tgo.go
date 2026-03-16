@@ -90,6 +90,19 @@ var TGOCodeToSkill = map[string]string{
 	"descriptive-specificity": "descriptive precision",
 	"sentence-complexity":     "sentence complexity",
 	"dialogue-basics":         "dialogue basics",
+	"claim-clarity":           "claim clarity",
+	"audience-alignment":      "audience alignment",
+	"sentence-economy":        "sentence economy",
+	"structural-signposting":  "structural signposting",
+	"insight-density":         "insight density",
+	"evidence-integration":    "evidence integration",
+	"authority-and-voice":     "authority and voice",
+	"openings-that-frame":     "authority and voice",
+	"endings-that-land":       "authority and voice",
+	"objective-clarity":       "clarity and coherence",
+	"tone-calibration":        "tone calibration",
+	"actionability":           "actionability",
+	"scannability":            "scannability",
 }
 
 func AllTGOs() []TGO {
