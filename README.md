@@ -1,14 +1,14 @@
 # Writing Coach
 
-`writing-coach` is a local-first Go application for generating fiction exercises, reviewing submissions, and adapting future practice based on accumulated feedback. It now exposes the same coaching loop through both a CLI and a JSON API so a web interface can sit on top of the same core services.
+`writing-coach` is a Go application for generating fiction exercises, reviewing submissions, and adapting future practice based on accumulated feedback. Its supported runtime is now the JSON API inside a Docker Compose deployment, with the web interface planned to sit on top of that API.
 
 The initial implementation targets a narrow but complete loop:
 
-1. Initialize local project state.
-2. Generate the next exercise prompt.
-3. Submit a story draft.
-4. Review the draft with deterministic analysis.
-5. Persist results so later prompts can adapt to prior work.
+1. Compose brings up the API, auth, analyzer, and persistence stack.
+2. The API generates the next exercise prompt.
+3. The web client submits a story draft.
+4. The API reviews the draft with deterministic analysis and model synthesis.
+5. Results are persisted so later prompts can adapt to prior work.
 
 If `OPENAI_API_KEY` is set in the environment, prompt generation and review generation will use the OpenAI Responses API with structured JSON outputs. If credentials are missing or the API call fails, the app falls back to deterministic local logic.
 
@@ -17,40 +17,16 @@ If `OPENAI_API_KEY` is set in the environment, prompt generation and review gene
 High-level architecture and implementation phases live in [docs/architecture.md](/home/tomasino/writing-coach/docs/architecture.md).
 The planned web stack, Tailwind Plus kit mapping, and screen strategy live in [docs/web-foundation-plan.md](/home/tomasino/writing-coach/docs/web-foundation-plan.md).
 
-## Planned Commands
+## Runtime Model
 
-- `writing-coach init`
-- `writing-coach serve`
-- `writing-coach prompt next`
-- `writing-coach submit --exercise <id> --file <path>`
-- `writing-coach review --submission <id>`
-- `writing-coach history`
+The supported deployment path is:
 
-## Make Targets
+- host `nginx` terminates TLS
+- host `nginx` reverse-proxies one localhost port from Docker Compose
+- an internal Compose gateway routes `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui`
+- the app, Kratos, LanguageTool, and storage stay on the internal Docker network
 
-- `make init`
-- `make build`
-- `make serve`
-- `make prompt`
-- `make prompt-revise SUBMISSION=<id>`
-- `make submit EXERCISE=<id> FILE=<path> [REVISE_FROM=<submission-id>]`
-- `make review SUBMISSION=<id>`
-- `make coach-review SUBMISSION=<id>`
-- `make compare SUBMISSION=<id> [AGAINST=<submission-id>]`
-- `make history`
-- `make progress`
-- `make vale-install`
-- `make languagetool-start`
-- `make languagetool-stop`
-- `make languagetool-status`
-- `make docker-build`
-- `make docker-run`
-
-The LanguageTool targets default to `/opt/languagetool` and port `8081`. Override with `LT_HOME=/path/to/install` or `LT_PORT=8090`.
-`make coach-review` will start LanguageTool if needed before running a review.
-Use `REVISE_FROM=<submission-id>` on `make submit` to record a later draft as a revision of an earlier one.
-Use `make compare SUBMISSION=<id>` to compare a reviewed draft against its previous reviewed draft.
-Use `make prompt-revise SUBMISSION=<id>` to generate a rewrite brief from the last review of a submission.
+The Go binary still starts via `writing-coach serve` inside the app container, but the CLI workflow is no longer treated as a primary user interface.
 
 ## TGO Model
 
@@ -90,18 +66,6 @@ Current implementation status:
 The default config still points at one user and one tree, but the API already accepts alternate `user` and `tree` slugs per request.
 
 ## JSON API
-
-Start the backend locally with:
-
-```bash
-make serve
-```
-
-By default it listens on `:8080`. Override with:
-
-```bash
-WRITING_COACH_HTTP_ADDR=:8090 make serve
-```
 
 Core endpoints:
 
@@ -143,7 +107,6 @@ Optional API auth:
 
 Ory Kratos integration:
 
-- set `WRITING_COACH_KRATOS_PUBLIC_URL`
 - the API will validate browser/session authentication through Kratos `GET /sessions/whoami`
 - when Kratos auth is enabled, each authenticated identity maps deterministically to its own internal writer profile
 - this avoids storing password hashes in `writing-coach` itself
@@ -152,12 +115,12 @@ Ory Kratos integration:
 Examples:
 
 ```bash
-curl http://localhost:8080/api/dashboard
-curl -X POST http://localhost:8080/api/prompts/next
-curl -X POST http://localhost:8080/api/submissions \
+curl http://localhost:11234/api/dashboard
+curl -X POST http://localhost:11234/api/prompts/next
+curl -X POST http://localhost:11234/api/submissions \
   -H 'Content-Type: application/json' \
   -d '{"exercise_id":1,"content":"A draft goes here."}'
-curl -X POST http://localhost:8080/api/reviews \
+curl -X POST http://localhost:11234/api/reviews \
   -H 'Content-Type: application/json' \
   -d '{"submission_id":1}'
 ```
@@ -172,24 +135,24 @@ Environment variables:
 - `OPENAI_BASE_URL`
 - `WRITING_COACH_PROMPT_MODEL`
 - `WRITING_COACH_REVIEW_MODEL`
-- `WRITING_COACH_HTTP_ADDR`
 - `WRITING_COACH_WRITER_NAME`
 - `WRITING_COACH_DEFAULT_USER_SLUG`
 - `WRITING_COACH_DEFAULT_TREE_SLUG`
 - `WRITING_COACH_API_TOKEN`
 - `WRITING_COACH_ADMIN_EMAILS`
-- `WRITING_COACH_KRATOS_PUBLIC_URL`
+- `COACH_PUBLIC_URL`
+- `GATEWAY_PORT_BIND`
 - `VALE_BINARY`
 - `LANGUAGETOOL_URL`
 
 ## Deterministic Analysis
 
-Every review now runs a built-in heuristic analyzer. Optional external analyzers can be enabled:
+Every review now runs a built-in heuristic analyzer. In the supported Compose deployment, the stack also includes:
 
-- Vale: install `vale`; the app will auto-detect it and use the in-repo [.vale.ini](/home/tomasino/writing-coach/.vale.ini). `make vale-install` installs a repo-local binary at `.writing-coach/bin/vale`. Set `VALE_BINARY` to override the executable path.
-- LanguageTool: set `LANGUAGETOOL_URL` to a running server such as `http://localhost:8010`
+- Vale bundled into the app image
+- LanguageTool running as an internal Docker service
 
-These findings are passed into the review pipeline and surfaced in CLI output. If external analyzers are unavailable, the app continues with heuristic analysis only.
+These findings are passed into the review pipeline and persisted as review artifacts for later reporting and UI use. If an external analyzer is unavailable, the app continues with heuristic analysis only.
 
 The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach) and focus on:
 
@@ -204,7 +167,7 @@ The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-c
 The repository currently contains:
 
 - a documented architecture plan
-- a Go CLI plus JSON API server
+- a Go API server for the future web interface
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior
 - persisted review artifacts for analyzer output, recommendation state, and revision comparisons
@@ -212,17 +175,10 @@ The repository currently contains:
 
 ## Deployment
 
-Build and run the container locally with:
+Start the full contained stack with Docker Compose:
 
 ```bash
-make docker-build
-make docker-run API_TOKEN=change-me
-```
-
-Or start the full contained stack with Docker Compose:
-
-```bash
-make env-init
+cp .env.example .env
 $EDITOR .env
 docker compose up -d --build
 ```
@@ -243,17 +199,14 @@ Production deployment for `coach.tomasino.org` should:
 - copy `.env.example` to `.env`
 - set the Kratos secrets to long random values
 - set `WRITING_COACH_ADMIN_EMAILS` to the Kratos email addresses allowed to create or edit curricula
-- keep the published ports bound to `127.0.0.1`
-- let nginx terminate TLS and proxy to `APP_PORT_BIND`
-- leave `WRITING_COACH_KRATOS_PUBLIC_URL` pointed at the internal Docker URL `http://kratos:4433`
+- keep the single published gateway port bound to `127.0.0.1`
+- let host nginx terminate TLS and proxy to `GATEWAY_PORT_BIND`
 
-The main browser-facing URLs are driven from `.env`:
+The main browser-facing setting is:
 
 - `COACH_PUBLIC_URL`
-- `KRATOS_PUBLIC_BASE_URL`
-- `KRATOS_BROWSER_URL`
-- `KRATOS_UI_PUBLIC_URL`
-- `KRATOS_ALLOWED_RETURN_URLS`
+
+Kratos browser URLs default from `COACH_PUBLIC_URL` and do not normally need to be set explicitly.
 
 Deployment examples live at:
 
@@ -266,14 +219,9 @@ Kratos configuration lives at:
 - [deploy/kratos/render-config.sh](/home/tomasino/writing-coach/deploy/kratos/render-config.sh)
 - [deploy/kratos/identity.schema.json](/home/tomasino/writing-coach/deploy/kratos/identity.schema.json)
 
-Default localhost bindings from `.env.example`:
+Default localhost binding from `.env.example`:
 
-- `11234` writing-coach API
-- `18010` LanguageTool
-- `14433` Kratos public API
-- `14434` Kratos admin API
-- `14455` Kratos self-service UI
-- `14436` / `14437` Mailslurper
+- `11234` compose gateway for `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui`
 
 An nginx reverse proxy can sit in front of it with a simple upstream:
 
@@ -295,6 +243,6 @@ server {
 ## Next Milestones
 
 - add tree editing and versioning, not just creation
-- make prompt and review generation adapt more strongly to each tree's pedagogy
+- deepen prompt and review behavior so each tree feels pedagogically distinct
 - tighten admin/auth boundaries around tree authoring before exposing it publicly
 - build the first web UI against the stabilized API
