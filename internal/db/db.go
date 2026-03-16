@@ -238,6 +238,18 @@ func (s *Store) ListEnrollments(ctx context.Context) ([]domain.Enrollment, error
 	return enrollments, rows.Err()
 }
 
+func (s *Store) EnrollmentByID(ctx context.Context, enrollmentID int64) (domain.Enrollment, error) {
+	var enrollment domain.Enrollment
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT e.id, e.user_id, e.tree_id, u.slug, t.slug, e.created_at
+		FROM user_tree_enrollments e
+		JOIN users u ON u.id = e.user_id
+		JOIN tgo_trees t ON t.id = e.tree_id
+		WHERE e.id = ?
+	`, enrollmentID).Scan(&enrollment.ID, &enrollment.UserID, &enrollment.TreeID, &enrollment.UserSlug, &enrollment.TreeSlug, &enrollment.CreatedAt)
+	return enrollment, err
+}
+
 func (s *Store) EnrollmentID(ctx context.Context, userID, treeID int64) (int64, error) {
 	var id int64
 	err := s.SQL.QueryRowContext(ctx, `
@@ -709,14 +721,14 @@ func (s *Store) LatestSkillScores(ctx context.Context, submissionID int64) (map[
 	return values, rows.Err()
 }
 
-func (s *Store) ProgressReport(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
+func (s *Store) ProgressReport(ctx context.Context, userID, treeID int64, treeSlug string, limit int) ([]string, error) {
 	averages, err := s.SkillAverages(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
 
 	var lines []string
-	for _, skill := range domain.PrioritySkills {
+	for _, skill := range domain.PrioritySkillsForTree(treeSlug) {
 		avg, ok := averages[skill]
 		if !ok {
 			continue
@@ -769,7 +781,7 @@ func (s *Store) RecurringAnalyzerFindings(ctx context.Context, userID, treeID in
 	return collectRecurringJSONStrings(rows, 4)
 }
 
-func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64, limit int) ([]string, []string, error) {
+func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64, treeSlug string, limit int) ([]string, []string, error) {
 	averages, err := s.SkillAverages(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, nil, err
@@ -787,7 +799,7 @@ func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64
 	}
 	sort.Slice(pairs, func(i, j int) bool {
 		if pairs[i].avg == pairs[j].avg {
-			return domain.SkillPriority(pairs[i].skill) > domain.SkillPriority(pairs[j].skill)
+			return domain.SkillPriority(treeSlug, pairs[i].skill) > domain.SkillPriority(treeSlug, pairs[j].skill)
 		}
 		return pairs[i].avg > pairs[j].avg
 	})
@@ -800,6 +812,69 @@ func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64
 		weakest = append(weakest, fmt.Sprintf("%s (%.2f)", pairs[i].skill, pairs[i].avg))
 	}
 	return strongest, weakest, nil
+}
+
+func (s *Store) RecurringCompletedTGOSlips(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT r.completed_tgo_checks_json
+		FROM reviews r
+		WHERE r.user_id = ? AND r.tree_id = ?
+		ORDER BY r.id DESC
+		LIMIT ?
+	`, userID, treeID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := map[string]int{}
+	for rows.Next() {
+		var raw string
+		if err := rows.Scan(&raw); err != nil {
+			return nil, err
+		}
+		var checks []domain.TGOAssessment
+		if err := json.Unmarshal([]byte(raw), &checks); err != nil {
+			return nil, err
+		}
+		seen := map[string]bool{}
+		for _, check := range checks {
+			if check.Status != "slipping" || check.TGOCode == "" || seen[check.TGOCode] {
+				continue
+			}
+			seen[check.TGOCode] = true
+			if tgo, ok := domain.TGOByCode(check.TGOCode); ok {
+				counts[tgo.Title]++
+				continue
+			}
+			counts[check.TGOCode]++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	type pair struct {
+		text  string
+		count int
+	}
+	var pairs []pair
+	for text, count := range counts {
+		pairs = append(pairs, pair{text: text, count: count})
+	}
+	sort.Slice(pairs, func(i, j int) bool {
+		if pairs[i].count == pairs[j].count {
+			return pairs[i].text < pairs[j].text
+		}
+		return pairs[i].count > pairs[j].count
+	})
+	var out []string
+	for _, pair := range pairs {
+		out = append(out, pair.text)
+		if len(out) == 3 {
+			break
+		}
+	}
+	return out, nil
 }
 
 func (s *Store) History(ctx context.Context, userID, treeID int64) ([]string, error) {

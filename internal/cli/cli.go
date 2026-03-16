@@ -422,11 +422,11 @@ func (c CLI) runProgress(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	items, err := c.Store.ProgressReport(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
+	items, err := c.Store.ProgressReport(ctx, c.AppContext.UserID, c.AppContext.TreeID, c.AppContext.TreeSlug, 5)
 	if err != nil {
 		return err
 	}
-	strongest, weakest, err := c.Store.StrongestWeakestSkills(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
+	strongest, weakest, err := c.Store.StrongestWeakestSkills(ctx, c.AppContext.UserID, c.AppContext.TreeID, c.AppContext.TreeSlug, 5)
 	if err != nil {
 		return err
 	}
@@ -435,6 +435,10 @@ func (c CLI) runProgress(ctx context.Context) error {
 		return err
 	}
 	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
+	if err != nil {
+		return err
+	}
+	recurringSlips, err := c.Store.RecurringCompletedTGOSlips(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
@@ -497,6 +501,9 @@ func (c CLI) runProgress(ctx context.Context) error {
 	}
 	if len(recurringFindings) > 0 {
 		fmt.Printf("recurring analyzer findings: %s\n", strings.Join(recurringFindings, "; "))
+	}
+	if len(recurringSlips) > 0 {
+		fmt.Printf("completed tgos slipping: %s\n", strings.Join(recurringSlips, "; "))
 	}
 	for _, item := range items {
 		fmt.Println(item)

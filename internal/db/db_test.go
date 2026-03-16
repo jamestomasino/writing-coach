@@ -72,7 +72,7 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 		t.Fatalf("save review: %v", err)
 	}
 
-	report, err := store.ProgressReport(context.Background(), userID, treeID, 5)
+	report, err := store.ProgressReport(context.Background(), userID, treeID, "mythic-tragedy-apprenticeship", 5)
 	if err != nil {
 		t.Fatalf("progress report: %v", err)
 	}

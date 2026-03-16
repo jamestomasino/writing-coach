@@ -98,6 +98,33 @@ func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 	if !found {
 		t.Fatal("expected kid enrollment")
 	}
+
+	userResp, err := http.Get(testServer.URL + "/api/users/tester")
+	if err != nil {
+		t.Fatalf("get user: %v", err)
+	}
+	defer userResp.Body.Close()
+	if userResp.StatusCode != http.StatusOK {
+		t.Fatalf("user status: %d", userResp.StatusCode)
+	}
+
+	treeResp, err := http.Get(testServer.URL + "/api/trees/youth-writing-foundations")
+	if err != nil {
+		t.Fatalf("get tree: %v", err)
+	}
+	defer treeResp.Body.Close()
+	if treeResp.StatusCode != http.StatusOK {
+		t.Fatalf("tree status: %d", treeResp.StatusCode)
+	}
+
+	boardResp, err := http.Get(testServer.URL + "/api/enrollments/2/board")
+	if err != nil {
+		t.Fatalf("get board: %v", err)
+	}
+	defer boardResp.Body.Close()
+	if boardResp.StatusCode != http.StatusOK {
+		t.Fatalf("board status: %d", boardResp.StatusCode)
+	}
 }
 
 func newTestServer(t *testing.T) *httptest.Server {

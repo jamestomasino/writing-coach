@@ -48,9 +48,12 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/users", s.handleUsersList)
 	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
+	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)
 	mux.HandleFunc("GET /api/trees", s.handleTreesList)
+	mux.HandleFunc("GET /api/trees/{slug}", s.handleTreeGet)
 	mux.HandleFunc("GET /api/enrollments", s.handleEnrollmentsList)
 	mux.HandleFunc("POST /api/enrollments", s.handleEnrollmentsCreate)
+	mux.HandleFunc("GET /api/enrollments/{id}/board", s.handleEnrollmentBoard)
 	mux.HandleFunc("GET /api/context", s.handleContext)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
@@ -226,6 +229,19 @@ func (s Server) handleUsersCreate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s Server) handleUserGet(w http.ResponseWriter, r *http.Request) {
+	user, err := s.Store.UserBySlug(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"user": toUserResponses([]domain.User{user})[0]})
+}
+
 func (s Server) handleTreesList(w http.ResponseWriter, r *http.Request) {
 	trees, err := s.Store.ListTrees(r.Context())
 	if err != nil {
@@ -234,6 +250,19 @@ func (s Server) handleTreesList(w http.ResponseWriter, r *http.Request) {
 	}
 	includeTGOs := r.URL.Query().Get("include_tgos") == "1"
 	writeJSON(w, http.StatusOK, map[string]any{"trees": toTreeResponses(trees, includeTGOs)})
+}
+
+func (s Server) handleTreeGet(w http.ResponseWriter, r *http.Request) {
+	tree, err := s.Store.TreeBySlug(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tree": toTreeResponses([]domain.TGOTree{tree}, true)[0]})
 }
 
 func (s Server) handleEnrollmentsList(w http.ResponseWriter, r *http.Request) {
@@ -276,6 +305,30 @@ func (s Server) handleEnrollmentsCreate(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+func (s Server) handleEnrollmentBoard(w http.ResponseWriter, r *http.Request) {
+	enrollmentID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || enrollmentID == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid enrollment id"))
+		return
+	}
+	enrollment, err := s.Store.EnrollmentByID(r.Context(), enrollmentID)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	s.writeEnrollmentBoard(r.Context(), w, session.Context{
+		UserID:       enrollment.UserID,
+		TreeID:       enrollment.TreeID,
+		EnrollmentID: enrollment.ID,
+		UserSlug:     enrollment.UserSlug,
+		TreeSlug:     enrollment.TreeSlug,
+	})
+}
+
 func (s Server) handleContext(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
@@ -311,55 +364,7 @@ func (s Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	progress, err := s.Store.ProgressReport(r.Context(), appContext.UserID, appContext.TreeID, 5)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	strongest, weakest, err := s.Store.StrongestWeakestSkills(r.Context(), appContext.UserID, appContext.TreeID, 5)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	recurringWeaknesses, err := s.Store.RecurringWeaknesses(r.Context(), appContext.UserID, appContext.TreeID, 5)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	recurringFindings, err := s.Store.RecurringAnalyzerFindings(r.Context(), appContext.UserID, appContext.TreeID, 5)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	history, err := s.Store.History(r.Context(), appContext.UserID, appContext.TreeID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	completedSet := map[string]bool{}
-	for _, tgo := range completedTGOs {
-		completedSet[tgo.Code] = true
-	}
-	activeSet := map[string]bool{}
-	for _, tgo := range activeTGOs {
-		activeSet[tgo.Code] = true
-	}
-	upcoming := domain.NextUnlockedTGOs(appContext.TreeSlug, completedSet, activeSet, 3)
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"context":              requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"curriculum_state":     toCurriculumStateResponse(state),
-		"active_tgos":          toTGOResponses(activeTGOs),
-		"completed_tgos":       toTGOResponses(completedTGOs),
-		"upcoming_tgos":        toTGOResponses(upcoming),
-		"progress_lines":       progress,
-		"strongest_skills":     strongest,
-		"weakest_skills":       weakest,
-		"recurring_weaknesses": recurringWeaknesses,
-		"recurring_findings":   recurringFindings,
-		"history":              history,
-	})
+	s.writeDashboardPayload(r.Context(), w, appContext, state, activeTGOs, completedTGOs)
 }
 
 func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
@@ -681,6 +686,83 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	}
 	ex.ID = id
 	return ex, nil
+}
+
+func (s Server) writeEnrollmentBoard(ctx context.Context, w http.ResponseWriter, appContext session.Context) {
+	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	activeTGOs, err := s.Store.ActiveTGOs(ctx, appContext.EnrollmentID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	completedTGOs, err := s.Store.CompletedTGOs(ctx, appContext.EnrollmentID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	s.writeDashboardPayload(ctx, w, appContext, state, activeTGOs, completedTGOs)
+}
+
+func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter, appContext session.Context, state domain.CurriculumState, activeTGOs, completedTGOs []domain.TGO) {
+	progress, err := s.Store.ProgressReport(ctx, appContext.UserID, appContext.TreeID, appContext.TreeSlug, 5)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	strongest, weakest, err := s.Store.StrongestWeakestSkills(ctx, appContext.UserID, appContext.TreeID, appContext.TreeSlug, 5)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	recurringWeaknesses, err := s.Store.RecurringWeaknesses(ctx, appContext.UserID, appContext.TreeID, 5)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	recurringFindings, err := s.Store.RecurringAnalyzerFindings(ctx, appContext.UserID, appContext.TreeID, 5)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	recurringSlips, err := s.Store.RecurringCompletedTGOSlips(ctx, appContext.UserID, appContext.TreeID, 5)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	history, err := s.Store.History(ctx, appContext.UserID, appContext.TreeID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	completedSet := map[string]bool{}
+	for _, tgo := range completedTGOs {
+		completedSet[tgo.Code] = true
+	}
+	activeSet := map[string]bool{}
+	for _, tgo := range activeTGOs {
+		activeSet[tgo.Code] = true
+	}
+	upcoming := domain.NextUnlockedTGOs(appContext.TreeSlug, completedSet, activeSet, 3)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":                   requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"curriculum_state":          toCurriculumStateResponse(state),
+		"active_tgos":               toTGOResponses(activeTGOs),
+		"completed_tgos":            toTGOResponses(completedTGOs),
+		"upcoming_tgos":             toTGOResponses(upcoming),
+		"progress_lines":            progress,
+		"strongest_skills":          strongest,
+		"weakest_skills":            weakest,
+		"recurring_weaknesses":      recurringWeaknesses,
+		"recurring_findings":        recurringFindings,
+		"recurring_completed_slips": recurringSlips,
+		"history":                   history,
+	})
 }
 
 func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Context, error) {

@@ -2,19 +2,6 @@ package domain
 
 const WriterTrackName = "Mythopoeic Tragic Apprenticeship"
 
-var PrioritySkills = []string{
-	"tragic inevitability",
-	"symbolic control",
-	"mythic tone",
-	"emotional compression",
-	"scene architecture",
-	"narrative clarity",
-	"prose precision",
-	"worldbuilding economy",
-	"dialogue intelligence",
-	"image freshness",
-}
-
 var HouseCurriculum = map[string]string{
 	"tragic inevitability":  "Build scenes where choice closes futures rather than opening them.",
 	"symbolic control":      "Let objects carry fate without explaining their meaning.",
@@ -28,10 +15,30 @@ var HouseCurriculum = map[string]string{
 	"image freshness":       "Prefer singular, earned imagery over fantasy stock language.",
 }
 
-func SkillPriority(skill string) int {
-	for idx, value := range PrioritySkills {
+func PrioritySkillsForTree(treeSlug string) []string {
+	tree, ok := BuiltInTreeBySlug(treeSlug)
+	if !ok || len(tree.PrioritySkills) == 0 {
+		return []string{
+			"tragic inevitability",
+			"symbolic control",
+			"mythic tone",
+			"emotional compression",
+			"scene architecture",
+			"narrative clarity",
+			"prose precision",
+			"worldbuilding economy",
+			"dialogue intelligence",
+			"image freshness",
+		}
+	}
+	return append([]string(nil), tree.PrioritySkills...)
+}
+
+func SkillPriority(treeSlug, skill string) int {
+	prioritySkills := PrioritySkillsForTree(treeSlug)
+	for idx, value := range prioritySkills {
 		if value == skill {
-			return len(PrioritySkills) - idx
+			return len(prioritySkills) - idx
 		}
 	}
 	return 0
