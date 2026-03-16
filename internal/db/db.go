@@ -260,7 +260,71 @@ func (s *Store) SaveTreeDefinition(ctx context.Context, def domain.TGOTreeDefini
 		}
 	}
 
+	if len(def.TGOs) > 0 {
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(def.TGOs)), ",")
+		args := make([]any, 0, len(def.TGOs)+1)
+		args = append(args, treeID)
+		for _, tgo := range def.TGOs {
+			args = append(args, tgo.Code)
+		}
+		if _, err = tx.ExecContext(ctx, `
+			DELETE FROM tree_tgos
+			WHERE tree_id = ? AND tgo_code NOT IN (`+placeholders+`)
+		`, args...); err != nil {
+			return err
+		}
+	}
+
+	snapshotJSON := mustJSON(def.TGOs)
+	var latestVersion int
+	var latestTitle, latestDescription, latestSeedCodesJSON, latestPrioritySkillsJSON, latestTGOsJSON string
+	switch err = tx.QueryRowContext(ctx, `
+		SELECT version, title, description, seed_codes_json, priority_skills_json, tgos_json
+		FROM tree_versions
+		WHERE tree_id = ?
+		ORDER BY version DESC
+		LIMIT 1
+	`, treeID).Scan(&latestVersion, &latestTitle, &latestDescription, &latestSeedCodesJSON, &latestPrioritySkillsJSON, &latestTGOsJSON); {
+	case errors.Is(err, sql.ErrNoRows):
+		latestVersion = 0
+		err = nil
+	case err != nil:
+		return err
+	}
+	if latestVersion == 0 || latestTitle != def.Title || latestDescription != def.Description || latestSeedCodesJSON != mustJSON(def.SeedCodes) || latestPrioritySkillsJSON != mustJSON(def.PrioritySkills) || latestTGOsJSON != snapshotJSON {
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO tree_versions (tree_id, version, title, description, seed_codes_json, priority_skills_json, tgos_json)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, treeID, latestVersion+1, def.Title, def.Description, mustJSON(def.SeedCodes), mustJSON(def.PrioritySkills), snapshotJSON); err != nil {
+			return err
+		}
+	}
+
 	return tx.Commit()
+}
+
+func (s *Store) ListTreeVersions(ctx context.Context, treeSlug string) ([]domain.TreeVersion, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT v.id, v.tree_id, t.slug, v.version, v.title, v.description, v.created_at
+		FROM tree_versions v
+		JOIN tgo_trees t ON t.id = v.tree_id
+		WHERE t.slug = ?
+		ORDER BY v.version DESC
+	`, treeSlug)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var versions []domain.TreeVersion
+	for rows.Next() {
+		var version domain.TreeVersion
+		if err := rows.Scan(&version.ID, &version.TreeID, &version.TreeSlug, &version.Version, &version.Title, &version.Description, &version.CreatedAt); err != nil {
+			return nil, err
+		}
+		versions = append(versions, version)
+	}
+	return versions, rows.Err()
 }
 
 func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {

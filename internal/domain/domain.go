@@ -17,6 +17,16 @@ type TGOTree struct {
 	CreatedAt   time.Time
 }
 
+type TreeVersion struct {
+	ID          int64
+	TreeID      int64
+	TreeSlug    string
+	Version     int
+	Title       string
+	Description string
+	CreatedAt   time.Time
+}
+
 type Enrollment struct {
 	ID        int64
 	UserID    int64

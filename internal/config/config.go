@@ -5,27 +5,29 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const dirName = ".writing-coach"
 
 type Config struct {
-	ProjectRoot     string `json:"-"`
-	ConfigPath      string `json:"-"`
-	DataDir         string `json:"data_dir"`
-	DatabaseURL     string `json:"database_url"`
-	WriterName      string `json:"writer_name"`
-	DefaultUserSlug string `json:"default_user_slug"`
-	DefaultTreeSlug string `json:"default_tree_slug"`
-	HTTPAddr        string `json:"http_addr"`
-	APIToken        string `json:"-"`
-	KratosPublicURL string `json:"kratos_public_url"`
-	OpenAIAPIKey    string `json:"-"`
-	OpenAIBaseURL   string `json:"openai_base_url"`
-	PromptModel     string `json:"prompt_model"`
-	ReviewModel     string `json:"review_model"`
-	ValeBinary      string `json:"vale_binary"`
-	LanguageToolURL string `json:"languagetool_url"`
+	ProjectRoot     string   `json:"-"`
+	ConfigPath      string   `json:"-"`
+	DataDir         string   `json:"data_dir"`
+	DatabaseURL     string   `json:"database_url"`
+	WriterName      string   `json:"writer_name"`
+	DefaultUserSlug string   `json:"default_user_slug"`
+	DefaultTreeSlug string   `json:"default_tree_slug"`
+	HTTPAddr        string   `json:"http_addr"`
+	APIToken        string   `json:"-"`
+	AdminEmails     []string `json:"admin_emails"`
+	KratosPublicURL string   `json:"kratos_public_url"`
+	OpenAIAPIKey    string   `json:"-"`
+	OpenAIBaseURL   string   `json:"openai_base_url"`
+	PromptModel     string   `json:"prompt_model"`
+	ReviewModel     string   `json:"review_model"`
+	ValeBinary      string   `json:"vale_binary"`
+	LanguageToolURL string   `json:"languagetool_url"`
 }
 
 func Default(projectRoot string) Config {
@@ -119,6 +121,9 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("WRITING_COACH_API_TOKEN"); value != "" {
 		cfg.APIToken = value
 	}
+	if value := os.Getenv("WRITING_COACH_ADMIN_EMAILS"); value != "" {
+		cfg.AdminEmails = splitCSV(value)
+	}
 	if value := os.Getenv("WRITING_COACH_KRATOS_PUBLIC_URL"); value != "" {
 		cfg.KratosPublicURL = value
 	}
@@ -132,18 +137,19 @@ func Save(cfg Config) error {
 	}
 
 	payload := struct {
-		DataDir         string `json:"data_dir"`
-		DatabaseURL     string `json:"database_url"`
-		WriterName      string `json:"writer_name"`
-		DefaultUserSlug string `json:"default_user_slug"`
-		DefaultTreeSlug string `json:"default_tree_slug"`
-		HTTPAddr        string `json:"http_addr"`
-		KratosPublicURL string `json:"kratos_public_url"`
-		OpenAIBaseURL   string `json:"openai_base_url"`
-		PromptModel     string `json:"prompt_model"`
-		ReviewModel     string `json:"review_model"`
-		ValeBinary      string `json:"vale_binary"`
-		LanguageToolURL string `json:"languagetool_url"`
+		DataDir         string   `json:"data_dir"`
+		DatabaseURL     string   `json:"database_url"`
+		WriterName      string   `json:"writer_name"`
+		DefaultUserSlug string   `json:"default_user_slug"`
+		DefaultTreeSlug string   `json:"default_tree_slug"`
+		HTTPAddr        string   `json:"http_addr"`
+		AdminEmails     []string `json:"admin_emails"`
+		KratosPublicURL string   `json:"kratos_public_url"`
+		OpenAIBaseURL   string   `json:"openai_base_url"`
+		PromptModel     string   `json:"prompt_model"`
+		ReviewModel     string   `json:"review_model"`
+		ValeBinary      string   `json:"vale_binary"`
+		LanguageToolURL string   `json:"languagetool_url"`
 	}{
 		DataDir:         cfg.DataDir,
 		DatabaseURL:     cfg.DatabaseURL,
@@ -151,6 +157,7 @@ func Save(cfg Config) error {
 		DefaultUserSlug: cfg.DefaultUserSlug,
 		DefaultTreeSlug: cfg.DefaultTreeSlug,
 		HTTPAddr:        cfg.HTTPAddr,
+		AdminEmails:     cfg.AdminEmails,
 		KratosPublicURL: cfg.KratosPublicURL,
 		OpenAIBaseURL:   cfg.OpenAIBaseURL,
 		PromptModel:     cfg.PromptModel,
@@ -165,4 +172,15 @@ func Save(cfg Config) error {
 	}
 
 	return os.WriteFile(cfg.ConfigPath, append(bytes, '\n'), 0o644)
+}
+
+func splitCSV(raw string) []string {
+	var items []string
+	for _, value := range strings.Split(raw, ",") {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			items = append(items, value)
+		}
+	}
+	return items
 }

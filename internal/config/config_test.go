@@ -45,6 +45,7 @@ func TestLoadReadsAPITokenFromEnv(t *testing.T) {
 	t.Setenv("WRITING_COACH_WRITER_NAME", "Coach Writer")
 	t.Setenv("WRITING_COACH_DEFAULT_USER_SLUG", "coach")
 	t.Setenv("WRITING_COACH_DEFAULT_TREE_SLUG", "youth-writing-foundations")
+	t.Setenv("WRITING_COACH_ADMIN_EMAILS", "writer@example.com, coach@example.com")
 
 	loaded, err := Load(root)
 	if err != nil {
@@ -64,5 +65,8 @@ func TestLoadReadsAPITokenFromEnv(t *testing.T) {
 	}
 	if loaded.DefaultTreeSlug != "youth-writing-foundations" {
 		t.Fatalf("default tree slug = %q", loaded.DefaultTreeSlug)
+	}
+	if len(loaded.AdminEmails) != 2 || loaded.AdminEmails[0] != "writer@example.com" {
+		t.Fatalf("admin emails = %#v", loaded.AdminEmails)
 	}
 }

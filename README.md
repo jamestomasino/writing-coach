@@ -177,6 +177,7 @@ Environment variables:
 - `WRITING_COACH_DEFAULT_USER_SLUG`
 - `WRITING_COACH_DEFAULT_TREE_SLUG`
 - `WRITING_COACH_API_TOKEN`
+- `WRITING_COACH_ADMIN_EMAILS`
 - `WRITING_COACH_KRATOS_PUBLIC_URL`
 - `VALE_BINARY`
 - `LANGUAGETOOL_URL`
@@ -241,6 +242,7 @@ Production deployment for `coach.tomasino.org` should:
 
 - copy `.env.example` to `.env`
 - set the Kratos secrets to long random values
+- set `WRITING_COACH_ADMIN_EMAILS` to the Kratos email addresses allowed to create or edit curricula
 - keep the published ports bound to `127.0.0.1`
 - let nginx terminate TLS and proxy to `APP_PORT_BIND`
 - leave `WRITING_COACH_KRATOS_PUBLIC_URL` pointed at the internal Docker URL `http://kratos:4433`

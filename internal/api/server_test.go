@@ -148,6 +148,15 @@ func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 		t.Fatalf("custom tree get status: %d", customTreeGetResp.StatusCode)
 	}
 
+	versionsResp, err := http.Get(testServer.URL + "/api/trees/essay-basics/versions")
+	if err != nil {
+		t.Fatalf("get tree versions: %v", err)
+	}
+	defer versionsResp.Body.Close()
+	if versionsResp.StatusCode != http.StatusOK {
+		t.Fatalf("versions status: %d", versionsResp.StatusCode)
+	}
+
 	boardResp, err := http.Get(testServer.URL + "/api/enrollments/2/board")
 	if err != nil {
 		t.Fatalf("get board: %v", err)
@@ -155,6 +164,75 @@ func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 	defer boardResp.Body.Close()
 	if boardResp.StatusCode != http.StatusOK {
 		t.Fatalf("board status: %d", boardResp.StatusCode)
+	}
+}
+
+func TestTreeUpdateCreatesVersion(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	createResp, err := http.Post(testServer.URL+"/api/trees", "application/json", strings.NewReader(`{
+		"slug":"revision-track",
+		"title":"Revision Track",
+		"description":"Version one",
+		"seed_codes":["draft-control","clarity","revision-discipline"],
+		"priority_skills":["prose precision"],
+		"tgos":[
+			{"code":"draft-control","title":"Draft Control","description":"Hold shape.","stage":"core","stage_order":1,"mastery_hint":"shape holds"},
+			{"code":"clarity","title":"Clarity","description":"Stay readable.","stage":"core","stage_order":2,"mastery_hint":"clear"},
+			{"code":"revision-discipline","title":"Revision Discipline","description":"Revise deliberately.","stage":"core","stage_order":3,"mastery_hint":"deliberate"}
+		]
+	}`))
+	if err != nil {
+		t.Fatalf("create tree: %v", err)
+	}
+	defer createResp.Body.Close()
+	if createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("create status: %d", createResp.StatusCode)
+	}
+
+	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/trees/revision-track", strings.NewReader(`{
+		"title":"Revision Track",
+		"description":"Version two",
+		"seed_codes":["draft-control","clarity","revision-discipline"],
+		"priority_skills":["prose precision","narrative clarity"],
+		"tgos":[
+			{"code":"draft-control","title":"Draft Control","description":"Hold shape.","stage":"core","stage_order":1,"mastery_hint":"shape holds"},
+			{"code":"clarity","title":"Clarity","description":"Stay readable.","stage":"core","stage_order":2,"mastery_hint":"clear"},
+			{"code":"revision-discipline","title":"Revision Discipline","description":"Revise deliberately.","stage":"core","stage_order":3,"mastery_hint":"deliberate"}
+		]
+	}`))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	updateResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("update tree: %v", err)
+	}
+	defer updateResp.Body.Close()
+	if updateResp.StatusCode != http.StatusOK {
+		t.Fatalf("update status: %d", updateResp.StatusCode)
+	}
+
+	versionsResp, err := http.Get(testServer.URL + "/api/trees/revision-track/versions")
+	if err != nil {
+		t.Fatalf("versions request: %v", err)
+	}
+	defer versionsResp.Body.Close()
+	if versionsResp.StatusCode != http.StatusOK {
+		t.Fatalf("versions status: %d", versionsResp.StatusCode)
+	}
+	var versionsPayload struct {
+		Versions []struct {
+			Version int `json:"version"`
+		} `json:"versions"`
+	}
+	if err := json.NewDecoder(versionsResp.Body).Decode(&versionsPayload); err != nil {
+		t.Fatalf("decode versions: %v", err)
+	}
+	if len(versionsPayload.Versions) < 2 {
+		t.Fatalf("version count = %d", len(versionsPayload.Versions))
 	}
 }
 
@@ -304,6 +382,35 @@ func TestAPIAuthMiddleware(t *testing.T) {
 	}
 }
 
+func TestTreeCreateRequiresAdminAuthorization(t *testing.T) {
+	testServer := newTestServerWithToken(t, "secret-token")
+	defer testServer.Close()
+
+	resp, err := http.Post(testServer.URL+"/api/trees", "application/json", strings.NewReader(`{"slug":"blocked","title":"Blocked","tgos":[{"code":"one","title":"One","description":"One","stage":"core","stage_order":1}]}`))
+	if err != nil {
+		t.Fatalf("post tree: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized tree create status = %d", resp.StatusCode)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/trees", strings.NewReader(`{"slug":"allowed","title":"Allowed","tgos":[{"code":"one","title":"One","description":"One","stage":"core","stage_order":1},{"code":"two","title":"Two","description":"Two","stage":"core","stage_order":2},{"code":"three","title":"Three","description":"Three","stage":"core","stage_order":3}]}`))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer secret-token")
+	req.Header.Set("Content-Type", "application/json")
+	authResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("authorized tree create: %v", err)
+	}
+	defer authResp.Body.Close()
+	if authResp.StatusCode != http.StatusCreated {
+		t.Fatalf("authorized tree create status = %d", authResp.StatusCode)
+	}
+}
+
 func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	user, err := harness.Store.UserBySlug(context.Background(), "tester")
@@ -419,6 +526,43 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	}
 }
 
+func TestKratosAdminEmailCanManageTrees(t *testing.T) {
+	kratos := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"identity": map[string]any{
+				"id": "admin-user-1",
+				"traits": map[string]any{
+					"email": "writer@example.com",
+					"name":  map[string]any{"first": "Writer"},
+				},
+			},
+		})
+	}))
+	defer kratos.Close()
+
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.KratosPublicURL = kratos.URL
+	cfg.AdminEmails = []string{"writer@example.com"}
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/trees", strings.NewReader(`{"slug":"kratos-admin","title":"Kratos Admin","tgos":[{"code":"one-a","title":"One","description":"One","stage":"core","stage_order":1},{"code":"two-a","title":"Two","description":"Two","stage":"core","stage_order":2},{"code":"three-a","title":"Three","description":"Three","stage":"core","stage_order":3}]}`))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("X-Session-Token", "session-token")
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("kratos admin request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("kratos admin status = %d", resp.StatusCode)
+	}
+}
+
 func newTestServer(t *testing.T) *httptest.Server {
 	return newTestServerWithAuth(t, "", "")
 }
@@ -429,7 +573,10 @@ func newTestServerWithToken(t *testing.T, apiToken string) *httptest.Server {
 
 func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *httptest.Server {
 	harness := newTestHarnessWithAuth(t, apiToken, kratosPublicURL)
-	return newTestServerWithStore(t, harness.Store, apiToken, kratosPublicURL)
+	cfg := config.Default(t.TempDir())
+	cfg.APIToken = apiToken
+	cfg.KratosPublicURL = kratosPublicURL
+	return newTestServerWithConfig(t, harness.Store, cfg)
 }
 
 type testHarness struct {
@@ -462,10 +609,14 @@ func newTestHarnessWithAuth(t *testing.T, apiToken, kratosPublicURL string) test
 
 func newTestServerWithStore(t *testing.T, store *db.Store, apiToken, kratosPublicURL string) *httptest.Server {
 	t.Helper()
-	root := t.TempDir()
-	cfg := config.Default(root)
+	cfg := config.Default(t.TempDir())
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
+	return newTestServerWithConfig(t, store, cfg)
+}
+
+func newTestServerWithConfig(t *testing.T, store *db.Store, cfg config.Config) *httptest.Server {
+	t.Helper()
 
 	server := Server{
 		Config:     cfg,

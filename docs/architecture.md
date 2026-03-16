@@ -88,7 +88,7 @@ This enables:
 - a youth foundations tree for your son
 - later trees for essays, scene craft, fantasy foundations, or other writing goals
 
-Tree definitions are now persisted in the database so new curricula can be created over the API and enrolled without another code release.
+Tree definitions are now persisted in the database so new curricula can be created over the API and enrolled without another code release. Tree saves also create version snapshots so curriculum edits remain auditable.
 
 ## Persistence Model
 

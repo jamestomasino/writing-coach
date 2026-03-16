@@ -52,7 +52,9 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)
 	mux.HandleFunc("GET /api/trees", s.handleTreesList)
 	mux.HandleFunc("POST /api/trees", s.handleTreeCreate)
+	mux.HandleFunc("GET /api/trees/{slug}/versions", s.handleTreeVersionsList)
 	mux.HandleFunc("GET /api/trees/{slug}", s.handleTreeGet)
+	mux.HandleFunc("PUT /api/trees/{slug}", s.handleTreeUpdate)
 	mux.HandleFunc("GET /api/enrollments", s.handleEnrollmentsList)
 	mux.HandleFunc("POST /api/enrollments", s.handleEnrollmentsCreate)
 	mux.HandleFunc("GET /api/enrollments/{id}/board", s.handleEnrollmentBoard)
@@ -112,6 +114,16 @@ type treeResponse struct {
 	PrioritySkills []string      `json:"priority_skills,omitempty"`
 	TGOs           []tgoResponse `json:"tgos,omitempty"`
 	CreatedAt      string        `json:"created_at,omitempty"`
+}
+
+type treeVersionResponse struct {
+	ID          int64  `json:"id"`
+	TreeID      int64  `json:"tree_id"`
+	TreeSlug    string `json:"tree_slug"`
+	Version     int    `json:"version"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type enrollmentResponse struct {
@@ -304,6 +316,9 @@ func (s Server) handleTreesList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) handleTreeCreate(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
 	var payload struct {
 		Slug           string        `json:"slug"`
 		Title          string        `json:"title"`
@@ -364,6 +379,80 @@ func (s Server) handleTreeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tree": s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0]})
+}
+
+func (s Server) handleTreeUpdate(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	var payload struct {
+		Title          string        `json:"title"`
+		Description    string        `json:"description"`
+		SeedCodes      []string      `json:"seed_codes"`
+		PrioritySkills []string      `json:"priority_skills"`
+		TGOs           []tgoResponse `json:"tgos"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	slug := r.PathValue("slug")
+	if strings.TrimSpace(payload.Title) == "" || len(payload.TGOs) == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("title and at least one TGO are required"))
+		return
+	}
+	def := domain.TGOTreeDefinition{
+		Slug:           slug,
+		Title:          payload.Title,
+		Description:    payload.Description,
+		SeedCodes:      append([]string(nil), payload.SeedCodes...),
+		PrioritySkills: append([]string(nil), payload.PrioritySkills...),
+	}
+	for _, item := range payload.TGOs {
+		def.TGOs = append(def.TGOs, domain.TGO{
+			Code:          item.Code,
+			Title:         item.Title,
+			Description:   item.Description,
+			Stage:         item.Stage,
+			StageOrder:    item.StageOrder,
+			Prerequisites: append([]string(nil), item.Prerequisites...),
+			MasteryHint:   item.MasteryHint,
+		})
+	}
+	if len(def.SeedCodes) == 0 && len(def.TGOs) >= 3 {
+		def.SeedCodes = []string{def.TGOs[0].Code, def.TGOs[1].Code, def.TGOs[2].Code}
+	}
+	if err := s.Store.SaveTreeDefinition(r.Context(), def); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tree, err := s.Store.TreeBySlug(r.Context(), slug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tree": s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0]})
+}
+
+func (s Server) handleTreeVersionsList(w http.ResponseWriter, r *http.Request) {
+	versions, err := s.Store.ListTreeVersions(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	var items []treeVersionResponse
+	for _, version := range versions {
+		items = append(items, treeVersionResponse{
+			ID:          version.ID,
+			TreeID:      version.TreeID,
+			TreeSlug:    version.TreeSlug,
+			Version:     version.Version,
+			Title:       version.Title,
+			Description: version.Description,
+			CreatedAt:   db.Since(version.CreatedAt),
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"versions": items})
 }
 
 func (s Server) handleEnrollmentsList(w http.ResponseWriter, r *http.Request) {
@@ -1140,6 +1229,29 @@ func parseOptionalInt64(raw string) (int64, error) {
 
 func belongsToContext(userID, treeID int64, appContext session.Context) bool {
 	return userID == appContext.UserID && treeID == appContext.TreeID
+}
+
+func (s Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
+	mode := authModeFromContext(r.Context())
+	switch mode {
+	case "api_token":
+		return true
+	case "kratos":
+		ident, ok := identityFromContext(r.Context())
+		if ok {
+			for _, email := range s.Config.AdminEmails {
+				if strings.EqualFold(email, ident.Email) {
+					return true
+				}
+			}
+		}
+	case "none":
+		if strings.TrimSpace(s.Config.APIToken) == "" && strings.TrimSpace(s.Config.KratosPublicURL) == "" {
+			return true
+		}
+	}
+	writeJSON(w, http.StatusForbidden, errorResponse{Error: "admin access required"})
+	return false
 }
 
 func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submission, currentReview domain.Review) map[string]any {
