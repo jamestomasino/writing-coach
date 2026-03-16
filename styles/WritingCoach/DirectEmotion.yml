@@ -1,0 +1,12 @@
+extends: existence
+message: "Direct emotion label '%s' can often be replaced with image, gesture, or consequence."
+level: suggestion
+ignorecase: true
+tokens:
+  - "\\banguish\\b"
+  - "\\bfurious\\b"
+  - "\\bheartbroken\\b"
+  - "\\bterrified\\b"
+  - "\\bdevastated\\b"
+  - "\\bdesperate\\b"
+  - "\\bgrief-stricken\\b"

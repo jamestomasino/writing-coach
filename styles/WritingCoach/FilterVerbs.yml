@@ -1,0 +1,14 @@
+extends: existence
+message: "Filter phrase '%s' distances the reader from the scene."
+level: suggestion
+ignorecase: true
+tokens:
+  - "\\bhe felt\\b"
+  - "\\bshe felt\\b"
+  - "\\bthey felt\\b"
+  - "\\bhe saw\\b"
+  - "\\bshe saw\\b"
+  - "\\bthey saw\\b"
+  - "\\bhe realized\\b"
+  - "\\bshe realized\\b"
+  - "\\bthey realized\\b"

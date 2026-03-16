@@ -1,0 +1,13 @@
+extends: existence
+message: "Stock fantasy phrase '%s' risks flattening the mythic voice."
+level: warning
+ignorecase: true
+tokens:
+  - chosen one
+  - dark lord
+  - ancient prophecy
+  - for ages untold
+  - lost kingdom
+  - mystical artifact
+  - elder race
+  - destiny of the realm

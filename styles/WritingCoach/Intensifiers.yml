@@ -1,0 +1,11 @@
+extends: existence
+message: "Intensifier '%s' is often weaker than a more exact noun or verb."
+level: suggestion
+ignorecase: true
+tokens:
+  - "\\bvery\\b"
+  - "\\breally\\b"
+  - "\\btruly\\b"
+  - "\\bquite\\b"
+  - "\\brather\\b"
+  - "\\bsuddenly\\b"

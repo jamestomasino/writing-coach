@@ -1,0 +1,9 @@
+extends: existence
+message: "This phrasing may explain symbolism too directly; let the object carry more of the meaning."
+level: warning
+ignorecase: true
+tokens:
+  - "\\bsymboli(?:zes|zed|zing)\\b"
+  - "\\brepresent(?:s|ed|ing)\\b"
+  - "\\bstood for\\b"
+  - "\\bmeant that\\b"

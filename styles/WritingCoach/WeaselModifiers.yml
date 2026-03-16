@@ -1,0 +1,10 @@
+extends: existence
+message: "Modifier '%s' may be diluting precision."
+level: suggestion
+ignorecase: true
+tokens:
+  - "\\bsomehow\\b"
+  - "\\bperhaps\\b"
+  - "\\bmaybe\\b"
+  - "\\bkind of\\b"
+  - "\\bsort of\\b"

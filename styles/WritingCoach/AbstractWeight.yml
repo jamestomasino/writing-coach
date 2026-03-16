@@ -1,0 +1,13 @@
+extends: existence
+message: "Abstract burden word '%s' may be carrying emotional weight the scene hasn't dramatized yet."
+level: suggestion
+ignorecase: true
+tokens:
+  - destiny
+  - inevitability
+  - sorrow
+  - despair
+  - ruin
+  - doom
+  - tragedy
+  - grief
