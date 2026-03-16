@@ -12,6 +12,7 @@ import (
 type authContextKey string
 
 const identityContextKey authContextKey = "api.identity"
+const authModeContextKey authContextKey = "api.auth_mode"
 
 type identity struct {
 	Subject string
@@ -41,7 +42,7 @@ func withAuth(next http.Handler, apiToken, kratosPublicURL string) http.Handler 
 		}
 
 		if strings.TrimSpace(apiToken) == "" && strings.TrimSpace(kratosPublicURL) == "" {
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), authModeContextKey, "none")))
 			return
 		}
 
@@ -54,7 +55,7 @@ func withAuth(next http.Handler, apiToken, kratosPublicURL string) http.Handler 
 				}
 			}
 			if candidate == token {
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), authModeContextKey, "api_token")))
 				return
 			}
 		}
@@ -62,7 +63,9 @@ func withAuth(next http.Handler, apiToken, kratosPublicURL string) http.Handler 
 		if publicURL := strings.TrimSpace(kratosPublicURL); publicURL != "" {
 			ident, err := whoami(r.Context(), client, publicURL, r)
 			if err == nil {
-				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityContextKey, ident)))
+				ctx := context.WithValue(r.Context(), identityContextKey, ident)
+				ctx = context.WithValue(ctx, authModeContextKey, "kratos")
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 		}
@@ -110,6 +113,14 @@ func whoami(ctx context.Context, client *http.Client, publicURL string, incoming
 func identityFromContext(ctx context.Context) (identity, bool) {
 	value, ok := ctx.Value(identityContextKey).(identity)
 	return value, ok
+}
+
+func authModeFromContext(ctx context.Context) string {
+	value, _ := ctx.Value(authModeContextKey).(string)
+	if value == "" {
+		return "none"
+	}
+	return value
 }
 
 func slugFromIdentity(ident identity) string {

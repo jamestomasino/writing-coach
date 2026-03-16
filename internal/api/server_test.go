@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/curriculum"
 	"github.com/tomasino/writing-coach/internal/db"
+	"github.com/tomasino/writing-coach/internal/domain"
 	"github.com/tomasino/writing-coach/internal/prompt"
 	"github.com/tomasino/writing-coach/internal/review"
 )
@@ -127,6 +129,107 @@ func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 	}
 }
 
+func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	promptResp, err := http.Post(testServer.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("prompt next: %v", err)
+	}
+	defer promptResp.Body.Close()
+	if promptResp.StatusCode != http.StatusOK {
+		t.Fatalf("prompt status: %d", promptResp.StatusCode)
+	}
+	var promptPayload struct {
+		Exercise struct {
+			ID int64 `json:"id"`
+		} `json:"exercise"`
+	}
+	if err := json.NewDecoder(promptResp.Body).Decode(&promptPayload); err != nil {
+		t.Fatalf("decode prompt: %v", err)
+	}
+
+	exercisesResp, err := http.Get(testServer.URL + "/api/exercises?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("list exercises: %v", err)
+	}
+	defer exercisesResp.Body.Close()
+	if exercisesResp.StatusCode != http.StatusOK {
+		t.Fatalf("exercise list status: %d", exercisesResp.StatusCode)
+	}
+
+	exerciseResp, err := http.Get(testServer.URL + "/api/exercises/" + int64String(promptPayload.Exercise.ID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get exercise: %v", err)
+	}
+	defer exerciseResp.Body.Close()
+	if exerciseResp.StatusCode != http.StatusOK {
+		t.Fatalf("exercise get status: %d", exerciseResp.StatusCode)
+	}
+
+	submitResp, err := http.Post(testServer.URL+"/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{"exercise_id":`+int64String(promptPayload.Exercise.ID)+`,"content":"The bell cracked as the prince chose the gate that had no hinge."}`))
+	if err != nil {
+		t.Fatalf("create submission: %v", err)
+	}
+	defer submitResp.Body.Close()
+	if submitResp.StatusCode != http.StatusCreated {
+		t.Fatalf("submission status: %d", submitResp.StatusCode)
+	}
+	var submissionPayload struct {
+		Submission struct {
+			ID int64 `json:"id"`
+		} `json:"submission"`
+	}
+	if err := json.NewDecoder(submitResp.Body).Decode(&submissionPayload); err != nil {
+		t.Fatalf("decode submission: %v", err)
+	}
+
+	submissionsResp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship&exercise_id=" + int64String(promptPayload.Exercise.ID))
+	if err != nil {
+		t.Fatalf("list submissions: %v", err)
+	}
+	defer submissionsResp.Body.Close()
+	if submissionsResp.StatusCode != http.StatusOK {
+		t.Fatalf("submission list status: %d", submissionsResp.StatusCode)
+	}
+
+	reviewResp, err := http.Post(testServer.URL+"/api/reviews?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{"submission_id":`+int64String(submissionPayload.Submission.ID)+`}`))
+	if err != nil {
+		t.Fatalf("create review: %v", err)
+	}
+	defer reviewResp.Body.Close()
+	if reviewResp.StatusCode != http.StatusCreated {
+		t.Fatalf("review status: %d", reviewResp.StatusCode)
+	}
+	var reviewPayload struct {
+		Review struct {
+			ID int64 `json:"id"`
+		} `json:"review"`
+	}
+	if err := json.NewDecoder(reviewResp.Body).Decode(&reviewPayload); err != nil {
+		t.Fatalf("decode review: %v", err)
+	}
+
+	reviewsResp, err := http.Get(testServer.URL + "/api/reviews?user=tester&tree=mythic-tragedy-apprenticeship&submission_id=" + int64String(submissionPayload.Submission.ID))
+	if err != nil {
+		t.Fatalf("list reviews: %v", err)
+	}
+	defer reviewsResp.Body.Close()
+	if reviewsResp.StatusCode != http.StatusOK {
+		t.Fatalf("review list status: %d", reviewsResp.StatusCode)
+	}
+
+	singleReviewResp, err := http.Get(testServer.URL + "/api/reviews/" + int64String(reviewPayload.Review.ID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get review: %v", err)
+	}
+	defer singleReviewResp.Body.Close()
+	if singleReviewResp.StatusCode != http.StatusOK {
+		t.Fatalf("review get status: %d", singleReviewResp.StatusCode)
+	}
+}
+
 func TestAPIAuthMiddleware(t *testing.T) {
 	testServer := newTestServerWithToken(t, "secret-token")
 	defer testServer.Close()
@@ -156,6 +259,41 @@ func TestAPIAuthMiddleware(t *testing.T) {
 }
 
 func TestKratosWhoamiAuthMiddleware(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	testerExerciseID, err := harness.Store.SaveExercise(context.Background(), domain.Exercise{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		Title:              "Hidden Exercise",
+		Brief:              "Secret",
+		Constraints:        []string{"single scene"},
+		FocusSkills:        []string{"scene architecture"},
+		TGOCodes:           []string{"scene-architecture"},
+		SuccessCriteria:    []string{"a turn occurs"},
+		GenerationKind:     "deterministic",
+		SourceSubmissionID: 0,
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	testerSubmissionID, err := harness.Store.SaveSubmission(context.Background(), domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: testerExerciseID,
+		Content:    "The king refused the warning.",
+		WordCount:  5,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+
 	kratos := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/sessions/whoami" {
 			http.NotFound(w, r)
@@ -180,7 +318,7 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	}))
 	defer kratos.Close()
 
-	testServer := newTestServerWithAuth(t, "", kratos.URL)
+	testServer := newTestServerWithStore(t, harness.Store, "", kratos.URL)
 	defer testServer.Close()
 
 	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/context?tree=mythic-tragedy-apprenticeship", nil)
@@ -205,6 +343,34 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	if payload.UserSlug != "kratos-7b5f6fc136d3" {
 		t.Fatalf("user slug = %q", payload.UserSlug)
 	}
+
+	sessionReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/auth/session?tree=mythic-tragedy-apprenticeship", nil)
+	if err != nil {
+		t.Fatalf("session request: %v", err)
+	}
+	sessionReq.Header.Set("X-Session-Token", "session-token")
+	sessionResp, err := http.DefaultClient.Do(sessionReq)
+	if err != nil {
+		t.Fatalf("session response: %v", err)
+	}
+	defer sessionResp.Body.Close()
+	if sessionResp.StatusCode != http.StatusOK {
+		t.Fatalf("session status = %d", sessionResp.StatusCode)
+	}
+
+	foreignReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/submissions/"+int64String(testerSubmissionID)+"?user=tester&tree=mythic-tragedy-apprenticeship", nil)
+	if err != nil {
+		t.Fatalf("foreign request: %v", err)
+	}
+	foreignReq.Header.Set("X-Session-Token", "session-token")
+	foreignResp, err := http.DefaultClient.Do(foreignReq)
+	if err != nil {
+		t.Fatalf("foreign response: %v", err)
+	}
+	defer foreignResp.Body.Close()
+	if foreignResp.StatusCode != http.StatusNotFound {
+		t.Fatalf("foreign status = %d", foreignResp.StatusCode)
+	}
 }
 
 func newTestServer(t *testing.T) *httptest.Server {
@@ -216,6 +382,15 @@ func newTestServerWithToken(t *testing.T, apiToken string) *httptest.Server {
 }
 
 func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *httptest.Server {
+	harness := newTestHarnessWithAuth(t, apiToken, kratosPublicURL)
+	return newTestServerWithStore(t, harness.Store, apiToken, kratosPublicURL)
+}
+
+type testHarness struct {
+	Store *db.Store
+}
+
+func newTestHarnessWithAuth(t *testing.T, apiToken, kratosPublicURL string) testHarness {
 	t.Helper()
 	root := t.TempDir()
 	store, err := db.Open(filepath.Join(root, "test.db"))
@@ -233,7 +408,15 @@ func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *http
 	if _, _, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "mythic-tragedy-apprenticeship"); err != nil {
 		t.Fatalf("default user tree: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = store.Close()
+	})
+	return testHarness{Store: store}
+}
 
+func newTestServerWithStore(t *testing.T, store *db.Store, apiToken, kratosPublicURL string) *httptest.Server {
+	t.Helper()
+	root := t.TempDir()
 	cfg := config.Default(root)
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
@@ -248,7 +431,10 @@ func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *http
 	testServer := httptest.NewServer(server.routes())
 	t.Cleanup(func() {
 		testServer.Close()
-		_ = store.Close()
 	})
 	return testServer
+}
+
+func int64String(value int64) string {
+	return strconv.FormatInt(value, 10)
 }

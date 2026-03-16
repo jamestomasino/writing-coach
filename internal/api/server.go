@@ -46,6 +46,7 @@ func (s Server) Serve(ctx context.Context) error {
 func (s Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
 	mux.HandleFunc("GET /api/users", s.handleUsersList)
 	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
 	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)
@@ -56,11 +57,16 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/enrollments/{id}/board", s.handleEnrollmentBoard)
 	mux.HandleFunc("GET /api/context", s.handleContext)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
+	mux.HandleFunc("GET /api/exercises", s.handleExercisesList)
+	mux.HandleFunc("GET /api/exercises/{id}", s.handleExerciseGet)
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
 	mux.HandleFunc("POST /api/prompts/revise", s.handlePromptRevise)
+	mux.HandleFunc("GET /api/submissions", s.handleSubmissionsList)
 	mux.HandleFunc("POST /api/submissions", s.handleSubmissionCreate)
 	mux.HandleFunc("GET /api/submissions/{id}", s.handleSubmissionGet)
+	mux.HandleFunc("GET /api/reviews", s.handleReviewsList)
 	mux.HandleFunc("POST /api/reviews", s.handleReviewCreate)
+	mux.HandleFunc("GET /api/reviews/{id}", s.handleReviewGet)
 	mux.HandleFunc("GET /api/compare", s.handleCompare)
 	return withCORS(withAuth(mux, s.Config.APIToken, s.Config.KratosPublicURL))
 }
@@ -74,6 +80,19 @@ type requestContextResponse struct {
 	TreeSlug string `json:"tree_slug"`
 	UserID   int64  `json:"user_id"`
 	TreeID   int64  `json:"tree_id"`
+}
+
+type authSessionResponse struct {
+	Authenticated bool                    `json:"authenticated"`
+	AuthMode      string                  `json:"auth_mode"`
+	Identity      *authIdentityResponse   `json:"identity,omitempty"`
+	Context       *requestContextResponse `json:"context,omitempty"`
+}
+
+type authIdentityResponse struct {
+	Subject string `json:"subject"`
+	Email   string `json:"email,omitempty"`
+	Name    string `json:"name,omitempty"`
 }
 
 type userResponse struct {
@@ -182,6 +201,30 @@ type comparisonResponse struct {
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
+	mode := authModeFromContext(r.Context())
+	resp := authSessionResponse{
+		Authenticated: mode != "none",
+		AuthMode:      mode,
+	}
+	if ident, ok := identityFromContext(r.Context()); ok {
+		resp.Identity = &authIdentityResponse{
+			Subject: ident.Subject,
+			Email:   ident.Email,
+			Name:    ident.Name,
+		}
+	}
+	if appContext, err := s.resolveSession(r.Context(), r); err == nil {
+		resp.Context = &requestContextResponse{
+			UserSlug: appContext.UserSlug,
+			TreeSlug: appContext.TreeSlug,
+			UserID:   appContext.UserID,
+			TreeID:   appContext.TreeID,
+		}
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s Server) handleUsersList(w http.ResponseWriter, r *http.Request) {
@@ -367,6 +410,57 @@ func (s Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	s.writeDashboardPayload(r.Context(), w, appContext, state, activeTGOs, completedTGOs)
 }
 
+func (s Server) handleExercisesList(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	exercises, err := s.Store.ListExercises(r.Context(), appContext.UserID, appContext.TreeID, listLimit(r, 20, 100))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	items := make([]exerciseResponse, 0, len(exercises))
+	for _, exercise := range exercises {
+		items = append(items, toExerciseResponse(exercise))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":   requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"exercises": items,
+	})
+}
+
+func (s Server) handleExerciseGet(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid exercise id"))
+		return
+	}
+	exercise, err := s.Store.GetExercise(r.Context(), id)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if !belongsToContext(exercise.UserID, exercise.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("exercise not found"))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":  requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"exercise": toExerciseResponse(exercise),
+	})
+}
+
 func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
@@ -455,7 +549,38 @@ func (s Server) handleSubmissionCreate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s Server) handleSubmissionsList(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	exerciseID, err := parseOptionalInt64(r.URL.Query().Get("exercise_id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid exercise_id"))
+		return
+	}
+	submissions, err := s.Store.ListSubmissions(r.Context(), appContext.UserID, appContext.TreeID, exerciseID, listLimit(r, 20, 100))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	items := make([]submissionResponse, 0, len(submissions))
+	for _, submission := range submissions {
+		items = append(items, toSubmissionResponse(submission))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":     requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"submissions": items,
+	})
+}
+
 func (s Server) handleSubmissionGet(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil || id == 0 {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid submission id"))
@@ -470,7 +595,14 @@ func (s Server) handleSubmissionGet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, status, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"submission": toSubmissionResponse(sub)})
+	if !belongsToContext(sub.UserID, sub.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":    requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"submission": toSubmissionResponse(sub),
+	})
 }
 
 func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
@@ -497,6 +629,10 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusNotFound
 		}
 		writeError(w, status, err)
+		return
+	}
+	if !belongsToContext(sub.UserID, sub.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
 		return
 	}
 	activeTGOs, err := s.Store.ActiveTGOs(r.Context(), appContext.EnrollmentID)
@@ -536,7 +672,83 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s Server) handleReviewsList(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	submissionID, err := parseOptionalInt64(r.URL.Query().Get("submission_id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid submission_id"))
+		return
+	}
+	if submissionID != 0 {
+		sub, err := s.Store.GetSubmission(r.Context(), submissionID)
+		if err != nil {
+			status := http.StatusInternalServerError
+			if db.IsNotFound(err) {
+				status = http.StatusNotFound
+			}
+			writeError(w, status, err)
+			return
+		}
+		if !belongsToContext(sub.UserID, sub.TreeID, appContext) {
+			writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
+			return
+		}
+	}
+	reviews, err := s.Store.ListReviews(r.Context(), appContext.UserID, appContext.TreeID, submissionID, listLimit(r, 20, 100))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	items := make([]reviewResponse, 0, len(reviews))
+	for _, review := range reviews {
+		items = append(items, toReviewResponse(review))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"reviews": items,
+	})
+}
+
+func (s Server) handleReviewGet(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid review id"))
+		return
+	}
+	reviewResult, err := s.Store.GetReview(r.Context(), id)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if !belongsToContext(reviewResult.UserID, reviewResult.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("review not found"))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"review":  toReviewResponse(reviewResult),
+	})
+}
+
 func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
 	submissionID, err := strconv.ParseInt(r.URL.Query().Get("submission_id"), 10, 64)
 	if err != nil || submissionID == 0 {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("submission_id is required"))
@@ -545,6 +757,10 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 	current, err := s.Store.GetSubmission(r.Context(), submissionID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err)
+		return
+	}
+	if !belongsToContext(current.UserID, current.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
 		return
 	}
 	var baseline domain.Submission
@@ -557,6 +773,10 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 		baseline, err = s.Store.GetSubmission(r.Context(), againstID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
+			return
+		}
+		if !belongsToContext(baseline.UserID, baseline.TreeID, appContext) {
+			writeError(w, http.StatusNotFound, fmt.Errorf("baseline submission not found"))
 			return
 		}
 	} else {
@@ -808,6 +1028,33 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func listLimit(r *http.Request, fallback, max int) int {
+	raw := strings.TrimSpace(r.URL.Query().Get("limit"))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
+func parseOptionalInt64(raw string) (int64, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, nil
+	}
+	return strconv.ParseInt(raw, 10, 64)
+}
+
+func belongsToContext(userID, treeID int64, appContext session.Context) bool {
+	return userID == appContext.UserID && treeID == appContext.TreeID
 }
 
 func writeError(w http.ResponseWriter, status int, err error) {

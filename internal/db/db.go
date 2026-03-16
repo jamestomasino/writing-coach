@@ -282,9 +282,10 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 			focus_skills_json,
 			tgo_codes_json,
 			success_criteria_json,
-			generation_kind
+			generation_kind,
+			source_submission_id
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	res, err := s.SQL.ExecContext(
@@ -299,12 +300,57 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 		mustJSON(ex.TGOCodes),
 		mustJSON(ex.SuccessCriteria),
 		ex.GenerationKind,
+		nullableID(ex.SourceSubmissionID),
 	)
 	if err != nil {
 		return 0, err
 	}
 
 	return res.LastInsertId()
+}
+
+func (s *Store) GetExercise(ctx context.Context, exerciseID int64) (domain.Exercise, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, COALESCE(source_submission_id, 0), created_at
+		FROM exercises
+		WHERE id = ?
+	`, exerciseID)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return domain.Exercise{}, sql.ErrNoRows
+	}
+	exercise, err := scanExercise(rows)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	return exercise, rows.Err()
+}
+
+func (s *Store) ListExercises(ctx context.Context, userID, treeID int64, limit int) ([]domain.Exercise, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, COALESCE(source_submission_id, 0), created_at
+		FROM exercises
+		WHERE user_id = ? AND tree_id = ?
+		ORDER BY id DESC
+		LIMIT ?
+	`, userID, treeID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var exercises []domain.Exercise
+	for rows.Next() {
+		exercise, err := scanExercise(rows)
+		if err != nil {
+			return nil, err
+		}
+		exercises = append(exercises, exercise)
+	}
+	return exercises, rows.Err()
 }
 
 func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int64, error) {
@@ -327,17 +373,54 @@ func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int6
 }
 
 func (s *Store) GetSubmission(ctx context.Context, submissionID int64) (domain.Submission, error) {
-	var sub domain.Submission
-	err := s.SQL.QueryRowContext(ctx, `
+	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT id, user_id, tree_id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
 		FROM submissions
 		WHERE id = ?
-	`, submissionID).Scan(&sub.ID, &sub.UserID, &sub.TreeID, &sub.ExerciseID, &sub.ParentSubmissionID, &sub.DraftNumber, &sub.Content, &sub.WordCount, &sub.CreatedAt)
+	`, submissionID)
 	if err != nil {
 		return domain.Submission{}, err
 	}
+	defer rows.Close()
+	if !rows.Next() {
+		return domain.Submission{}, sql.ErrNoRows
+	}
+	submission, err := scanSubmission(rows)
+	if err != nil {
+		return domain.Submission{}, err
+	}
+	return submission, rows.Err()
+}
 
-	return sub, nil
+func (s *Store) ListSubmissions(ctx context.Context, userID, treeID, exerciseID int64, limit int) ([]domain.Submission, error) {
+	query := `
+		SELECT id, user_id, tree_id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
+		FROM submissions
+		WHERE user_id = ? AND tree_id = ?
+	`
+	args := []any{userID, treeID}
+	if exerciseID != 0 {
+		query += " AND exercise_id = ?"
+		args = append(args, exerciseID)
+	}
+	query += " ORDER BY id DESC LIMIT ?"
+	args = append(args, limit)
+
+	rows, err := s.SQL.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var submissions []domain.Submission
+	for rows.Next() {
+		submission, err := scanSubmission(rows)
+		if err != nil {
+			return nil, err
+		}
+		submissions = append(submissions, submission)
+	}
+	return submissions, rows.Err()
 }
 
 func (s *Store) NextDraftNumber(ctx context.Context, exerciseID, userID, treeID int64) (int, error) {
@@ -614,22 +697,116 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 	if err != nil {
 		return domain.Review{}, err
 	}
-	review.Strengths, err = DecodeStringSlice(strengthsJSON)
+	review, err = hydrateReview(review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON)
 	if err != nil {
 		return domain.Review{}, err
 	}
-	review.Weaknesses, err = DecodeStringSlice(weaknessesJSON)
+	review.TGOAssessments, err = s.ReviewTGOAssessments(ctx, review.ID)
 	if err != nil {
-		return domain.Review{}, err
-	}
-	review.AnalyzerFindings, err = DecodeStringSlice(findingsJSON)
-	if err != nil {
-		return domain.Review{}, err
-	}
-	if err := json.Unmarshal([]byte(completedChecksJSON), &review.CompletedTGOChecks); err != nil {
 		return domain.Review{}, err
 	}
 	return review, nil
+}
+
+func (s *Store) GetReview(ctx context.Context, reviewID int64) (domain.Review, error) {
+	var review domain.Review
+	var strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
+		FROM reviews
+		WHERE id = ?
+	`, reviewID).Scan(
+		&review.ID,
+		&review.UserID,
+		&review.TreeID,
+		&review.SubmissionID,
+		&review.ReviewKind,
+		&review.Summary,
+		&strengthsJSON,
+		&weaknessesJSON,
+		&findingsJSON,
+		&completedChecksJSON,
+		&review.NextFocus,
+		&review.MetricWordCount,
+		&review.CreatedAt,
+	)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review, err = hydrateReview(review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.TGOAssessments, err = s.ReviewTGOAssessments(ctx, review.ID)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	return review, nil
+}
+
+func (s *Store) ListReviews(ctx context.Context, userID, treeID, submissionID int64, limit int) ([]domain.Review, error) {
+	query := `
+		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
+		FROM reviews
+		WHERE user_id = ? AND tree_id = ?
+	`
+	args := []any{userID, treeID}
+	if submissionID != 0 {
+		query += " AND submission_id = ?"
+		args = append(args, submissionID)
+	}
+	query += " ORDER BY id DESC LIMIT ?"
+	args = append(args, limit)
+
+	rows, err := s.SQL.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reviews []domain.Review
+	for rows.Next() {
+		review, err := scanReview(rows)
+		if err != nil {
+			return nil, err
+		}
+		reviews = append(reviews, review)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for i := range reviews {
+		assessments, err := s.ReviewTGOAssessments(ctx, reviews[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		reviews[i].TGOAssessments = assessments
+	}
+	return reviews, nil
+}
+
+func (s *Store) ReviewTGOAssessments(ctx context.Context, reviewID int64) ([]domain.TGOAssessment, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT tgo_code, status, evidence
+		FROM review_tgo_assessments
+		WHERE review_id = ?
+		ORDER BY id ASC
+	`, reviewID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var assessments []domain.TGOAssessment
+	for rows.Next() {
+		var assessment domain.TGOAssessment
+		if err := rows.Scan(&assessment.TGOCode, &assessment.Status, &assessment.Evidence); err != nil {
+			return nil, err
+		}
+		assessment.ReviewID = reviewID
+		assessments = append(assessments, assessment)
+	}
+	return assessments, rows.Err()
 }
 
 func (s *Store) UpdateCurriculumState(ctx context.Context, enrollmentID int64, focus string, difficulty int, reviewID int64) error {
@@ -968,6 +1145,106 @@ func DecodeStringSlice(raw string) ([]string, error) {
 		return nil, err
 	}
 	return values, nil
+}
+
+func scanExercise(scanner interface{ Scan(...any) error }) (domain.Exercise, error) {
+	var exercise domain.Exercise
+	var constraintsJSON, focusSkillsJSON, tgoCodesJSON, successJSON string
+	if err := scanner.Scan(
+		&exercise.ID,
+		&exercise.UserID,
+		&exercise.TreeID,
+		&exercise.Title,
+		&exercise.Brief,
+		&constraintsJSON,
+		&focusSkillsJSON,
+		&tgoCodesJSON,
+		&successJSON,
+		&exercise.GenerationKind,
+		&exercise.SourceSubmissionID,
+		&exercise.CreatedAt,
+	); err != nil {
+		return domain.Exercise{}, err
+	}
+	var err error
+	exercise.Constraints, err = DecodeStringSlice(constraintsJSON)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	exercise.FocusSkills, err = DecodeStringSlice(focusSkillsJSON)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	exercise.TGOCodes, err = DecodeStringSlice(tgoCodesJSON)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	exercise.SuccessCriteria, err = DecodeStringSlice(successJSON)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	return exercise, nil
+}
+
+func scanSubmission(scanner interface{ Scan(...any) error }) (domain.Submission, error) {
+	var submission domain.Submission
+	if err := scanner.Scan(
+		&submission.ID,
+		&submission.UserID,
+		&submission.TreeID,
+		&submission.ExerciseID,
+		&submission.ParentSubmissionID,
+		&submission.DraftNumber,
+		&submission.Content,
+		&submission.WordCount,
+		&submission.CreatedAt,
+	); err != nil {
+		return domain.Submission{}, err
+	}
+	return submission, nil
+}
+
+func scanReview(scanner interface{ Scan(...any) error }) (domain.Review, error) {
+	var review domain.Review
+	var strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string
+	if err := scanner.Scan(
+		&review.ID,
+		&review.UserID,
+		&review.TreeID,
+		&review.SubmissionID,
+		&review.ReviewKind,
+		&review.Summary,
+		&strengthsJSON,
+		&weaknessesJSON,
+		&findingsJSON,
+		&completedChecksJSON,
+		&review.NextFocus,
+		&review.MetricWordCount,
+		&review.CreatedAt,
+	); err != nil {
+		return domain.Review{}, err
+	}
+	return hydrateReview(review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON)
+}
+
+func hydrateReview(review domain.Review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string) (domain.Review, error) {
+	var err error
+	review.Strengths, err = DecodeStringSlice(strengthsJSON)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.Weaknesses, err = DecodeStringSlice(weaknessesJSON)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.AnalyzerFindings, err = DecodeStringSlice(findingsJSON)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	if err := json.Unmarshal([]byte(completedChecksJSON), &review.CompletedTGOChecks); err != nil {
+		return domain.Review{}, err
+	}
+	return review, nil
 }
 
 func IsNotFound(err error) bool {

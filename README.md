@@ -113,13 +113,19 @@ Core endpoints:
 - `POST /api/enrollments`
 - `GET /api/enrollments/{id}/board`
 - `GET /api/health`
+- `GET /api/auth/session`
 - `GET /api/context`
 - `GET /api/dashboard`
+- `GET /api/exercises`
+- `GET /api/exercises/{id}`
 - `POST /api/prompts/next`
 - `POST /api/prompts/revise`
+- `GET /api/submissions`
 - `POST /api/submissions`
 - `GET /api/submissions/{id}`
+- `GET /api/reviews`
 - `POST /api/reviews`
+- `GET /api/reviews/{id}`
 - `GET /api/compare?submission_id=<id>[&against=<id>]`
 
 Optional per-request context:
