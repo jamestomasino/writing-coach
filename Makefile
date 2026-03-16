@@ -8,7 +8,7 @@ LT_URL ?= http://localhost:$(LT_PORT)
 LT_SERVER_JAR ?= $(firstword $(wildcard $(LT_HOME)/languagetool-server.jar $(LT_HOME)/LanguageTool-*/languagetool-server.jar))
 LT_HEALTHCHECK = curl -fsS -d 'language=en-US' -d 'text=Health check.' "$(LT_URL)/v2/check"
 
-.PHONY: help init build prompt submit review coach-review history progress vale-install languagetool-start languagetool-stop languagetool-status
+.PHONY: help init build prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status
 
 help: ## show available targets and what they do
 	@echo "targets:"
@@ -25,10 +25,14 @@ build: ## compile the Go project
 prompt: ## generate and store the next writing exercise
 	go run ./cmd/writing-coach prompt next
 
-submit: ## save a draft file as a submission; requires EXERCISE=<id> FILE=<path>
+prompt-revise: ## generate a revision brief from a reviewed submission; requires SUBMISSION=<id>
+	@test -n "$(SUBMISSION)" || (echo "SUBMISSION is required"; exit 1)
+	go run ./cmd/writing-coach prompt revise --submission $(SUBMISSION)
+
+submit: ## save a draft file as a submission; optional REVISE_FROM=<submission-id>
 	@test -n "$(EXERCISE)" || (echo "EXERCISE is required"; exit 1)
 	@test -n "$(FILE)" || (echo "FILE is required"; exit 1)
-	go run ./cmd/writing-coach submit --exercise $(EXERCISE) --file $(FILE)
+	go run ./cmd/writing-coach submit --exercise $(EXERCISE) --file $(FILE) $(if $(REVISE_FROM),--revise-from $(REVISE_FROM),)
 
 review: ## review a submission with current analyzers/models; requires SUBMISSION=<id>
 	@test -n "$(SUBMISSION)" || (echo "SUBMISSION is required"; exit 1)
@@ -38,6 +42,10 @@ coach-review: ## start LanguageTool if needed, then run a full review; requires 
 	@test -n "$(SUBMISSION)" || (echo "SUBMISSION is required"; exit 1)
 	@$(MAKE) languagetool-start
 	LANGUAGETOOL_URL=$(LT_URL) go run ./cmd/writing-coach review --submission $(SUBMISSION)
+
+compare: ## compare a reviewed draft against its prior reviewed draft; requires SUBMISSION=<id>
+	@test -n "$(SUBMISSION)" || (echo "SUBMISSION is required"; exit 1)
+	go run ./cmd/writing-coach compare --submission $(SUBMISSION) $(if $(AGAINST),--against $(AGAINST),)
 
 history: ## show recent exercises, submissions, and reviews
 	go run ./cmd/writing-coach history

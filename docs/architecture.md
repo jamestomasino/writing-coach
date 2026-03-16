@@ -63,6 +63,20 @@ The learning engine should track:
 - recent prompt patterns to avoid repetition
 - the next exercise strategy
 
+## TGO Curriculum
+
+The coaching model is built around `Topical Guide Objectives (TGOs)`.
+
+Rules:
+
+- exactly 3 TGOs are active at any given time
+- every assignment must declare those 3 TGOs explicitly
+- review prioritizes those 3 TGOs over general craft commentary
+- stable mastery moves a TGO to the completed list
+- a newly unlocked TGO replaces the completed one
+
+Advancement is structured but not strictly linear. TGOs carry prerequisites so later genre-specific work only unlocks after enough command of the core storytelling foundations.
+
 ## Persistence Model
 
 SQLite is the system of record. The schema should support direct reporting and preserve enough history to re-evaluate earlier work if rubrics change.

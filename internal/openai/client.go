@@ -24,15 +24,32 @@ type Client struct {
 }
 
 type ExerciseRequest struct {
-	CurrentFocus    string
-	DifficultyLevel int
-	RecentTitles    []string
+	CurrentFocus      string
+	DifficultyLevel   int
+	ActiveTGOs        []domain.TGO
+	RecentTitles      []string
+	RecentWeaknesses  []string
+	RecurringFindings []string
+}
+
+type RevisionExerciseRequest struct {
+	CurrentFocus      string
+	DifficultyLevel   int
+	ActiveTGOs        []domain.TGO
+	SubmissionID      int64
+	SubmissionContent string
+	Weaknesses        []string
+	AnalyzerFindings  []string
+	ComparisonSummary string
+	RecentWeaknesses  []string
+	RecurringFindings []string
 }
 
 type ReviewRequest struct {
 	SubmissionID     int64
 	Content          string
 	WordCount        int
+	ActiveTGOs       []domain.TGO
 	AnalysisSummary  string
 	AnalyzerFindings []string
 }
@@ -46,16 +63,23 @@ type exerciseResponse struct {
 }
 
 type reviewResponse struct {
-	Summary     string       `json:"summary"`
-	Strengths   []string     `json:"strengths"`
-	Weaknesses  []string     `json:"weaknesses"`
-	NextFocus   string       `json:"next_focus"`
-	SkillScores []skillScore `json:"skill_scores"`
+	Summary        string          `json:"summary"`
+	Strengths      []string        `json:"strengths"`
+	Weaknesses     []string        `json:"weaknesses"`
+	NextFocus      string          `json:"next_focus"`
+	SkillScores    []skillScore    `json:"skill_scores"`
+	TGOAssessments []tgoAssessment `json:"tgo_assessments"`
 }
 
 type skillScore struct {
 	Skill string `json:"skill"`
 	Score int    `json:"score"`
+}
+
+type tgoAssessment struct {
+	Code     string `json:"code"`
+	Status   string `json:"status"`
+	Evidence string `json:"evidence"`
 }
 
 func NewClient(cfg config.Config) *Client {
@@ -81,10 +105,55 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		Schema:      exerciseSchema(),
 		SystemInput: exerciseSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Current focus: %s\nDifficulty level: %d\nRecent exercise titles: %s",
+			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s",
 			emptyDefault(input.CurrentFocus, "scene architecture"),
 			input.DifficultyLevel,
+			joinTGOs(input.ActiveTGOs),
 			joinOrDefault(input.RecentTitles, "none"),
+			joinOrDefault(input.RecentWeaknesses, "none"),
+			joinOrDefault(input.RecurringFindings, "none"),
+		),
+	})
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+
+	var parsed exerciseResponse
+	if err := json.Unmarshal(payload, &parsed); err != nil {
+		return domain.Exercise{}, err
+	}
+	parsed = normalizeExercise(parsed)
+	if err := validateExercise(parsed); err != nil {
+		return domain.Exercise{}, err
+	}
+
+	return domain.Exercise{
+		Title:           parsed.Title,
+		Brief:           parsed.Brief,
+		Constraints:     parsed.Constraints,
+		FocusSkills:     parsed.FocusSkills,
+		SuccessCriteria: parsed.SuccessCriteria,
+	}, nil
+}
+
+func (c *Client) GenerateRevisionExercise(ctx context.Context, input RevisionExerciseRequest) (domain.Exercise, error) {
+	payload, err := c.runStructuredResponse(ctx, requestSpec{
+		Model:       c.promptModel,
+		SchemaName:  "revision_prompt",
+		Schema:      exerciseSchema(),
+		SystemInput: revisionSystemPrompt(),
+		UserInput: fmt.Sprintf(
+			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s",
+			emptyDefault(input.CurrentFocus, "prose precision"),
+			input.DifficultyLevel,
+			joinTGOs(input.ActiveTGOs),
+			input.SubmissionID,
+			input.SubmissionContent,
+			joinOrDefault(input.Weaknesses, "none"),
+			joinOrDefault(input.AnalyzerFindings, "none"),
+			emptyDefault(input.ComparisonSummary, "none"),
+			joinOrDefault(input.RecentWeaknesses, "none"),
+			joinOrDefault(input.RecurringFindings, "none"),
 		),
 	})
 	if err != nil {
@@ -116,9 +185,10 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		Schema:      reviewSchema(),
 		SystemInput: reviewSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Submission ID: %d\nWord count: %d\nDeterministic analysis summary: %s\nDeterministic findings: %s\nSubmission:\n%s",
+			"Submission ID: %d\nWord count: %d\nActive TGOs: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nSubmission:\n%s",
 			input.SubmissionID,
 			input.WordCount,
+			joinTGOs(input.ActiveTGOs),
 			emptyDefault(input.AnalysisSummary, "none"),
 			joinOrDefault(input.AnalyzerFindings, "none"),
 			input.Content,
@@ -151,6 +221,7 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		Summary:         parsed.Summary,
 		Strengths:       parsed.Strengths,
 		Weaknesses:      parsed.Weaknesses,
+		TGOAssessments:  toDomainAssessments(parsed.TGOAssessments),
 		NextFocus:       parsed.NextFocus,
 		MetricWordCount: input.WordCount,
 	}, scores, nil
@@ -288,6 +359,17 @@ Choose focus skills only from the supplied taxonomy.
 `)
 }
 
+func revisionSystemPrompt() string {
+	return strings.TrimSpace(`
+You are a professional fiction coach generating a rewrite brief for the author's next draft.
+Return only schema-compliant JSON.
+Do not generate a fresh unrelated exercise.
+Preserve the core scene, but focus the revision on the most important weaknesses.
+Prioritize mythic tragic force, symbolic discipline, causal clarity, and prose precision.
+Choose focus skills only from the supplied taxonomy.
+`)
+}
+
 func reviewSystemPrompt() string {
 	return strings.TrimSpace(`
 You are a professional fiction coach reviewing a short fiction exercise.
@@ -296,6 +378,7 @@ Evaluate for narrative clarity, tragic pressure, symbolic control, tonal discipl
 Do not flatter. Be concrete and developmental.
 Choose the next focus that would most improve the following exercise.
 Choose next_focus only from the supplied taxonomy.
+Assess each active TGO with one of: developing, secure, mastered.
 `)
 }
 
@@ -318,7 +401,7 @@ func reviewSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"summary", "strengths", "weaknesses", "next_focus", "skill_scores"},
+		"required":             []string{"summary", "strengths", "weaknesses", "next_focus", "skill_scores", "tgo_assessments"},
 		"properties": map[string]any{
 			"summary":    map[string]any{"type": "string"},
 			"strengths":  stringArraySchema(2, 4),
@@ -335,6 +418,21 @@ func reviewSchema() map[string]any {
 					"properties": map[string]any{
 						"skill": map[string]any{"type": "string", "enum": domain.SupportedSkills},
 						"score": map[string]any{"type": "integer", "minimum": 1, "maximum": 5},
+					},
+				},
+			},
+			"tgo_assessments": map[string]any{
+				"type":     "array",
+				"minItems": 3,
+				"maxItems": 3,
+				"items": map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"required":             []string{"code", "status", "evidence"},
+					"properties": map[string]any{
+						"code":     map[string]any{"type": "string"},
+						"status":   map[string]any{"type": "string", "enum": []string{"developing", "secure", "mastered"}},
+						"evidence": map[string]any{"type": "string"},
 					},
 				},
 			},
@@ -379,7 +477,7 @@ func validateReview(value reviewResponse) error {
 	if strings.TrimSpace(value.Summary) == "" || strings.TrimSpace(value.NextFocus) == "" {
 		return errors.New("openai review response missing summary or next focus")
 	}
-	if len(value.Strengths) == 0 || len(value.Weaknesses) == 0 || len(value.SkillScores) == 0 {
+	if len(value.Strengths) == 0 || len(value.Weaknesses) == 0 || len(value.SkillScores) == 0 || len(value.TGOAssessments) != 3 {
 		return errors.New("openai review response missing required arrays")
 	}
 	return nil
@@ -401,6 +499,11 @@ func normalizeReview(value reviewResponse) reviewResponse {
 	value.NextFocus = normalizeString(value.NextFocus)
 	for i := range value.SkillScores {
 		value.SkillScores[i].Skill = normalizeString(value.SkillScores[i].Skill)
+	}
+	for i := range value.TGOAssessments {
+		value.TGOAssessments[i].Code = normalizeString(value.TGOAssessments[i].Code)
+		value.TGOAssessments[i].Status = normalizeString(value.TGOAssessments[i].Status)
+		value.TGOAssessments[i].Evidence = normalizeString(value.TGOAssessments[i].Evidence)
 	}
 	return value
 }
@@ -431,4 +534,27 @@ func joinOrDefault(values []string, fallback string) string {
 		return fallback
 	}
 	return strings.Join(values, ", ")
+}
+
+func joinTGOs(tgos []domain.TGO) string {
+	if len(tgos) == 0 {
+		return "none"
+	}
+	var parts []string
+	for _, tgo := range tgos {
+		parts = append(parts, fmt.Sprintf("%s: %s", tgo.Code, tgo.Description))
+	}
+	return strings.Join(parts, " | ")
+}
+
+func toDomainAssessments(values []tgoAssessment) []domain.TGOAssessment {
+	out := make([]domain.TGOAssessment, 0, len(values))
+	for _, value := range values {
+		out = append(out, domain.TGOAssessment{
+			TGOCode:  value.Code,
+			Status:   value.Status,
+			Evidence: value.Evidence,
+		})
+	}
+	return out
 }

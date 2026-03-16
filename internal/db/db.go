@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -64,6 +65,28 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 		}
 	}
 
+	for _, tgo := range domain.TGOCatalog {
+		if _, err := s.SQL.ExecContext(ctx, `
+			INSERT INTO tgo_catalog (code, title, description, stage, stage_order)
+			SELECT ?, ?, ?, ?, ?
+			WHERE NOT EXISTS (SELECT 1 FROM tgo_catalog WHERE code = ?)
+		`, tgo.Code, tgo.Title, tgo.Description, tgo.Stage, tgo.StageOrder, tgo.Code); err != nil {
+			return err
+		}
+	}
+
+	initial := domain.SeedTGOs()
+	for idx, code := range initial {
+		slot := idx + 1
+		if _, err := s.SQL.ExecContext(ctx, `
+			INSERT INTO active_tgos (slot, tgo_code)
+			SELECT ?, ?
+			WHERE NOT EXISTS (SELECT 1 FROM active_tgos WHERE slot = ?)
+		`, slot, code, slot); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -93,6 +116,7 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 		ex.Brief,
 		mustJSON(ex.Constraints),
 		mustJSON(ex.FocusSkills),
+		mustJSON(ex.TGOCodes),
 		mustJSON(ex.SuccessCriteria),
 		ex.GenerationKind,
 	)
@@ -104,10 +128,17 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 }
 
 func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int64, error) {
+	if sub.DraftNumber == 0 {
+		nextDraft, err := s.NextDraftNumber(ctx, sub.ExerciseID)
+		if err != nil {
+			return 0, err
+		}
+		sub.DraftNumber = nextDraft
+	}
 	res, err := s.SQL.ExecContext(ctx, `
-		INSERT INTO submissions (exercise_id, content, word_count)
-		VALUES (?, ?, ?)
-	`, sub.ExerciseID, sub.Content, sub.WordCount)
+		INSERT INTO submissions (exercise_id, parent_submission_id, draft_number, content, word_count)
+		VALUES (?, ?, ?, ?, ?)
+	`, sub.ExerciseID, nullableID(sub.ParentSubmissionID), sub.DraftNumber, sub.Content, sub.WordCount)
 	if err != nil {
 		return 0, err
 	}
@@ -118,15 +149,64 @@ func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int6
 func (s *Store) GetSubmission(ctx context.Context, submissionID int64) (domain.Submission, error) {
 	var sub domain.Submission
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, exercise_id, content, word_count, created_at
+		SELECT id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
 		FROM submissions
 		WHERE id = ?
-	`, submissionID).Scan(&sub.ID, &sub.ExerciseID, &sub.Content, &sub.WordCount, &sub.CreatedAt)
+	`, submissionID).Scan(&sub.ID, &sub.ExerciseID, &sub.ParentSubmissionID, &sub.DraftNumber, &sub.Content, &sub.WordCount, &sub.CreatedAt)
 	if err != nil {
 		return domain.Submission{}, err
 	}
 
 	return sub, nil
+}
+
+func (s *Store) NextDraftNumber(ctx context.Context, exerciseID int64) (int, error) {
+	var next int
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT COALESCE(MAX(draft_number), 0) + 1
+		FROM submissions
+		WHERE exercise_id = ?
+	`, exerciseID).Scan(&next)
+	if err != nil {
+		return 0, err
+	}
+	if next == 0 {
+		next = 1
+	}
+	return next, nil
+}
+
+func (s *Store) LatestSubmissionForExercise(ctx context.Context, exerciseID int64) (domain.Submission, error) {
+	var sub domain.Submission
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
+		FROM submissions
+		WHERE exercise_id = ?
+		ORDER BY draft_number DESC, id DESC
+		LIMIT 1
+	`, exerciseID).Scan(&sub.ID, &sub.ExerciseID, &sub.ParentSubmissionID, &sub.DraftNumber, &sub.Content, &sub.WordCount, &sub.CreatedAt)
+	if err != nil {
+		return domain.Submission{}, err
+	}
+	return sub, nil
+}
+
+func (s *Store) PreviousSubmission(ctx context.Context, sub domain.Submission) (domain.Submission, error) {
+	if sub.ParentSubmissionID != 0 {
+		return s.GetSubmission(ctx, sub.ParentSubmissionID)
+	}
+	var prev domain.Submission
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
+		FROM submissions
+		WHERE exercise_id = ? AND draft_number < ?
+		ORDER BY draft_number DESC, id DESC
+		LIMIT 1
+	`, sub.ExerciseID, sub.DraftNumber).Scan(&prev.ID, &prev.ExerciseID, &prev.ParentSubmissionID, &prev.DraftNumber, &prev.Content, &prev.WordCount, &prev.CreatedAt)
+	if err != nil {
+		return domain.Submission{}, err
+	}
+	return prev, nil
 }
 
 func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []domain.SkillScore) (int64, error) {
@@ -180,11 +260,176 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 		}
 	}
 
+	for _, assessment := range review.TGOAssessments {
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO review_tgo_assessments (review_id, submission_id, tgo_code, status, evidence)
+			VALUES (?, ?, ?, ?, ?)
+		`, reviewID, review.SubmissionID, assessment.TGOCode, assessment.Status, assessment.Evidence); err != nil {
+			return 0, err
+		}
+	}
+
 	if err = tx.Commit(); err != nil {
 		return 0, err
 	}
 
 	return reviewID, nil
+}
+
+func (s *Store) ActiveTGOs(ctx context.Context) ([]domain.TGO, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, a.slot
+		FROM active_tgos a
+		JOIN tgo_catalog c ON c.code = a.tgo_code
+		ORDER BY a.slot ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tgos []domain.TGO
+	for rows.Next() {
+		var tgo domain.TGO
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot); err != nil {
+			return nil, err
+		}
+		if canonical, ok := domain.TGOByCode(tgo.Code); ok {
+			tgo.Prerequisites = canonical.Prerequisites
+			tgo.MasteryHint = canonical.MasteryHint
+		}
+		tgos = append(tgos, tgo)
+	}
+	return tgos, rows.Err()
+}
+
+func (s *Store) CompletedTGOs(ctx context.Context) ([]domain.TGO, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, 0
+		FROM completed_tgos x
+		JOIN tgo_catalog c ON c.code = x.tgo_code
+		ORDER BY x.completed_at ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tgos []domain.TGO
+	for rows.Next() {
+		var tgo domain.TGO
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot); err != nil {
+			return nil, err
+		}
+		if canonical, ok := domain.TGOByCode(tgo.Code); ok {
+			tgo.Prerequisites = canonical.Prerequisites
+			tgo.MasteryHint = canonical.MasteryHint
+		}
+		tgos = append(tgos, tgo)
+	}
+	return tgos, rows.Err()
+}
+
+func (s *Store) RecentTGOStatuses(ctx context.Context, code string, limit int) ([]string, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT status
+		FROM review_tgo_assessments
+		WHERE tgo_code = ?
+		ORDER BY id DESC
+		LIMIT ?
+	`, code, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var status string
+		if err := rows.Scan(&status); err != nil {
+			return nil, err
+		}
+		out = append(out, status)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) ReplaceActiveTGO(ctx context.Context, slot int, completedCode string, nextCode string) error {
+	tx, err := s.SQL.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if _, err = tx.ExecContext(ctx, `
+		INSERT INTO completed_tgos (tgo_code)
+		SELECT ?
+		WHERE NOT EXISTS (SELECT 1 FROM completed_tgos WHERE tgo_code = ?)
+	`, completedCode, completedCode); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `
+		UPDATE active_tgos SET tgo_code = ?, activated_at = CURRENT_TIMESTAMP WHERE slot = ?
+	`, nextCode, slot); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (s *Store) NextAvailableTGO(ctx context.Context) (domain.TGO, error) {
+	var tgo domain.TGO
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, code, title, description, stage, stage_order
+		FROM tgo_catalog
+		WHERE code NOT IN (SELECT tgo_code FROM active_tgos)
+		  AND code NOT IN (SELECT tgo_code FROM completed_tgos)
+		ORDER BY stage_order ASC
+		LIMIT 1
+	`).Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder)
+	if err != nil {
+		return domain.TGO{}, err
+	}
+	return tgo, nil
+}
+
+func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int64) (domain.Review, error) {
+	var review domain.Review
+	var strengthsJSON, weaknessesJSON, findingsJSON string
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, next_focus, metric_word_count, created_at
+		FROM reviews
+		WHERE submission_id = ?
+		ORDER BY id DESC
+		LIMIT 1
+	`, submissionID).Scan(
+		&review.ID,
+		&review.SubmissionID,
+		&review.ReviewKind,
+		&review.Summary,
+		&strengthsJSON,
+		&weaknessesJSON,
+		&findingsJSON,
+		&review.NextFocus,
+		&review.MetricWordCount,
+		&review.CreatedAt,
+	)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.Strengths, err = DecodeStringSlice(strengthsJSON)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.Weaknesses, err = DecodeStringSlice(weaknessesJSON)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.AnalyzerFindings, err = DecodeStringSlice(findingsJSON)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	return review, nil
 }
 
 func (s *Store) UpdateCurriculumState(ctx context.Context, focus string, difficulty int, reviewID int64) error {
@@ -303,6 +548,67 @@ func (s *Store) ProgressReport(ctx context.Context, limit int) ([]string, error)
 	return lines, nil
 }
 
+func (s *Store) RecurringWeaknesses(ctx context.Context, limit int) ([]string, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT weaknesses_json
+		FROM reviews
+		ORDER BY id DESC
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return collectRecurringJSONStrings(rows, 3)
+}
+
+func (s *Store) RecurringAnalyzerFindings(ctx context.Context, limit int) ([]string, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT analyzer_findings_json
+		FROM reviews
+		ORDER BY id DESC
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return collectRecurringJSONStrings(rows, 4)
+}
+
+func (s *Store) StrongestWeakestSkills(ctx context.Context, limit int) ([]string, []string, error) {
+	averages, err := s.SkillAverages(ctx, limit)
+	if err != nil {
+		return nil, nil, err
+	}
+	type pair struct {
+		skill string
+		avg   float64
+	}
+	var pairs []pair
+	for skill, avg := range averages {
+		if !domain.IsSupportedSkill(skill) {
+			continue
+		}
+		pairs = append(pairs, pair{skill: skill, avg: avg})
+	}
+	sort.Slice(pairs, func(i, j int) bool {
+		if pairs[i].avg == pairs[j].avg {
+			return domain.SkillPriority(pairs[i].skill) > domain.SkillPriority(pairs[j].skill)
+		}
+		return pairs[i].avg > pairs[j].avg
+	})
+	var strongest []string
+	var weakest []string
+	for i := 0; i < len(pairs) && i < 3; i++ {
+		strongest = append(strongest, fmt.Sprintf("%s (%.2f)", pairs[i].skill, pairs[i].avg))
+	}
+	for i := len(pairs) - 1; i >= 0 && len(weakest) < 3; i-- {
+		weakest = append(weakest, fmt.Sprintf("%s (%.2f)", pairs[i].skill, pairs[i].avg))
+	}
+	return strongest, weakest, nil
+}
+
 func (s *Store) History(ctx context.Context) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT e.id, e.title, s.id, r.id, COALESCE(r.next_focus, '')
@@ -407,4 +713,58 @@ func Since(t time.Time) string {
 		return "unknown"
 	}
 	return t.Format(time.RFC3339)
+}
+
+func nullableID(id int64) any {
+	if id == 0 {
+		return nil
+	}
+	return id
+}
+
+func collectRecurringJSONStrings(rows *sql.Rows, top int) ([]string, error) {
+	counts := map[string]int{}
+	for rows.Next() {
+		var raw string
+		if err := rows.Scan(&raw); err != nil {
+			return nil, err
+		}
+		values, err := DecodeStringSlice(raw)
+		if err != nil {
+			return nil, err
+		}
+		seen := map[string]bool{}
+		for _, value := range values {
+			if value == "" || seen[value] {
+				continue
+			}
+			seen[value] = true
+			counts[value]++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	type pair struct {
+		text  string
+		count int
+	}
+	var pairs []pair
+	for text, count := range counts {
+		pairs = append(pairs, pair{text: text, count: count})
+	}
+	sort.Slice(pairs, func(i, j int) bool {
+		if pairs[i].count == pairs[j].count {
+			return pairs[i].text < pairs[j].text
+		}
+		return pairs[i].count > pairs[j].count
+	})
+	var out []string
+	for _, pair := range pairs {
+		out = append(out, pair.text)
+		if len(out) == top {
+			break
+		}
+	}
+	return out, nil
 }

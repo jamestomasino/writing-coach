@@ -18,23 +18,27 @@ type CurriculumState struct {
 }
 
 type Exercise struct {
-	ID              int64
-	Title           string
-	Brief           string
-	Constraints     []string
-	FocusSkills     []string
-	SuccessCriteria []string
-	GenerationKind  string
-	ProviderNote    string
-	CreatedAt       time.Time
+	ID                 int64
+	Title              string
+	Brief              string
+	Constraints        []string
+	FocusSkills        []string
+	TGOCodes           []string
+	SuccessCriteria    []string
+	GenerationKind     string
+	ProviderNote       string
+	SourceSubmissionID int64
+	CreatedAt          time.Time
 }
 
 type Submission struct {
-	ID         int64
-	ExerciseID int64
-	Content    string
-	WordCount  int
-	CreatedAt  time.Time
+	ID                 int64
+	ExerciseID         int64
+	ParentSubmissionID int64
+	DraftNumber        int
+	Content            string
+	WordCount          int
+	CreatedAt          time.Time
 }
 
 type Review struct {
@@ -44,6 +48,7 @@ type Review struct {
 	Strengths        []string
 	Weaknesses       []string
 	AnalyzerFindings []string
+	TGOAssessments   []TGOAssessment
 	NextFocus        string
 	ReviewKind       string
 	ProviderNote     string

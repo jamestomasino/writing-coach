@@ -8,6 +8,7 @@ import (
 
 	"github.com/tomasino/writing-coach/internal/domain"
 	"github.com/tomasino/writing-coach/internal/openai"
+	"github.com/tomasino/writing-coach/internal/review"
 )
 
 type deterministicGenerator struct{}
@@ -18,8 +19,14 @@ type Service struct {
 }
 
 type Context struct {
-	CurriculumState domain.CurriculumState
-	RecentTitles    []string
+	CurriculumState    domain.CurriculumState
+	ActiveTGOs         []domain.TGO
+	RecentTitles       []string
+	RecentWeaknesses   []string
+	RecurringFindings  []string
+	RevisionOf         *domain.Submission
+	RevisionReview     *domain.Review
+	RevisionComparison *review.Comparison
 }
 
 func NewService(client *openai.Client) Service {
@@ -32,9 +39,12 @@ func NewService(client *openai.Client) Service {
 func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercise {
 	if s.client != nil && s.client.Enabled() {
 		exercise, err := s.client.GenerateExercise(ctx, openai.ExerciseRequest{
-			CurrentFocus:    input.CurriculumState.CurrentFocus,
-			DifficultyLevel: input.CurriculumState.DifficultyLevel,
-			RecentTitles:    input.RecentTitles,
+			CurrentFocus:      input.CurriculumState.CurrentFocus,
+			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
+			ActiveTGOs:        input.ActiveTGOs,
+			RecentTitles:      input.RecentTitles,
+			RecentWeaknesses:  input.RecentWeaknesses,
+			RecurringFindings: input.RecurringFindings,
 		})
 		if err == nil {
 			exercise.GenerationKind = "openai"
@@ -52,11 +62,48 @@ func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercis
 	return exercise
 }
 
+func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exercise {
+	if input.RevisionOf == nil || input.RevisionReview == nil {
+		return s.NextExercise(ctx, input)
+	}
+	if s.client != nil && s.client.Enabled() {
+		exercise, err := s.client.GenerateRevisionExercise(ctx, openai.RevisionExerciseRequest{
+			CurrentFocus:      input.CurriculumState.CurrentFocus,
+			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
+			ActiveTGOs:        input.ActiveTGOs,
+			SubmissionID:      input.RevisionOf.ID,
+			SubmissionContent: input.RevisionOf.Content,
+			Weaknesses:        input.RevisionReview.Weaknesses,
+			AnalyzerFindings:  input.RevisionReview.AnalyzerFindings,
+			ComparisonSummary: revisionSummary(input.RevisionComparison),
+			RecentWeaknesses:  input.RecentWeaknesses,
+			RecurringFindings: input.RecurringFindings,
+		})
+		if err == nil {
+			exercise.GenerationKind = "openai"
+			exercise.SourceSubmissionID = input.RevisionOf.ID
+			return exercise
+		}
+
+		exercise = s.fallback.RevisionExercise(ctx, input)
+		exercise.GenerationKind = "deterministic-fallback"
+		exercise.ProviderNote = err.Error()
+		exercise.SourceSubmissionID = input.RevisionOf.ID
+		return exercise
+	}
+
+	exercise := s.fallback.RevisionExercise(ctx, input)
+	exercise.GenerationKind = "deterministic"
+	exercise.SourceSubmissionID = input.RevisionOf.ID
+	return exercise
+}
+
 func (deterministicGenerator) NextExercise(_ context.Context, input Context) domain.Exercise {
 	focus := input.CurriculumState.CurrentFocus
 	if focus == "" {
 		focus = "scene architecture"
 	}
+	tgos := ensureDefaultTGOs(input.ActiveTGOs)
 
 	title := fmt.Sprintf("Exercise in %s", titleCase(focus))
 	if len(input.RecentTitles) > 0 {
@@ -67,18 +114,136 @@ func (deterministicGenerator) NextExercise(_ context.Context, input Context) dom
 		"Write 700-1000 words of mythopoeic tragic fantasy centered on %s. Build pressure through implication rather than exposition, and end on an irreversible moral or emotional turn.",
 		focus,
 	)
+	if len(input.RecentWeaknesses) > 0 || len(input.RecurringFindings) > 0 {
+		brief += " Address the recent coaching pattern directly rather than sidestepping it."
+	}
+
+	constraints := []string{"third-person limited", "single scene", "one concrete symbol that changes meaning by the end"}
+	if len(input.RecurringFindings) > 0 {
+		constraints = append(constraints, "avoid the recurring prose issue: "+input.RecurringFindings[0])
+	}
 
 	return domain.Exercise{
 		Title:       title,
-		Brief:       brief,
-		Constraints: []string{"third-person limited", "single scene", "one concrete symbol that changes meaning by the end"},
-		FocusSkills: []string{focus, "narrative clarity"},
+		Brief:       brief + " TGOs: " + strings.Join(tgoTitles(tgos), "; "),
+		Constraints: constraints,
+		FocusSkills: tgoSkills(tgos),
+		TGOCodes:    tgoCodes(tgos),
 		SuccessCriteria: []string{
 			"the scene carries a clear emotional progression",
 			"worldbuilding is implied through action and image",
 			"the ending closes a door rather than opening one",
 		},
 	}
+}
+
+func (deterministicGenerator) RevisionExercise(_ context.Context, input Context) domain.Exercise {
+	focus := input.CurriculumState.CurrentFocus
+	if focus == "" {
+		focus = "prose precision"
+	}
+	tgos := ensureDefaultTGOs(input.ActiveTGOs)
+	weaknesses := []string{}
+	findings := []string{}
+	if input.RevisionReview != nil {
+		weaknesses = input.RevisionReview.Weaknesses
+		findings = input.RevisionReview.AnalyzerFindings
+	}
+	title := fmt.Sprintf("Revision of Draft %d in %s", input.RevisionOf.DraftNumber, titleCase(focus))
+	brief := fmt.Sprintf(
+		"Revise your existing draft rather than replacing it. Preserve the core dramatic event, but rewrite for %s with sharper causality, cleaner prose pressure, and more concrete consequence.",
+		focus,
+	)
+	if input.RevisionComparison != nil && input.RevisionComparison.Summary != "" {
+		brief += " Comparison note: " + input.RevisionComparison.Summary
+	}
+
+	constraints := []string{
+		"keep the same central scene and ending decision",
+		"revise at the sentence and beat level rather than expanding lore",
+		"make at least one previously vague consequence concrete on the page",
+	}
+	if len(weaknesses) > 0 {
+		constraints = append(constraints, "directly address this weakness: "+weaknesses[0])
+	}
+	if len(findings) > 0 {
+		constraints = append(constraints, "eliminate or reduce this analyzer issue: "+findings[0])
+	}
+
+	success := []string{
+		"the revised draft makes the causal chain easier to follow",
+		"the prose is tighter and less hedged",
+		"the emotional cost is more concrete without overexplaining symbolism",
+	}
+	if input.RevisionComparison != nil && len(input.RevisionComparison.PersistingWeaknesses) > 0 {
+		success = append(success, "the prior persistent weakness is materially reduced")
+	}
+
+	return domain.Exercise{
+		Title:           title,
+		Brief:           brief,
+		Constraints:     constraints,
+		FocusSkills:     tgoSkills(tgos),
+		TGOCodes:        tgoCodes(tgos),
+		SuccessCriteria: success,
+	}
+}
+
+func revisionSummary(c *review.Comparison) string {
+	if c == nil {
+		return ""
+	}
+	parts := []string{c.Summary}
+	if len(c.PersistingWeaknesses) > 0 {
+		parts = append(parts, "Persisting: "+c.PersistingWeaknesses[0])
+	}
+	if len(c.AddressedWeaknesses) > 0 {
+		parts = append(parts, "Addressed: "+c.AddressedWeaknesses[0])
+	}
+	return strings.Join(parts, " ")
+}
+
+func ensureDefaultTGOs(active []domain.TGO) []domain.TGO {
+	if len(active) == 3 {
+		return active
+	}
+	var out []domain.TGO
+	for _, code := range []string{"causal-clarity", "scene-architecture", "prose-precision"} {
+		if tgo, ok := domain.TGOByCode(code); ok {
+			out = append(out, tgo)
+		}
+	}
+	return out
+}
+
+func tgoCodes(tgos []domain.TGO) []string {
+	var out []string
+	for _, tgo := range tgos {
+		out = append(out, tgo.Code)
+	}
+	return out
+}
+
+func tgoTitles(tgos []domain.TGO) []string {
+	var out []string
+	for _, tgo := range tgos {
+		out = append(out, tgo.Title)
+	}
+	return out
+}
+
+func tgoSkills(tgos []domain.TGO) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, tgo := range tgos {
+		skill := domain.TGOCodeToSkill[tgo.Code]
+		if skill == "" || seen[skill] {
+			continue
+		}
+		seen[skill] = true
+		out = append(out, skill)
+	}
+	return out
 }
 
 func titleCase(value string) string {

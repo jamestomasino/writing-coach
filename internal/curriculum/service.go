@@ -2,7 +2,6 @@ package curriculum
 
 import (
 	"context"
-	"sort"
 
 	"github.com/tomasino/writing-coach/internal/db"
 	"github.com/tomasino/writing-coach/internal/domain"
@@ -22,75 +21,80 @@ func NewService() Service {
 
 func (Service) DescribeNextStep(state domain.CurriculumState) string {
 	if state.CurrentFocus == "" {
-		return "Focus on scene architecture next."
+		return "Active TGOs drive the next assignment."
 	}
-	return "Focus on " + state.CurrentFocus + " next."
+	return "Primary pressure remains on " + state.CurrentFocus + "."
 }
 
-func (Service) RecommendNextFocus(ctx context.Context, store *db.Store, state domain.CurriculumState, suggested string, scores []domain.SkillScore) (Recommendation, error) {
-	averages, err := store.SkillAverages(ctx, 5)
+func (Service) SyncTGOs(ctx context.Context, store *db.Store, review domain.Review) (Recommendation, error) {
+	active, err := store.ActiveTGOs(ctx)
 	if err != nil {
 		return Recommendation{}, err
 	}
-
-	latest := map[string]int{}
-	for _, score := range scores {
-		latest[score.Skill] = score.Score
+	completed, err := store.CompletedTGOs(ctx)
+	if err != nil {
+		return Recommendation{}, err
+	}
+	completedSet := make(map[string]bool, len(completed))
+	for _, tgo := range completed {
+		completedSet[tgo.Code] = true
+	}
+	activeSet := make(map[string]bool, len(active))
+	for _, tgo := range active {
+		activeSet[tgo.Code] = true
 	}
 
-	type candidate struct {
-		skill  string
-		weight float64
-	}
-	var candidates []candidate
-	for _, skill := range domain.PrioritySkills {
-		avg := averages[skill]
-		if avg == 0 {
-			avg = 3
+	for _, assessment := range review.TGOAssessments {
+		if assessment.Status != "mastered" {
+			continue
 		}
-		current := latest[skill]
-		if current == 0 {
-			current = int(avg + 0.5)
+		slot := findSlot(active, assessment.TGOCode)
+		if slot == 0 {
+			continue
 		}
-
-		weight := (6.0 - avg) + (6.0 - float64(current))
-		if skill == suggested {
-			weight += 1.5
-		}
-		if skill == state.CurrentFocus {
-			weight -= 0.75
-		}
-
-		recent, err := store.RecentSkillScores(ctx, skill, 2)
+		statuses, err := store.RecentTGOStatuses(ctx, assessment.TGOCode, 2)
 		if err != nil {
 			return Recommendation{}, err
 		}
-		if len(recent) >= 2 && recent[0] <= recent[1] {
-			weight += 0.75
+		if len(statuses) < 2 || statuses[0] != "mastered" || statuses[1] == "developing" {
+			continue
 		}
-
-		weight += float64(domain.SkillPriority(skill)) * 0.15
-		candidates = append(candidates, candidate{skill: skill, weight: weight})
+		completedSet[assessment.TGOCode] = true
+		delete(activeSet, assessment.TGOCode)
+		nextOptions := domain.NextUnlockedTGOs(completedSet, activeSet, 1)
+		if len(nextOptions) == 0 {
+			continue
+		}
+		next := nextOptions[0]
+		if err := store.ReplaceActiveTGO(ctx, slot, assessment.TGOCode, next.Code); err != nil {
+			return Recommendation{}, err
+		}
+		activeSet[next.Code] = true
 	}
 
-	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].weight == candidates[j].weight {
-			return domain.SkillPriority(candidates[i].skill) > domain.SkillPriority(candidates[j].skill)
-		}
-		return candidates[i].weight > candidates[j].weight
-	})
-
-	focus := suggested
-	if len(candidates) > 0 {
-		focus = candidates[0].skill
+	active, err = store.ActiveTGOs(ctx)
+	if err != nil {
+		return Recommendation{}, err
 	}
-	if focus == "" {
-		focus = "scene architecture"
+	primary := ""
+	rationale := "Maintain exactly three active TGOs and advance only when mastery is stable."
+	if len(active) > 0 {
+		primary = active[0].Title
+		rationale = active[0].Description + " Mastery marker: " + active[0].MasteryHint
 	}
 
 	return Recommendation{
-		Focus:      focus,
-		Difficulty: db.NextDifficulty(focus),
-		Rationale:  domain.HouseCurriculum[focus],
+		Focus:      primary,
+		Difficulty: 2,
+		Rationale:  rationale,
 	}, nil
+}
+
+func findSlot(active []domain.TGO, code string) int {
+	for _, tgo := range active {
+		if tgo.Code == code {
+			return tgo.ActiveSlot
+		}
+	}
+	return 0
 }

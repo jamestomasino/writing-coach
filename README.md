@@ -29,9 +29,11 @@ High-level architecture and implementation phases live in [docs/architecture.md]
 - `make init`
 - `make build`
 - `make prompt`
-- `make submit EXERCISE=<id> FILE=<path>`
+- `make prompt-revise SUBMISSION=<id>`
+- `make submit EXERCISE=<id> FILE=<path> [REVISE_FROM=<submission-id>]`
 - `make review SUBMISSION=<id>`
 - `make coach-review SUBMISSION=<id>`
+- `make compare SUBMISSION=<id> [AGAINST=<submission-id>]`
 - `make history`
 - `make progress`
 - `make vale-install`
@@ -41,6 +43,27 @@ High-level architecture and implementation phases live in [docs/architecture.md]
 
 The LanguageTool targets default to `/opt/languagetool` and port `8081`. Override with `LT_HOME=/path/to/install` or `LT_PORT=8090`.
 `make coach-review` will start LanguageTool if needed before running a review.
+Use `REVISE_FROM=<submission-id>` on `make submit` to record a later draft as a revision of an earlier one.
+Use `make compare SUBMISSION=<id>` to compare a reviewed draft against its previous reviewed draft.
+Use `make prompt-revise SUBMISSION=<id>` to generate a rewrite brief from the last review of a submission.
+
+## TGO Model
+
+The curriculum now runs on exactly 3 active `TGOs` (Topical Guide Objectives) at a time.
+
+- Every assignment is shaped around those 3 active TGOs.
+- Reviews assess those same 3 TGOs first.
+- A TGO moves to the completed list only after stable mastery.
+- When one is completed, a new unlocked TGO replaces it.
+- Completed TGOs remain part of the coaching context so regressions can still be noticed.
+
+The current track begins with:
+
+- `causal-clarity`
+- `scene-architecture`
+- `prose-precision`
+
+Later TGOs unlock through prerequisites rather than a rigid straight line, so the advancement path can branch while still staying structured.
 
 ## Configuration
 

@@ -12,3 +12,12 @@ var SupportedSkills = []string{
 	"tragic inevitability",
 	"narrative clarity",
 }
+
+func IsSupportedSkill(skill string) bool {
+	for _, value := range SupportedSkills {
+		if value == skill {
+			return true
+		}
+	}
+	return false
+}

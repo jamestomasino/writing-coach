@@ -39,6 +39,8 @@ func (c CLI) Run(ctx context.Context, args []string) error {
 		return c.runSubmit(ctx, args[1:])
 	case "review":
 		return c.runReview(ctx, args[1:])
+	case "compare":
+		return c.runCompare(ctx, args[1:])
 	case "history":
 		return c.runHistory(ctx)
 	case "progress":
@@ -52,8 +54,10 @@ func (c CLI) usage() error {
 	fmt.Println("usage:")
 	fmt.Println("  writing-coach init")
 	fmt.Println("  writing-coach prompt next")
-	fmt.Println("  writing-coach submit --exercise <id> --file <path>")
+	fmt.Println("  writing-coach prompt revise --submission <id>")
+	fmt.Println("  writing-coach submit --exercise <id> --file <path> [--revise-from <submission-id>]")
 	fmt.Println("  writing-coach review --submission <id>")
+	fmt.Println("  writing-coach compare --submission <id> [--against <submission-id>]")
 	fmt.Println("  writing-coach history")
 	fmt.Println("  writing-coach progress")
 	return nil
@@ -90,10 +94,20 @@ func (c CLI) runInit(ctx context.Context) error {
 }
 
 func (c CLI) runPrompt(ctx context.Context, args []string) error {
-	if len(args) == 0 || args[0] != "next" {
-		return errors.New("usage: writing-coach prompt next")
+	if len(args) == 0 {
+		return errors.New("usage: writing-coach prompt next | prompt revise --submission <id>")
 	}
+	switch args[0] {
+	case "next":
+		return c.runPromptNext(ctx)
+	case "revise":
+		return c.runPromptRevise(ctx, args[1:])
+	default:
+		return errors.New("usage: writing-coach prompt next | prompt revise --submission <id>")
+	}
+}
 
+func (c CLI) runPromptNext(ctx context.Context) error {
 	state, err := c.Store.GetCurriculumState(ctx)
 	if err != nil {
 		return err
@@ -103,10 +117,25 @@ func (c CLI) runPrompt(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	recentWeaknesses, err := c.Store.RecurringWeaknesses(ctx, 5)
+	if err != nil {
+		return err
+	}
+	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, 5)
+	if err != nil {
+		return err
+	}
+	activeTGOs, err := c.Store.ActiveTGOs(ctx)
+	if err != nil {
+		return err
+	}
 
 	ex := c.Prompts.NextExercise(ctx, prompt.Context{
-		CurriculumState: state,
-		RecentTitles:    recentTitles,
+		CurriculumState:   state,
+		ActiveTGOs:        activeTGOs,
+		RecentTitles:      recentTitles,
+		RecentWeaknesses:  recentWeaknesses,
+		RecurringFindings: recurringFindings,
 	})
 	exerciseID, err := c.Store.SaveExercise(ctx, ex)
 	if err != nil {
@@ -120,6 +149,97 @@ func (c CLI) runPrompt(ctx context.Context, args []string) error {
 	}
 	fmt.Printf("title: %s\n", ex.Title)
 	fmt.Printf("brief: %s\n", ex.Brief)
+	if len(activeTGOs) > 0 {
+		var tgoLines []string
+		for _, tgo := range activeTGOs {
+			tgoLines = append(tgoLines, fmt.Sprintf("%s: %s", tgo.Code, tgo.Title))
+		}
+		fmt.Printf("tgos: %s\n", strings.Join(tgoLines, "; "))
+	}
+	fmt.Printf("constraints: %s\n", strings.Join(ex.Constraints, "; "))
+	fmt.Printf("focus skills: %s\n", strings.Join(ex.FocusSkills, ", "))
+	fmt.Printf("success criteria: %s\n", strings.Join(ex.SuccessCriteria, "; "))
+	return nil
+}
+
+func (c CLI) runPromptRevise(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("prompt revise", flag.ContinueOnError)
+	submissionID := fs.Int64("submission", 0, "submission id to revise")
+	fs.SetOutput(os.Stdout)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *submissionID == 0 {
+		return errors.New("usage: writing-coach prompt revise --submission <id>")
+	}
+
+	sub, err := c.Store.GetSubmission(ctx, *submissionID)
+	if err != nil {
+		return err
+	}
+	reviewResult, err := c.Store.LatestReviewForSubmission(ctx, sub.ID)
+	if err != nil {
+		return fmt.Errorf("submission %d has no review yet", sub.ID)
+	}
+	state, err := c.Store.GetCurriculumState(ctx)
+	if err != nil {
+		return err
+	}
+	recentTitles, err := c.Store.RecentExerciseTitles(ctx, 3)
+	if err != nil {
+		return err
+	}
+	recentWeaknesses, err := c.Store.RecurringWeaknesses(ctx, 5)
+	if err != nil {
+		return err
+	}
+	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, 5)
+	if err != nil {
+		return err
+	}
+	activeTGOs, err := c.Store.ActiveTGOs(ctx)
+	if err != nil {
+		return err
+	}
+
+	var cmp *review.Comparison
+	if previous, err := c.Store.PreviousSubmission(ctx, sub); err == nil {
+		if previousReview, err := c.Store.LatestReviewForSubmission(ctx, previous.ID); err == nil {
+			comparison := review.CompareSubmissions(sub, previous, reviewResult, previousReview)
+			cmp = &comparison
+		}
+	}
+
+	ex := c.Prompts.RevisionExercise(ctx, prompt.Context{
+		CurriculumState:    state,
+		ActiveTGOs:         activeTGOs,
+		RecentTitles:       recentTitles,
+		RecentWeaknesses:   recentWeaknesses,
+		RecurringFindings:  recurringFindings,
+		RevisionOf:         &sub,
+		RevisionReview:     &reviewResult,
+		RevisionComparison: cmp,
+	})
+	exerciseID, err := c.Store.SaveExercise(ctx, ex)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("exercise %d\n", exerciseID)
+	fmt.Printf("provider: %s\n", ex.GenerationKind)
+	if ex.ProviderNote != "" {
+		fmt.Printf("provider note: %s\n", ex.ProviderNote)
+	}
+	fmt.Printf("revision of submission: %d\n", sub.ID)
+	fmt.Printf("title: %s\n", ex.Title)
+	fmt.Printf("brief: %s\n", ex.Brief)
+	if len(activeTGOs) > 0 {
+		var tgoLines []string
+		for _, tgo := range activeTGOs {
+			tgoLines = append(tgoLines, fmt.Sprintf("%s: %s", tgo.Code, tgo.Title))
+		}
+		fmt.Printf("tgos: %s\n", strings.Join(tgoLines, "; "))
+	}
 	fmt.Printf("constraints: %s\n", strings.Join(ex.Constraints, "; "))
 	fmt.Printf("focus skills: %s\n", strings.Join(ex.FocusSkills, ", "))
 	fmt.Printf("success criteria: %s\n", strings.Join(ex.SuccessCriteria, "; "))
@@ -130,6 +250,7 @@ func (c CLI) runSubmit(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("submit", flag.ContinueOnError)
 	exerciseID := fs.Int64("exercise", 0, "exercise id")
 	filePath := fs.String("file", "", "path to submission text")
+	reviseFrom := fs.Int64("revise-from", 0, "prior submission id to revise")
 	fs.SetOutput(os.Stdout)
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -144,16 +265,25 @@ func (c CLI) runSubmit(ctx context.Context, args []string) error {
 	}
 
 	sub := domain.Submission{
-		ExerciseID: *exerciseID,
-		Content:    string(content),
-		WordCount:  db.CountWords(string(content)),
+		ExerciseID:         *exerciseID,
+		ParentSubmissionID: *reviseFrom,
+		Content:            string(content),
+		WordCount:          db.CountWords(string(content)),
 	}
 	submissionID, err := c.Store.SaveSubmission(ctx, sub)
 	if err != nil {
 		return err
 	}
+	saved, err := c.Store.GetSubmission(ctx, submissionID)
+	if err != nil {
+		return err
+	}
 
-	fmt.Printf("submission %d saved with %d words\n", submissionID, sub.WordCount)
+	fmt.Printf("submission %d saved with %d words\n", submissionID, saved.WordCount)
+	fmt.Printf("draft number: %d\n", saved.DraftNumber)
+	if saved.ParentSubmissionID != 0 {
+		fmt.Printf("revises submission: %d\n", saved.ParentSubmissionID)
+	}
 	return nil
 }
 
@@ -176,12 +306,12 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		return err
 	}
 
-	reviewResult, scores := c.Reviews.ReviewSubmission(ctx, sub)
-	currentState, err := c.Store.GetCurriculumState(ctx)
+	activeTGOs, err := c.Store.ActiveTGOs(ctx)
 	if err != nil {
 		return err
 	}
-	recommendation, err := c.Curriculum.RecommendNextFocus(ctx, c.Store, currentState, reviewResult.NextFocus, scores)
+	reviewResult, scores := c.Reviews.ReviewSubmission(ctx, sub, activeTGOs)
+	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, reviewResult)
 	if err != nil {
 		return err
 	}
@@ -205,6 +335,19 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		fmt.Printf("provider note: %s\n", reviewResult.ProviderNote)
 	}
 	fmt.Printf("summary: %s\n", reviewResult.Summary)
+	if previous, err := c.Store.PreviousSubmission(ctx, sub); err == nil {
+		fmt.Printf("revision delta: draft %d -> %d | word count %+d\n", previous.DraftNumber, sub.DraftNumber, sub.WordCount-previous.WordCount)
+		if previousReview, err := c.Store.LatestReviewForSubmission(ctx, previous.ID); err == nil {
+			comparison := review.CompareSubmissions(sub, previous, reviewResult, previousReview)
+			fmt.Printf("revision summary: %s\n", comparison.Summary)
+			if len(comparison.AddressedWeaknesses) > 0 {
+				fmt.Printf("addressed weaknesses: %s\n", strings.Join(comparison.AddressedWeaknesses, "; "))
+			}
+			if len(comparison.PersistingWeaknesses) > 0 {
+				fmt.Printf("persisting weaknesses: %s\n", strings.Join(comparison.PersistingWeaknesses, "; "))
+			}
+		}
+	}
 	fmt.Printf("strengths: %s\n", strings.Join(reviewResult.Strengths, "; "))
 	fmt.Printf("weaknesses: %s\n", strings.Join(reviewResult.Weaknesses, "; "))
 	if len(reviewResult.AnalyzerFindings) > 0 {
@@ -216,6 +359,13 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 			parts = append(parts, fmt.Sprintf("%s=%d", score.Skill, score.Score))
 		}
 		fmt.Printf("skill scores: %s\n", strings.Join(parts, ", "))
+	}
+	if len(reviewResult.TGOAssessments) > 0 {
+		var parts []string
+		for _, assessment := range reviewResult.TGOAssessments {
+			parts = append(parts, fmt.Sprintf("%s=%s", assessment.TGOCode, assessment.Status))
+		}
+		fmt.Printf("tgo assessments: %s\n", strings.Join(parts, ", "))
 	}
 	fmt.Printf("next focus: %s\n", reviewResult.NextFocus)
 	fmt.Printf("focus rationale: %s\n", recommendation.Rationale)
@@ -254,14 +404,133 @@ func (c CLI) runProgress(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	strongest, weakest, err := c.Store.StrongestWeakestSkills(ctx, 5)
+	if err != nil {
+		return err
+	}
+	recurringWeaknesses, err := c.Store.RecurringWeaknesses(ctx, 5)
+	if err != nil {
+		return err
+	}
+	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, 5)
+	if err != nil {
+		return err
+	}
+	activeTGOs, err := c.Store.ActiveTGOs(ctx)
+	if err != nil {
+		return err
+	}
+	completedTGOs, err := c.Store.CompletedTGOs(ctx)
+	if err != nil {
+		return err
+	}
+	completedSet := map[string]bool{}
+	for _, tgo := range completedTGOs {
+		completedSet[tgo.Code] = true
+	}
+	activeSet := map[string]bool{}
+	for _, tgo := range activeTGOs {
+		activeSet[tgo.Code] = true
+	}
+	upcomingTGOs := domain.NextUnlockedTGOs(completedSet, activeSet, 3)
 	fmt.Printf("track: %s\n", domain.WriterTrackName)
 	fmt.Printf("current focus: %s\n", state.CurrentFocus)
+	if len(activeTGOs) > 0 {
+		var parts []string
+		for _, tgo := range activeTGOs {
+			parts = append(parts, fmt.Sprintf("[%d] %s", tgo.ActiveSlot, tgo.Title))
+		}
+		fmt.Printf("active tgos: %s\n", strings.Join(parts, "; "))
+		for _, tgo := range activeTGOs {
+			fmt.Printf("  active %s: %s\n", tgo.Code, tgo.MasteryHint)
+		}
+	}
+	if len(completedTGOs) > 0 {
+		var parts []string
+		for _, tgo := range completedTGOs {
+			parts = append(parts, tgo.Title)
+		}
+		fmt.Printf("completed tgos: %s\n", strings.Join(parts, "; "))
+	}
+	if len(upcomingTGOs) > 0 {
+		var parts []string
+		for _, tgo := range upcomingTGOs {
+			parts = append(parts, fmt.Sprintf("%s (%s)", tgo.Title, tgo.Stage))
+		}
+		fmt.Printf("upcoming tgos: %s\n", strings.Join(parts, "; "))
+	}
 	if len(items) == 0 {
 		fmt.Println("no progress data yet")
 		return nil
 	}
+	if len(strongest) > 0 {
+		fmt.Printf("strongest skills: %s\n", strings.Join(strongest, "; "))
+	}
+	if len(weakest) > 0 {
+		fmt.Printf("weakest skills: %s\n", strings.Join(weakest, "; "))
+	}
+	if len(recurringWeaknesses) > 0 {
+		fmt.Printf("recurring weaknesses: %s\n", strings.Join(recurringWeaknesses, "; "))
+	}
+	if len(recurringFindings) > 0 {
+		fmt.Printf("recurring analyzer findings: %s\n", strings.Join(recurringFindings, "; "))
+	}
 	for _, item := range items {
 		fmt.Println(item)
+	}
+	return nil
+}
+
+func (c CLI) runCompare(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("compare", flag.ContinueOnError)
+	submissionID := fs.Int64("submission", 0, "current submission id")
+	againstID := fs.Int64("against", 0, "baseline submission id")
+	fs.SetOutput(os.Stdout)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *submissionID == 0 {
+		return errors.New("usage: writing-coach compare --submission <id> [--against <submission-id>]")
+	}
+
+	current, err := c.Store.GetSubmission(ctx, *submissionID)
+	if err != nil {
+		return err
+	}
+	var baseline domain.Submission
+	if *againstID != 0 {
+		baseline, err = c.Store.GetSubmission(ctx, *againstID)
+	} else {
+		baseline, err = c.Store.PreviousSubmission(ctx, current)
+	}
+	if err != nil {
+		return fmt.Errorf("no baseline submission available for comparison")
+	}
+
+	currentReview, err := c.Store.LatestReviewForSubmission(ctx, current.ID)
+	if err != nil {
+		return fmt.Errorf("current submission has no review yet")
+	}
+	baselineReview, err := c.Store.LatestReviewForSubmission(ctx, baseline.ID)
+	if err != nil {
+		return fmt.Errorf("baseline submission has no review yet")
+	}
+
+	comparison := review.CompareSubmissions(current, baseline, currentReview, baselineReview)
+	fmt.Printf("compare submission %d against %d\n", current.ID, baseline.ID)
+	fmt.Printf("summary: %s\n", comparison.Summary)
+	fmt.Printf("word delta: %+d\n", comparison.WordDelta)
+	if len(comparison.AddedWords) > 0 {
+		fmt.Printf("notable added words: %s\n", strings.Join(comparison.AddedWords, ", "))
+	}
+	if len(comparison.RemovedWords) > 0 {
+		fmt.Printf("notable removed words: %s\n", strings.Join(comparison.RemovedWords, ", "))
+	}
+	if len(comparison.AddressedWeaknesses) > 0 {
+		fmt.Printf("addressed weaknesses: %s\n", strings.Join(comparison.AddressedWeaknesses, "; "))
+	}
+	if len(comparison.PersistingWeaknesses) > 0 {
+		fmt.Printf("persisting weaknesses: %s\n", strings.Join(comparison.PersistingWeaknesses, "; "))
 	}
 	return nil
 }
