@@ -74,11 +74,19 @@ Core endpoints:
 - `GET /api/trees`
 - `POST /api/trees`
 - `GET /api/trees/{slug}`
+- `GET /api/trees/{slug}/versions`
+- `GET /api/trees/{slug}/versions/{version}`
+- `GET /api/trees/{slug}/diff?from=<n>&to=<n>`
+- `POST /api/trees/{slug}/versions/{version}/restore`
 - `GET /api/enrollments`
 - `POST /api/enrollments`
 - `GET /api/enrollments/{id}/board`
 - `GET /api/health`
+- `GET /api/ready`
 - `GET /api/auth/session`
+- `GET /api/admins`
+- `POST /api/admins`
+- `DELETE /api/admins/{email}`
 - `GET /api/context`
 - `GET /api/dashboard`
 - `GET /api/exercises`
@@ -152,6 +160,12 @@ Every review now runs a built-in heuristic analyzer. In the supported Compose de
 - LanguageTool running as an internal Docker service
 
 These findings are passed into the review pipeline and persisted as review artifacts for later reporting and UI use. If an external analyzer is unavailable, the app continues with heuristic analysis only.
+
+For production email delivery, set `KRATOS_SMTP_CONNECTION_URI` to your Mailgun SMTP URI. Example:
+
+```env
+KRATOS_SMTP_CONNECTION_URI=smtp://postmaster@mg.example.com:MAILGUN_SMTP_PASSWORD@smtp.mailgun.org:587/?skip_ssl_verify=false
+```
 
 The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach) and focus on:
 

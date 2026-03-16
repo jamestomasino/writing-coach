@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -46,13 +47,20 @@ func (s Server) Serve(ctx context.Context) error {
 func (s Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("GET /api/ready", s.handleReady)
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
+	mux.HandleFunc("GET /api/admins", s.handleAdminsList)
+	mux.HandleFunc("POST /api/admins", s.handleAdminsCreate)
+	mux.HandleFunc("DELETE /api/admins/{email}", s.handleAdminsDelete)
 	mux.HandleFunc("GET /api/users", s.handleUsersList)
 	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
 	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)
 	mux.HandleFunc("GET /api/trees", s.handleTreesList)
 	mux.HandleFunc("POST /api/trees", s.handleTreeCreate)
 	mux.HandleFunc("GET /api/trees/{slug}/versions", s.handleTreeVersionsList)
+	mux.HandleFunc("GET /api/trees/{slug}/versions/{version}", s.handleTreeVersionGet)
+	mux.HandleFunc("GET /api/trees/{slug}/diff", s.handleTreeDiff)
+	mux.HandleFunc("POST /api/trees/{slug}/versions/{version}/restore", s.handleTreeVersionRestore)
 	mux.HandleFunc("GET /api/trees/{slug}", s.handleTreeGet)
 	mux.HandleFunc("PUT /api/trees/{slug}", s.handleTreeUpdate)
 	mux.HandleFunc("GET /api/enrollments", s.handleEnrollmentsList)
@@ -223,6 +231,14 @@ func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+func (s Server) handleReady(w http.ResponseWriter, r *http.Request) {
+	if err := s.Store.SQL.PingContext(r.Context()); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "db": "ready"})
+}
+
 func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 	mode := authModeFromContext(r.Context())
 	resp := authSessionResponse{
@@ -245,6 +261,52 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s Server) handleAdminsList(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	emails, err := s.Store.ListAdminEmails(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"admins": emails})
+}
+
+func (s Server) handleAdminsCreate(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	var payload struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	if err := s.Store.AddAdminEmail(r.Context(), payload.Email); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"email": strings.ToLower(strings.TrimSpace(payload.Email))})
+}
+
+func (s Server) handleAdminsDelete(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	email := r.PathValue("email")
+	if err := s.Store.RemoveAdminEmail(r.Context(), email); err != nil {
+		status := http.StatusBadRequest
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"deleted": strings.ToLower(strings.TrimSpace(email))})
 }
 
 func (s Server) handleUsersList(w http.ResponseWriter, r *http.Request) {
@@ -453,6 +515,103 @@ func (s Server) handleTreeVersionsList(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"versions": items})
+}
+
+func (s Server) handleTreeVersionGet(w http.ResponseWriter, r *http.Request) {
+	version, err := strconv.Atoi(r.PathValue("version"))
+	if err != nil || version <= 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid version"))
+		return
+	}
+	meta, def, err := s.Store.TreeVersionByNumber(r.Context(), r.PathValue("slug"), version)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"version": treeVersionResponse{
+			ID:          meta.ID,
+			TreeID:      meta.TreeID,
+			TreeSlug:    meta.TreeSlug,
+			Version:     meta.Version,
+			Title:       meta.Title,
+			Description: meta.Description,
+			CreatedAt:   db.Since(meta.CreatedAt),
+		},
+		"tree": treeResponse{
+			Slug:           def.Slug,
+			Title:          def.Title,
+			Description:    def.Description,
+			SeedCodes:      append([]string(nil), def.SeedCodes...),
+			PrioritySkills: append([]string(nil), def.PrioritySkills...),
+			TGOs:           toTGOResponses(def.TGOs),
+		},
+	})
+}
+
+func (s Server) handleTreeDiff(w http.ResponseWriter, r *http.Request) {
+	fromVersion, err := strconv.Atoi(r.URL.Query().Get("from"))
+	if err != nil || fromVersion <= 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid from version"))
+		return
+	}
+	toVersion, err := strconv.Atoi(r.URL.Query().Get("to"))
+	if err != nil || toVersion <= 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid to version"))
+		return
+	}
+	_, fromDef, err := s.Store.TreeVersionByNumber(r.Context(), r.PathValue("slug"), fromVersion)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err)
+		return
+	}
+	_, toDef, err := s.Store.TreeVersionByNumber(r.Context(), r.PathValue("slug"), toVersion)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"from_version": fromVersion,
+		"to_version":   toVersion,
+		"diff":         treeDefinitionDiff(fromDef, toDef),
+	})
+}
+
+func (s Server) handleTreeVersionRestore(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	version, err := strconv.Atoi(r.PathValue("version"))
+	if err != nil || version <= 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid version"))
+		return
+	}
+	_, def, err := s.Store.TreeVersionByNumber(r.Context(), r.PathValue("slug"), version)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if err := s.Store.SaveTreeDefinition(r.Context(), def); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tree, err := s.Store.TreeBySlug(r.Context(), def.Slug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"restored_version": version,
+		"tree":             s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0],
+	})
 }
 
 func (s Server) handleEnrollmentsList(w http.ResponseWriter, r *http.Request) {
@@ -1239,10 +1398,9 @@ func (s Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 	case "kratos":
 		ident, ok := identityFromContext(r.Context())
 		if ok {
-			for _, email := range s.Config.AdminEmails {
-				if strings.EqualFold(email, ident.Email) {
-					return true
-				}
+			allowed, err := s.Store.IsAdminEmail(r.Context(), ident.Email)
+			if err == nil && allowed {
+				return true
 			}
 		}
 	case "none":
@@ -1285,6 +1443,46 @@ func decodeReviewArtifacts(artifacts domain.ReviewArtifacts) *reviewArtifactsPay
 func mustJSON(v any) string {
 	bytes, _ := json.Marshal(v)
 	return string(bytes)
+}
+
+func treeDefinitionDiff(fromDef, toDef domain.TGOTreeDefinition) map[string]any {
+	fromMap := map[string]domain.TGO{}
+	toMap := map[string]domain.TGO{}
+	for _, tgo := range fromDef.TGOs {
+		fromMap[tgo.Code] = tgo
+	}
+	for _, tgo := range toDef.TGOs {
+		toMap[tgo.Code] = tgo
+	}
+	var added []string
+	var removed []string
+	var changed []string
+	for code, tgo := range toMap {
+		if _, ok := fromMap[code]; !ok {
+			added = append(added, code)
+			continue
+		}
+		if fromMap[code].Title != tgo.Title || fromMap[code].Description != tgo.Description || fromMap[code].Stage != tgo.Stage || fromMap[code].StageOrder != tgo.StageOrder || strings.Join(fromMap[code].Prerequisites, ",") != strings.Join(tgo.Prerequisites, ",") || fromMap[code].MasteryHint != tgo.MasteryHint {
+			changed = append(changed, code)
+		}
+	}
+	for code := range fromMap {
+		if _, ok := toMap[code]; !ok {
+			removed = append(removed, code)
+		}
+	}
+	sort.Strings(added)
+	sort.Strings(removed)
+	sort.Strings(changed)
+	return map[string]any{
+		"title_changed":           fromDef.Title != toDef.Title,
+		"description_changed":     fromDef.Description != toDef.Description,
+		"seed_codes_changed":      strings.Join(fromDef.SeedCodes, ",") != strings.Join(toDef.SeedCodes, ","),
+		"priority_skills_changed": strings.Join(fromDef.PrioritySkills, ",") != strings.Join(toDef.PrioritySkills, ","),
+		"added_tgos":              added,
+		"removed_tgos":            removed,
+		"changed_tgos":            changed,
+	}
 }
 
 func writeError(w http.ResponseWriter, status int, err error) {

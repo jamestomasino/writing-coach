@@ -91,6 +91,23 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 	return nil
 }
 
+func (s *Store) EnsureAdminEmails(ctx context.Context, emails []string) error {
+	for _, email := range emails {
+		email = strings.TrimSpace(strings.ToLower(email))
+		if email == "" {
+			continue
+		}
+		if _, err := s.SQL.ExecContext(ctx, `
+			INSERT INTO admin_identities (email)
+			SELECT ?
+			WHERE NOT EXISTS (SELECT 1 FROM admin_identities WHERE email = ?)
+		`, email, email); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, treeSlug string) (int64, int64, int64, error) {
 	treeDef, err := s.TreeDefinitionBySlug(ctx, treeSlug)
 	if err != nil {
@@ -156,6 +173,75 @@ func (s *Store) UserBySlug(ctx context.Context, slug string) (domain.User, error
 		SELECT id, slug, name, created_at FROM users WHERE slug = ?
 	`, slug).Scan(&user.ID, &user.Slug, &user.Name, &user.CreatedAt)
 	return user, err
+}
+
+func (s *Store) IsAdminEmail(ctx context.Context, email string) (bool, error) {
+	email = strings.TrimSpace(strings.ToLower(email))
+	if email == "" {
+		return false, nil
+	}
+	var exists int
+	err := s.SQL.QueryRowContext(ctx, `SELECT 1 FROM admin_identities WHERE email = ?`, email).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *Store) ListAdminEmails(ctx context.Context) ([]string, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT email
+		FROM admin_identities
+		ORDER BY email ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var emails []string
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		emails = append(emails, email)
+	}
+	return emails, rows.Err()
+}
+
+func (s *Store) AddAdminEmail(ctx context.Context, email string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
+	if email == "" {
+		return fmt.Errorf("email is required")
+	}
+	_, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO admin_identities (email)
+		VALUES (?)
+		ON CONFLICT(email) DO NOTHING
+	`, email)
+	return err
+}
+
+func (s *Store) RemoveAdminEmail(ctx context.Context, email string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
+	if email == "" {
+		return fmt.Errorf("email is required")
+	}
+	res, err := s.SQL.ExecContext(ctx, `DELETE FROM admin_identities WHERE email = ?`, email)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func (s *Store) TreeBySlug(ctx context.Context, slug string) (domain.TGOTree, error) {
@@ -325,6 +411,35 @@ func (s *Store) ListTreeVersions(ctx context.Context, treeSlug string) ([]domain
 		versions = append(versions, version)
 	}
 	return versions, rows.Err()
+}
+
+func (s *Store) TreeVersionByNumber(ctx context.Context, treeSlug string, version int) (domain.TreeVersion, domain.TGOTreeDefinition, error) {
+	var meta domain.TreeVersion
+	var seedCodesJSON, prioritySkillsJSON, tgosJSON string
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT v.id, v.tree_id, t.slug, v.version, v.title, v.description, v.seed_codes_json, v.priority_skills_json, v.tgos_json, v.created_at
+		FROM tree_versions v
+		JOIN tgo_trees t ON t.id = v.tree_id
+		WHERE t.slug = ? AND v.version = ?
+	`, treeSlug, version).Scan(&meta.ID, &meta.TreeID, &meta.TreeSlug, &meta.Version, &meta.Title, &meta.Description, &seedCodesJSON, &prioritySkillsJSON, &tgosJSON, &meta.CreatedAt)
+	if err != nil {
+		return domain.TreeVersion{}, domain.TGOTreeDefinition{}, err
+	}
+	def := domain.TGOTreeDefinition{
+		Slug:        meta.TreeSlug,
+		Title:       meta.Title,
+		Description: meta.Description,
+	}
+	if def.SeedCodes, err = DecodeStringSlice(seedCodesJSON); err != nil {
+		return domain.TreeVersion{}, domain.TGOTreeDefinition{}, err
+	}
+	if def.PrioritySkills, err = DecodeStringSlice(prioritySkillsJSON); err != nil {
+		return domain.TreeVersion{}, domain.TGOTreeDefinition{}, err
+	}
+	if err := json.Unmarshal([]byte(tgosJSON), &def.TGOs); err != nil {
+		return domain.TreeVersion{}, domain.TGOTreeDefinition{}, err
+	}
+	return meta, def, nil
 }
 
 func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {

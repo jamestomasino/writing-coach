@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS admin_identities (
+    email TEXT PRIMARY KEY,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

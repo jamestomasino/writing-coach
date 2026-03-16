@@ -55,6 +55,10 @@ func New(ctx context.Context) (*App, error) {
 		_ = store.Close()
 		return nil, err
 	}
+	if err := store.EnsureAdminEmails(ctx, cfg.AdminEmails); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
 
 	openAIClient := openai.NewClient(cfg)
 	valeBinary := cfg.ValeBinary

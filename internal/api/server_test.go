@@ -34,6 +34,20 @@ func TestDashboardEndpoint(t *testing.T) {
 	}
 }
 
+func TestReadyEndpoint(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/ready")
+	if err != nil {
+		t.Fatalf("get ready: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("ready status: %d", resp.StatusCode)
+	}
+}
+
 func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
@@ -234,6 +248,33 @@ func TestTreeUpdateCreatesVersion(t *testing.T) {
 	if len(versionsPayload.Versions) < 2 {
 		t.Fatalf("version count = %d", len(versionsPayload.Versions))
 	}
+
+	diffResp, err := http.Get(testServer.URL + "/api/trees/revision-track/diff?from=1&to=2")
+	if err != nil {
+		t.Fatalf("diff request: %v", err)
+	}
+	defer diffResp.Body.Close()
+	if diffResp.StatusCode != http.StatusOK {
+		t.Fatalf("diff status: %d", diffResp.StatusCode)
+	}
+
+	versionResp, err := http.Get(testServer.URL + "/api/trees/revision-track/versions/1")
+	if err != nil {
+		t.Fatalf("version get request: %v", err)
+	}
+	defer versionResp.Body.Close()
+	if versionResp.StatusCode != http.StatusOK {
+		t.Fatalf("version get status: %d", versionResp.StatusCode)
+	}
+
+	restoreResp, err := http.Post(testServer.URL+"/api/trees/revision-track/versions/1/restore", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("restore request: %v", err)
+	}
+	defer restoreResp.Body.Close()
+	if restoreResp.StatusCode != http.StatusOK {
+		t.Fatalf("restore status: %d", restoreResp.StatusCode)
+	}
 }
 
 func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
@@ -409,6 +450,20 @@ func TestTreeCreateRequiresAdminAuthorization(t *testing.T) {
 	if authResp.StatusCode != http.StatusCreated {
 		t.Fatalf("authorized tree create status = %d", authResp.StatusCode)
 	}
+
+	adminsReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/admins", nil)
+	if err != nil {
+		t.Fatalf("admins request: %v", err)
+	}
+	adminsReq.Header.Set("Authorization", "Bearer secret-token")
+	adminsResp, err := http.DefaultClient.Do(adminsReq)
+	if err != nil {
+		t.Fatalf("admins response: %v", err)
+	}
+	defer adminsResp.Body.Close()
+	if adminsResp.StatusCode != http.StatusOK {
+		t.Fatalf("admins status = %d", adminsResp.StatusCode)
+	}
 }
 
 func TestKratosWhoamiAuthMiddleware(t *testing.T) {
@@ -541,9 +596,11 @@ func TestKratosAdminEmailCanManageTrees(t *testing.T) {
 	defer kratos.Close()
 
 	harness := newTestHarnessWithAuth(t, "", "")
+	if err := harness.Store.EnsureAdminEmails(context.Background(), []string{"writer@example.com"}); err != nil {
+		t.Fatalf("seed admin email: %v", err)
+	}
 	cfg := config.Default(t.TempDir())
 	cfg.KratosPublicURL = kratos.URL
-	cfg.AdminEmails = []string{"writer@example.com"}
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
 
@@ -560,6 +617,21 @@ func TestKratosAdminEmailCanManageTrees(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("kratos admin status = %d", resp.StatusCode)
+	}
+
+	addAdminReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/admins", strings.NewReader(`{"email":"second-admin@example.com"}`))
+	if err != nil {
+		t.Fatalf("new admin request: %v", err)
+	}
+	addAdminReq.Header.Set("X-Session-Token", "session-token")
+	addAdminReq.Header.Set("Content-Type", "application/json")
+	addAdminResp, err := http.DefaultClient.Do(addAdminReq)
+	if err != nil {
+		t.Fatalf("add admin response: %v", err)
+	}
+	defer addAdminResp.Body.Close()
+	if addAdminResp.StatusCode != http.StatusCreated {
+		t.Fatalf("add admin status = %d", addAdminResp.StatusCode)
 	}
 }
 

@@ -36,7 +36,7 @@ type kratosWhoamiResponse struct {
 func withAuth(next http.Handler, apiToken, kratosPublicURL string) http.Handler {
 	client := &http.Client{Timeout: 10 * time.Second}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions || r.URL.Path == "/api/health" {
+		if r.Method == http.MethodOptions || r.URL.Path == "/api/health" || r.URL.Path == "/api/ready" {
 			next.ServeHTTP(w, r)
 			return
 		}
