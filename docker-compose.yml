@@ -1,20 +1,4 @@
 services:
-  gateway:
-    image: nginx:1.27-alpine
-    container_name: writing-coach-gateway
-    restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_started
-      kratos:
-        condition: service_started
-      kratos-selfservice-ui:
-        condition: service_started
-    ports:
-      - "${GATEWAY_PORT_BIND:-127.0.0.1:11234:80}"
-    volumes:
-      - ./deploy/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
-
   app:
     build:
       context: .
@@ -37,6 +21,8 @@ services:
       OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
       WRITING_COACH_PROMPT_MODEL: "${WRITING_COACH_PROMPT_MODEL:-gpt-5-mini}"
       WRITING_COACH_REVIEW_MODEL: "${WRITING_COACH_REVIEW_MODEL:-gpt-5-mini}"
+    ports:
+      - "${APP_PORT_BIND:-127.0.0.1:11234:8080}"
     volumes:
       - writing-coach-data:/app/.writing-coach
 
@@ -87,6 +73,8 @@ services:
       KRATOS_ALLOWED_RETURN_URLS: "${KRATOS_ALLOWED_RETURN_URLS:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/ui,${COACH_PUBLIC_URL:-https://coach.tomasino.org}}"
       KRATOS_SMTP_CONNECTION_URI: "${KRATOS_SMTP_CONNECTION_URI:-smtps://test:test@mailslurper:1025/?skip_ssl_verify=true}"
     command: ["sh", "/etc/config/kratos/render-config.sh", "serve"]
+    ports:
+      - "${KRATOS_PUBLIC_PORT_BIND:-127.0.0.1:14433:4433}"
     volumes:
       - kratos-data:/var/lib/sqlite
       - ./deploy/kratos:/etc/config/kratos
@@ -104,6 +92,8 @@ services:
       COOKIE_SECRET: "${KRATOS_UI_COOKIE_SECRET:-change-me-change-me-change-me-change-me}"
       CSRF_COOKIE_NAME: "ory_csrf_ui"
       CSRF_COOKIE_SECRET: "${KRATOS_UI_CSRF_SECRET:-change-me-change-me-change-me-change-me}"
+    ports:
+      - "${KRATOS_UI_PORT_BIND:-127.0.0.1:14455:3000}"
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps

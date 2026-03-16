@@ -22,8 +22,7 @@ The planned web stack, Tailwind Plus kit mapping, and screen strategy live in [d
 The supported deployment path is:
 
 - host `nginx` terminates TLS
-- host `nginx` reverse-proxies one localhost port from Docker Compose
-- an internal Compose gateway routes `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui`
+- host `nginx` reverse-proxies localhost-bound Docker ports
 - the app, Kratos, LanguageTool, and storage stay on the internal Docker network
 
 The Go binary still starts via `writing-coach serve` inside the app container, but the CLI workflow is no longer treated as a primary user interface.
@@ -199,8 +198,8 @@ Production deployment for `coach.tomasino.org` should:
 - copy `.env.example` to `.env`
 - set the Kratos secrets to long random values
 - set `WRITING_COACH_ADMIN_EMAILS` to the Kratos email addresses allowed to create or edit curricula
-- keep the single published gateway port bound to `127.0.0.1`
-- let host nginx terminate TLS and proxy to `GATEWAY_PORT_BIND`
+- keep the published upstream ports bound to `127.0.0.1`
+- let host nginx terminate TLS and proxy `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui` to those localhost ports
 
 The main browser-facing setting is:
 
@@ -219,9 +218,11 @@ Kratos configuration lives at:
 - [deploy/kratos/render-config.sh](/home/tomasino/writing-coach/deploy/kratos/render-config.sh)
 - [deploy/kratos/identity.schema.json](/home/tomasino/writing-coach/deploy/kratos/identity.schema.json)
 
-Default localhost binding from `.env.example`:
+Default localhost bindings from `.env.example`:
 
-- `11234` compose gateway for `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui`
+- `11234` writing-coach API
+- `14433` Kratos public API
+- `14455` Kratos self-service UI
 
 An nginx reverse proxy can sit in front of it with a simple upstream:
 
@@ -230,8 +231,24 @@ server {
     listen 80;
     server_name coach.tomasino.org;
 
-    location / {
+    location /api/ {
         proxy_pass http://127.0.0.1:11234;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /.ory/kratos/public/ {
+        proxy_pass http://127.0.0.1:14433/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /.ory/kratos/ui/ {
+        proxy_pass http://127.0.0.1:14455/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
