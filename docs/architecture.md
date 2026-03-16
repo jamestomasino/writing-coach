@@ -8,12 +8,12 @@ The target style is epic tragedy in a mythopoeic mode with fantasy influences, w
 
 ## Product Shape
 
-The first implementation is a Go application with SQLite persistence and two adapters:
+The current implementation is a Go application with SQLite persistence exposed through:
 
-- a CLI for direct local use
-- a JSON API for a future web interface
+- a JSON API
+- a Next.js web interface running as the single published browser entrypoint
 
-The web layer should remain an adapter over the same prompt, review, curriculum, and persistence services rather than a separate system.
+The web layer remains an adapter over the same prompt, review, curriculum, and persistence services rather than a separate system.
 
 ## Core Engines
 
@@ -138,13 +138,9 @@ migrations/
 
 ## Deployment Posture
 
-The API can run:
+The API runs behind the web container in Docker. Host nginx proxies to the web service only; the web service then proxies API and Kratos browser routes across the internal Docker network.
 
-- locally with no auth during development
-- behind nginx on a server
-- in Docker with SQLite mounted from the host
-
-An optional API token gate protects all endpoints except health checks. For real user accounts, the preferred model is Ory Kratos rather than storing passwords in the app itself.
+An optional API token gate still protects API-only access patterns. For real user accounts, Ory Kratos remains the identity system rather than storing passwords in the app itself.
 
 Current secure deployment direction:
 
@@ -154,7 +150,7 @@ Current secure deployment direction:
 - `LanguageTool` runs as a separate Java service in Docker
 - `Vale` is bundled into the app image for deterministic prose linting
 - all deploy-time settings are driven from `.env` and consumed by `docker-compose.yml`
-- the intended production topology is `host nginx -> localhost-bound app and kratos upstreams -> internal Docker services` on `coach.tomasino.org`
+- the intended production topology is `host nginx -> localhost-bound web upstream -> internal Docker services` on `coach.tomasino.org`
 
 ## Interfaces
 

@@ -148,7 +148,7 @@ Reason:
 
 ## API To Screen Mapping
 
-Current backend endpoints already support the first UI slice:
+Current backend endpoints now support the first UI slice:
 
 - `GET /api/dashboard`
 - `POST /api/prompts/next`
@@ -157,6 +157,7 @@ Current backend endpoints already support the first UI slice:
 - `GET /api/submissions/{id}`
 - `POST /api/reviews`
 - `GET /api/compare`
+- `GET /api/reviews/{id}`
 - `GET /api/users`
 - `GET /api/users/{slug}`
 - `GET /api/trees`
@@ -173,12 +174,23 @@ This is enough for:
 - enrollment switching
 - curriculum browsing
 
-What is still missing before UI implementation:
+The current first slice is now implemented in `web/`:
 
-- explicit exercise fetch/list endpoints
-- explicit review fetch/list endpoints
-- update/delete semantics where needed
-- possibly a dedicated auth/session endpoint beyond token auth
+- `/`
+- `/new-assignment`
+- `/reviews/[id]`
+- `/compare/[submissionId]`
+- `/progress`
+- `/admin`
+- `/login`
+- `/register`
+
+Remaining gaps before the workflow feels fully complete:
+
+- onboarding and goal-questionnaire driven tree generation
+- a real invite flow instead of admin-side user provisioning
+- true inline review annotations
+- richer tree browsing and editing views
 
 ## Dependency Strategy
 

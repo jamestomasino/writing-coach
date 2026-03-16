@@ -942,6 +942,34 @@ func (s *Store) ReplaceActiveTGO(ctx context.Context, enrollmentID int64, slot i
 	return tx.Commit()
 }
 
+func (s *Store) SetActiveTGOs(ctx context.Context, enrollmentID int64, codes []string) error {
+	if len(codes) != 3 {
+		return fmt.Errorf("exactly 3 TGO codes are required")
+	}
+	tx, err := s.SQL.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if _, err = tx.ExecContext(ctx, `DELETE FROM enrollment_active_tgos WHERE enrollment_id = ?`, enrollmentID); err != nil {
+		return err
+	}
+	for i, code := range codes {
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO enrollment_active_tgos (enrollment_id, slot, tgo_code)
+			VALUES (?, ?, ?)
+		`, enrollmentID, i+1, code); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func (s *Store) NextAvailableTGO(ctx context.Context, enrollmentID int64) (domain.TGO, error) {
 	var tgo domain.TGO
 	err := s.SQL.QueryRowContext(ctx, `

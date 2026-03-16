@@ -773,6 +773,21 @@ func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	if r.ContentLength != 0 {
+		var payload struct {
+			TGOCodes []string `json:"tgo_codes"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+			return
+		}
+		if len(payload.TGOCodes) > 0 {
+			if err := s.setActiveTGOsForSelection(r.Context(), appContext, payload.TGOCodes); err != nil {
+				writeError(w, http.StatusBadRequest, err)
+				return
+			}
+		}
+	}
 	ex, err := s.createNextExercise(r.Context(), appContext)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -1178,6 +1193,61 @@ func (s Server) createNextExercise(ctx context.Context, appContext session.Conte
 	return ex, nil
 }
 
+func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext session.Context, codes []string) error {
+	if len(codes) != 3 {
+		return fmt.Errorf("exactly 3 TGOs must be selected")
+	}
+	seen := make(map[string]bool, len(codes))
+	selected := make([]string, 0, len(codes))
+	for _, code := range codes {
+		code = strings.TrimSpace(code)
+		if code == "" {
+			return fmt.Errorf("TGO codes cannot be empty")
+		}
+		if seen[code] {
+			return fmt.Errorf("duplicate TGO code: %s", code)
+		}
+		seen[code] = true
+		selected = append(selected, code)
+	}
+
+	treeDef, err := s.Store.TreeDefinitionBySlug(ctx, appContext.TreeSlug)
+	if err != nil {
+		return err
+	}
+	activeTGOs, err := s.Store.ActiveTGOs(ctx, appContext.EnrollmentID)
+	if err != nil {
+		return err
+	}
+	completedTGOs, err := s.Store.CompletedTGOs(ctx, appContext.EnrollmentID)
+	if err != nil {
+		return err
+	}
+
+	completedSet := make(map[string]bool, len(completedTGOs))
+	selectable := make(map[string]bool, len(treeDef.TGOs))
+	for _, tgo := range completedTGOs {
+		completedSet[tgo.Code] = true
+	}
+	for _, tgo := range activeTGOs {
+		selectable[tgo.Code] = true
+	}
+	for _, tgo := range treeDef.TGOs {
+		if completedSet[tgo.Code] {
+			continue
+		}
+		if selectable[tgo.Code] || prereqsMetForSelection(tgo, completedSet) {
+			selectable[tgo.Code] = true
+		}
+	}
+	for _, code := range selected {
+		if !selectable[code] {
+			return fmt.Errorf("TGO %q is not unlocked for selection", code)
+		}
+	}
+	return s.Store.SetActiveTGOs(ctx, appContext.EnrollmentID, selected)
+}
+
 func (s Server) createRevisionExercise(ctx context.Context, appContext session.Context, submissionID int64) (domain.Exercise, error) {
 	sub, err := s.Store.GetSubmission(ctx, submissionID)
 	if err != nil {
@@ -1388,6 +1458,15 @@ func parseOptionalInt64(raw string) (int64, error) {
 
 func belongsToContext(userID, treeID int64, appContext session.Context) bool {
 	return userID == appContext.UserID && treeID == appContext.TreeID
+}
+
+func prereqsMetForSelection(tgo domain.TGO, completed map[string]bool) bool {
+	for _, prereq := range tgo.Prerequisites {
+		if !completed[prereq] {
+			return false
+		}
+	}
+	return true
 }
 
 func (s Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {

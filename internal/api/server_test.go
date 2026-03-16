@@ -395,6 +395,39 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 }
 
+func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Post(
+		testServer.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship",
+		"application/json",
+		strings.NewReader(`{"tgo_codes":["scene-architecture","prose-precision","causal-clarity"]}`),
+	)
+	if err != nil {
+		t.Fatalf("prompt next with selection: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("prompt status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Exercise struct {
+			TGOCodes []string `json:"tgo_codes"`
+		} `json:"exercise"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode prompt response: %v", err)
+	}
+	if len(payload.Exercise.TGOCodes) != 3 {
+		t.Fatalf("selected TGO count = %d", len(payload.Exercise.TGOCodes))
+	}
+	if payload.Exercise.TGOCodes[0] != "scene-architecture" || payload.Exercise.TGOCodes[2] != "causal-clarity" {
+		t.Fatalf("expected selected TGO to persist, got %v", payload.Exercise.TGOCodes)
+	}
+}
+
 func TestAPIAuthMiddleware(t *testing.T) {
 	testServer := newTestServerWithToken(t, "secret-token")
 	defer testServer.Close()

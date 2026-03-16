@@ -1,6 +1,6 @@
 # Writing Coach
 
-`writing-coach` is a Go application for generating fiction exercises, reviewing submissions, and adapting future practice based on accumulated feedback. Its supported runtime is now the JSON API inside a Docker Compose deployment, with the web interface planned to sit on top of that API.
+`writing-coach` is a Docker-deployed writing coaching system with a Go API backend and a Next.js web client. It generates exercises, reviews submissions, and adapts future practice based on accumulated feedback.
 
 The initial implementation targets a narrow but complete loop:
 
@@ -148,9 +148,8 @@ Environment variables:
 - `WRITING_COACH_API_TOKEN`
 - `WRITING_COACH_ADMIN_EMAILS`
 - `COACH_PUBLIC_URL`
-- `GATEWAY_PORT_BIND`
-- `VALE_BINARY`
-- `LANGUAGETOOL_URL`
+- `WEB_PORT_BIND`
+- `KRATOS_SMTP_CONNECTION_URI`
 
 ## Deterministic Analysis
 
@@ -180,7 +179,8 @@ The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-c
 The repository currently contains:
 
 - a documented architecture plan
-- a Go API server for the future web interface
+- a Go API server behind the browser client
+- a Next.js web app built from the Catalyst component kit
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior
 - persisted review artifacts for analyzer output, recommendation state, and revision comparisons
@@ -198,6 +198,7 @@ docker compose up -d --build
 
 That stack includes:
 
+- `writing-coach-web` Next.js frontend
 - `writing-coach` API
 - `Vale` bundled into the app image
 - `LanguageTool` as a dedicated Java container
@@ -212,8 +213,8 @@ Production deployment for `coach.tomasino.org` should:
 - copy `.env.example` to `.env`
 - set the Kratos secrets to long random values
 - set `WRITING_COACH_ADMIN_EMAILS` to the Kratos email addresses allowed to create or edit curricula
-- keep the published upstream ports bound to `127.0.0.1`
-- let host nginx terminate TLS and proxy `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui` to those localhost ports
+- keep the single published upstream bound to `127.0.0.1`
+- let host nginx terminate TLS and proxy all traffic to the web container on `WEB_PORT_BIND`
 
 The main browser-facing setting is:
 
@@ -232,37 +233,19 @@ Kratos configuration lives at:
 - [deploy/kratos/render-config.sh](/home/tomasino/writing-coach/deploy/kratos/render-config.sh)
 - [deploy/kratos/identity.schema.json](/home/tomasino/writing-coach/deploy/kratos/identity.schema.json)
 
-Default localhost bindings from `.env.example`:
+Default localhost binding from `.env.example`:
 
-- `11234` writing-coach API
-- `14433` Kratos public API
-- `14455` Kratos self-service UI
+- `11234` writing-coach web entrypoint
 
-An nginx reverse proxy can sit in front of it with a simple upstream:
+The web container proxies `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui` internally over the Docker network, so host nginx only needs a single upstream:
 
 ```nginx
 server {
     listen 80;
     server_name coach.tomasino.org;
 
-    location /api/ {
+    location / {
         proxy_pass http://127.0.0.1:11234;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /.ory/kratos/public/ {
-        proxy_pass http://127.0.0.1:14433/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /.ory/kratos/ui/ {
-        proxy_pass http://127.0.0.1:14455/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -273,7 +256,7 @@ server {
 
 ## Next Milestones
 
-- add tree editing and versioning, not just creation
-- deepen prompt and review behavior so each tree feels pedagogically distinct
-- tighten admin/auth boundaries around tree authoring before exposing it publicly
-- build the first web UI against the stabilized API
+- replace the stopgap admin provisioning screen with a true invite flow
+- add onboarding and tree generation from the writing-goals questionnaire
+- emit real inline review annotations instead of summary-only coach notes
+- add richer tree and curriculum browsing screens in the web app
