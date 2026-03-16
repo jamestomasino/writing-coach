@@ -378,9 +378,15 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 	var singleReviewPayload struct {
 		Review struct {
+			Annotations []struct {
+				Quote string `json:"quote"`
+			} `json:"annotations"`
 			Artifacts struct {
 				AnalyzerReport map[string]any `json:"analyzer_report"`
 				Recommendation map[string]any `json:"recommendation"`
+				Annotations    []struct {
+					Quote string `json:"quote"`
+				} `json:"annotations"`
 			} `json:"artifacts"`
 		} `json:"review"`
 	}
@@ -392,6 +398,12 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 	if len(singleReviewPayload.Review.Artifacts.Recommendation) == 0 {
 		t.Fatal("expected recommendation artifact")
+	}
+	if len(singleReviewPayload.Review.Annotations) == 0 {
+		t.Fatal("expected review annotations")
+	}
+	if len(singleReviewPayload.Review.Artifacts.Annotations) == 0 {
+		t.Fatal("expected annotation artifacts")
 	}
 }
 

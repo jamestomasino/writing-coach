@@ -71,11 +71,21 @@ export type Review = {
   metric_word_count: number
   tgo_assessments: TGOAssessment[]
   completed_tgo_checks: TGOAssessment[]
+  annotations: ReviewAnnotation[]
   artifacts?: {
     analyzer_report?: Record<string, unknown>
     recommendation?: Record<string, unknown>
     comparison?: Record<string, unknown>
+    annotations?: ReviewAnnotation[]
   }
+}
+
+export type ReviewAnnotation = {
+  quote: string
+  tgo_code: string
+  category: string
+  comment: string
+  severity: string
 }
 
 export type Comparison = {

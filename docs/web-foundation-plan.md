@@ -189,7 +189,6 @@ The current first slice is now implemented in `web/`:
 Remaining gaps before the workflow feels fully complete:
 
 - a real invite flow instead of admin-side user provisioning
-- true inline review annotations
 - richer tree browsing and editing views
 
 ## Dependency Strategy

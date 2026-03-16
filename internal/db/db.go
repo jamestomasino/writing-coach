@@ -900,13 +900,14 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 
 func (s *Store) SaveReviewArtifacts(ctx context.Context, artifacts domain.ReviewArtifacts) error {
 	_, err := s.SQL.ExecContext(ctx, `
-		INSERT INTO review_artifacts (review_id, analyzer_report_json, recommendation_json, comparison_json)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO review_artifacts (review_id, analyzer_report_json, recommendation_json, comparison_json, annotations_json)
+		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(review_id) DO UPDATE SET
 			analyzer_report_json = excluded.analyzer_report_json,
 			recommendation_json = excluded.recommendation_json,
-			comparison_json = excluded.comparison_json
-	`, artifacts.ReviewID, artifacts.AnalyzerReportJSON, artifacts.RecommendationJSON, artifacts.ComparisonJSON)
+			comparison_json = excluded.comparison_json,
+			annotations_json = excluded.annotations_json
+	`, artifacts.ReviewID, artifacts.AnalyzerReportJSON, artifacts.RecommendationJSON, artifacts.ComparisonJSON, artifacts.AnnotationsJSON)
 	return err
 }
 
@@ -1209,7 +1210,7 @@ func (s *Store) ReviewTGOAssessments(ctx context.Context, reviewID int64) ([]dom
 func (s *Store) GetReviewArtifacts(ctx context.Context, reviewID int64) (domain.ReviewArtifacts, error) {
 	var artifacts domain.ReviewArtifacts
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT review_id, analyzer_report_json, recommendation_json, comparison_json, created_at
+		SELECT review_id, analyzer_report_json, recommendation_json, comparison_json, annotations_json, created_at
 		FROM review_artifacts
 		WHERE review_id = ?
 	`, reviewID).Scan(
@@ -1217,6 +1218,7 @@ func (s *Store) GetReviewArtifacts(ctx context.Context, reviewID int64) (domain.
 		&artifacts.AnalyzerReportJSON,
 		&artifacts.RecommendationJSON,
 		&artifacts.ComparisonJSON,
+		&artifacts.AnnotationsJSON,
 		&artifacts.CreatedAt,
 	)
 	if err != nil {

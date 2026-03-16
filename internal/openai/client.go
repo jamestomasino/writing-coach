@@ -71,6 +71,7 @@ type reviewResponse struct {
 	SkillScores        []skillScore    `json:"skill_scores"`
 	TGOAssessments     []tgoAssessment `json:"tgo_assessments"`
 	CompletedTGOChecks []tgoAssessment `json:"completed_tgo_checks"`
+	Annotations        []annotation    `json:"annotations"`
 }
 
 type skillScore struct {
@@ -82,6 +83,14 @@ type tgoAssessment struct {
 	Code     string `json:"code"`
 	Status   string `json:"status"`
 	Evidence string `json:"evidence"`
+}
+
+type annotation struct {
+	Quote    string `json:"quote"`
+	TGOCode  string `json:"tgo_code"`
+	Category string `json:"category"`
+	Comment  string `json:"comment"`
+	Severity string `json:"severity"`
 }
 
 func NewClient(cfg config.Config) *Client {
@@ -226,6 +235,7 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		Weaknesses:         parsed.Weaknesses,
 		TGOAssessments:     toDomainAssessments(parsed.TGOAssessments),
 		CompletedTGOChecks: toDomainAssessments(parsed.CompletedTGOChecks),
+		Annotations:        toDomainAnnotations(parsed.Annotations),
 		NextFocus:          parsed.NextFocus,
 		MetricWordCount:    input.WordCount,
 	}, scores, nil
@@ -384,6 +394,7 @@ Choose the next focus that would most improve the following exercise.
 Choose next_focus only from the supplied taxonomy.
 Assess each active TGO with one of: developing, secure, mastered.
 Optionally flag up to two completed TGOs as holding or slipping if the draft regresses on already-established skills.
+Return up to six short annotations for the UI. Each annotation must cite a short exact quote from the submission, map to a TGO, classify the issue, and explain the coaching note.
 `)
 }
 
@@ -406,7 +417,7 @@ func reviewSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"summary", "strengths", "weaknesses", "next_focus", "skill_scores", "tgo_assessments", "completed_tgo_checks"},
+		"required":             []string{"summary", "strengths", "weaknesses", "next_focus", "skill_scores", "tgo_assessments", "completed_tgo_checks", "annotations"},
 		"properties": map[string]any{
 			"summary":    map[string]any{"type": "string"},
 			"strengths":  stringArraySchema(2, 4),
@@ -453,6 +464,23 @@ func reviewSchema() map[string]any {
 						"code":     map[string]any{"type": "string"},
 						"status":   map[string]any{"type": "string", "enum": []string{"holding", "slipping"}},
 						"evidence": map[string]any{"type": "string"},
+					},
+				},
+			},
+			"annotations": map[string]any{
+				"type":     "array",
+				"minItems": 0,
+				"maxItems": 6,
+				"items": map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"required":             []string{"quote", "tgo_code", "category", "comment", "severity"},
+					"properties": map[string]any{
+						"quote":    map[string]any{"type": "string"},
+						"tgo_code": map[string]any{"type": "string"},
+						"category": map[string]any{"type": "string", "enum": []string{"clarity", "structure", "tone", "imagery", "dialogue", "symbolism", "grammar", "revision"}},
+						"comment":  map[string]any{"type": "string"},
+						"severity": map[string]any{"type": "string", "enum": []string{"low", "medium", "high"}},
 					},
 				},
 			},
@@ -530,6 +558,13 @@ func normalizeReview(value reviewResponse) reviewResponse {
 		value.CompletedTGOChecks[i].Status = normalizeString(value.CompletedTGOChecks[i].Status)
 		value.CompletedTGOChecks[i].Evidence = normalizeString(value.CompletedTGOChecks[i].Evidence)
 	}
+	for i := range value.Annotations {
+		value.Annotations[i].Quote = normalizeString(value.Annotations[i].Quote)
+		value.Annotations[i].TGOCode = normalizeString(value.Annotations[i].TGOCode)
+		value.Annotations[i].Category = normalizeString(value.Annotations[i].Category)
+		value.Annotations[i].Comment = normalizeString(value.Annotations[i].Comment)
+		value.Annotations[i].Severity = normalizeString(value.Annotations[i].Severity)
+	}
 	return value
 }
 
@@ -579,6 +614,20 @@ func toDomainAssessments(values []tgoAssessment) []domain.TGOAssessment {
 			TGOCode:  value.Code,
 			Status:   value.Status,
 			Evidence: value.Evidence,
+		})
+	}
+	return out
+}
+
+func toDomainAnnotations(values []annotation) []domain.ReviewAnnotation {
+	out := make([]domain.ReviewAnnotation, 0, len(values))
+	for _, value := range values {
+		out = append(out, domain.ReviewAnnotation{
+			Quote:    value.Quote,
+			TGOCode:  value.TGOCode,
+			Category: value.Category,
+			Comment:  value.Comment,
+			Severity: value.Severity,
 		})
 	}
 	return out

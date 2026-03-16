@@ -91,6 +91,7 @@ type Review struct {
 	AnalyzerFindings   []string
 	TGOAssessments     []TGOAssessment
 	CompletedTGOChecks []TGOAssessment
+	Annotations        []ReviewAnnotation
 	NextFocus          string
 	ReviewKind         string
 	ProviderNote       string
@@ -98,11 +99,20 @@ type Review struct {
 	MetricWordCount    int
 }
 
+type ReviewAnnotation struct {
+	Quote    string
+	TGOCode  string
+	Category string
+	Comment  string
+	Severity string
+}
+
 type ReviewArtifacts struct {
 	ReviewID           int64
 	AnalyzerReportJSON string
 	RecommendationJSON string
 	ComparisonJSON     string
+	AnnotationsJSON    string
 	CreatedAt          time.Time
 }
 

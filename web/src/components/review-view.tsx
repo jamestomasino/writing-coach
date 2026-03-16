@@ -148,14 +148,38 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       </div>
 
       <WorkspaceCard>
-        <Subheading>Coach notes</Subheading>
-        <Text className="mt-2">The current API does not yet emit full inline annotation spans, so this first slice surfaces evidence notes and analyzer findings as the browser-facing markup layer.</Text>
-        <div className="mt-4 space-y-3">
-          {review.analyzer_findings.map((item) => (
-            <div key={item} className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
-              {item}
-            </div>
-          ))}
+        <Subheading>Inline coaching markup</Subheading>
+        <Text className="mt-2">These annotations tie short quoted passages to the active rubric, so revision decisions stay anchored to concrete lines instead of drifting into abstraction.</Text>
+        <div className="mt-4 space-y-4">
+          {review.annotations.length === 0 ? (
+            <Text>No line-level annotations were returned for this review.</Text>
+          ) : (
+            review.annotations.map((item, index) => (
+              <div key={`${item.quote}-${index}`} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge color={item.severity === 'high' ? 'rose' : item.severity === 'medium' ? 'amber' : 'zinc'}>
+                    {item.severity}
+                  </Badge>
+                  <Badge color="blue">{item.tgo_code}</Badge>
+                  <Badge color="cyan">{item.category}</Badge>
+                </div>
+                <blockquote className="mt-3 border-l-2 border-stone-300 pl-4 text-sm italic text-zinc-700 dark:border-white/15 dark:text-zinc-200">
+                  “{item.quote}”
+                </blockquote>
+                <Text className="mt-3">{item.comment}</Text>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="mt-6">
+          <Subheading>Analyzer findings</Subheading>
+          <div className="mt-3 space-y-3">
+            {review.analyzer_findings.map((item) => (
+              <div key={item} className="rounded-xl border border-stone-200 bg-white p-4 text-sm text-zinc-700 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-300">
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
       </WorkspaceCard>
     </div>

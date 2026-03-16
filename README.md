@@ -184,6 +184,7 @@ The repository currently contains:
 - a Go API server behind the browser client
 - a Next.js web app built from the Catalyst component kit
 - a questionnaire-driven onboarding flow that generates a user-specific TGO tree
+- structured review annotations tied to quoted text and TGOs for browser-side markup
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior
 - persisted review artifacts for analyzer output, recommendation state, and revision comparisons
@@ -261,5 +262,4 @@ server {
 
 - replace the stopgap admin provisioning screen with a true invite flow
 - replace admin-side user provisioning with a true invite flow
-- emit real inline review annotations instead of summary-only coach notes
 - add richer tree and curriculum browsing screens in the web app

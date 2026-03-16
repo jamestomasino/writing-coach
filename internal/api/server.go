@@ -234,6 +234,7 @@ type reviewResponse struct {
 	MetricWordCount    int                     `json:"metric_word_count"`
 	TGOAssessments     []tgoAssessmentResponse `json:"tgo_assessments"`
 	CompletedTGOChecks []tgoAssessmentResponse `json:"completed_tgo_checks"`
+	Annotations        []annotationResponse    `json:"annotations,omitempty"`
 	Artifacts          *reviewArtifactsPayload `json:"artifacts,omitempty"`
 }
 
@@ -247,9 +248,18 @@ type comparisonResponse struct {
 }
 
 type reviewArtifactsPayload struct {
-	AnalyzerReport map[string]any `json:"analyzer_report,omitempty"`
-	Recommendation map[string]any `json:"recommendation,omitempty"`
-	Comparison     map[string]any `json:"comparison,omitempty"`
+	AnalyzerReport map[string]any       `json:"analyzer_report,omitempty"`
+	Recommendation map[string]any       `json:"recommendation,omitempty"`
+	Comparison     map[string]any       `json:"comparison,omitempty"`
+	Annotations    []annotationResponse `json:"annotations,omitempty"`
+}
+
+type annotationResponse struct {
+	Quote    string `json:"quote"`
+	TGOCode  string `json:"tgo_code"`
+	Category string `json:"category"`
+	Comment  string `json:"comment"`
+	Severity string `json:"severity"`
 }
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -1144,6 +1154,7 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 		AnalyzerReportJSON: mustJSON(reviewResult.AnalyzerReport),
 		RecommendationJSON: mustJSON(recommendation),
 		ComparisonJSON:     mustJSON(s.reviewComparisonPayload(r.Context(), sub, reviewResult.Review)),
+		AnnotationsJSON:    mustJSON(reviewResult.Review.Annotations),
 	}); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -1194,7 +1205,14 @@ func (s Server) handleReviewsList(w http.ResponseWriter, r *http.Request) {
 	}
 	items := make([]reviewResponse, 0, len(reviews))
 	for _, review := range reviews {
-		items = append(items, toReviewResponse(review))
+		response := toReviewResponse(review)
+		if artifacts, err := s.Store.GetReviewArtifacts(r.Context(), review.ID); err == nil {
+			response.Artifacts = decodeReviewArtifacts(artifacts)
+			if len(response.Annotations) == 0 {
+				response.Annotations = append(response.Annotations, response.Artifacts.Annotations...)
+			}
+		}
+		items = append(items, response)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
@@ -1230,6 +1248,9 @@ func (s Server) handleReviewGet(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		response := toReviewResponse(reviewResult)
 		response.Artifacts = decodeReviewArtifacts(artifacts)
+		if len(response.Annotations) == 0 {
+			response.Annotations = append(response.Annotations, response.Artifacts.Annotations...)
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
 			"review":  response,
@@ -1748,6 +1769,7 @@ func decodeReviewArtifacts(artifacts domain.ReviewArtifacts) *reviewArtifactsPay
 	_ = json.Unmarshal([]byte(artifacts.AnalyzerReportJSON), &payload.AnalyzerReport)
 	_ = json.Unmarshal([]byte(artifacts.RecommendationJSON), &payload.Recommendation)
 	_ = json.Unmarshal([]byte(artifacts.ComparisonJSON), &payload.Comparison)
+	_ = json.Unmarshal([]byte(artifacts.AnnotationsJSON), &payload.Annotations)
 	return payload
 }
 
@@ -1963,6 +1985,15 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 			TGOCode:  check.TGOCode,
 			Status:   check.Status,
 			Evidence: check.Evidence,
+		})
+	}
+	for _, annotation := range reviewResult.Annotations {
+		out.Annotations = append(out.Annotations, annotationResponse{
+			Quote:    annotation.Quote,
+			TGOCode:  annotation.TGOCode,
+			Category: annotation.Category,
+			Comment:  annotation.Comment,
+			Severity: annotation.Severity,
 		})
 	}
 	return out

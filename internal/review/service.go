@@ -2,6 +2,7 @@ package review
 
 import (
 	"context"
+	"strings"
 
 	"github.com/tomasino/writing-coach/internal/analyzer"
 	"github.com/tomasino/writing-coach/internal/domain"
@@ -107,6 +108,7 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 		AnalyzerFindings:   analyzer.TopFindings(report, 6),
 		TGOAssessments:     deterministicAssessments(activeTGOs, report),
 		CompletedTGOChecks: deterministicCompletedChecks(completedTGOs, report),
+		Annotations:        deterministicAnnotations(sub.Content, activeTGOs, completedTGOs, report),
 		NextFocus:          nextFocus,
 		MetricWordCount:    wordCount,
 	}, scores
@@ -207,4 +209,92 @@ func deterministicCompletedChecks(completedTGOs []domain.TGO, report analyzer.Re
 		})
 	}
 	return out
+}
+
+func deterministicAnnotations(content string, activeTGOs []domain.TGO, completedTGOs []domain.TGO, report analyzer.Report) []domain.ReviewAnnotation {
+	sentences := splitSentences(content)
+	if len(sentences) == 0 {
+		return nil
+	}
+	activeTGOs = ensureReviewTGOs(activeTGOs)
+	finding := "Tighten the sentence so the dramatic movement is easier to follow."
+	if findings := analyzer.TopFindings(report, 1); len(findings) > 0 {
+		finding = findings[0]
+	}
+
+	annotations := make([]domain.ReviewAnnotation, 0, 4)
+	for i, tgo := range activeTGOs {
+		if i >= len(sentences) {
+			break
+		}
+		annotations = append(annotations, domain.ReviewAnnotation{
+			Quote:    shortQuote(sentences[i]),
+			TGOCode:  tgo.Code,
+			Category: annotationCategoryForTGO(tgo.Code),
+			Comment:  finding,
+			Severity: annotationSeverity(report.Findings),
+		})
+	}
+	if len(completedTGOs) > 0 && len(sentences) > len(annotations) {
+		annotations = append(annotations, domain.ReviewAnnotation{
+			Quote:    shortQuote(sentences[len(annotations)]),
+			TGOCode:  completedTGOs[0].Code,
+			Category: "revision",
+			Comment:  "This line is part of the lighter completed-skill maintenance pass. Keep the previously established control visible here.",
+			Severity: "low",
+		})
+	}
+	return annotations
+}
+
+func splitSentences(content string) []string {
+	parts := strings.FieldsFunc(content, func(r rune) bool {
+		return r == '.' || r == '!' || r == '?'
+	})
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		cleaned := strings.Join(strings.Fields(strings.TrimSpace(part)), " ")
+		if cleaned != "" {
+			out = append(out, cleaned)
+		}
+	}
+	return out
+}
+
+func shortQuote(sentence string) string {
+	words := strings.Fields(sentence)
+	if len(words) <= 14 {
+		return sentence
+	}
+	return strings.Join(words[:14], " ")
+}
+
+func annotationCategoryForTGO(code string) string {
+	switch code {
+	case "causal-clarity", "claim-clarity", "objective-clarity", "sentence-clarity":
+		return "clarity"
+	case "scene-architecture", "paragraph-control", "structural-signposting", "narrative-sequencing":
+		return "structure"
+	case "mythic-register", "tone-calibration", "authority-and-voice":
+		return "tone"
+	case "image-freshness", "descriptive-specificity", "word-choice":
+		return "imagery"
+	case "dialogue-under-strain", "dialogue-basics":
+		return "dialogue"
+	case "symbolic-discipline":
+		return "symbolism"
+	default:
+		return "revision"
+	}
+}
+
+func annotationSeverity(findings []analyzer.Finding) string {
+	switch {
+	case len(findings) >= 6:
+		return "high"
+	case len(findings) >= 3:
+		return "medium"
+	default:
+		return "low"
+	}
 }
