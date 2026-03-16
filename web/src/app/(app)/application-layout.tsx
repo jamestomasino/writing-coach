@@ -33,6 +33,7 @@ import {
   ChartBarSquareIcon,
   HomeIcon,
   PencilSquareIcon,
+  Squares2X2Icon,
   UserGroupIcon,
 } from '@heroicons/react/20/solid'
 import { usePathname } from 'next/navigation'
@@ -40,6 +41,10 @@ import { usePathname } from 'next/navigation'
 function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' }) {
   return (
     <DropdownMenu className="min-w-64" anchor={anchor}>
+      <DropdownItem href="/tree">
+        <Squares2X2Icon />
+        <DropdownLabel>Skill tree</DropdownLabel>
+      </DropdownItem>
       <DropdownItem href="/progress">
         <ChartBarSquareIcon />
         <DropdownLabel>Progress</DropdownLabel>
@@ -112,6 +117,10 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 <ChartBarSquareIcon />
                 <SidebarLabel>Progress</SidebarLabel>
               </SidebarItem>
+              <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
+                <Squares2X2Icon />
+                <SidebarLabel>Tree</SidebarLabel>
+              </SidebarItem>
               <SidebarItem href="/admin" current={pathname.startsWith('/admin')}>
                 <UserGroupIcon />
                 <SidebarLabel>Admin</SidebarLabel>
@@ -127,6 +136,10 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
               <SidebarItem href="/progress">
                 <ChartBarSquareIcon />
                 <SidebarLabel>Progress board</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/tree">
+                <Squares2X2Icon />
+                <SidebarLabel>Tree browser</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
 

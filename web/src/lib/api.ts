@@ -1,6 +1,6 @@
 'use client'
 
-import type { AuthSession, Comparison, Dashboard, Exercise, OnboardingState, Review, Submission, UserRecord } from './types'
+import type { AuthSession, Comparison, Dashboard, Exercise, OnboardingState, Review, Submission, Tree, UserRecord } from './types'
 
 type ErrorBody = { error?: string }
 
@@ -36,6 +36,11 @@ export function getOnboarding() {
 
 export function getDashboard() {
   return request<Dashboard>('/api/dashboard')
+}
+
+export async function getTree(slug: string) {
+  const payload = await request<{ tree: Tree }>(`/api/trees/${slug}`)
+  return payload.tree
 }
 
 export async function getExercises(limit = 10) {

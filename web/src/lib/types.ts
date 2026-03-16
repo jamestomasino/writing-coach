@@ -118,6 +118,17 @@ export type Dashboard = {
   history: string[]
 }
 
+export type Tree = {
+  id: number
+  slug: string
+  title: string
+  description: string
+  seed_codes: string[]
+  priority_skills: string[]
+  tgos: TGO[]
+  created_at?: string
+}
+
 export type UserRecord = {
   id: number
   slug: string
