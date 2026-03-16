@@ -9,6 +9,7 @@ LT_SERVER_JAR ?= $(firstword $(wildcard $(LT_HOME)/languagetool-server.jar $(LT_
 LT_HEALTHCHECK = curl -fsS -d 'language=en-US' -d 'text=Health check.' "$(LT_URL)/v2/check"
 IMAGE ?= writing-coach
 HTTP_PORT ?= 8080
+API_TOKEN ?=
 
 .PHONY: help init build serve prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status docker-build docker-run
 
@@ -24,8 +25,8 @@ init: ## initialize config, schema, and seeded curriculum state
 build: ## compile the Go project
 	go build ./...
 
-serve: ## run the JSON API server on WRITING_COACH_HTTP_ADDR or config.http_addr
-	go run ./cmd/writing-coach serve
+serve: ## run the JSON API server; optional API_TOKEN=<token> to require auth
+	WRITING_COACH_API_TOKEN="$(API_TOKEN)" go run ./cmd/writing-coach serve
 
 prompt: ## generate and store the next writing exercise
 	go run ./cmd/writing-coach prompt next
@@ -119,5 +120,5 @@ languagetool-status: ## check whether the LanguageTool server is reachable
 docker-build: ## build a production container image; optional IMAGE=<name>
 	docker build -t $(IMAGE) .
 
-docker-run: ## run the API container locally; optional IMAGE=<name> HTTP_PORT=<port>
-	docker run --rm -p $(HTTP_PORT):8080 -v "$(CURDIR)/.writing-coach:/app/.writing-coach" $(IMAGE)
+docker-run: ## run the API container locally; optional IMAGE=<name> HTTP_PORT=<port> API_TOKEN=<token>
+	docker run --rm -p $(HTTP_PORT):8080 -e WRITING_COACH_API_TOKEN="$(API_TOKEN)" -v "$(CURDIR)/.writing-coach:/app/.writing-coach" $(IMAGE)

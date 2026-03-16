@@ -18,6 +18,7 @@ type Config struct {
 	DefaultUserSlug string `json:"default_user_slug"`
 	DefaultTreeSlug string `json:"default_tree_slug"`
 	HTTPAddr        string `json:"http_addr"`
+	APIToken        string `json:"-"`
 	OpenAIAPIKey    string `json:"-"`
 	OpenAIBaseURL   string `json:"openai_base_url"`
 	PromptModel     string `json:"prompt_model"`
@@ -48,14 +49,13 @@ func Load(projectRoot string) (Config, error) {
 
 	bytes, err := os.ReadFile(cfg.ConfigPath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return cfg, nil
+		if !errors.Is(err, os.ErrNotExist) {
+			return Config{}, err
 		}
-		return Config{}, err
-	}
-
-	if err := json.Unmarshal(bytes, &cfg); err != nil {
-		return Config{}, err
+	} else {
+		if err := json.Unmarshal(bytes, &cfg); err != nil {
+			return Config{}, err
+		}
 	}
 
 	cfg.ProjectRoot = projectRoot
@@ -104,6 +104,9 @@ func Load(projectRoot string) (Config, error) {
 	}
 	if value := os.Getenv("WRITING_COACH_HTTP_ADDR"); value != "" {
 		cfg.HTTPAddr = value
+	}
+	if value := os.Getenv("WRITING_COACH_API_TOKEN"); value != "" {
+		cfg.APIToken = value
 	}
 
 	return cfg, nil

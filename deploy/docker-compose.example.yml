@@ -1,0 +1,14 @@
+services:
+  writing-coach:
+    image: writing-coach:latest
+    container_name: writing-coach
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      WRITING_COACH_HTTP_ADDR: ":8080"
+      WRITING_COACH_API_TOKEN: "change-me"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      LANGUAGETOOL_URL: "http://host.docker.internal:8081"
+    volumes:
+      - ./data:/app/.writing-coach

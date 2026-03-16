@@ -134,6 +134,16 @@ migrations/
 - `internal/api` exposes JSON endpoints for a browser-based UI or remote deployment.
 - `internal/cli` handles command parsing and user-facing output.
 
+## Deployment Posture
+
+The API can run:
+
+- locally with no auth during development
+- behind nginx on a server
+- in Docker with SQLite mounted from the host
+
+An optional API token gate protects all endpoints except health checks. That is intentionally minimal and should be treated as the first deployment layer, not the final public auth model.
+
 ## Interfaces
 
 The service layer should converge on interfaces shaped like:
@@ -191,7 +201,7 @@ Implementation status:
 
 ### Phase 4
 
-Expand reporting, tree management, and the first browser UI layer on top of the API.
+Expand reporting, tree management, and deployment hardening while keeping the API stable for the first browser UI layer.
 
 ## Initial Technical Decisions
 

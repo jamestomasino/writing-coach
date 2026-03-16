@@ -37,3 +37,16 @@ func TestSaveAndLoadConfig(t *testing.T) {
 		t.Fatalf("config file missing: %v", err)
 	}
 }
+
+func TestLoadReadsAPITokenFromEnv(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("WRITING_COACH_API_TOKEN", "secret")
+
+	loaded, err := Load(root)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if loaded.APIToken != "secret" {
+		t.Fatalf("api token = %q", loaded.APIToken)
+	}
+}

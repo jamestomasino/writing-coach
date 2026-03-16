@@ -127,7 +127,39 @@ func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 	}
 }
 
+func TestAPIAuthMiddleware(t *testing.T) {
+	testServer := newTestServerWithToken(t, "secret-token")
+	defer testServer.Close()
+
+	unauthorizedResp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("unauthorized request: %v", err)
+	}
+	defer unauthorizedResp.Body.Close()
+	if unauthorizedResp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized status = %d", unauthorizedResp.StatusCode)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer secret-token")
+	authorizedResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("authorized request: %v", err)
+	}
+	defer authorizedResp.Body.Close()
+	if authorizedResp.StatusCode != http.StatusOK {
+		t.Fatalf("authorized status = %d", authorizedResp.StatusCode)
+	}
+}
+
 func newTestServer(t *testing.T) *httptest.Server {
+	return newTestServerWithToken(t, "")
+}
+
+func newTestServerWithToken(t *testing.T, apiToken string) *httptest.Server {
 	t.Helper()
 	root := t.TempDir()
 	store, err := db.Open(filepath.Join(root, "test.db"))
@@ -146,8 +178,11 @@ func newTestServer(t *testing.T) *httptest.Server {
 		t.Fatalf("default user tree: %v", err)
 	}
 
+	cfg := config.Default(root)
+	cfg.APIToken = apiToken
+
 	server := Server{
-		Config:     config.Default(root),
+		Config:     cfg,
 		Store:      store,
 		Prompts:    prompt.NewService(nil),
 		Reviews:    review.NewService(nil, analyzer.Service{}),

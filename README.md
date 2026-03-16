@@ -104,6 +104,13 @@ WRITING_COACH_HTTP_ADDR=:8090 make serve
 
 Core endpoints:
 
+- `GET /api/users`
+- `GET /api/users/{slug}`
+- `GET /api/trees`
+- `GET /api/trees/{slug}`
+- `GET /api/enrollments`
+- `POST /api/enrollments`
+- `GET /api/enrollments/{id}/board`
 - `GET /api/health`
 - `GET /api/context`
 - `GET /api/dashboard`
@@ -118,6 +125,12 @@ Optional per-request context:
 
 - query params: `user`, `tree`, `user_name`
 - headers: `X-Writing-Coach-User`, `X-Writing-Coach-Tree`
+
+Optional API auth:
+
+- set `WRITING_COACH_API_TOKEN`
+- send either `Authorization: Bearer <token>` or `X-API-Token: <token>`
+- `GET /api/health` remains public for container health checks
 
 Examples:
 
@@ -143,6 +156,7 @@ Environment variables:
 - `WRITING_COACH_PROMPT_MODEL`
 - `WRITING_COACH_REVIEW_MODEL`
 - `WRITING_COACH_HTTP_ADDR`
+- `WRITING_COACH_API_TOKEN`
 - `VALE_BINARY`
 - `LANGUAGETOOL_URL`
 
@@ -178,10 +192,15 @@ Build and run the container locally with:
 
 ```bash
 make docker-build
-make docker-run
+make docker-run API_TOKEN=change-me
 ```
 
-The container serves the API on port `8080` and stores its SQLite/config state under `/app/.writing-coach`, which `make docker-run` mounts from the repo.
+The container serves the API on port `8080` and stores its SQLite/config state under `/app/.writing-coach`, which `make docker-run` mounts from the repo. If `API_TOKEN` is set, the API requires that bearer token for every endpoint except `/api/health`.
+
+Deployment examples live at:
+
+- [deploy/docker-compose.example.yml](/home/tomasino/writing-coach/deploy/docker-compose.example.yml)
+- [deploy/nginx.example.conf](/home/tomasino/writing-coach/deploy/nginx.example.conf)
 
 An nginx reverse proxy can sit in front of it with a simple upstream:
 
@@ -201,7 +220,7 @@ server {
 
 ## Next Milestones
 
-- add tree-specific TGO catalogs and unlock graphs
-- add user and tree management endpoints
-- build the first web UI against the API
-- harden deployment with compose/systemd examples and auth options
+- add custom tree authoring and editing, not just built-in trees
+- make prompt and review generation adapt more strongly to each tree's pedagogy
+- store richer review artifacts for later audit and calibration
+- build the first web UI against the stabilized API

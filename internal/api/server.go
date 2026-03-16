@@ -62,7 +62,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/submissions/{id}", s.handleSubmissionGet)
 	mux.HandleFunc("POST /api/reviews", s.handleReviewCreate)
 	mux.HandleFunc("GET /api/compare", s.handleCompare)
-	return withCORS(mux)
+	return withCORS(withAuth(mux, s.Config.APIToken))
 }
 
 type errorResponse struct {
@@ -809,6 +809,30 @@ func withCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func withAuth(next http.Handler, token string) http.Handler {
+	if strings.TrimSpace(token) == "" {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions || r.URL.Path == "/api/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		candidate := strings.TrimSpace(r.Header.Get("X-API-Token"))
+		if candidate == "" {
+			auth := strings.TrimSpace(r.Header.Get("Authorization"))
+			if strings.HasPrefix(strings.ToLower(auth), "bearer ") {
+				candidate = strings.TrimSpace(auth[7:])
+			}
+		}
+		if candidate != token {
+			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "unauthorized"})
 			return
 		}
 		next.ServeHTTP(w, r)
