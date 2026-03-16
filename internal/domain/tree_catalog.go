@@ -1,5 +1,34 @@
 package domain
 
+import "sort"
+
+const GlobalSkillGraphSlug = "global-writing-skill-graph"
+const GlobalSkillGraphTitle = "Writing Skill Graph"
+
+type SkillGraphRegion struct {
+	Slug           string
+	Title          string
+	Description    string
+	SeedCodes      []string
+	PrioritySkills []string
+	NodeCodes      []string
+}
+
+type SkillGraphNode struct {
+	TGO
+	SourceTreeSlug  string
+	SourceTreeTitle string
+	Unlocks         []string
+}
+
+type SkillGraph struct {
+	Slug        string
+	Title       string
+	Description string
+	Regions     []SkillGraphRegion
+	Nodes       []SkillGraphNode
+}
+
 func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, []TGOTreeDefinition, map[string]string) {
 	skillMap := map[string]string{}
 	node := func(code, title, skill, description, stage string, order int, mastery string, prerequisites ...string) TGO {
@@ -583,3 +612,133 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 var (
 	mythicTragedyTree, youthFoundationsTree, storyCraftTree, thoughtLeadershipTree, professionalWritingTree, academicEssayTree, technicalWritingTree, persuasiveWritingTree, memoirNarrativeTree, BuiltInTrees, TGOCodeToSkill = buildBuiltInCatalog()
 )
+
+func treeForTemplateKey(templateKey string) TGOTreeDefinition {
+	switch templateKey {
+	case "youth-foundations":
+		return youthFoundationsTree
+	case "academic-essay":
+		return academicEssayTree
+	case "technical-writing":
+		return technicalWritingTree
+	case "persuasive-writing":
+		return persuasiveWritingTree
+	case "memoir-personal-narrative":
+		return memoirNarrativeTree
+	case "thought-leadership":
+		return thoughtLeadershipTree
+	case "professional-writing":
+		return professionalWritingTree
+	case "story-craft":
+		return storyCraftTree
+	default:
+		return mythicTragedyTree
+	}
+}
+
+func GlobalSkillGraphDefinition() TGOTreeDefinition {
+	prioritySeen := map[string]bool{}
+	var priority []string
+	var tgos []TGO
+	for _, tree := range BuiltInTrees {
+		for _, skill := range tree.PrioritySkills {
+			if prioritySeen[skill] {
+				continue
+			}
+			prioritySeen[skill] = true
+			priority = append(priority, skill)
+		}
+		tgos = append(tgos, tree.TGOs...)
+	}
+	return TGOTreeDefinition{
+		Slug:           GlobalSkillGraphSlug,
+		Title:          GlobalSkillGraphTitle,
+		Description:    "A global writing skill graph built from all curated curriculum regions.",
+		SeedCodes:      []string{"sentence-clarity", "story-causal-clarity", "claim-clarity"},
+		PrioritySkills: priority,
+		TGOs:           tgos,
+	}
+}
+
+func SkillGraphFromBuiltIns() SkillGraph {
+	unlocks := map[string][]string{}
+	for _, tree := range BuiltInTrees {
+		for _, tgo := range tree.TGOs {
+			for _, prereq := range tgo.Prerequisites {
+				unlocks[prereq] = append(unlocks[prereq], tgo.Code)
+			}
+		}
+	}
+	var nodes []SkillGraphNode
+	for _, tree := range BuiltInTrees {
+		for _, tgo := range tree.TGOs {
+			next := append([]string(nil), unlocks[tgo.Code]...)
+			sort.Strings(next)
+			nodes = append(nodes, SkillGraphNode{
+				TGO:             tgo,
+				SourceTreeSlug:  tree.Slug,
+				SourceTreeTitle: tree.Title,
+				Unlocks:         next,
+			})
+		}
+	}
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].StageOrder == nodes[j].StageOrder {
+			return nodes[i].Code < nodes[j].Code
+		}
+		return nodes[i].StageOrder < nodes[j].StageOrder
+	})
+	var regions []SkillGraphRegion
+	for _, tree := range BuiltInTrees {
+		nodeCodes := make([]string, 0, len(tree.TGOs))
+		for _, tgo := range tree.TGOs {
+			nodeCodes = append(nodeCodes, tgo.Code)
+		}
+		regions = append(regions, SkillGraphRegion{
+			Slug:           tree.Slug,
+			Title:          tree.Title,
+			Description:    tree.Description,
+			SeedCodes:      append([]string(nil), tree.SeedCodes...),
+			PrioritySkills: append([]string(nil), tree.PrioritySkills...),
+			NodeCodes:      nodeCodes,
+		})
+	}
+	return SkillGraph{
+		Slug:        GlobalSkillGraphSlug,
+		Title:       GlobalSkillGraphTitle,
+		Description: "A single unlockable writing skill graph spanning fiction, nonfiction, professional, and developmental writing.",
+		Regions:     regions,
+		Nodes:       nodes,
+	}
+}
+
+func RecommendedStarterCodes(profile OnboardingProfile) []string {
+	tree := treeForTemplateKey(TemplateKeyForProfile(profile))
+	return append([]string(nil), tree.SeedCodes...)
+}
+
+func RecommendedRegionSlugs(profile OnboardingProfile) []string {
+	primary := treeForTemplateKey(TemplateKeyForProfile(profile)).Slug
+	regions := []string{primary}
+	switch primary {
+	case mythicTragedyTree.Slug:
+		regions = append(regions, storyCraftTree.Slug, memoirNarrativeTree.Slug)
+	case storyCraftTree.Slug:
+		regions = append(regions, mythicTragedyTree.Slug, memoirNarrativeTree.Slug)
+	case youthFoundationsTree.Slug:
+		regions = append(regions, storyCraftTree.Slug, academicEssayTree.Slug)
+	case thoughtLeadershipTree.Slug:
+		regions = append(regions, persuasiveWritingTree.Slug, professionalWritingTree.Slug)
+	case professionalWritingTree.Slug:
+		regions = append(regions, technicalWritingTree.Slug, persuasiveWritingTree.Slug)
+	case academicEssayTree.Slug:
+		regions = append(regions, thoughtLeadershipTree.Slug, persuasiveWritingTree.Slug)
+	case technicalWritingTree.Slug:
+		regions = append(regions, professionalWritingTree.Slug, academicEssayTree.Slug)
+	case persuasiveWritingTree.Slug:
+		regions = append(regions, thoughtLeadershipTree.Slug, academicEssayTree.Slug)
+	case memoirNarrativeTree.Slug:
+		regions = append(regions, storyCraftTree.Slug, mythicTragedyTree.Slug)
+	}
+	return regions
+}

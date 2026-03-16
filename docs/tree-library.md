@@ -5,6 +5,8 @@ The application now ships with a deeper reference catalog of writing curricula. 
 1. act as immediately usable built-in tracks
 2. serve as source material for future in-app tree generation and authoring
 
+The runtime model is now shifting toward a single global skill graph. These reference trees remain important, but they now function primarily as authored regions inside that larger graph.
+
 ## Current reference trees
 
 - `mythic-tragedy-apprenticeship`
@@ -64,7 +66,7 @@ The application now ships with a deeper reference catalog of writing curricula. 
 
 These trees are the baseline library for:
 
-- onboarding-driven tree selection
-- future generated personalized trees
+- onboarding-driven starter recommendations into the global graph
+- future generated personalized graph routes
 - eventual in-app tree authoring
 - admin-side curriculum editing and branching

@@ -124,7 +124,7 @@ export function OnboardingView() {
       <header>
         <Heading>Skill tree creator</Heading>
         <Text className="mt-2 max-w-3xl">
-          Tell the coach what kind of writing you want to improve. This creates your active track, seeds the first TGOs, and determines what unlocks next.
+          Tell the coach what kind of writing you want to improve. This now recommends a starting path into the global writing skill graph, including your first active TGOs and the regions most likely to matter first.
         </Text>
       </header>
 
@@ -197,7 +197,7 @@ export function OnboardingView() {
 
           <div className="flex justify-end">
             <Button type="submit" color="dark/zinc" disabled={saving}>
-              {saving ? 'Generating track…' : 'Generate skill tree'}
+              {saving ? 'Preparing recommendations…' : 'Set starter path'}
             </Button>
           </div>
         </form>

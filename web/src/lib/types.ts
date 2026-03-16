@@ -152,4 +152,6 @@ export type OnboardingProfile = {
 export type OnboardingState = {
   onboarding_complete: boolean
   profile?: OnboardingProfile
+  starter_tgo_codes?: string[]
+  recommended_regions?: string[]
 }

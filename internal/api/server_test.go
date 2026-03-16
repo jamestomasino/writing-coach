@@ -440,7 +440,7 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	}
 }
 
-func TestOnboardingCreatesAndActivatesGeneratedTree(t *testing.T) {
+func TestOnboardingCreatesAndActivatesGlobalGraph(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
@@ -465,7 +465,9 @@ func TestOnboardingCreatesAndActivatesGeneratedTree(t *testing.T) {
 		t.Fatalf("onboarding status: %d", resp.StatusCode)
 	}
 	var onboardingPayload struct {
-		OnboardingComplete bool `json:"onboarding_complete"`
+		OnboardingComplete bool     `json:"onboarding_complete"`
+		StarterTGOCodes    []string `json:"starter_tgo_codes"`
+		RecommendedRegions []string `json:"recommended_regions"`
 		Tree               struct {
 			Slug string `json:"slug"`
 		} `json:"tree"`
@@ -476,8 +478,14 @@ func TestOnboardingCreatesAndActivatesGeneratedTree(t *testing.T) {
 	if !onboardingPayload.OnboardingComplete {
 		t.Fatal("expected onboarding to complete")
 	}
-	if onboardingPayload.Tree.Slug != "tester-track" {
+	if onboardingPayload.Tree.Slug != domain.GlobalSkillGraphSlug {
 		t.Fatalf("tree slug = %q", onboardingPayload.Tree.Slug)
+	}
+	if len(onboardingPayload.StarterTGOCodes) != 3 {
+		t.Fatalf("starter codes = %#v", onboardingPayload.StarterTGOCodes)
+	}
+	if len(onboardingPayload.RecommendedRegions) == 0 {
+		t.Fatal("expected recommended regions")
 	}
 
 	sessionResp, err := http.Get(testServer.URL + "/api/auth/session?user=tester")
@@ -501,11 +509,53 @@ func TestOnboardingCreatesAndActivatesGeneratedTree(t *testing.T) {
 	if !sessionPayload.OnboardingComplete {
 		t.Fatal("expected auth session to report onboarding complete")
 	}
-	if sessionPayload.ActiveTreeSlug != "tester-track" {
+	if sessionPayload.ActiveTreeSlug != domain.GlobalSkillGraphSlug {
 		t.Fatalf("active tree slug = %q", sessionPayload.ActiveTreeSlug)
 	}
-	if sessionPayload.Context.TreeSlug != "tester-track" {
+	if sessionPayload.Context.TreeSlug != domain.GlobalSkillGraphSlug {
 		t.Fatalf("context tree slug = %q", sessionPayload.Context.TreeSlug)
+	}
+}
+
+func TestSkillGraphEndpoint(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/skill-graph?user=tester")
+	if err != nil {
+		t.Fatalf("get skill graph: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("skill graph status: %d", resp.StatusCode)
+	}
+	var payload struct {
+		Graph struct {
+			Slug    string `json:"slug"`
+			Regions []struct {
+				Slug string `json:"slug"`
+			} `json:"regions"`
+			Nodes []struct {
+				Code           string   `json:"code"`
+				SourceTreeSlug string   `json:"source_tree_slug"`
+				Unlocks        []string `json:"unlocks"`
+			} `json:"nodes"`
+		} `json:"graph"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode skill graph: %v", err)
+	}
+	if payload.Graph.Slug != domain.GlobalSkillGraphSlug {
+		t.Fatalf("graph slug = %q", payload.Graph.Slug)
+	}
+	if len(payload.Graph.Regions) < 9 {
+		t.Fatalf("region count = %d", len(payload.Graph.Regions))
+	}
+	if len(payload.Graph.Nodes) < 450 {
+		t.Fatalf("node count = %d", len(payload.Graph.Nodes))
+	}
+	if payload.Graph.Nodes[0].Code == "" || payload.Graph.Nodes[0].SourceTreeSlug == "" {
+		t.Fatalf("unexpected first node: %#v", payload.Graph.Nodes[0])
 	}
 }
 

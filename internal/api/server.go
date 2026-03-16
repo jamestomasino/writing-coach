@@ -50,6 +50,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/ready", s.handleReady)
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
+	mux.HandleFunc("GET /api/skill-graph", s.handleSkillGraph)
 	mux.HandleFunc("GET /api/onboarding", s.handleOnboardingGet)
 	mux.HandleFunc("POST /api/onboarding", s.handleOnboardingUpsert)
 	mux.HandleFunc("GET /api/admins", s.handleAdminsList)
@@ -123,6 +124,8 @@ type onboardingResponse struct {
 	Profile            *onboardingProfileResponse `json:"profile,omitempty"`
 	OnboardingComplete bool                       `json:"onboarding_complete"`
 	Tree               *treeResponse              `json:"tree,omitempty"`
+	StarterTGOCodes    []string                   `json:"starter_tgo_codes,omitempty"`
+	RecommendedRegions []string                   `json:"recommended_regions,omitempty"`
 	Context            *requestContextResponse    `json:"context,omitempty"`
 }
 
@@ -147,6 +150,22 @@ type treeResponse struct {
 	PrioritySkills []string      `json:"priority_skills,omitempty"`
 	TGOs           []tgoResponse `json:"tgos,omitempty"`
 	CreatedAt      string        `json:"created_at,omitempty"`
+}
+
+type skillGraphRegionResponse struct {
+	Slug           string   `json:"slug"`
+	Title          string   `json:"title"`
+	Description    string   `json:"description"`
+	SeedCodes      []string `json:"seed_codes"`
+	PrioritySkills []string `json:"priority_skills"`
+	NodeCodes      []string `json:"node_codes"`
+}
+
+type skillGraphNodeResponse struct {
+	tgoResponse
+	SourceTreeSlug  string   `json:"source_tree_slug"`
+	SourceTreeTitle string   `json:"source_tree_title"`
+	Unlocks         []string `json:"unlocks"`
 }
 
 type treeVersionResponse struct {
@@ -304,6 +323,49 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+func (s Server) handleSkillGraph(w http.ResponseWriter, r *http.Request) {
+	graph := domain.SkillGraphFromBuiltIns()
+	regions := make([]skillGraphRegionResponse, 0, len(graph.Regions))
+	for _, region := range graph.Regions {
+		regions = append(regions, skillGraphRegionResponse{
+			Slug:           region.Slug,
+			Title:          region.Title,
+			Description:    region.Description,
+			SeedCodes:      append([]string(nil), region.SeedCodes...),
+			PrioritySkills: append([]string(nil), region.PrioritySkills...),
+			NodeCodes:      append([]string(nil), region.NodeCodes...),
+		})
+	}
+	nodes := make([]skillGraphNodeResponse, 0, len(graph.Nodes))
+	for _, node := range graph.Nodes {
+		nodes = append(nodes, skillGraphNodeResponse{
+			tgoResponse: tgoResponse{
+				ID:            node.ID,
+				Code:          node.Code,
+				Title:         node.Title,
+				Description:   node.Description,
+				Stage:         node.Stage,
+				StageOrder:    node.StageOrder,
+				ActiveSlot:    node.ActiveSlot,
+				Prerequisites: append([]string(nil), node.Prerequisites...),
+				MasteryHint:   node.MasteryHint,
+			},
+			SourceTreeSlug:  node.SourceTreeSlug,
+			SourceTreeTitle: node.SourceTreeTitle,
+			Unlocks:         append([]string(nil), node.Unlocks...),
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"graph": map[string]any{
+			"slug":        graph.Slug,
+			"title":       graph.Title,
+			"description": graph.Description,
+			"regions":     regions,
+			"nodes":       nodes,
+		},
+	})
+}
+
 func (s Server) handleOnboardingGet(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
@@ -315,6 +377,7 @@ func (s Server) handleOnboardingGet(w http.ResponseWriter, r *http.Request) {
 		if db.IsNotFound(err) || errors.Is(err, sql.ErrNoRows) {
 			writeJSON(w, http.StatusOK, onboardingResponse{
 				OnboardingComplete: false,
+				Tree:               &treeResponse{Slug: domain.GlobalSkillGraphSlug, Title: domain.GlobalSkillGraphTitle},
 				Context:            &requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
 			})
 			return
@@ -333,6 +396,8 @@ func (s Server) handleOnboardingGet(w http.ResponseWriter, r *http.Request) {
 		Profile:            toOnboardingProfileResponse(profile),
 		OnboardingComplete: profile.Complete(),
 		Tree:               &treeResponse,
+		StarterTGOCodes:    domain.RecommendedStarterCodes(profile),
+		RecommendedRegions: domain.RecommendedRegionSlugs(profile),
 		Context:            &requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
 	})
 }
@@ -377,8 +442,10 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
-	treeDef := domain.GenerateTreeDefinition(appContext.UserSlug, user.Name, profile)
+	treeDef := domain.GlobalSkillGraphDefinition()
 	profile.GeneratedTreeSlug = treeDef.Slug
+	starterCodes := domain.RecommendedStarterCodes(profile)
+	recommendedRegions := domain.RecommendedRegionSlugs(profile)
 
 	if err := s.Store.SaveTreeDefinition(r.Context(), treeDef); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -403,16 +470,19 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	completedSet := make(map[string]bool, len(completed))
-	for _, tgo := range completed {
-		completedSet[tgo.Code] = true
+	activeCodes := sanitizeStringList(starterCodes)
+	if len(activeCodes) != 3 {
+		completedSet := make(map[string]bool, len(completed))
+		for _, tgo := range completed {
+			completedSet[tgo.Code] = true
+		}
+		activeCodes = nextSeedCodes(treeDef, completedSet)
 	}
-	seed := nextSeedCodes(treeDef, completedSet)
-	if err := s.Store.SetActiveTGOs(r.Context(), enrollmentID, seed); err != nil {
+	if err := s.Store.SetActiveTGOs(r.Context(), enrollmentID, activeCodes); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	if err := s.Store.UpdateCurriculumState(r.Context(), enrollmentID, seed[0], 2, 0); err != nil {
+	if err := s.Store.UpdateCurriculumState(r.Context(), enrollmentID, activeCodes[0], 2, 0); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -428,6 +498,8 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		Profile:            toOnboardingProfileResponse(profile),
 		OnboardingComplete: true,
 		Tree:               &treeResponse,
+		StarterTGOCodes:    starterCodes,
+		RecommendedRegions: recommendedRegions,
 		Context:            &requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: treeDef.Slug, UserID: appContext.UserID, TreeID: treeID},
 	})
 }

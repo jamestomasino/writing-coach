@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/tomasino/writing-coach/internal/domain"
 )
 
 const dirName = ".writing-coach"
@@ -39,7 +41,7 @@ func Default(projectRoot string) Config {
 		DatabaseURL:     filepath.Join(dataDir, "writing-coach.db"),
 		WriterName:      "Writer",
 		DefaultUserSlug: "default",
-		DefaultTreeSlug: "mythic-tragedy-apprenticeship",
+		DefaultTreeSlug: domain.GlobalSkillGraphSlug,
 		HTTPAddr:        ":8080",
 		KratosPublicURL: "",
 		OpenAIBaseURL:   "https://api.openai.com/v1",
@@ -83,7 +85,7 @@ func Load(projectRoot string) (Config, error) {
 		cfg.DefaultUserSlug = "default"
 	}
 	if cfg.DefaultTreeSlug == "" {
-		cfg.DefaultTreeSlug = "mythic-tragedy-apprenticeship"
+		cfg.DefaultTreeSlug = domain.GlobalSkillGraphSlug
 	}
 	if cfg.HTTPAddr == "" {
 		cfg.HTTPAddr = ":8080"

@@ -70,3 +70,39 @@ func TestGeneratedTemplatesStayLarge(t *testing.T) {
 		}
 	}
 }
+
+func TestGlobalSkillGraphDefinition(t *testing.T) {
+	graph := GlobalSkillGraphDefinition()
+	if graph.Slug != GlobalSkillGraphSlug {
+		t.Fatalf("graph slug = %q", graph.Slug)
+	}
+	if len(graph.TGOs) < 450 {
+		t.Fatalf("global graph too small: %d", len(graph.TGOs))
+	}
+	if len(graph.SeedCodes) != 3 {
+		t.Fatalf("global graph seeds = %#v", graph.SeedCodes)
+	}
+}
+
+func TestRecommendedStarterCodes(t *testing.T) {
+	profile := OnboardingProfile{
+		WritingType:         "technical writing",
+		ExperienceLevel:     "intermediate",
+		DesiredTone:         "clear",
+		BiggestWeaknesses:   []string{"structure"},
+		DesiredOutcomes:     []string{"documentation"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "write better docs",
+	}
+	starter := RecommendedStarterCodes(profile)
+	if len(starter) != 3 {
+		t.Fatalf("starter codes = %#v", starter)
+	}
+	if starter[0] != "technical-user-goal" {
+		t.Fatalf("starter codes = %#v", starter)
+	}
+	regions := RecommendedRegionSlugs(profile)
+	if len(regions) == 0 || regions[0] != technicalWritingTree.Slug {
+		t.Fatalf("regions = %#v", regions)
+	}
+}
