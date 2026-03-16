@@ -164,6 +164,9 @@ Environment variables:
 - `WRITING_COACH_PROMPT_MODEL`
 - `WRITING_COACH_REVIEW_MODEL`
 - `WRITING_COACH_HTTP_ADDR`
+- `WRITING_COACH_WRITER_NAME`
+- `WRITING_COACH_DEFAULT_USER_SLUG`
+- `WRITING_COACH_DEFAULT_TREE_SLUG`
 - `WRITING_COACH_API_TOKEN`
 - `WRITING_COACH_KRATOS_PUBLIC_URL`
 - `VALE_BINARY`
@@ -207,6 +210,8 @@ make docker-run API_TOKEN=change-me
 Or start the full contained stack with Docker Compose:
 
 ```bash
+make env-init
+$EDITOR .env
 docker compose up -d --build
 ```
 
@@ -219,7 +224,23 @@ That stack includes:
 - `Ory Kratos Self-Service UI` for registration/login flows
 - `Mailslurper` for local verification/recovery email testing
 
-The container serves the API on port `8080` and stores its SQLite/config state under `/app/.writing-coach`, which `make docker-run` mounts from the repo. If `API_TOKEN` is set, the API requires that bearer token for every endpoint except `/api/health`.
+Everything required to run the stack now lives inside `docker-compose.yml` and `.env`. No host-side LanguageTool, Vale, database, or auth service is required. The app stores its SQLite/config state under `/app/.writing-coach` in the `writing-coach-data` volume, and Kratos stores its identity SQLite DB in the `kratos-data` volume.
+
+Production deployment for `coach.tomasino.org` should:
+
+- copy `.env.example` to `.env`
+- set the Kratos secrets to long random values
+- keep the published ports bound to `127.0.0.1`
+- let nginx terminate TLS and proxy to `APP_PORT_BIND`
+- leave `WRITING_COACH_KRATOS_PUBLIC_URL` pointed at the internal Docker URL `http://kratos:4433`
+
+The main browser-facing URLs are driven from `.env`:
+
+- `COACH_PUBLIC_URL`
+- `KRATOS_PUBLIC_BASE_URL`
+- `KRATOS_BROWSER_URL`
+- `KRATOS_UI_PUBLIC_URL`
+- `KRATOS_ALLOWED_RETURN_URLS`
 
 Deployment examples live at:
 
@@ -228,28 +249,30 @@ Deployment examples live at:
 
 Kratos configuration lives at:
 
-- [deploy/kratos/kratos.yml](/home/tomasino/writing-coach/deploy/kratos/kratos.yml)
+- [deploy/kratos/kratos.yml.tmpl](/home/tomasino/writing-coach/deploy/kratos/kratos.yml.tmpl)
+- [deploy/kratos/render-config.sh](/home/tomasino/writing-coach/deploy/kratos/render-config.sh)
 - [deploy/kratos/identity.schema.json](/home/tomasino/writing-coach/deploy/kratos/identity.schema.json)
 
-Local ports in `docker-compose.yml`:
+Default localhost bindings from `.env.example`:
 
-- `8080` writing-coach API
-- `8010` LanguageTool
-- `4433` Kratos public API
-- `4434` Kratos admin API
-- `4455` Kratos self-service UI
-- `4436` / `4437` Mailslurper
+- `11234` writing-coach API
+- `18010` LanguageTool
+- `14433` Kratos public API
+- `14434` Kratos admin API
+- `14455` Kratos self-service UI
+- `14436` / `14437` Mailslurper
 
 An nginx reverse proxy can sit in front of it with a simple upstream:
 
 ```nginx
 server {
     listen 80;
-    server_name writing.example.com;
+    server_name coach.tomasino.org;
 
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:11234;
         proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }

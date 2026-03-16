@@ -11,13 +11,18 @@ IMAGE ?= writing-coach
 HTTP_PORT ?= 8080
 API_TOKEN ?=
 
-.PHONY: help init build serve prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status docker-build docker-run compose-up compose-down compose-logs
+.PHONY: help env-init init build serve prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status docker-build docker-run compose-up compose-down compose-logs
 
 help: ## show available targets and what they do
 	@echo "targets:"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	| sed -n 's/^\(.*\): \(.*\)##\(.*\)/  \1|\3/p' \
 	| column -t -s '|'
+
+env-init: ## create a local .env from .env.example if one does not already exist
+	@test ! -f .env || (echo ".env already exists"; exit 0)
+	cp .env.example .env
+	@echo "Created .env from .env.example"
 
 init: ## initialize config, schema, and seeded curriculum state
 	go run ./cmd/writing-coach init
@@ -123,7 +128,7 @@ docker-build: ## build a production container image; optional IMAGE=<name>
 docker-run: ## run the API container locally; optional IMAGE=<name> HTTP_PORT=<port> API_TOKEN=<token>
 	docker run --rm -p $(HTTP_PORT):8080 -e WRITING_COACH_API_TOKEN="$(API_TOKEN)" -v "$(CURDIR)/.writing-coach:/app/.writing-coach" $(IMAGE)
 
-compose-up: ## start the full local stack: app, LanguageTool, Kratos, and mail UI
+compose-up: ## start the full stack from .env: app, LanguageTool, Kratos, and mail UI
 	docker compose up -d --build
 
 compose-down: ## stop the full local stack

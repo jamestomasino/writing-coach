@@ -107,6 +107,15 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("WRITING_COACH_HTTP_ADDR"); value != "" {
 		cfg.HTTPAddr = value
 	}
+	if value := os.Getenv("WRITING_COACH_WRITER_NAME"); value != "" {
+		cfg.WriterName = value
+	}
+	if value := os.Getenv("WRITING_COACH_DEFAULT_USER_SLUG"); value != "" {
+		cfg.DefaultUserSlug = value
+	}
+	if value := os.Getenv("WRITING_COACH_DEFAULT_TREE_SLUG"); value != "" {
+		cfg.DefaultTreeSlug = value
+	}
 	if value := os.Getenv("WRITING_COACH_API_TOKEN"); value != "" {
 		cfg.APIToken = value
 	}

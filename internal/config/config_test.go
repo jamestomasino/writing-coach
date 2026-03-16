@@ -42,6 +42,9 @@ func TestLoadReadsAPITokenFromEnv(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("WRITING_COACH_API_TOKEN", "secret")
 	t.Setenv("WRITING_COACH_KRATOS_PUBLIC_URL", "http://kratos:4433")
+	t.Setenv("WRITING_COACH_WRITER_NAME", "Coach Writer")
+	t.Setenv("WRITING_COACH_DEFAULT_USER_SLUG", "coach")
+	t.Setenv("WRITING_COACH_DEFAULT_TREE_SLUG", "youth-writing-foundations")
 
 	loaded, err := Load(root)
 	if err != nil {
@@ -52,5 +55,14 @@ func TestLoadReadsAPITokenFromEnv(t *testing.T) {
 	}
 	if loaded.KratosPublicURL != "http://kratos:4433" {
 		t.Fatalf("kratos public url = %q", loaded.KratosPublicURL)
+	}
+	if loaded.WriterName != "Coach Writer" {
+		t.Fatalf("writer name = %q", loaded.WriterName)
+	}
+	if loaded.DefaultUserSlug != "coach" {
+		t.Fatalf("default user slug = %q", loaded.DefaultUserSlug)
+	}
+	if loaded.DefaultTreeSlug != "youth-writing-foundations" {
+		t.Fatalf("default tree slug = %q", loaded.DefaultTreeSlug)
 	}
 }

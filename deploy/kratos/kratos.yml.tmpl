@@ -2,22 +2,21 @@ version: v0.13.0
 
 serve:
   public:
-    base_url: http://127.0.0.1:4433/
+    base_url: __KRATOS_PUBLIC_BASE_URL__
     cors:
       enabled: true
       allowed_origins:
-        - http://127.0.0.1:3000
-        - http://localhost:3000
-        - http://127.0.0.1:4455
+        - __KRATOS_UI_PUBLIC_URL__
+        - __COACH_PUBLIC_URL__
   admin:
-    base_url: http://kratos:4434/
+    base_url: __KRATOS_ADMIN_BASE_URL__
 
 selfservice:
-  default_browser_return_url: http://127.0.0.1:4455/
+  default_browser_return_url: __KRATOS_UI_PUBLIC_URL__
   allowed_return_urls:
-    - http://127.0.0.1:4455
-    - http://127.0.0.1:3000
-    - http://localhost:3000
+    - __KRATOS_ALLOWED_RETURN_URL_1__
+    - __KRATOS_ALLOWED_RETURN_URL_2__
+    - __KRATOS_ALLOWED_RETURN_URL_3__
 
   methods:
     password:
@@ -25,29 +24,29 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://127.0.0.1:4455/error
+      ui_url: __KRATOS_UI_PUBLIC_URL__/error
     settings:
-      ui_url: http://127.0.0.1:4455/settings
+      ui_url: __KRATOS_UI_PUBLIC_URL__/settings
       privileged_session_max_age: 15m
     recovery:
       enabled: true
-      ui_url: http://127.0.0.1:4455/recovery
+      ui_url: __KRATOS_UI_PUBLIC_URL__/recovery
       use: code
     verification:
       enabled: true
-      ui_url: http://127.0.0.1:4455/verification
+      ui_url: __KRATOS_UI_PUBLIC_URL__/verification
       use: code
       after:
-        default_browser_return_url: http://127.0.0.1:4455/
+        default_browser_return_url: __KRATOS_UI_PUBLIC_URL__/
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:4455/login
+        default_browser_return_url: __KRATOS_UI_PUBLIC_URL__/login
     login:
-      ui_url: http://127.0.0.1:4455/login
+      ui_url: __KRATOS_UI_PUBLIC_URL__/login
       lifespan: 10m
     registration:
       lifespan: 10m
-      ui_url: http://127.0.0.1:4455/registration
+      ui_url: __KRATOS_UI_PUBLIC_URL__/registration
       after:
         password:
           hooks:
@@ -79,7 +78,7 @@ identity:
 
 courier:
   smtp:
-    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    connection_uri: __KRATOS_SMTP_CONNECTION_URI__
 
 feature_flags:
   use_continue_with_transitions: true

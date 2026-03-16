@@ -151,6 +151,8 @@ Current secure deployment direction:
 - the API validates authenticated sessions through Kratos `whoami`
 - `LanguageTool` runs as a separate Java service in Docker
 - `Vale` is bundled into the app image for deterministic prose linting
+- all deploy-time settings are driven from `.env` and consumed by `docker-compose.yml`
+- the intended production topology is `nginx -> localhost-bound compose services` on `coach.tomasino.org`
 
 ## Interfaces
 
