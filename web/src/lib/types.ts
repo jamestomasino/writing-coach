@@ -75,7 +75,7 @@ export type Review = {
   artifacts?: {
     analyzer_report?: Record<string, unknown>
     recommendation?: Record<string, unknown>
-    comparison?: Record<string, unknown>
+    comparison?: Comparison
     annotations?: ReviewAnnotation[]
   }
 }

@@ -1,14 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowUpTrayIcon, SparklesIcon } from '@heroicons/react/16/solid'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowPathIcon, ArrowUpTrayIcon, SparklesIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { Heading, Subheading } from '@/components/heading'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
-import { createRevisionAssignment, getDashboard, getExercises, getReviews, getSession, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
+import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviews, getSession, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
 import type { Dashboard, Exercise, Review, Submission } from '@/lib/types'
 import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -26,6 +26,7 @@ function countWords(value: string) {
 
 export function CurrentAssignmentView() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sessionRequired, setSessionRequired] = useState(false)
@@ -52,8 +53,14 @@ export function CurrentAssignmentView() {
         }
 
         const dashboard = await getDashboard()
-        const exercises = await getExercises(1)
-        const exercise = exercises[0]
+        const revisionExerciseID = Number(searchParams.get('revisionExercise') ?? 0)
+        let exercise: Exercise | undefined
+        if (revisionExerciseID > 0) {
+          exercise = await getExercise(revisionExerciseID)
+        } else {
+          const exercises = await getExercises(1)
+          exercise = exercises[0]
+        }
         let submission: Submission | undefined
         let review: Review | undefined
         if (exercise) {
@@ -91,7 +98,7 @@ export function CurrentAssignmentView() {
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, searchParams])
 
   const wordCount = useMemo(() => countWords(draft), [draft])
 
@@ -160,6 +167,7 @@ export function CurrentAssignmentView() {
   }
 
   const { dashboard, exercise, review } = workspace
+  const isRevisionBrief = searchParams.get('revisionExercise') !== null
 
   if (!exercise) {
     return (
@@ -205,6 +213,23 @@ export function CurrentAssignmentView() {
           ) : null}
         </div>
       </header>
+
+      {isRevisionBrief ? (
+        <WorkspaceCard>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <Subheading>Revision brief</Subheading>
+              <Text className="mt-2">
+                This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active TGOs and the coaching notes below.
+              </Text>
+            </div>
+            <Button href={`/compare/${workspace.submission?.id ?? 0}`} outline>
+              <ArrowPathIcon />
+              Open revision compare
+            </Button>
+          </div>
+        </WorkspaceCard>
+      ) : null}
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
@@ -292,6 +317,22 @@ export function CurrentAssignmentView() {
               </Button>
             </div>
           </div>
+          {review.artifacts?.comparison ? (
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+              <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Revision summary</div>
+                <Text className="mt-2 text-sm">{review.artifacts.comparison.summary}</Text>
+              </div>
+              <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Addressed</div>
+                <Text className="mt-2 text-sm">{review.artifacts.comparison.addressed_weaknesses.length}</Text>
+              </div>
+              <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Persisting</div>
+                <Text className="mt-2 text-sm">{review.artifacts.comparison.persisting_weaknesses.length}</Text>
+              </div>
+            </div>
+          ) : null}
         </WorkspaceCard>
       ) : null}
     </div>

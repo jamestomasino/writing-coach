@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { Heading, Subheading } from '@/components/heading'
@@ -16,7 +17,6 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
   const [review, setReview] = useState<Review | null>(null)
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [exercise, setExercise] = useState<Exercise | null>(null)
-  const [revisionCreated, setRevisionCreated] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -51,8 +51,8 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       return
     }
     try {
-      await createRevisionAssignment(submission.id)
-      setRevisionCreated(true)
+      const revisionExercise = await createRevisionAssignment(submission.id)
+      window.location.href = `/?revisionExercise=${revisionExercise.id}`
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create revision prompt')
     }
@@ -81,13 +81,6 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           </Button>
         </div>
       </header>
-
-      {revisionCreated ? (
-        <WorkspaceCard>
-          <Subheading>Revision brief created</Subheading>
-          <Text className="mt-2">A revision assignment has been generated. Return to the assignment workspace to continue drafting against it.</Text>
-        </WorkspaceCard>
-      ) : null}
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
@@ -146,6 +139,41 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           </ul>
         </WorkspaceCard>
       </div>
+
+      {review.artifacts?.comparison ? (
+        <WorkspaceCard>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <Subheading>Revision trajectory</Subheading>
+              <Text className="mt-2">{review.artifacts.comparison.summary}</Text>
+            </div>
+            <Button href={`/compare/${submission.id}`} outline>
+              <ArrowPathIcon />
+              Open full compare
+            </Button>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Addressed weaknesses</div>
+              <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                {review.artifacts.comparison.addressed_weaknesses.length === 0 ? <li>No earlier weaknesses were clearly resolved yet.</li> : null}
+                {review.artifacts.comparison.addressed_weaknesses.map((item) => (
+                  <li key={item}>• {item}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Persisting weaknesses</div>
+              <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                {review.artifacts.comparison.persisting_weaknesses.length === 0 ? <li>No prior weaknesses are carrying forward.</li> : null}
+                {review.artifacts.comparison.persisting_weaknesses.map((item) => (
+                  <li key={item}>• {item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </WorkspaceCard>
+      ) : null}
 
       <WorkspaceCard>
         <Subheading>Inline coaching markup</Subheading>
