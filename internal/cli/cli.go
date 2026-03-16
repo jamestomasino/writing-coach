@@ -319,7 +319,11 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	reviewResult, scores := c.Reviews.ReviewSubmission(ctx, sub, activeTGOs)
+	completedTGOs, err := c.Store.CompletedTGOs(ctx, c.AppContext.EnrollmentID)
+	if err != nil {
+		return err
+	}
+	reviewResult, scores := c.Reviews.ReviewSubmission(ctx, sub, activeTGOs, completedTGOs)
 	reviewResult.UserID = c.AppContext.UserID
 	reviewResult.TreeID = c.AppContext.TreeID
 	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, c.AppContext.TreeSlug, c.AppContext.EnrollmentID, reviewResult)
@@ -377,6 +381,13 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 			parts = append(parts, fmt.Sprintf("%s=%s", assessment.TGOCode, assessment.Status))
 		}
 		fmt.Printf("tgo assessments: %s\n", strings.Join(parts, ", "))
+	}
+	if len(reviewResult.CompletedTGOChecks) > 0 {
+		var parts []string
+		for _, check := range reviewResult.CompletedTGOChecks {
+			parts = append(parts, fmt.Sprintf("%s=%s", check.TGOCode, check.Status))
+		}
+		fmt.Printf("completed tgo checks: %s\n", strings.Join(parts, ", "))
 	}
 	fmt.Printf("next focus: %s\n", reviewResult.NextFocus)
 	fmt.Printf("focus rationale: %s\n", recommendation.Rationale)

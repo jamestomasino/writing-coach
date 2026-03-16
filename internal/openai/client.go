@@ -50,6 +50,7 @@ type ReviewRequest struct {
 	Content          string
 	WordCount        int
 	ActiveTGOs       []domain.TGO
+	CompletedTGOs    []domain.TGO
 	AnalysisSummary  string
 	AnalyzerFindings []string
 }
@@ -63,12 +64,13 @@ type exerciseResponse struct {
 }
 
 type reviewResponse struct {
-	Summary        string          `json:"summary"`
-	Strengths      []string        `json:"strengths"`
-	Weaknesses     []string        `json:"weaknesses"`
-	NextFocus      string          `json:"next_focus"`
-	SkillScores    []skillScore    `json:"skill_scores"`
-	TGOAssessments []tgoAssessment `json:"tgo_assessments"`
+	Summary            string          `json:"summary"`
+	Strengths          []string        `json:"strengths"`
+	Weaknesses         []string        `json:"weaknesses"`
+	NextFocus          string          `json:"next_focus"`
+	SkillScores        []skillScore    `json:"skill_scores"`
+	TGOAssessments     []tgoAssessment `json:"tgo_assessments"`
+	CompletedTGOChecks []tgoAssessment `json:"completed_tgo_checks"`
 }
 
 type skillScore struct {
@@ -185,10 +187,11 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		Schema:      reviewSchema(),
 		SystemInput: reviewSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Submission ID: %d\nWord count: %d\nActive TGOs: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nSubmission:\n%s",
+			"Submission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nSubmission:\n%s",
 			input.SubmissionID,
 			input.WordCount,
 			joinTGOs(input.ActiveTGOs),
+			joinTGOs(input.CompletedTGOs),
 			emptyDefault(input.AnalysisSummary, "none"),
 			joinOrDefault(input.AnalyzerFindings, "none"),
 			input.Content,
@@ -217,13 +220,14 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 	}
 
 	return domain.Review{
-		SubmissionID:    input.SubmissionID,
-		Summary:         parsed.Summary,
-		Strengths:       parsed.Strengths,
-		Weaknesses:      parsed.Weaknesses,
-		TGOAssessments:  toDomainAssessments(parsed.TGOAssessments),
-		NextFocus:       parsed.NextFocus,
-		MetricWordCount: input.WordCount,
+		SubmissionID:       input.SubmissionID,
+		Summary:            parsed.Summary,
+		Strengths:          parsed.Strengths,
+		Weaknesses:         parsed.Weaknesses,
+		TGOAssessments:     toDomainAssessments(parsed.TGOAssessments),
+		CompletedTGOChecks: toDomainAssessments(parsed.CompletedTGOChecks),
+		NextFocus:          parsed.NextFocus,
+		MetricWordCount:    input.WordCount,
 	}, scores, nil
 }
 
@@ -379,6 +383,7 @@ Do not flatter. Be concrete and developmental.
 Choose the next focus that would most improve the following exercise.
 Choose next_focus only from the supplied taxonomy.
 Assess each active TGO with one of: developing, secure, mastered.
+Optionally flag up to two completed TGOs as holding or slipping if the draft regresses on already-established skills.
 `)
 }
 
@@ -401,7 +406,7 @@ func reviewSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"summary", "strengths", "weaknesses", "next_focus", "skill_scores", "tgo_assessments"},
+		"required":             []string{"summary", "strengths", "weaknesses", "next_focus", "skill_scores", "tgo_assessments", "completed_tgo_checks"},
 		"properties": map[string]any{
 			"summary":    map[string]any{"type": "string"},
 			"strengths":  stringArraySchema(2, 4),
@@ -432,6 +437,21 @@ func reviewSchema() map[string]any {
 					"properties": map[string]any{
 						"code":     map[string]any{"type": "string"},
 						"status":   map[string]any{"type": "string", "enum": []string{"developing", "secure", "mastered"}},
+						"evidence": map[string]any{"type": "string"},
+					},
+				},
+			},
+			"completed_tgo_checks": map[string]any{
+				"type":     "array",
+				"minItems": 0,
+				"maxItems": 2,
+				"items": map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"required":             []string{"code", "status", "evidence"},
+					"properties": map[string]any{
+						"code":     map[string]any{"type": "string"},
+						"status":   map[string]any{"type": "string", "enum": []string{"holding", "slipping"}},
 						"evidence": map[string]any{"type": "string"},
 					},
 				},
@@ -504,6 +524,11 @@ func normalizeReview(value reviewResponse) reviewResponse {
 		value.TGOAssessments[i].Code = normalizeString(value.TGOAssessments[i].Code)
 		value.TGOAssessments[i].Status = normalizeString(value.TGOAssessments[i].Status)
 		value.TGOAssessments[i].Evidence = normalizeString(value.TGOAssessments[i].Evidence)
+	}
+	for i := range value.CompletedTGOChecks {
+		value.CompletedTGOChecks[i].Code = normalizeString(value.CompletedTGOChecks[i].Code)
+		value.CompletedTGOChecks[i].Status = normalizeString(value.CompletedTGOChecks[i].Status)
+		value.CompletedTGOChecks[i].Evidence = normalizeString(value.CompletedTGOChecks[i].Evidence)
 	}
 	return value
 }

@@ -24,7 +24,7 @@ func NewService(client *openai.Client, analyzers analyzer.Service) Service {
 	}
 }
 
-func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {
+func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {
 	report := s.analyzers.Analyze(ctx, sub.Content)
 
 	if s.client != nil && s.client.Enabled() {
@@ -33,6 +33,7 @@ func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, ac
 			Content:          sub.Content,
 			WordCount:        sub.WordCount,
 			ActiveTGOs:       activeTGOs,
+			CompletedTGOs:    completedTGOs,
 			AnalysisSummary:  analyzer.Summary(report),
 			AnalyzerFindings: analyzer.TopFindings(report, 6),
 		})
@@ -42,18 +43,18 @@ func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, ac
 			return reviewResult, scores
 		}
 
-		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs)
+		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs)
 		reviewResult.ReviewKind = "deterministic-fallback"
 		reviewResult.ProviderNote = err.Error()
 		return reviewResult, scores
 	}
 
-	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs)
+	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs)
 	reviewResult.ReviewKind = "deterministic"
 	return reviewResult, scores
 }
 
-func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {
+func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO, completedTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {
 	wordCount := sub.WordCount
 	sentences := report.Metrics["sentence_count"]
 	avgSentenceLength := 0
@@ -88,14 +89,15 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 	}
 
 	return domain.Review{
-		SubmissionID:     sub.ID,
-		Summary:          summary,
-		Strengths:        strengths,
-		Weaknesses:       weaknesses,
-		AnalyzerFindings: analyzer.TopFindings(report, 6),
-		TGOAssessments:   deterministicAssessments(activeTGOs, report),
-		NextFocus:        nextFocus,
-		MetricWordCount:  wordCount,
+		SubmissionID:       sub.ID,
+		Summary:            summary,
+		Strengths:          strengths,
+		Weaknesses:         weaknesses,
+		AnalyzerFindings:   analyzer.TopFindings(report, 6),
+		TGOAssessments:     deterministicAssessments(activeTGOs, report),
+		CompletedTGOChecks: deterministicCompletedChecks(completedTGOs, report),
+		NextFocus:          nextFocus,
+		MetricWordCount:    wordCount,
 	}, scores
 }
 
@@ -165,6 +167,33 @@ func ensureReviewTGOs(active []domain.TGO) []domain.TGO {
 		if tgo, ok := domain.TGOByCode(code); ok {
 			out = append(out, tgo)
 		}
+	}
+	return out
+}
+
+func deterministicCompletedChecks(completedTGOs []domain.TGO, report analyzer.Report) []domain.TGOAssessment {
+	if len(completedTGOs) == 0 {
+		return nil
+	}
+	status := "holding"
+	if len(report.Findings) >= 6 {
+		status = "slipping"
+	}
+	evidence := "Completed skills appear stable in this submission."
+	if findings := analyzer.TopFindings(report, 1); len(findings) > 0 {
+		evidence = findings[0]
+	}
+	limit := 2
+	if len(completedTGOs) < limit {
+		limit = len(completedTGOs)
+	}
+	out := make([]domain.TGOAssessment, 0, limit)
+	for _, tgo := range completedTGOs[:limit] {
+		out = append(out, domain.TGOAssessment{
+			TGOCode:  tgo.Code,
+			Status:   status,
+			Evidence: evidence,
+		})
 	}
 	return out
 }

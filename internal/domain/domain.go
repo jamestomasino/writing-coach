@@ -70,20 +70,21 @@ type Submission struct {
 }
 
 type Review struct {
-	ID               int64
-	UserID           int64
-	TreeID           int64
-	SubmissionID     int64
-	Summary          string
-	Strengths        []string
-	Weaknesses       []string
-	AnalyzerFindings []string
-	TGOAssessments   []TGOAssessment
-	NextFocus        string
-	ReviewKind       string
-	ProviderNote     string
-	CreatedAt        time.Time
-	MetricWordCount  int
+	ID                 int64
+	UserID             int64
+	TreeID             int64
+	SubmissionID       int64
+	Summary            string
+	Strengths          []string
+	Weaknesses         []string
+	AnalyzerFindings   []string
+	TGOAssessments     []TGOAssessment
+	CompletedTGOChecks []TGOAssessment
+	NextFocus          string
+	ReviewKind         string
+	ProviderNote       string
+	CreatedAt          time.Time
+	MetricWordCount    int
 }
 
 type SkillScore struct {

@@ -154,17 +154,18 @@ type tgoAssessmentResponse struct {
 }
 
 type reviewResponse struct {
-	ID               int64                   `json:"id"`
-	SubmissionID     int64                   `json:"submission_id"`
-	ReviewKind       string                  `json:"review_kind"`
-	ProviderNote     string                  `json:"provider_note,omitempty"`
-	Summary          string                  `json:"summary"`
-	Strengths        []string                `json:"strengths"`
-	Weaknesses       []string                `json:"weaknesses"`
-	AnalyzerFindings []string                `json:"analyzer_findings"`
-	NextFocus        string                  `json:"next_focus"`
-	MetricWordCount  int                     `json:"metric_word_count"`
-	TGOAssessments   []tgoAssessmentResponse `json:"tgo_assessments"`
+	ID                 int64                   `json:"id"`
+	SubmissionID       int64                   `json:"submission_id"`
+	ReviewKind         string                  `json:"review_kind"`
+	ProviderNote       string                  `json:"provider_note,omitempty"`
+	Summary            string                  `json:"summary"`
+	Strengths          []string                `json:"strengths"`
+	Weaknesses         []string                `json:"weaknesses"`
+	AnalyzerFindings   []string                `json:"analyzer_findings"`
+	NextFocus          string                  `json:"next_focus"`
+	MetricWordCount    int                     `json:"metric_word_count"`
+	TGOAssessments     []tgoAssessmentResponse `json:"tgo_assessments"`
+	CompletedTGOChecks []tgoAssessmentResponse `json:"completed_tgo_checks"`
 }
 
 type comparisonResponse struct {
@@ -498,7 +499,12 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	reviewResult, scores := s.Reviews.ReviewSubmission(r.Context(), sub, activeTGOs)
+	completedTGOs, err := s.Store.CompletedTGOs(r.Context(), appContext.EnrollmentID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	reviewResult, scores := s.Reviews.ReviewSubmission(r.Context(), sub, activeTGOs, completedTGOs)
 	reviewResult.UserID = appContext.UserID
 	reviewResult.TreeID = appContext.TreeID
 	recommendation, err := s.Curriculum.SyncTGOs(r.Context(), s.Store, appContext.TreeSlug, appContext.EnrollmentID, reviewResult)
@@ -849,6 +855,13 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 			TGOCode:  assessment.TGOCode,
 			Status:   assessment.Status,
 			Evidence: assessment.Evidence,
+		})
+	}
+	for _, check := range reviewResult.CompletedTGOChecks {
+		out.CompletedTGOChecks = append(out.CompletedTGOChecks, tgoAssessmentResponse{
+			TGOCode:  check.TGOCode,
+			Status:   check.Status,
+			Evidence: check.Evidence,
 		})
 	}
 	return out

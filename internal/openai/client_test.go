@@ -11,6 +11,12 @@ func TestNormalizeReview(t *testing.T) {
 		SkillScores: []skillScore{
 			{Skill: " prose precision ", Score: 3},
 		},
+		TGOAssessments: []tgoAssessment{
+			{Code: " prose-precision ", Status: " secure ", Evidence: " line control "},
+		},
+		CompletedTGOChecks: []tgoAssessment{
+			{Code: " sentence-clarity ", Status: " holding ", Evidence: " still stable "},
+		},
 	}
 
 	got := normalizeReview(value)
@@ -25,5 +31,8 @@ func TestNormalizeReview(t *testing.T) {
 	}
 	if got.SkillScores[0].Skill != "prose precision" {
 		t.Fatalf("skill = %q", got.SkillScores[0].Skill)
+	}
+	if got.CompletedTGOChecks[0].Status != "holding" {
+		t.Fatalf("completed status = %q", got.CompletedTGOChecks[0].Status)
 	}
 }

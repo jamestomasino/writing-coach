@@ -59,8 +59,11 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 		Strengths:        []string{"s"},
 		Weaknesses:       []string{"w"},
 		AnalyzerFindings: []string{"f"},
-		NextFocus:        "tragic inevitability",
-		MetricWordCount:  6,
+		CompletedTGOChecks: []domain.TGOAssessment{
+			{TGOCode: "causal-clarity", Status: "holding", Evidence: "still stable"},
+		},
+		NextFocus:       "tragic inevitability",
+		MetricWordCount: 6,
 	}, []domain.SkillScore{
 		{SubmissionID: subID, Skill: "tragic inevitability", Score: 2},
 		{SubmissionID: subID, Skill: "symbolic control", Score: 3},
@@ -75,6 +78,13 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 	}
 	if len(report) == 0 {
 		t.Fatal("expected progress lines")
+	}
+	loaded, err := store.LatestReviewForSubmission(context.Background(), subID)
+	if err != nil {
+		t.Fatalf("latest review: %v", err)
+	}
+	if len(loaded.CompletedTGOChecks) != 1 || loaded.CompletedTGOChecks[0].TGOCode != "causal-clarity" {
+		t.Fatalf("completed tgo checks = %#v", loaded.CompletedTGOChecks)
 	}
 }
 

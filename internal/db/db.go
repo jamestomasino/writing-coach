@@ -398,10 +398,11 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 			strengths_json,
 			weaknesses_json,
 			analyzer_findings_json,
+			completed_tgo_checks_json,
 			next_focus,
 			metric_word_count
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		review.UserID,
 		review.TreeID,
@@ -411,6 +412,7 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 		mustJSON(review.Strengths),
 		mustJSON(review.Weaknesses),
 		mustJSON(review.AnalyzerFindings),
+		mustJSON(review.CompletedTGOChecks),
 		review.NextFocus,
 		review.MetricWordCount,
 	)
@@ -575,9 +577,9 @@ func (s *Store) NextAvailableTGO(ctx context.Context, enrollmentID int64) (domai
 
 func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int64) (domain.Review, error) {
 	var review domain.Review
-	var strengthsJSON, weaknessesJSON, findingsJSON string
+	var strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, next_focus, metric_word_count, created_at
+		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
 		FROM reviews
 		WHERE submission_id = ?
 		ORDER BY id DESC
@@ -592,6 +594,7 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 		&strengthsJSON,
 		&weaknessesJSON,
 		&findingsJSON,
+		&completedChecksJSON,
 		&review.NextFocus,
 		&review.MetricWordCount,
 		&review.CreatedAt,
@@ -609,6 +612,9 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 	}
 	review.AnalyzerFindings, err = DecodeStringSlice(findingsJSON)
 	if err != nil {
+		return domain.Review{}, err
+	}
+	if err := json.Unmarshal([]byte(completedChecksJSON), &review.CompletedTGOChecks); err != nil {
 		return domain.Review{}, err
 	}
 	return review, nil

@@ -44,6 +44,24 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 		activeSet[tgo.Code] = true
 	}
 
+	for _, check := range review.CompletedTGOChecks {
+		if check.Status != "slipping" {
+			continue
+		}
+		if slipped, ok := domain.TGOByCode(check.TGOCode); ok {
+			return Recommendation{
+				Focus:      slipped.Title,
+				Difficulty: 1,
+				Rationale:  "Hold advancement while a completed TGO slips: " + slipped.Title + ". Evidence: " + check.Evidence,
+			}, nil
+		}
+		return Recommendation{
+			Focus:      review.NextFocus,
+			Difficulty: 1,
+			Rationale:  "Hold advancement while a completed TGO slips. Evidence: " + check.Evidence,
+		}, nil
+	}
+
 	for _, assessment := range review.TGOAssessments {
 		if assessment.Status != "mastered" {
 			continue
