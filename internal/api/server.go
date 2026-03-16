@@ -46,6 +46,11 @@ func (s Server) Serve(ctx context.Context) error {
 func (s Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("GET /api/users", s.handleUsersList)
+	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
+	mux.HandleFunc("GET /api/trees", s.handleTreesList)
+	mux.HandleFunc("GET /api/enrollments", s.handleEnrollmentsList)
+	mux.HandleFunc("POST /api/enrollments", s.handleEnrollmentsCreate)
 	mux.HandleFunc("GET /api/context", s.handleContext)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
@@ -66,6 +71,33 @@ type requestContextResponse struct {
 	TreeSlug string `json:"tree_slug"`
 	UserID   int64  `json:"user_id"`
 	TreeID   int64  `json:"tree_id"`
+}
+
+type userResponse struct {
+	ID        int64  `json:"id"`
+	Slug      string `json:"slug"`
+	Name      string `json:"name"`
+	CreatedAt string `json:"created_at"`
+}
+
+type treeResponse struct {
+	ID             int64         `json:"id"`
+	Slug           string        `json:"slug"`
+	Title          string        `json:"title"`
+	Description    string        `json:"description"`
+	SeedCodes      []string      `json:"seed_codes,omitempty"`
+	PrioritySkills []string      `json:"priority_skills,omitempty"`
+	TGOs           []tgoResponse `json:"tgos,omitempty"`
+	CreatedAt      string        `json:"created_at,omitempty"`
+}
+
+type enrollmentResponse struct {
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
+	TreeID    int64  `json:"tree_id"`
+	UserSlug  string `json:"user_slug"`
+	TreeSlug  string `json:"tree_slug"`
+	CreatedAt string `json:"created_at"`
 }
 
 type curriculumStateResponse struct {
@@ -146,6 +178,101 @@ type comparisonResponse struct {
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s Server) handleUsersList(w http.ResponseWriter, r *http.Request) {
+	users, err := s.Store.ListUsers(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"users": toUserResponses(users)})
+}
+
+func (s Server) handleUsersCreate(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Slug string `json:"slug"`
+		Name string `json:"name"`
+		Tree string `json:"tree"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	if strings.TrimSpace(payload.Slug) == "" || strings.TrimSpace(payload.Name) == "" {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("slug and name are required"))
+		return
+	}
+	treeSlug := firstNonEmpty(payload.Tree, s.Config.DefaultTreeSlug)
+	userID, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(r.Context(), payload.Slug, payload.Name, treeSlug)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"user": map[string]any{
+			"id":   userID,
+			"slug": payload.Slug,
+			"name": payload.Name,
+		},
+		"enrollment": map[string]any{
+			"id":        enrollmentID,
+			"user_id":   userID,
+			"tree_id":   treeID,
+			"user_slug": payload.Slug,
+			"tree_slug": treeSlug,
+		},
+	})
+}
+
+func (s Server) handleTreesList(w http.ResponseWriter, r *http.Request) {
+	trees, err := s.Store.ListTrees(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	includeTGOs := r.URL.Query().Get("include_tgos") == "1"
+	writeJSON(w, http.StatusOK, map[string]any{"trees": toTreeResponses(trees, includeTGOs)})
+}
+
+func (s Server) handleEnrollmentsList(w http.ResponseWriter, r *http.Request) {
+	enrollments, err := s.Store.ListEnrollments(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"enrollments": toEnrollmentResponses(enrollments)})
+}
+
+func (s Server) handleEnrollmentsCreate(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		UserSlug string `json:"user_slug"`
+		UserName string `json:"user_name"`
+		TreeSlug string `json:"tree_slug"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	if strings.TrimSpace(payload.UserSlug) == "" || strings.TrimSpace(payload.TreeSlug) == "" {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("user_slug and tree_slug are required"))
+		return
+	}
+	userName := firstNonEmpty(payload.UserName, payload.UserSlug)
+	userID, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(r.Context(), payload.UserSlug, userName, payload.TreeSlug)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"enrollment": map[string]any{
+			"id":        enrollmentID,
+			"user_id":   userID,
+			"tree_id":   treeID,
+			"user_slug": payload.UserSlug,
+			"tree_slug": payload.TreeSlug,
+		},
+	})
 }
 
 func (s Server) handleContext(w http.ResponseWriter, r *http.Request) {
@@ -612,6 +739,56 @@ func toExerciseResponse(ex domain.Exercise) exerciseResponse {
 		GenerationKind:  ex.GenerationKind,
 		ProviderNote:    ex.ProviderNote,
 	}
+}
+
+func toUserResponses(users []domain.User) []userResponse {
+	var out []userResponse
+	for _, user := range users {
+		out = append(out, userResponse{
+			ID:        user.ID,
+			Slug:      user.Slug,
+			Name:      user.Name,
+			CreatedAt: db.Since(user.CreatedAt),
+		})
+	}
+	return out
+}
+
+func toTreeResponses(trees []domain.TGOTree, includeTGOs bool) []treeResponse {
+	var out []treeResponse
+	for _, tree := range trees {
+		item := treeResponse{
+			ID:          tree.ID,
+			Slug:        tree.Slug,
+			Title:       tree.Title,
+			Description: tree.Description,
+			CreatedAt:   db.Since(tree.CreatedAt),
+		}
+		if includeTGOs {
+			if def, ok := domain.BuiltInTreeBySlug(tree.Slug); ok {
+				item.SeedCodes = append([]string(nil), def.SeedCodes...)
+				item.PrioritySkills = append([]string(nil), def.PrioritySkills...)
+				item.TGOs = toTGOResponses(def.TGOs)
+			}
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func toEnrollmentResponses(enrollments []domain.Enrollment) []enrollmentResponse {
+	var out []enrollmentResponse
+	for _, enrollment := range enrollments {
+		out = append(out, enrollmentResponse{
+			ID:        enrollment.ID,
+			UserID:    enrollment.UserID,
+			TreeID:    enrollment.TreeID,
+			UserSlug:  enrollment.UserSlug,
+			TreeSlug:  enrollment.TreeSlug,
+			CreatedAt: db.Since(enrollment.CreatedAt),
+		})
+	}
+	return out
 }
 
 func toCurriculumStateResponse(state domain.CurriculumState) curriculumStateResponse {

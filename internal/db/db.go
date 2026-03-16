@@ -170,6 +170,74 @@ func (s *Store) TreeBySlug(ctx context.Context, slug string) (domain.TGOTree, er
 	return tree, err
 }
 
+func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT id, slug, name, created_at
+		FROM users
+		ORDER BY slug ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []domain.User
+	for rows.Next() {
+		var user domain.User
+		if err := rows.Scan(&user.ID, &user.Slug, &user.Name, &user.CreatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, rows.Err()
+}
+
+func (s *Store) ListTrees(ctx context.Context) ([]domain.TGOTree, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT id, slug, title, description, created_at
+		FROM tgo_trees
+		ORDER BY slug ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var trees []domain.TGOTree
+	for rows.Next() {
+		var tree domain.TGOTree
+		if err := rows.Scan(&tree.ID, &tree.Slug, &tree.Title, &tree.Description, &tree.CreatedAt); err != nil {
+			return nil, err
+		}
+		trees = append(trees, tree)
+	}
+	return trees, rows.Err()
+}
+
+func (s *Store) ListEnrollments(ctx context.Context) ([]domain.Enrollment, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT e.id, e.user_id, e.tree_id, u.slug, t.slug, e.created_at
+		FROM user_tree_enrollments e
+		JOIN users u ON u.id = e.user_id
+		JOIN tgo_trees t ON t.id = e.tree_id
+		ORDER BY u.slug ASC, t.slug ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var enrollments []domain.Enrollment
+	for rows.Next() {
+		var enrollment domain.Enrollment
+		if err := rows.Scan(&enrollment.ID, &enrollment.UserID, &enrollment.TreeID, &enrollment.UserSlug, &enrollment.TreeSlug, &enrollment.CreatedAt); err != nil {
+			return nil, err
+		}
+		enrollments = append(enrollments, enrollment)
+	}
+	return enrollments, rows.Err()
+}
+
 func (s *Store) EnrollmentID(ctx context.Context, userID, treeID int64) (int64, error) {
 	var id int64
 	err := s.SQL.QueryRowContext(ctx, `
