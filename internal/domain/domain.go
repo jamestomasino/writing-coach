@@ -2,6 +2,21 @@ package domain
 
 import "time"
 
+type User struct {
+	ID        int64
+	Slug      string
+	Name      string
+	CreatedAt time.Time
+}
+
+type TGOTree struct {
+	ID          int64
+	Slug        string
+	Title       string
+	Description string
+	CreatedAt   time.Time
+}
+
 type WriterProfile struct {
 	ID              int64
 	Name            string
@@ -19,6 +34,8 @@ type CurriculumState struct {
 
 type Exercise struct {
 	ID                 int64
+	UserID             int64
+	TreeID             int64
 	Title              string
 	Brief              string
 	Constraints        []string
@@ -33,6 +50,8 @@ type Exercise struct {
 
 type Submission struct {
 	ID                 int64
+	UserID             int64
+	TreeID             int64
 	ExerciseID         int64
 	ParentSubmissionID int64
 	DraftNumber        int
@@ -43,6 +62,8 @@ type Submission struct {
 
 type Review struct {
 	ID               int64
+	UserID           int64
+	TreeID           int64
 	SubmissionID     int64
 	Summary          string
 	Strengths        []string

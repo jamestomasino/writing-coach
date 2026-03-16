@@ -1,6 +1,6 @@
 # Writing Coach
 
-`writing-coach` is a local-first Go CLI for generating fiction exercises, reviewing submissions, and adapting future practice based on accumulated feedback.
+`writing-coach` is a local-first Go application for generating fiction exercises, reviewing submissions, and adapting future practice based on accumulated feedback. It now exposes the same coaching loop through both a CLI and a JSON API so a web interface can sit on top of the same core services.
 
 The initial implementation targets a narrow but complete loop:
 
@@ -19,6 +19,7 @@ High-level architecture and implementation phases live in [docs/architecture.md]
 ## Planned Commands
 
 - `writing-coach init`
+- `writing-coach serve`
 - `writing-coach prompt next`
 - `writing-coach submit --exercise <id> --file <path>`
 - `writing-coach review --submission <id>`
@@ -28,6 +29,7 @@ High-level architecture and implementation phases live in [docs/architecture.md]
 
 - `make init`
 - `make build`
+- `make serve`
 - `make prompt`
 - `make prompt-revise SUBMISSION=<id>`
 - `make submit EXERCISE=<id> FILE=<path> [REVISE_FROM=<submission-id>]`
@@ -40,6 +42,8 @@ High-level architecture and implementation phases live in [docs/architecture.md]
 - `make languagetool-start`
 - `make languagetool-stop`
 - `make languagetool-status`
+- `make docker-build`
+- `make docker-run`
 
 The LanguageTool targets default to `/opt/languagetool` and port `8081`. Override with `LT_HOME=/path/to/install` or `LT_PORT=8090`.
 `make coach-review` will start LanguageTool if needed before running a review.
@@ -65,6 +69,69 @@ The current track begins with:
 
 Later TGOs unlock through prerequisites rather than a rigid straight line, so the advancement path can branch while still staying structured.
 
+## Multi-User And Tree Model
+
+The app is no longer conceptually single-author. The stable coaching unit is now:
+
+- a `user`
+- a `TGO tree`
+- that user's enrollment and progress through that tree
+
+This means you can keep your current advanced mythic-tragedy track while later adding a separate youth writing foundations tree for your son, or a different tree for essays, reports, or genre-specific fiction.
+
+Current implementation status:
+
+- user and tree records are persisted
+- active and completed TGOs are enrollment-scoped
+- exercises, submissions, and reviews are user- and tree-scoped
+- curriculum state is enrollment-scoped
+
+The default config still points at one user and one tree, but the API already accepts alternate `user` and `tree` slugs per request.
+
+## JSON API
+
+Start the backend locally with:
+
+```bash
+make serve
+```
+
+By default it listens on `:8080`. Override with:
+
+```bash
+WRITING_COACH_HTTP_ADDR=:8090 make serve
+```
+
+Core endpoints:
+
+- `GET /api/health`
+- `GET /api/context`
+- `GET /api/dashboard`
+- `POST /api/prompts/next`
+- `POST /api/prompts/revise`
+- `POST /api/submissions`
+- `GET /api/submissions/{id}`
+- `POST /api/reviews`
+- `GET /api/compare?submission_id=<id>[&against=<id>]`
+
+Optional per-request context:
+
+- query params: `user`, `tree`, `user_name`
+- headers: `X-Writing-Coach-User`, `X-Writing-Coach-Tree`
+
+Examples:
+
+```bash
+curl http://localhost:8080/api/dashboard
+curl -X POST http://localhost:8080/api/prompts/next
+curl -X POST http://localhost:8080/api/submissions \
+  -H 'Content-Type: application/json' \
+  -d '{"exercise_id":1,"content":"A draft goes here."}'
+curl -X POST http://localhost:8080/api/reviews \
+  -H 'Content-Type: application/json' \
+  -d '{"submission_id":1}'
+```
+
 ## Configuration
 
 The app stores non-secret configuration in `.writing-coach/config.json`.
@@ -75,6 +142,7 @@ Environment variables:
 - `OPENAI_BASE_URL`
 - `WRITING_COACH_PROMPT_MODEL`
 - `WRITING_COACH_REVIEW_MODEL`
+- `WRITING_COACH_HTTP_ADDR`
 - `VALE_BINARY`
 - `LANGUAGETOOL_URL`
 
@@ -100,13 +168,40 @@ The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-c
 The repository currently contains:
 
 - a documented architecture plan
-- a Go CLI scaffold
+- a Go CLI plus JSON API server
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior
 
+## Deployment
+
+Build and run the container locally with:
+
+```bash
+make docker-build
+make docker-run
+```
+
+The container serves the API on port `8080` and stores its SQLite/config state under `/app/.writing-coach`, which `make docker-run` mounts from the repo.
+
+An nginx reverse proxy can sit in front of it with a simple upstream:
+
+```nginx
+server {
+    listen 80;
+    server_name writing.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
 ## Next Milestones
 
-- integrate the OpenAI API with structured JSON outputs
-- add Vale and LanguageTool analyzers
-- strengthen curriculum updates from review results
-- add richer progress reporting and export
+- add tree-specific TGO catalogs and unlock graphs
+- add user and tree management endpoints
+- build the first web UI against the API
+- harden deployment with compose/systemd examples and auth options

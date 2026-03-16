@@ -15,6 +15,9 @@ type Config struct {
 	DataDir         string `json:"data_dir"`
 	DatabaseURL     string `json:"database_url"`
 	WriterName      string `json:"writer_name"`
+	DefaultUserSlug string `json:"default_user_slug"`
+	DefaultTreeSlug string `json:"default_tree_slug"`
+	HTTPAddr        string `json:"http_addr"`
 	OpenAIAPIKey    string `json:"-"`
 	OpenAIBaseURL   string `json:"openai_base_url"`
 	PromptModel     string `json:"prompt_model"`
@@ -26,14 +29,17 @@ type Config struct {
 func Default(projectRoot string) Config {
 	dataDir := filepath.Join(projectRoot, dirName)
 	return Config{
-		ProjectRoot:   projectRoot,
-		ConfigPath:    filepath.Join(dataDir, "config.json"),
-		DataDir:       dataDir,
-		DatabaseURL:   filepath.Join(dataDir, "writing-coach.db"),
-		WriterName:    "Writer",
-		OpenAIBaseURL: "https://api.openai.com/v1",
-		PromptModel:   "gpt-5-mini",
-		ReviewModel:   "gpt-5-mini",
+		ProjectRoot:     projectRoot,
+		ConfigPath:      filepath.Join(dataDir, "config.json"),
+		DataDir:         dataDir,
+		DatabaseURL:     filepath.Join(dataDir, "writing-coach.db"),
+		WriterName:      "Writer",
+		DefaultUserSlug: "default",
+		DefaultTreeSlug: "mythic-tragedy-apprenticeship",
+		HTTPAddr:        ":8080",
+		OpenAIBaseURL:   "https://api.openai.com/v1",
+		PromptModel:     "gpt-5-mini",
+		ReviewModel:     "gpt-5-mini",
 	}
 }
 
@@ -69,6 +75,15 @@ func Load(projectRoot string) (Config, error) {
 	if cfg.ReviewModel == "" {
 		cfg.ReviewModel = "gpt-5-mini"
 	}
+	if cfg.DefaultUserSlug == "" {
+		cfg.DefaultUserSlug = "default"
+	}
+	if cfg.DefaultTreeSlug == "" {
+		cfg.DefaultTreeSlug = "mythic-tragedy-apprenticeship"
+	}
+	if cfg.HTTPAddr == "" {
+		cfg.HTTPAddr = ":8080"
+	}
 	if value := os.Getenv("OPENAI_API_KEY"); value != "" {
 		cfg.OpenAIAPIKey = value
 	}
@@ -87,6 +102,9 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("LANGUAGETOOL_URL"); value != "" {
 		cfg.LanguageToolURL = value
 	}
+	if value := os.Getenv("WRITING_COACH_HTTP_ADDR"); value != "" {
+		cfg.HTTPAddr = value
+	}
 
 	return cfg, nil
 }
@@ -100,6 +118,9 @@ func Save(cfg Config) error {
 		DataDir         string `json:"data_dir"`
 		DatabaseURL     string `json:"database_url"`
 		WriterName      string `json:"writer_name"`
+		DefaultUserSlug string `json:"default_user_slug"`
+		DefaultTreeSlug string `json:"default_tree_slug"`
+		HTTPAddr        string `json:"http_addr"`
 		OpenAIBaseURL   string `json:"openai_base_url"`
 		PromptModel     string `json:"prompt_model"`
 		ReviewModel     string `json:"review_model"`
@@ -109,6 +130,9 @@ func Save(cfg Config) error {
 		DataDir:         cfg.DataDir,
 		DatabaseURL:     cfg.DatabaseURL,
 		WriterName:      cfg.WriterName,
+		DefaultUserSlug: cfg.DefaultUserSlug,
+		DefaultTreeSlug: cfg.DefaultTreeSlug,
+		HTTPAddr:        cfg.HTTPAddr,
 		OpenAIBaseURL:   cfg.OpenAIBaseURL,
 		PromptModel:     cfg.PromptModel,
 		ReviewModel:     cfg.ReviewModel,

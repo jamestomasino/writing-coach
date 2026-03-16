@@ -75,28 +75,109 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 		}
 	}
 
-	initial := domain.SeedTGOs()
-	for idx, code := range initial {
-		slot := idx + 1
-		if _, err := s.SQL.ExecContext(ctx, `
-			INSERT INTO active_tgos (slot, tgo_code)
-			SELECT ?, ?
-			WHERE NOT EXISTS (SELECT 1 FROM active_tgos WHERE slot = ?)
-		`, slot, code, slot); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-func (s *Store) GetCurriculumState(ctx context.Context) (domain.CurriculumState, error) {
+func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, treeSlug string) (int64, int64, int64, error) {
+	if _, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO users (slug, name)
+		SELECT ?, ?
+		WHERE NOT EXISTS (SELECT 1 FROM users WHERE slug = ?)
+	`, userSlug, userName, userSlug); err != nil {
+		return 0, 0, 0, err
+	}
+
+	if _, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO tgo_trees (slug, title, description)
+		SELECT ?, ?, ?
+		WHERE NOT EXISTS (SELECT 1 FROM tgo_trees WHERE slug = ?)
+	`, treeSlug, domain.WriterTrackName, "Advanced mythopoeic tragic fiction track", treeSlug); err != nil {
+		return 0, 0, 0, err
+	}
+
+	user, err := s.UserBySlug(ctx, userSlug)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	tree, err := s.TreeBySlug(ctx, treeSlug)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	for _, tgo := range domain.TGOCatalog {
+		if _, err := s.SQL.ExecContext(ctx, `
+			INSERT INTO tree_tgos (tree_id, tgo_code)
+			SELECT ?, ?
+			WHERE NOT EXISTS (SELECT 1 FROM tree_tgos WHERE tree_id = ? AND tgo_code = ?)
+		`, tree.ID, tgo.Code, tree.ID, tgo.Code); err != nil {
+			return 0, 0, 0, err
+		}
+	}
+
+	if _, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO user_tree_enrollments (user_id, tree_id)
+		SELECT ?, ?
+		WHERE NOT EXISTS (SELECT 1 FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ?)
+	`, user.ID, tree.ID, user.ID, tree.ID); err != nil {
+		return 0, 0, 0, err
+	}
+
+	enrollmentID, err := s.EnrollmentID(ctx, user.ID, tree.ID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	if _, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO user_curriculum_state (enrollment_id, current_focus, difficulty_level)
+		SELECT ?, ?, ?
+		WHERE NOT EXISTS (SELECT 1 FROM user_curriculum_state WHERE enrollment_id = ?)
+	`, enrollmentID, "causal clarity", 2, enrollmentID); err != nil {
+		return 0, 0, 0, err
+	}
+	for idx, code := range domain.SeedTGOs() {
+		slot := idx + 1
+		if _, err := s.SQL.ExecContext(ctx, `
+			INSERT INTO enrollment_active_tgos (enrollment_id, slot, tgo_code)
+			SELECT ?, ?, ?
+			WHERE NOT EXISTS (SELECT 1 FROM enrollment_active_tgos WHERE enrollment_id = ? AND slot = ?)
+		`, enrollmentID, slot, code, enrollmentID, slot); err != nil {
+			return 0, 0, 0, err
+		}
+	}
+
+	return user.ID, tree.ID, enrollmentID, nil
+}
+
+func (s *Store) UserBySlug(ctx context.Context, slug string) (domain.User, error) {
+	var user domain.User
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, slug, name, created_at FROM users WHERE slug = ?
+	`, slug).Scan(&user.ID, &user.Slug, &user.Name, &user.CreatedAt)
+	return user, err
+}
+
+func (s *Store) TreeBySlug(ctx context.Context, slug string) (domain.TGOTree, error) {
+	var tree domain.TGOTree
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, slug, title, description, created_at FROM tgo_trees WHERE slug = ?
+	`, slug).Scan(&tree.ID, &tree.Slug, &tree.Title, &tree.Description, &tree.CreatedAt)
+	return tree, err
+}
+
+func (s *Store) EnrollmentID(ctx context.Context, userID, treeID int64) (int64, error) {
+	var id int64
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ?
+	`, userID, treeID).Scan(&id)
+	return id, err
+}
+
+func (s *Store) GetCurriculumState(ctx context.Context, enrollmentID int64) (domain.CurriculumState, error) {
 	var state domain.CurriculumState
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, current_focus, difficulty_level, COALESCE(last_review_id, 0), updated_at
-		FROM curriculum_state
-		WHERE id = 1
-	`).Scan(&state.ID, &state.CurrentFocus, &state.DifficultyLevel, &state.LastReviewID, &state.UpdatedAt)
+		SELECT enrollment_id, current_focus, difficulty_level, COALESCE(last_review_id, 0), updated_at
+		FROM user_curriculum_state
+		WHERE enrollment_id = ?
+	`, enrollmentID).Scan(&state.ID, &state.CurrentFocus, &state.DifficultyLevel, &state.LastReviewID, &state.UpdatedAt)
 	if err != nil {
 		return domain.CurriculumState{}, err
 	}
@@ -105,13 +186,25 @@ func (s *Store) GetCurriculumState(ctx context.Context) (domain.CurriculumState,
 
 func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, error) {
 	const query = `
-		INSERT INTO exercises (title, brief, constraints_json, focus_skills_json, success_criteria_json, generation_kind)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO exercises (
+			user_id,
+			tree_id,
+			title,
+			brief,
+			constraints_json,
+			focus_skills_json,
+			tgo_codes_json,
+			success_criteria_json,
+			generation_kind
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	res, err := s.SQL.ExecContext(
 		ctx,
 		query,
+		ex.UserID,
+		ex.TreeID,
 		ex.Title,
 		ex.Brief,
 		mustJSON(ex.Constraints),
@@ -129,16 +222,16 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 
 func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int64, error) {
 	if sub.DraftNumber == 0 {
-		nextDraft, err := s.NextDraftNumber(ctx, sub.ExerciseID)
+		nextDraft, err := s.NextDraftNumber(ctx, sub.ExerciseID, sub.UserID, sub.TreeID)
 		if err != nil {
 			return 0, err
 		}
 		sub.DraftNumber = nextDraft
 	}
 	res, err := s.SQL.ExecContext(ctx, `
-		INSERT INTO submissions (exercise_id, parent_submission_id, draft_number, content, word_count)
-		VALUES (?, ?, ?, ?, ?)
-	`, sub.ExerciseID, nullableID(sub.ParentSubmissionID), sub.DraftNumber, sub.Content, sub.WordCount)
+		INSERT INTO submissions (user_id, tree_id, exercise_id, parent_submission_id, draft_number, content, word_count)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, sub.UserID, sub.TreeID, sub.ExerciseID, nullableID(sub.ParentSubmissionID), sub.DraftNumber, sub.Content, sub.WordCount)
 	if err != nil {
 		return 0, err
 	}
@@ -149,10 +242,10 @@ func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int6
 func (s *Store) GetSubmission(ctx context.Context, submissionID int64) (domain.Submission, error) {
 	var sub domain.Submission
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
+		SELECT id, user_id, tree_id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
 		FROM submissions
 		WHERE id = ?
-	`, submissionID).Scan(&sub.ID, &sub.ExerciseID, &sub.ParentSubmissionID, &sub.DraftNumber, &sub.Content, &sub.WordCount, &sub.CreatedAt)
+	`, submissionID).Scan(&sub.ID, &sub.UserID, &sub.TreeID, &sub.ExerciseID, &sub.ParentSubmissionID, &sub.DraftNumber, &sub.Content, &sub.WordCount, &sub.CreatedAt)
 	if err != nil {
 		return domain.Submission{}, err
 	}
@@ -160,13 +253,13 @@ func (s *Store) GetSubmission(ctx context.Context, submissionID int64) (domain.S
 	return sub, nil
 }
 
-func (s *Store) NextDraftNumber(ctx context.Context, exerciseID int64) (int, error) {
+func (s *Store) NextDraftNumber(ctx context.Context, exerciseID, userID, treeID int64) (int, error) {
 	var next int
 	err := s.SQL.QueryRowContext(ctx, `
 		SELECT COALESCE(MAX(draft_number), 0) + 1
 		FROM submissions
-		WHERE exercise_id = ?
-	`, exerciseID).Scan(&next)
+		WHERE exercise_id = ? AND user_id = ? AND tree_id = ?
+	`, exerciseID, userID, treeID).Scan(&next)
 	if err != nil {
 		return 0, err
 	}
@@ -176,15 +269,15 @@ func (s *Store) NextDraftNumber(ctx context.Context, exerciseID int64) (int, err
 	return next, nil
 }
 
-func (s *Store) LatestSubmissionForExercise(ctx context.Context, exerciseID int64) (domain.Submission, error) {
+func (s *Store) LatestSubmissionForExercise(ctx context.Context, exerciseID, userID, treeID int64) (domain.Submission, error) {
 	var sub domain.Submission
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
+		SELECT id, user_id, tree_id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
 		FROM submissions
-		WHERE exercise_id = ?
+		WHERE exercise_id = ? AND user_id = ? AND tree_id = ?
 		ORDER BY draft_number DESC, id DESC
 		LIMIT 1
-	`, exerciseID).Scan(&sub.ID, &sub.ExerciseID, &sub.ParentSubmissionID, &sub.DraftNumber, &sub.Content, &sub.WordCount, &sub.CreatedAt)
+	`, exerciseID, userID, treeID).Scan(&sub.ID, &sub.UserID, &sub.TreeID, &sub.ExerciseID, &sub.ParentSubmissionID, &sub.DraftNumber, &sub.Content, &sub.WordCount, &sub.CreatedAt)
 	if err != nil {
 		return domain.Submission{}, err
 	}
@@ -197,12 +290,12 @@ func (s *Store) PreviousSubmission(ctx context.Context, sub domain.Submission) (
 	}
 	var prev domain.Submission
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
+		SELECT id, user_id, tree_id, exercise_id, COALESCE(parent_submission_id, 0), COALESCE(draft_number, 1), content, word_count, created_at
 		FROM submissions
-		WHERE exercise_id = ? AND draft_number < ?
+		WHERE exercise_id = ? AND user_id = ? AND tree_id = ? AND draft_number < ?
 		ORDER BY draft_number DESC, id DESC
 		LIMIT 1
-	`, sub.ExerciseID, sub.DraftNumber).Scan(&prev.ID, &prev.ExerciseID, &prev.ParentSubmissionID, &prev.DraftNumber, &prev.Content, &prev.WordCount, &prev.CreatedAt)
+	`, sub.ExerciseID, sub.UserID, sub.TreeID, sub.DraftNumber).Scan(&prev.ID, &prev.UserID, &prev.TreeID, &prev.ExerciseID, &prev.ParentSubmissionID, &prev.DraftNumber, &prev.Content, &prev.WordCount, &prev.CreatedAt)
 	if err != nil {
 		return domain.Submission{}, err
 	}
@@ -222,6 +315,8 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO reviews (
+			user_id,
+			tree_id,
 			submission_id,
 			review_kind,
 			summary,
@@ -231,8 +326,10 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 			next_focus,
 			metric_word_count
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
+		review.UserID,
+		review.TreeID,
 		review.SubmissionID,
 		review.ReviewKind,
 		review.Summary,
@@ -276,13 +373,14 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 	return reviewID, nil
 }
 
-func (s *Store) ActiveTGOs(ctx context.Context) ([]domain.TGO, error) {
+func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TGO, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, a.slot
-		FROM active_tgos a
+		FROM enrollment_active_tgos a
 		JOIN tgo_catalog c ON c.code = a.tgo_code
+		WHERE a.enrollment_id = ?
 		ORDER BY a.slot ASC
-	`)
+	`, enrollmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -302,13 +400,14 @@ func (s *Store) ActiveTGOs(ctx context.Context) ([]domain.TGO, error) {
 	return tgos, rows.Err()
 }
 
-func (s *Store) CompletedTGOs(ctx context.Context) ([]domain.TGO, error) {
+func (s *Store) CompletedTGOs(ctx context.Context, enrollmentID int64) ([]domain.TGO, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, 0
-		FROM completed_tgos x
+		FROM enrollment_completed_tgos x
 		JOIN tgo_catalog c ON c.code = x.tgo_code
+		WHERE x.enrollment_id = ?
 		ORDER BY x.completed_at ASC
-	`)
+	`, enrollmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -328,14 +427,20 @@ func (s *Store) CompletedTGOs(ctx context.Context) ([]domain.TGO, error) {
 	return tgos, rows.Err()
 }
 
-func (s *Store) RecentTGOStatuses(ctx context.Context, code string, limit int) ([]string, error) {
+func (s *Store) RecentTGOStatuses(ctx context.Context, enrollmentID int64, code string, limit int) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT status
 		FROM review_tgo_assessments
-		WHERE tgo_code = ?
+		WHERE tgo_code = ? AND EXISTS (
+			SELECT 1 FROM reviews r WHERE r.id = review_tgo_assessments.review_id AND r.user_id = (
+				SELECT user_id FROM user_tree_enrollments WHERE id = ?
+			) AND r.tree_id = (
+				SELECT tree_id FROM user_tree_enrollments WHERE id = ?
+			)
+		)
 		ORDER BY id DESC
 		LIMIT ?
-	`, code, limit)
+	`, code, enrollmentID, enrollmentID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +456,7 @@ func (s *Store) RecentTGOStatuses(ctx context.Context, code string, limit int) (
 	return out, rows.Err()
 }
 
-func (s *Store) ReplaceActiveTGO(ctx context.Context, slot int, completedCode string, nextCode string) error {
+func (s *Store) ReplaceActiveTGO(ctx context.Context, enrollmentID int64, slot int, completedCode string, nextCode string) error {
 	tx, err := s.SQL.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -363,30 +468,30 @@ func (s *Store) ReplaceActiveTGO(ctx context.Context, slot int, completedCode st
 	}()
 
 	if _, err = tx.ExecContext(ctx, `
-		INSERT INTO completed_tgos (tgo_code)
-		SELECT ?
-		WHERE NOT EXISTS (SELECT 1 FROM completed_tgos WHERE tgo_code = ?)
-	`, completedCode, completedCode); err != nil {
+		INSERT INTO enrollment_completed_tgos (enrollment_id, tgo_code)
+		SELECT ?, ?
+		WHERE NOT EXISTS (SELECT 1 FROM enrollment_completed_tgos WHERE enrollment_id = ? AND tgo_code = ?)
+	`, enrollmentID, completedCode, enrollmentID, completedCode); err != nil {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, `
-		UPDATE active_tgos SET tgo_code = ?, activated_at = CURRENT_TIMESTAMP WHERE slot = ?
-	`, nextCode, slot); err != nil {
+		UPDATE enrollment_active_tgos SET tgo_code = ?, activated_at = CURRENT_TIMESTAMP WHERE enrollment_id = ? AND slot = ?
+	`, nextCode, enrollmentID, slot); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-func (s *Store) NextAvailableTGO(ctx context.Context) (domain.TGO, error) {
+func (s *Store) NextAvailableTGO(ctx context.Context, enrollmentID int64) (domain.TGO, error) {
 	var tgo domain.TGO
 	err := s.SQL.QueryRowContext(ctx, `
 		SELECT id, code, title, description, stage, stage_order
 		FROM tgo_catalog
-		WHERE code NOT IN (SELECT tgo_code FROM active_tgos)
-		  AND code NOT IN (SELECT tgo_code FROM completed_tgos)
+		WHERE code NOT IN (SELECT tgo_code FROM enrollment_active_tgos WHERE enrollment_id = ?)
+		  AND code NOT IN (SELECT tgo_code FROM enrollment_completed_tgos WHERE enrollment_id = ?)
 		ORDER BY stage_order ASC
 		LIMIT 1
-	`).Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder)
+	`, enrollmentID, enrollmentID).Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder)
 	if err != nil {
 		return domain.TGO{}, err
 	}
@@ -397,13 +502,15 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 	var review domain.Review
 	var strengthsJSON, weaknessesJSON, findingsJSON string
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, next_focus, metric_word_count, created_at
+		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, next_focus, metric_word_count, created_at
 		FROM reviews
 		WHERE submission_id = ?
 		ORDER BY id DESC
 		LIMIT 1
 	`, submissionID).Scan(
 		&review.ID,
+		&review.UserID,
+		&review.TreeID,
 		&review.SubmissionID,
 		&review.ReviewKind,
 		&review.Summary,
@@ -432,28 +539,30 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 	return review, nil
 }
 
-func (s *Store) UpdateCurriculumState(ctx context.Context, focus string, difficulty int, reviewID int64) error {
+func (s *Store) UpdateCurriculumState(ctx context.Context, enrollmentID int64, focus string, difficulty int, reviewID int64) error {
 	_, err := s.SQL.ExecContext(ctx, `
-		UPDATE curriculum_state
+		UPDATE user_curriculum_state
 		SET current_focus = ?, difficulty_level = ?, last_review_id = ?, updated_at = CURRENT_TIMESTAMP
-		WHERE id = 1
-	`, focus, difficulty, reviewID)
+		WHERE enrollment_id = ?
+	`, focus, difficulty, reviewID, enrollmentID)
 	return err
 }
 
-func (s *Store) SkillAverages(ctx context.Context, limit int) (map[string]float64, error) {
+func (s *Store) SkillAverages(ctx context.Context, userID, treeID int64, limit int) (map[string]float64, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		WITH recent_submissions AS (
-			SELECT DISTINCT submission_id
-			FROM submission_skill_scores
-			ORDER BY submission_id DESC
+			SELECT DISTINCT sss.submission_id
+			FROM submission_skill_scores sss
+			JOIN submissions s ON s.id = sss.submission_id
+			WHERE s.user_id = ? AND s.tree_id = ?
+			ORDER BY sss.submission_id DESC
 			LIMIT ?
 		)
 		SELECT skill_name, AVG(score)
 		FROM submission_skill_scores
 		WHERE submission_id IN (SELECT submission_id FROM recent_submissions)
 		GROUP BY skill_name
-	`, limit)
+	`, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -471,14 +580,15 @@ func (s *Store) SkillAverages(ctx context.Context, limit int) (map[string]float6
 	return values, rows.Err()
 }
 
-func (s *Store) RecentSkillScores(ctx context.Context, skill string, limit int) ([]int, error) {
+func (s *Store) RecentSkillScores(ctx context.Context, userID, treeID int64, skill string, limit int) ([]int, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT score
-		FROM submission_skill_scores
-		WHERE skill_name = ?
-		ORDER BY submission_id DESC
+		SELECT sss.score
+		FROM submission_skill_scores sss
+		JOIN submissions s ON s.id = sss.submission_id
+		WHERE sss.skill_name = ? AND s.user_id = ? AND s.tree_id = ?
+		ORDER BY sss.submission_id DESC
 		LIMIT ?
-	`, skill, limit)
+	`, skill, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -518,8 +628,8 @@ func (s *Store) LatestSkillScores(ctx context.Context, submissionID int64) (map[
 	return values, rows.Err()
 }
 
-func (s *Store) ProgressReport(ctx context.Context, limit int) ([]string, error) {
-	averages, err := s.SkillAverages(ctx, limit)
+func (s *Store) ProgressReport(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
+	averages, err := s.SkillAverages(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +640,7 @@ func (s *Store) ProgressReport(ctx context.Context, limit int) ([]string, error)
 		if !ok {
 			continue
 		}
-		recent, err := s.RecentSkillScores(ctx, skill, 2)
+		recent, err := s.RecentSkillScores(ctx, userID, treeID, skill, 2)
 		if err != nil {
 			return nil, err
 		}
@@ -548,13 +658,14 @@ func (s *Store) ProgressReport(ctx context.Context, limit int) ([]string, error)
 	return lines, nil
 }
 
-func (s *Store) RecurringWeaknesses(ctx context.Context, limit int) ([]string, error) {
+func (s *Store) RecurringWeaknesses(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT weaknesses_json
-		FROM reviews
+		SELECT r.weaknesses_json
+		FROM reviews r
+		WHERE r.user_id = ? AND r.tree_id = ?
 		ORDER BY id DESC
 		LIMIT ?
-	`, limit)
+	`, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -562,13 +673,14 @@ func (s *Store) RecurringWeaknesses(ctx context.Context, limit int) ([]string, e
 	return collectRecurringJSONStrings(rows, 3)
 }
 
-func (s *Store) RecurringAnalyzerFindings(ctx context.Context, limit int) ([]string, error) {
+func (s *Store) RecurringAnalyzerFindings(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT analyzer_findings_json
-		FROM reviews
+		SELECT r.analyzer_findings_json
+		FROM reviews r
+		WHERE r.user_id = ? AND r.tree_id = ?
 		ORDER BY id DESC
 		LIMIT ?
-	`, limit)
+	`, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -576,8 +688,8 @@ func (s *Store) RecurringAnalyzerFindings(ctx context.Context, limit int) ([]str
 	return collectRecurringJSONStrings(rows, 4)
 }
 
-func (s *Store) StrongestWeakestSkills(ctx context.Context, limit int) ([]string, []string, error) {
-	averages, err := s.SkillAverages(ctx, limit)
+func (s *Store) StrongestWeakestSkills(ctx context.Context, userID, treeID int64, limit int) ([]string, []string, error) {
+	averages, err := s.SkillAverages(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -609,15 +721,16 @@ func (s *Store) StrongestWeakestSkills(ctx context.Context, limit int) ([]string
 	return strongest, weakest, nil
 }
 
-func (s *Store) History(ctx context.Context) ([]string, error) {
+func (s *Store) History(ctx context.Context, userID, treeID int64) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT e.id, e.title, s.id, r.id, COALESCE(r.next_focus, '')
 		FROM exercises e
-		LEFT JOIN submissions s ON s.exercise_id = e.id
-		LEFT JOIN reviews r ON r.submission_id = s.id
+		LEFT JOIN submissions s ON s.exercise_id = e.id AND s.user_id = e.user_id AND s.tree_id = e.tree_id
+		LEFT JOIN reviews r ON r.submission_id = s.id AND r.user_id = e.user_id AND r.tree_id = e.tree_id
+		WHERE e.user_id = ? AND e.tree_id = ?
 		ORDER BY e.id DESC
 		LIMIT 10
-	`)
+	`, userID, treeID)
 	if err != nil {
 		return nil, err
 	}
@@ -650,13 +763,14 @@ func (s *Store) History(ctx context.Context) ([]string, error) {
 	return items, rows.Err()
 }
 
-func (s *Store) RecentExerciseTitles(ctx context.Context, limit int) ([]string, error) {
+func (s *Store) RecentExerciseTitles(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT title
 		FROM exercises
+		WHERE user_id = ? AND tree_id = ?
 		ORDER BY id DESC
 		LIMIT ?
-	`, limit)
+	`, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}

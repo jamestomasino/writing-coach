@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/tomasino/writing-coach/internal/analyzer"
+	"github.com/tomasino/writing-coach/internal/api"
 	"github.com/tomasino/writing-coach/internal/cli"
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/curriculum"
@@ -14,9 +15,11 @@ import (
 	"github.com/tomasino/writing-coach/internal/openai"
 	"github.com/tomasino/writing-coach/internal/prompt"
 	"github.com/tomasino/writing-coach/internal/review"
+	"github.com/tomasino/writing-coach/internal/session"
 )
 
 type App struct {
+	api   api.Server
 	cli   cli.CLI
 	store *db.Store
 }
@@ -44,6 +47,14 @@ func New(ctx context.Context) (*App, error) {
 		_ = store.Close()
 		return nil, err
 	}
+	if err := store.Migrate(ctx, filepath.Join(projectRoot, "migrations")); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	if err := store.EnsureSeedData(ctx, cfg.WriterName); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
 
 	openAIClient := openai.NewClient(cfg)
 	valeBinary := cfg.ValeBinary
@@ -67,10 +78,23 @@ func New(ctx context.Context) (*App, error) {
 		},
 		analyzer.LanguageTool{BaseURL: cfg.LanguageToolURL},
 	)
+	appContext, err := session.Resolve(ctx, store, cfg)
+	if err != nil {
+		_ = store.Close()
+		return nil, err
+	}
 
 	return &App{
+		api: api.Server{
+			Config:     cfg,
+			Store:      store,
+			Prompts:    prompt.NewService(openAIClient),
+			Reviews:    review.NewService(openAIClient, analyzerService),
+			Curriculum: curriculum.NewService(),
+		},
 		cli: cli.CLI{
 			Config:     cfg,
+			AppContext: appContext,
 			Store:      store,
 			Prompts:    prompt.NewService(openAIClient),
 			Reviews:    review.NewService(openAIClient, analyzerService),
@@ -82,5 +106,8 @@ func New(ctx context.Context) (*App, error) {
 
 func (a *App) Run(ctx context.Context, args []string) error {
 	defer a.store.Close()
+	if len(args) > 0 && args[0] == "serve" {
+		return a.api.Serve(ctx)
+	}
 	return a.cli.Run(ctx, args)
 }

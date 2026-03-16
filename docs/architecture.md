@@ -8,9 +8,12 @@ The target style is epic tragedy in a mythopoeic mode with fantasy influences, w
 
 ## Product Shape
 
-The first implementation is a CLI application written in Go with SQLite persistence. This keeps the workflow inspectable, portable, and easy to automate.
+The first implementation is a Go application with SQLite persistence and two adapters:
 
-Later layers such as a TUI or small web interface should remain optional adapters over the same core services.
+- a CLI for direct local use
+- a JSON API for a future web interface
+
+The web layer should remain an adapter over the same prompt, review, curriculum, and persistence services rather than a separate system.
 
 ## Core Engines
 
@@ -18,10 +21,10 @@ Later layers such as a TUI or small web interface should remain optional adapter
 
 Produces the next exercise from:
 
-- long-term writer profile
-- curriculum state
+- per-user curriculum state
+- active TGOs for the enrolled tree
 - recent exercises and reviews
-- current training focus
+- current training pressure
 
 It should balance:
 
@@ -53,7 +56,7 @@ Model-based review should eventually cover:
 
 ### Learning Engine
 
-Updates the curriculum state after every submission and review.
+Updates the enrollment-scoped curriculum state after every submission and review.
 
 The learning engine should track:
 
@@ -77,13 +80,27 @@ Rules:
 
 Advancement is structured but not strictly linear. TGOs carry prerequisites so later genre-specific work only unlocks after enough command of the core storytelling foundations.
 
+The architecture now treats a `TGO tree` as the reusable pedagogical unit. Each user progresses through a chosen tree independently.
+
+This enables:
+
+- one advanced mythic-tragedy tree for your own fiction work
+- a youth foundations tree for your son
+- later trees for essays, scene craft, fantasy foundations, or other writing goals
+
 ## Persistence Model
 
 SQLite is the system of record. The schema should support direct reporting and preserve enough history to re-evaluate earlier work if rubrics change.
 
 Primary tables:
 
-- `writer_profile`
+- `users`
+- `tgo_trees`
+- `tree_tgos`
+- `user_tree_enrollments`
+- `user_curriculum_state`
+- `enrollment_active_tgos`
+- `enrollment_completed_tgos`
 - `exercises`
 - `submissions`
 - `reviews`
@@ -97,6 +114,7 @@ Primary tables:
 ```text
 cmd/writing-coach/
 internal/app/
+internal/api/
 internal/cli/
 internal/config/
 internal/curriculum/
@@ -113,6 +131,7 @@ migrations/
 - `internal/db` owns persistence and migrations.
 - `internal/prompt`, `internal/review`, and `internal/curriculum` expose narrow service interfaces.
 - `internal/app` wires concrete implementations.
+- `internal/api` exposes JSON endpoints for a browser-based UI or remote deployment.
 - `internal/cli` handles command parsing and user-facing output.
 
 ## Interfaces
@@ -172,14 +191,15 @@ Implementation status:
 
 ### Phase 4
 
-Expand reporting, curriculum sophistication, and optional UI layers.
+Expand reporting, tree management, and the first browser UI layer on top of the API.
 
 ## Initial Technical Decisions
 
-- Use the Go standard library for the first CLI instead of a heavier command framework.
+- Use the Go standard library for the CLI and HTTP API instead of heavier frameworks.
 - Use `modernc.org/sqlite` for a pure-Go SQLite driver.
 - Keep placeholder prompt/review logic deterministic until the OpenAI layer is added.
 - Store raw and normalized review artifacts separately once model integration begins.
+- Keep deployment simple: one API process, SQLite on disk, Docker packaging, nginx reverse proxy in front.
 
 ## Phase 1 Deliverable
 

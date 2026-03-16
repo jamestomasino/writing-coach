@@ -1,0 +1,25 @@
+FROM golang:1.22.2 AS build
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/writing-coach ./cmd/writing-coach
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=build /out/writing-coach /usr/local/bin/writing-coach
+COPY .vale.ini /app/.vale.ini
+COPY styles /app/styles
+COPY migrations /app/migrations
+
+EXPOSE 8080
+
+CMD ["writing-coach", "serve"]

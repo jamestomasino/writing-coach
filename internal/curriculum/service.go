@@ -26,12 +26,12 @@ func (Service) DescribeNextStep(state domain.CurriculumState) string {
 	return "Primary pressure remains on " + state.CurrentFocus + "."
 }
 
-func (Service) SyncTGOs(ctx context.Context, store *db.Store, review domain.Review) (Recommendation, error) {
-	active, err := store.ActiveTGOs(ctx)
+func (Service) SyncTGOs(ctx context.Context, store *db.Store, enrollmentID int64, review domain.Review) (Recommendation, error) {
+	active, err := store.ActiveTGOs(ctx, enrollmentID)
 	if err != nil {
 		return Recommendation{}, err
 	}
-	completed, err := store.CompletedTGOs(ctx)
+	completed, err := store.CompletedTGOs(ctx, enrollmentID)
 	if err != nil {
 		return Recommendation{}, err
 	}
@@ -52,7 +52,7 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, review domain.Revi
 		if slot == 0 {
 			continue
 		}
-		statuses, err := store.RecentTGOStatuses(ctx, assessment.TGOCode, 2)
+		statuses, err := store.RecentTGOStatuses(ctx, enrollmentID, assessment.TGOCode, 2)
 		if err != nil {
 			return Recommendation{}, err
 		}
@@ -66,13 +66,13 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, review domain.Revi
 			continue
 		}
 		next := nextOptions[0]
-		if err := store.ReplaceActiveTGO(ctx, slot, assessment.TGOCode, next.Code); err != nil {
+		if err := store.ReplaceActiveTGO(ctx, enrollmentID, slot, assessment.TGOCode, next.Code); err != nil {
 			return Recommendation{}, err
 		}
 		activeSet[next.Code] = true
 	}
 
-	active, err = store.ActiveTGOs(ctx)
+	active, err = store.ActiveTGOs(ctx, enrollmentID)
 	if err != nil {
 		return Recommendation{}, err
 	}

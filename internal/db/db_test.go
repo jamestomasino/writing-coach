@@ -22,8 +22,14 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 	if err := store.EnsureSeedData(context.Background(), "Tomasino"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
+	userID, treeID, _, err := store.EnsureDefaultUserTree(context.Background(), "tomasino", "Tomasino", "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
 
 	exID, err := store.SaveExercise(context.Background(), domain.Exercise{
+		UserID:          userID,
+		TreeID:          treeID,
 		Title:           "Test",
 		Brief:           "Brief",
 		Constraints:     []string{"one"},
@@ -35,6 +41,8 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 		t.Fatalf("save exercise: %v", err)
 	}
 	subID, err := store.SaveSubmission(context.Background(), domain.Submission{
+		UserID:     userID,
+		TreeID:     treeID,
 		ExerciseID: exID,
 		Content:    "A short scene with doomed choices.",
 		WordCount:  6,
@@ -43,6 +51,8 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 		t.Fatalf("save submission: %v", err)
 	}
 	_, err = store.SaveReview(context.Background(), domain.Review{
+		UserID:           userID,
+		TreeID:           treeID,
 		SubmissionID:     subID,
 		ReviewKind:       "deterministic",
 		Summary:          "Summary",
@@ -59,7 +69,7 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 		t.Fatalf("save review: %v", err)
 	}
 
-	report, err := store.ProgressReport(context.Background(), 5)
+	report, err := store.ProgressReport(context.Background(), userID, treeID, 5)
 	if err != nil {
 		t.Fatalf("progress report: %v", err)
 	}

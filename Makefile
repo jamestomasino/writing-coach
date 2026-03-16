@@ -7,8 +7,10 @@ LT_LOG_FILE ?= .writing-coach/languagetool.log
 LT_URL ?= http://localhost:$(LT_PORT)
 LT_SERVER_JAR ?= $(firstword $(wildcard $(LT_HOME)/languagetool-server.jar $(LT_HOME)/LanguageTool-*/languagetool-server.jar))
 LT_HEALTHCHECK = curl -fsS -d 'language=en-US' -d 'text=Health check.' "$(LT_URL)/v2/check"
+IMAGE ?= writing-coach
+HTTP_PORT ?= 8080
 
-.PHONY: help init build prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status
+.PHONY: help init build serve prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status docker-build docker-run
 
 help: ## show available targets and what they do
 	@echo "targets:"
@@ -21,6 +23,9 @@ init: ## initialize config, schema, and seeded curriculum state
 
 build: ## compile the Go project
 	go build ./...
+
+serve: ## run the JSON API server on WRITING_COACH_HTTP_ADDR or config.http_addr
+	go run ./cmd/writing-coach serve
 
 prompt: ## generate and store the next writing exercise
 	go run ./cmd/writing-coach prompt next
@@ -110,3 +115,9 @@ languagetool-status: ## check whether the LanguageTool server is reachable
 		echo "LanguageTool not running"; \
 		exit 1; \
 	fi
+
+docker-build: ## build a production container image; optional IMAGE=<name>
+	docker build -t $(IMAGE) .
+
+docker-run: ## run the API container locally; optional IMAGE=<name> HTTP_PORT=<port>
+	docker run --rm -p $(HTTP_PORT):8080 -v "$(CURDIR)/.writing-coach:/app/.writing-coach" $(IMAGE)

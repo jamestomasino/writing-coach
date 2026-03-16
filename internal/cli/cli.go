@@ -15,10 +15,12 @@ import (
 	"github.com/tomasino/writing-coach/internal/domain"
 	"github.com/tomasino/writing-coach/internal/prompt"
 	"github.com/tomasino/writing-coach/internal/review"
+	"github.com/tomasino/writing-coach/internal/session"
 )
 
 type CLI struct {
 	Config     config.Config
+	AppContext session.Context
 	Store      *db.Store
 	Prompts    prompt.Service
 	Reviews    review.Service
@@ -53,6 +55,7 @@ func (c CLI) Run(ctx context.Context, args []string) error {
 func (c CLI) usage() error {
 	fmt.Println("usage:")
 	fmt.Println("  writing-coach init")
+	fmt.Println("  writing-coach serve")
 	fmt.Println("  writing-coach prompt next")
 	fmt.Println("  writing-coach prompt revise --submission <id>")
 	fmt.Println("  writing-coach submit --exercise <id> --file <path> [--revise-from <submission-id>]")
@@ -108,24 +111,24 @@ func (c CLI) runPrompt(ctx context.Context, args []string) error {
 }
 
 func (c CLI) runPromptNext(ctx context.Context) error {
-	state, err := c.Store.GetCurriculumState(ctx)
+	state, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
 
-	recentTitles, err := c.Store.RecentExerciseTitles(ctx, 3)
+	recentTitles, err := c.Store.RecentExerciseTitles(ctx, c.AppContext.UserID, c.AppContext.TreeID, 3)
 	if err != nil {
 		return err
 	}
-	recentWeaknesses, err := c.Store.RecurringWeaknesses(ctx, 5)
+	recentWeaknesses, err := c.Store.RecurringWeaknesses(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, 5)
+	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	activeTGOs, err := c.Store.ActiveTGOs(ctx)
+	activeTGOs, err := c.Store.ActiveTGOs(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
@@ -137,6 +140,8 @@ func (c CLI) runPromptNext(ctx context.Context) error {
 		RecentWeaknesses:  recentWeaknesses,
 		RecurringFindings: recurringFindings,
 	})
+	ex.UserID = c.AppContext.UserID
+	ex.TreeID = c.AppContext.TreeID
 	exerciseID, err := c.Store.SaveExercise(ctx, ex)
 	if err != nil {
 		return err
@@ -181,23 +186,23 @@ func (c CLI) runPromptRevise(ctx context.Context, args []string) error {
 	if err != nil {
 		return fmt.Errorf("submission %d has no review yet", sub.ID)
 	}
-	state, err := c.Store.GetCurriculumState(ctx)
+	state, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
-	recentTitles, err := c.Store.RecentExerciseTitles(ctx, 3)
+	recentTitles, err := c.Store.RecentExerciseTitles(ctx, c.AppContext.UserID, c.AppContext.TreeID, 3)
 	if err != nil {
 		return err
 	}
-	recentWeaknesses, err := c.Store.RecurringWeaknesses(ctx, 5)
+	recentWeaknesses, err := c.Store.RecurringWeaknesses(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, 5)
+	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	activeTGOs, err := c.Store.ActiveTGOs(ctx)
+	activeTGOs, err := c.Store.ActiveTGOs(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
@@ -220,6 +225,8 @@ func (c CLI) runPromptRevise(ctx context.Context, args []string) error {
 		RevisionReview:     &reviewResult,
 		RevisionComparison: cmp,
 	})
+	ex.UserID = c.AppContext.UserID
+	ex.TreeID = c.AppContext.TreeID
 	exerciseID, err := c.Store.SaveExercise(ctx, ex)
 	if err != nil {
 		return err
@@ -265,6 +272,8 @@ func (c CLI) runSubmit(ctx context.Context, args []string) error {
 	}
 
 	sub := domain.Submission{
+		UserID:             c.AppContext.UserID,
+		TreeID:             c.AppContext.TreeID,
 		ExerciseID:         *exerciseID,
 		ParentSubmissionID: *reviseFrom,
 		Content:            string(content),
@@ -306,12 +315,14 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		return err
 	}
 
-	activeTGOs, err := c.Store.ActiveTGOs(ctx)
+	activeTGOs, err := c.Store.ActiveTGOs(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
 	reviewResult, scores := c.Reviews.ReviewSubmission(ctx, sub, activeTGOs)
-	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, reviewResult)
+	reviewResult.UserID = c.AppContext.UserID
+	reviewResult.TreeID = c.AppContext.TreeID
+	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, c.AppContext.EnrollmentID, reviewResult)
 	if err != nil {
 		return err
 	}
@@ -320,11 +331,11 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := c.Store.UpdateCurriculumState(ctx, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
+	if err := c.Store.UpdateCurriculumState(ctx, c.AppContext.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
 		return err
 	}
 
-	state, err := c.Store.GetCurriculumState(ctx)
+	state, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
@@ -374,11 +385,11 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 }
 
 func (c CLI) runHistory(ctx context.Context) error {
-	state, err := c.Store.GetCurriculumState(ctx)
+	state, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
-	items, err := c.Store.History(ctx)
+	items, err := c.Store.History(ctx, c.AppContext.UserID, c.AppContext.TreeID)
 	if err != nil {
 		return err
 	}
@@ -396,31 +407,31 @@ func (c CLI) runHistory(ctx context.Context) error {
 }
 
 func (c CLI) runProgress(ctx context.Context) error {
-	state, err := c.Store.GetCurriculumState(ctx)
+	state, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
-	items, err := c.Store.ProgressReport(ctx, 5)
+	items, err := c.Store.ProgressReport(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	strongest, weakest, err := c.Store.StrongestWeakestSkills(ctx, 5)
+	strongest, weakest, err := c.Store.StrongestWeakestSkills(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	recurringWeaknesses, err := c.Store.RecurringWeaknesses(ctx, 5)
+	recurringWeaknesses, err := c.Store.RecurringWeaknesses(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, 5)
+	recurringFindings, err := c.Store.RecurringAnalyzerFindings(ctx, c.AppContext.UserID, c.AppContext.TreeID, 5)
 	if err != nil {
 		return err
 	}
-	activeTGOs, err := c.Store.ActiveTGOs(ctx)
+	activeTGOs, err := c.Store.ActiveTGOs(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
-	completedTGOs, err := c.Store.CompletedTGOs(ctx)
+	completedTGOs, err := c.Store.CompletedTGOs(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
 		return err
 	}
@@ -433,7 +444,8 @@ func (c CLI) runProgress(ctx context.Context) error {
 		activeSet[tgo.Code] = true
 	}
 	upcomingTGOs := domain.NextUnlockedTGOs(completedSet, activeSet, 3)
-	fmt.Printf("track: %s\n", domain.WriterTrackName)
+	fmt.Printf("user: %s\n", c.AppContext.UserSlug)
+	fmt.Printf("tree: %s\n", c.AppContext.TreeSlug)
 	fmt.Printf("current focus: %s\n", state.CurrentFocus)
 	if len(activeTGOs) > 0 {
 		var parts []string
