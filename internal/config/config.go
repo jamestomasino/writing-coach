@@ -19,6 +19,7 @@ type Config struct {
 	DefaultTreeSlug string `json:"default_tree_slug"`
 	HTTPAddr        string `json:"http_addr"`
 	APIToken        string `json:"-"`
+	KratosPublicURL string `json:"kratos_public_url"`
 	OpenAIAPIKey    string `json:"-"`
 	OpenAIBaseURL   string `json:"openai_base_url"`
 	PromptModel     string `json:"prompt_model"`
@@ -38,6 +39,7 @@ func Default(projectRoot string) Config {
 		DefaultUserSlug: "default",
 		DefaultTreeSlug: "mythic-tragedy-apprenticeship",
 		HTTPAddr:        ":8080",
+		KratosPublicURL: "",
 		OpenAIBaseURL:   "https://api.openai.com/v1",
 		PromptModel:     "gpt-5-mini",
 		ReviewModel:     "gpt-5-mini",
@@ -108,6 +110,9 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("WRITING_COACH_API_TOKEN"); value != "" {
 		cfg.APIToken = value
 	}
+	if value := os.Getenv("WRITING_COACH_KRATOS_PUBLIC_URL"); value != "" {
+		cfg.KratosPublicURL = value
+	}
 
 	return cfg, nil
 }
@@ -124,6 +129,7 @@ func Save(cfg Config) error {
 		DefaultUserSlug string `json:"default_user_slug"`
 		DefaultTreeSlug string `json:"default_tree_slug"`
 		HTTPAddr        string `json:"http_addr"`
+		KratosPublicURL string `json:"kratos_public_url"`
 		OpenAIBaseURL   string `json:"openai_base_url"`
 		PromptModel     string `json:"prompt_model"`
 		ReviewModel     string `json:"review_model"`
@@ -136,6 +142,7 @@ func Save(cfg Config) error {
 		DefaultUserSlug: cfg.DefaultUserSlug,
 		DefaultTreeSlug: cfg.DefaultTreeSlug,
 		HTTPAddr:        cfg.HTTPAddr,
+		KratosPublicURL: cfg.KratosPublicURL,
 		OpenAIBaseURL:   cfg.OpenAIBaseURL,
 		PromptModel:     cfg.PromptModel,
 		ReviewModel:     cfg.ReviewModel,

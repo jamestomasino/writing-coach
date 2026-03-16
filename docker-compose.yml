@@ -1,0 +1,96 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: writing-coach-app
+    restart: unless-stopped
+    depends_on:
+      languagetool:
+        condition: service_healthy
+      kratos:
+        condition: service_started
+    environment:
+      WRITING_COACH_HTTP_ADDR: ":8080"
+      WRITING_COACH_KRATOS_PUBLIC_URL: "http://kratos:4433"
+      LANGUAGETOOL_URL: "http://languagetool:8010"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
+      WRITING_COACH_PROMPT_MODEL: "${WRITING_COACH_PROMPT_MODEL:-gpt-5-mini}"
+      WRITING_COACH_REVIEW_MODEL: "${WRITING_COACH_REVIEW_MODEL:-gpt-5-mini}"
+    ports:
+      - "8080:8080"
+    volumes:
+      - writing-coach-data:/app/.writing-coach
+
+  languagetool:
+    build:
+      context: .
+      dockerfile: docker/languagetool/Dockerfile
+    container_name: writing-coach-languagetool
+    restart: unless-stopped
+    ports:
+      - "8010:8010"
+
+  kratos-migrate:
+    image: oryd/kratos:v25.4.0
+    container_name: writing-coach-kratos-migrate
+    restart: on-failure
+    environment:
+      DSN: "sqlite:///var/lib/sqlite/db.sqlite?_fk=true&mode=rwc"
+      SECRETS_COOKIE_0: "${KRATOS_COOKIE_SECRET:-change-me-change-me-change-me-change-me}"
+      SECRETS_CIPHER_0: "${KRATOS_CIPHER_SECRET:-change-me-change-me-change-me-change-me}"
+    volumes:
+      - kratos-data:/var/lib/sqlite
+      - ./deploy/kratos:/etc/config/kratos
+    command: ["-c", "/etc/config/kratos/kratos.yml", "migrate", "sql", "-e", "--yes"]
+
+  kratos:
+    image: oryd/kratos:v25.4.0
+    container_name: writing-coach-kratos
+    restart: unless-stopped
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+      mailslurper:
+        condition: service_started
+    environment:
+      DSN: "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"
+      SECRETS_COOKIE_0: "${KRATOS_COOKIE_SECRET:-change-me-change-me-change-me-change-me}"
+      SECRETS_CIPHER_0: "${KRATOS_CIPHER_SECRET:-change-me-change-me-change-me-change-me}"
+      LOG_LEVEL: "info"
+    command: ["serve", "-c", "/etc/config/kratos/kratos.yml", "--watch-courier"]
+    ports:
+      - "4433:4433"
+      - "4434:4434"
+    volumes:
+      - kratos-data:/var/lib/sqlite
+      - ./deploy/kratos:/etc/config/kratos
+
+  kratos-selfservice-ui:
+    image: oryd/kratos-selfservice-ui-node:v25.4.0
+    container_name: writing-coach-kratos-ui
+    restart: unless-stopped
+    depends_on:
+      kratos:
+        condition: service_started
+    environment:
+      KRATOS_PUBLIC_URL: "http://kratos:4433/"
+      KRATOS_BROWSER_URL: "http://127.0.0.1:4433/"
+      COOKIE_SECRET: "${KRATOS_UI_COOKIE_SECRET:-change-me-change-me-change-me-change-me}"
+      CSRF_COOKIE_NAME: "ory_csrf_ui"
+      CSRF_COOKIE_SECRET: "${KRATOS_UI_CSRF_SECRET:-change-me-change-me-change-me-change-me}"
+    ports:
+      - "4455:3000"
+
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    container_name: writing-coach-mailslurper
+    restart: unless-stopped
+    ports:
+      - "4436:4436"
+      - "4437:4437"
+
+volumes:
+  writing-coach-data:
+  kratos-data:

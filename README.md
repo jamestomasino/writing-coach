@@ -133,6 +133,13 @@ Optional API auth:
 - send either `Authorization: Bearer <token>` or `X-API-Token: <token>`
 - `GET /api/health` remains public for container health checks
 
+Ory Kratos integration:
+
+- set `WRITING_COACH_KRATOS_PUBLIC_URL`
+- the API will validate browser/session authentication through Kratos `GET /sessions/whoami`
+- when Kratos auth is enabled, each authenticated identity maps deterministically to its own internal writer profile
+- this avoids storing password hashes in `writing-coach` itself
+
 Examples:
 
 ```bash
@@ -158,6 +165,7 @@ Environment variables:
 - `WRITING_COACH_REVIEW_MODEL`
 - `WRITING_COACH_HTTP_ADDR`
 - `WRITING_COACH_API_TOKEN`
+- `WRITING_COACH_KRATOS_PUBLIC_URL`
 - `VALE_BINARY`
 - `LANGUAGETOOL_URL`
 
@@ -196,12 +204,41 @@ make docker-build
 make docker-run API_TOKEN=change-me
 ```
 
+Or start the full contained stack with Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+That stack includes:
+
+- `writing-coach` API
+- `Vale` bundled into the app image
+- `LanguageTool` as a dedicated Java container
+- `Ory Kratos` for account management and password handling
+- `Ory Kratos Self-Service UI` for registration/login flows
+- `Mailslurper` for local verification/recovery email testing
+
 The container serves the API on port `8080` and stores its SQLite/config state under `/app/.writing-coach`, which `make docker-run` mounts from the repo. If `API_TOKEN` is set, the API requires that bearer token for every endpoint except `/api/health`.
 
 Deployment examples live at:
 
 - [deploy/docker-compose.example.yml](/home/tomasino/writing-coach/deploy/docker-compose.example.yml)
 - [deploy/nginx.example.conf](/home/tomasino/writing-coach/deploy/nginx.example.conf)
+
+Kratos configuration lives at:
+
+- [deploy/kratos/kratos.yml](/home/tomasino/writing-coach/deploy/kratos/kratos.yml)
+- [deploy/kratos/identity.schema.json](/home/tomasino/writing-coach/deploy/kratos/identity.schema.json)
+
+Local ports in `docker-compose.yml`:
+
+- `8080` writing-coach API
+- `8010` LanguageTool
+- `4433` Kratos public API
+- `4434` Kratos admin API
+- `4455` Kratos self-service UI
+- `4436` / `4437` Mailslurper
 
 An nginx reverse proxy can sit in front of it with a simple upstream:
 

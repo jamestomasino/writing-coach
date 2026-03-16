@@ -155,11 +155,67 @@ func TestAPIAuthMiddleware(t *testing.T) {
 	}
 }
 
+func TestKratosWhoamiAuthMiddleware(t *testing.T) {
+	kratos := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sessions/whoami" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Header.Get("X-Session-Token") != "session-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"identity": map[string]any{
+				"id": "7b5f6fc1-36d3-4f48-8ef0-7cfa2d4fb613",
+				"traits": map[string]any{
+					"email": "writer@example.com",
+					"name": map[string]any{
+						"first": "Writer",
+						"last":  "Coach",
+					},
+				},
+			},
+		})
+	}))
+	defer kratos.Close()
+
+	testServer := newTestServerWithAuth(t, "", kratos.URL)
+	defer testServer.Close()
+
+	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/context?tree=mythic-tragedy-apprenticeship", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("X-Session-Token", "session-token")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var payload struct {
+		UserSlug string `json:"user_slug"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.UserSlug != "kratos-7b5f6fc136d3" {
+		t.Fatalf("user slug = %q", payload.UserSlug)
+	}
+}
+
 func newTestServer(t *testing.T) *httptest.Server {
-	return newTestServerWithToken(t, "")
+	return newTestServerWithAuth(t, "", "")
 }
 
 func newTestServerWithToken(t *testing.T, apiToken string) *httptest.Server {
+	return newTestServerWithAuth(t, apiToken, "")
+}
+
+func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *httptest.Server {
 	t.Helper()
 	root := t.TempDir()
 	store, err := db.Open(filepath.Join(root, "test.db"))
@@ -180,6 +236,7 @@ func newTestServerWithToken(t *testing.T, apiToken string) *httptest.Server {
 
 	cfg := config.Default(root)
 	cfg.APIToken = apiToken
+	cfg.KratosPublicURL = kratosPublicURL
 
 	server := Server{
 		Config:     cfg,

@@ -62,7 +62,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/submissions/{id}", s.handleSubmissionGet)
 	mux.HandleFunc("POST /api/reviews", s.handleReviewCreate)
 	mux.HandleFunc("GET /api/compare", s.handleCompare)
-	return withCORS(withAuth(mux, s.Config.APIToken))
+	return withCORS(withAuth(mux, s.Config.APIToken, s.Config.KratosPublicURL))
 }
 
 type errorResponse struct {
@@ -766,6 +766,24 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 }
 
 func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Context, error) {
+	if ident, ok := identityFromContext(ctx); ok {
+		treeSlug := firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree"), s.Config.DefaultTreeSlug)
+		userSlug := slugFromIdentity(ident)
+		userName := displayNameFromIdentity(ident)
+
+		userID, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(ctx, userSlug, userName, treeSlug)
+		if err != nil {
+			return session.Context{}, err
+		}
+		return session.Context{
+			UserID:       userID,
+			TreeID:       treeID,
+			EnrollmentID: enrollmentID,
+			UserSlug:     userSlug,
+			TreeSlug:     treeSlug,
+		}, nil
+	}
+
 	userSlug := firstNonEmpty(r.URL.Query().Get("user"), r.Header.Get("X-Writing-Coach-User"), s.Config.DefaultUserSlug)
 	treeSlug := firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree"), s.Config.DefaultTreeSlug)
 	userName := firstNonEmpty(r.URL.Query().Get("user_name"), s.Config.WriterName)
@@ -805,34 +823,10 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Writing-Coach-User, X-Writing-Coach-Tree")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-API-Token, X-Session-Token, X-Writing-Coach-User, X-Writing-Coach-Tree")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func withAuth(next http.Handler, token string) http.Handler {
-	if strings.TrimSpace(token) == "" {
-		return next
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions || r.URL.Path == "/api/health" {
-			next.ServeHTTP(w, r)
-			return
-		}
-		candidate := strings.TrimSpace(r.Header.Get("X-API-Token"))
-		if candidate == "" {
-			auth := strings.TrimSpace(r.Header.Get("Authorization"))
-			if strings.HasPrefix(strings.ToLower(auth), "bearer ") {
-				candidate = strings.TrimSpace(auth[7:])
-			}
-		}
-		if candidate != token {
-			writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "unauthorized"})
 			return
 		}
 		next.ServeHTTP(w, r)

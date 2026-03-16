@@ -22,8 +22,8 @@ Do not build from the Compass template wholesale. Its content model is too cours
 
 Source location:
 
-- [vendor/catalyst-ui-kit/catalyst-ui-kit/typescript](/home/tomasino/writing-coach/vendor/catalyst-ui-kit/catalyst-ui-kit/typescript)
-- [vendor/catalyst-ui-kit/catalyst-ui-kit/demo/typescript](/home/tomasino/writing-coach/vendor/catalyst-ui-kit/catalyst-ui-kit/demo/typescript)
+- [tailwind-plus/catalyst-ui-kit/catalyst-ui-kit/typescript](/home/tomasino/writing-coach/tailwind-plus/catalyst-ui-kit/catalyst-ui-kit/typescript)
+- [tailwind-plus/catalyst-ui-kit/catalyst-ui-kit/demo/typescript](/home/tomasino/writing-coach/tailwind-plus/catalyst-ui-kit/catalyst-ui-kit/demo/typescript)
 
 Primary strengths:
 
@@ -53,7 +53,7 @@ Important components:
 
 Source location:
 
-- [vendor/compass-template/tailwind-plus-compass/compass-ts](/home/tomasino/writing-coach/vendor/compass-template/tailwind-plus-compass/compass-ts)
+- [tailwind-plus/compass-template/tailwind-plus-compass/compass-ts](/home/tomasino/writing-coach/tailwind-plus/compass-template/tailwind-plus-compass/compass-ts)
 
 Primary strengths:
 
@@ -209,7 +209,7 @@ Recommendation:
 
 ## Import Strategy
 
-Do not import directly from `vendor/` at runtime.
+Do not import directly from `tailwind-plus/` at runtime.
 
 Instead:
 

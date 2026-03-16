@@ -11,7 +11,7 @@ IMAGE ?= writing-coach
 HTTP_PORT ?= 8080
 API_TOKEN ?=
 
-.PHONY: help init build serve prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status docker-build docker-run
+.PHONY: help init build serve prompt prompt-revise submit review coach-review compare history progress vale-install languagetool-start languagetool-stop languagetool-status docker-build docker-run compose-up compose-down compose-logs
 
 help: ## show available targets and what they do
 	@echo "targets:"
@@ -122,3 +122,12 @@ docker-build: ## build a production container image; optional IMAGE=<name>
 
 docker-run: ## run the API container locally; optional IMAGE=<name> HTTP_PORT=<port> API_TOKEN=<token>
 	docker run --rm -p $(HTTP_PORT):8080 -e WRITING_COACH_API_TOKEN="$(API_TOKEN)" -v "$(CURDIR)/.writing-coach:/app/.writing-coach" $(IMAGE)
+
+compose-up: ## start the full local stack: app, LanguageTool, Kratos, and mail UI
+	docker compose up -d --build
+
+compose-down: ## stop the full local stack
+	docker compose down
+
+compose-logs: ## tail logs from the full local stack
+	docker compose logs -f --tail=200

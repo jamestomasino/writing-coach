@@ -142,7 +142,15 @@ The API can run:
 - behind nginx on a server
 - in Docker with SQLite mounted from the host
 
-An optional API token gate protects all endpoints except health checks. That is intentionally minimal and should be treated as the first deployment layer, not the final public auth model.
+An optional API token gate protects all endpoints except health checks. For real user accounts, the preferred model is Ory Kratos rather than storing passwords in the app itself.
+
+Current secure deployment direction:
+
+- `writing-coach` keeps application data only
+- `Ory Kratos` handles password hashing, recovery, verification, and sessions
+- the API validates authenticated sessions through Kratos `whoami`
+- `LanguageTool` runs as a separate Java service in Docker
+- `Vale` is bundled into the app image for deterministic prose linting
 
 ## Interfaces
 

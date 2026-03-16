@@ -41,6 +41,7 @@ func TestSaveAndLoadConfig(t *testing.T) {
 func TestLoadReadsAPITokenFromEnv(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("WRITING_COACH_API_TOKEN", "secret")
+	t.Setenv("WRITING_COACH_KRATOS_PUBLIC_URL", "http://kratos:4433")
 
 	loaded, err := Load(root)
 	if err != nil {
@@ -48,5 +49,8 @@ func TestLoadReadsAPITokenFromEnv(t *testing.T) {
 	}
 	if loaded.APIToken != "secret" {
 		t.Fatalf("api token = %q", loaded.APIToken)
+	}
+	if loaded.KratosPublicURL != "http://kratos:4433" {
+		t.Fatalf("kratos public url = %q", loaded.KratosPublicURL)
 	}
 }
