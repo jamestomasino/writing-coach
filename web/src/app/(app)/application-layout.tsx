@@ -24,10 +24,10 @@ import {
 import { SidebarLayout } from '@/components/sidebar-layout'
 import { getSession } from '@/lib/api'
 import {
+  ArrowPathIcon,
   ArrowRightStartOnRectangleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  LockClosedIcon,
   Cog6ToothIcon,
   ArrowLeftEndOnRectangleIcon,
   UserPlusIcon,
@@ -42,30 +42,61 @@ import {
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' }) {
+function initialsForName(value: string) {
+  const parts = value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (parts.length === 0) {
+    return 'WC'
+  }
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
+function AccountDropdownMenu({
+  anchor,
+  isAdmin,
+  authenticated,
+}: {
+  anchor: 'top start' | 'bottom end'
+  isAdmin: boolean
+  authenticated: boolean | null
+}) {
   return (
     <DropdownMenu className="min-w-64" anchor={anchor}>
-      <DropdownItem href="/tree">
-        <Squares2X2Icon />
-        <DropdownLabel>Skill map</DropdownLabel>
-      </DropdownItem>
-      <DropdownItem href="/progress">
-        <ChartBarSquareIcon />
-        <DropdownLabel>Progress</DropdownLabel>
-      </DropdownItem>
-      <DropdownItem href="/new-assignment">
-        <PencilSquareIcon />
-        <DropdownLabel>New assignment</DropdownLabel>
-      </DropdownItem>
-      <DropdownItem href="/settings">
-        <Cog6ToothIcon />
-        <DropdownLabel>Settings</DropdownLabel>
-      </DropdownItem>
-      <DropdownDivider />
-      <DropdownItem href="/logout">
-        <ArrowRightStartOnRectangleIcon />
-        <DropdownLabel>Sign out</DropdownLabel>
-      </DropdownItem>
+      {authenticated === true ? (
+        <>
+          <DropdownItem href="/settings">
+            <Cog6ToothIcon />
+            <DropdownLabel>Settings</DropdownLabel>
+          </DropdownItem>
+          {isAdmin ? (
+            <DropdownItem href="/admin">
+              <UserGroupIcon />
+              <DropdownLabel>Admin</DropdownLabel>
+            </DropdownItem>
+          ) : null}
+          <DropdownDivider />
+          <DropdownItem href="/logout">
+            <ArrowRightStartOnRectangleIcon />
+            <DropdownLabel>Sign out</DropdownLabel>
+          </DropdownItem>
+        </>
+      ) : (
+        <>
+          <DropdownItem href="/login">
+            <ArrowLeftEndOnRectangleIcon />
+            <DropdownLabel>Sign in</DropdownLabel>
+          </DropdownItem>
+          <DropdownItem href="/register">
+            <UserPlusIcon />
+            <DropdownLabel>Register</DropdownLabel>
+          </DropdownItem>
+        </>
+      )}
     </DropdownMenu>
   )
 }
@@ -74,6 +105,8 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [accountName, setAccountName] = useState('Workshop')
+  const [accountDetail, setAccountDetail] = useState('Scholastic coaching loop')
 
   useEffect(() => {
     let cancelled = false
@@ -83,11 +116,20 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setAuthenticated(session.authenticated)
           setIsAdmin(session.is_admin)
+          if (session.authenticated) {
+            setAccountName(session.identity?.name?.trim() || session.identity?.email?.trim() || 'Account')
+            setAccountDetail(session.identity?.email?.trim() || 'Writing Coach account')
+          } else {
+            setAccountName('Guest')
+            setAccountDetail('Sign in for settings and account actions')
+          }
         }
       } catch {
         if (!cancelled) {
           setAuthenticated(false)
           setIsAdmin(false)
+          setAccountName('Guest')
+          setAccountDetail('Sign in for settings and account actions')
         }
       }
     }
@@ -97,6 +139,8 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const accountInitials = initialsForName(accountName)
+
   return (
     <SidebarLayout
       navbar={
@@ -105,9 +149,9 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
           <NavbarSection>
             <Dropdown>
               <DropdownButton as={NavbarItem}>
-                <Avatar initials="WC" square className="bg-stone-800 text-white" />
+                <Avatar initials={accountInitials} square className="bg-stone-800 text-white" />
               </DropdownButton>
-              <AccountDropdownMenu anchor="bottom end" />
+              <AccountDropdownMenu anchor="bottom end" authenticated={authenticated} isAdmin={isAdmin} />
             </Dropdown>
           </NavbarSection>
         </Navbar>
@@ -115,32 +159,18 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <Dropdown>
-              <DropdownButton as={SidebarItem}>
-                <Avatar initials="WC" className="bg-stone-800 text-white" />
-                <SidebarLabel>Writing Coach</SidebarLabel>
-                <ChevronDownIcon />
-              </DropdownButton>
-              <DropdownMenu className="min-w-80 lg:min-w-64" anchor="bottom start">
-                <DropdownItem href="/progress">
-                  <ChartBarSquareIcon />
-                  <DropdownLabel>Progress board</DropdownLabel>
-                </DropdownItem>
-                {isAdmin ? (
-                  <>
-                    <DropdownDivider />
-                    <DropdownItem href="/admin">
-                      <LockClosedIcon />
-                      <DropdownLabel>Admin</DropdownLabel>
-                    </DropdownItem>
-                  </>
-                ) : null}
-              </DropdownMenu>
-            </Dropdown>
+            <div className="flex items-center gap-3 px-2 py-2">
+              <Avatar initials="WC" className="bg-stone-800 text-white" />
+              <div className="min-w-0">
+                <div className="truncate text-sm/5 font-medium text-zinc-950 dark:text-white">Writing Coach</div>
+                <div className="truncate text-xs/5 text-zinc-500 dark:text-zinc-400">Assignment-first coaching</div>
+              </div>
+            </div>
           </SidebarHeader>
 
           <SidebarBody>
             <SidebarSection>
+              <SidebarHeading>Assignments</SidebarHeading>
               <SidebarItem href="/" current={pathname === '/'}>
                 <HomeIcon />
                 <SidebarLabel>Current assignment</SidebarLabel>
@@ -149,33 +179,19 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 <PencilSquareIcon />
                 <SidebarLabel>New assignment</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
-                <ChartBarSquareIcon />
-                <SidebarLabel>Progress</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
-                <Squares2X2Icon />
-                <SidebarLabel>Skill map</SidebarLabel>
-              </SidebarItem>
-              {isAdmin ? (
-                <SidebarItem href="/admin" current={pathname.startsWith('/admin')}>
-                  <UserGroupIcon />
-                  <SidebarLabel>Admin</SidebarLabel>
-                </SidebarItem>
-              ) : null}
             </SidebarSection>
 
-            <SidebarSection className="max-lg:hidden">
+            <SidebarSection>
               <SidebarHeading>Track</SidebarHeading>
-              <SidebarItem href="/new-assignment">
-                <PencilSquareIcon />
-                <SidebarLabel>Assignment builder</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/progress">
+              <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
                 <ChartBarSquareIcon />
-                <SidebarLabel>Progress board</SidebarLabel>
+                <SidebarLabel>Track progress</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/tree">
+              <SidebarItem href="/onboarding" current={pathname.startsWith('/onboarding')}>
+                <ArrowPathIcon />
+                <SidebarLabel>Change track</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
                 <Squares2X2Icon />
                 <SidebarLabel>Skill map</SidebarLabel>
               </SidebarItem>
@@ -195,31 +211,36 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                     <SidebarLabel>Register</SidebarLabel>
                   </SidebarItem>
                 </>
-              ) : authenticated === true ? (
-                <SidebarItem href="/settings" current={pathname.startsWith('/settings')}>
-                  <Cog6ToothIcon />
-                  <SidebarLabel>Settings</SidebarLabel>
-                </SidebarItem>
               ) : null}
             </SidebarSection>
           </SidebarBody>
 
           <SidebarFooter className="max-lg:hidden">
-            <Dropdown>
-              <DropdownButton as={SidebarItem}>
-                <span className="flex min-w-0 items-center gap-3">
-                  <Avatar initials="WC" className="size-10 bg-stone-800 text-white" square alt="" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">Workshop</span>
-                    <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">
-                      Scholastic coaching loop
+            {authenticated === true ? (
+              <Dropdown>
+                <DropdownButton as={SidebarItem}>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <Avatar initials={accountInitials} className="size-10 bg-stone-800 text-white" square alt={accountName} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">{accountName}</span>
+                      <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">{accountDetail}</span>
                     </span>
                   </span>
+                  <ChevronUpIcon />
+                </DropdownButton>
+                <AccountDropdownMenu anchor="top start" authenticated={authenticated} isAdmin={isAdmin} />
+              </Dropdown>
+            ) : (
+              <SidebarItem href="/login" current={pathname.startsWith('/login')}>
+                <span className="flex min-w-0 items-center gap-3">
+                  <Avatar initials={accountInitials} className="size-10 bg-stone-800 text-white" square alt={accountName} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">{accountName}</span>
+                    <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">{accountDetail}</span>
+                  </span>
                 </span>
-                <ChevronUpIcon />
-              </DropdownButton>
-              <AccountDropdownMenu anchor="top start" />
-            </Dropdown>
+              </SidebarItem>
+            )}
           </SidebarFooter>
         </Sidebar>
       }
