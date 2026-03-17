@@ -121,7 +121,10 @@ export type Dashboard = {
   recurring_weaknesses: string[]
   recurring_findings: string[]
   recurring_completed_slips: string[]
-  history: string[]
+  history: {
+    title: string
+    tgos: string[]
+  }[]
 }
 
 export type Tree = {

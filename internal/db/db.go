@@ -1499,12 +1499,10 @@ func (s *Store) RecurringCompletedTGOSlips(ctx context.Context, userID, treeID i
 
 func (s *Store) History(ctx context.Context, userID, treeID int64) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT e.id, e.title, s.id, r.id, COALESCE(r.next_focus, '')
-		FROM exercises e
-		LEFT JOIN submissions s ON s.exercise_id = e.id AND s.user_id = e.user_id AND s.tree_id = e.tree_id
-		LEFT JOIN reviews r ON r.submission_id = s.id AND r.user_id = e.user_id AND r.tree_id = e.tree_id
-		WHERE e.user_id = ? AND e.tree_id = ?
-		ORDER BY e.id DESC
+		SELECT title, tgo_codes_json
+		FROM exercises
+		WHERE user_id = ? AND tree_id = ?
+		ORDER BY id DESC
 		LIMIT 10
 	`, userID, treeID)
 	if err != nil {
@@ -1515,25 +1513,49 @@ func (s *Store) History(ctx context.Context, userID, treeID int64) ([]string, er
 	var items []string
 	for rows.Next() {
 		var (
-			exerciseID   int64
 			title        string
-			submissionID sql.NullInt64
-			reviewID     sql.NullInt64
-			nextFocus    string
+			tgoCodesJSON string
 		)
 
-		if err := rows.Scan(&exerciseID, &title, &submissionID, &reviewID, &nextFocus); err != nil {
+		if err := rows.Scan(&title, &tgoCodesJSON); err != nil {
 			return nil, err
 		}
 
-		item := fmt.Sprintf("exercise %d: %s", exerciseID, title)
-		if submissionID.Valid {
-			item += fmt.Sprintf(" | submission %d", submissionID.Int64)
+		title = strings.TrimSpace(title)
+		if title == "" {
+			title = "Untitled assignment"
 		}
-		if reviewID.Valid {
-			item += fmt.Sprintf(" | review %d | next focus: %s", reviewID.Int64, nextFocus)
+
+		item := "Assignment: " + title
+		if tgoCodes, err := DecodeStringSlice(tgoCodesJSON); err == nil && len(tgoCodes) > 0 {
+			item += " | " + strings.Join(tgoCodes, ", ")
 		}
 		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}
+
+func (s *Store) HistoryItems(ctx context.Context, userID, treeID int64) ([]domain.Exercise, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, COALESCE(source_submission_id, 0), created_at
+		FROM exercises
+		WHERE user_id = ? AND tree_id = ?
+		ORDER BY id DESC
+		LIMIT 10
+	`, userID, treeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Exercise
+	for rows.Next() {
+		exercise, err := scanExercise(rows)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, exercise)
 	}
 
 	return items, rows.Err()

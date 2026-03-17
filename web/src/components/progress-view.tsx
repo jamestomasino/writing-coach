@@ -316,10 +316,17 @@ export function ProgressView() {
           <ol className="mt-6 space-y-4">
             {history.length === 0 ? <li className="text-sm text-zinc-600 dark:text-zinc-300">No recent history yet.</li> : null}
             {history.map((item, index) => (
-              <li key={`${item}-${index}`} className="relative pl-6">
+              <li key={`${item.title}-${index}`} className="relative pl-6">
                 <span className="absolute left-0 top-1.5 size-2 rounded-full bg-stone-800 dark:bg-stone-200" />
-                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
-                  {item}
+                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">Assignment: {item.title}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {item.tgos.map((tgo) => (
+                      <Badge key={tgo} color="zinc">
+                        {tgo}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </li>
             ))}

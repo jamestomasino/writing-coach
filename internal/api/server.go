@@ -203,6 +203,11 @@ type curriculumStateResponse struct {
 	UpdatedAt       string `json:"updated_at"`
 }
 
+type historyItemResponse struct {
+	Title string   `json:"title"`
+	TGOs  []string `json:"tgos,omitempty"`
+}
+
 type tgoResponse struct {
 	ID             int64    `json:"id"`
 	Code           string   `json:"code"`
@@ -1693,7 +1698,7 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	history, err := s.Store.History(ctx, appContext.UserID, appContext.TreeID)
+	recentExercises, err := s.Store.HistoryItems(ctx, appContext.UserID, appContext.TreeID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -1732,7 +1737,7 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		"recurring_weaknesses":      recurringWeaknesses,
 		"recurring_findings":        recurringFindings,
 		"recurring_completed_slips": recurringSlips,
-		"history":                   history,
+		"history":                   toHistoryResponses(recentExercises),
 	})
 }
 
@@ -2160,6 +2165,29 @@ func toTGOResponses(tgos []domain.TGO) []tgoResponse {
 		})
 	}
 	return out
+}
+
+func toHistoryResponses(exercises []domain.Exercise) []historyItemResponse {
+	items := make([]historyItemResponse, 0, len(exercises))
+	for _, exercise := range exercises {
+		item := historyItemResponse{
+			Title: strings.TrimSpace(exercise.Title),
+		}
+		if item.Title == "" {
+			item.Title = "Untitled assignment"
+		}
+		for _, code := range exercise.TGOCodes {
+			if tgo, ok := domain.TGOByCode(code); ok {
+				item.TGOs = append(item.TGOs, tgo.Title)
+				continue
+			}
+			if value := strings.TrimSpace(code); value != "" {
+				item.TGOs = append(item.TGOs, value)
+			}
+		}
+		items = append(items, item)
+	}
+	return items
 }
 
 func focusSkillsForTGOs(tgos []domain.TGO, fallback []string) []string {
