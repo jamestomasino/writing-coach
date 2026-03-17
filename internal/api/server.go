@@ -135,6 +135,9 @@ type onboardingResponse struct {
 
 type onboardingProfileResponse struct {
 	WritingType         string   `json:"writing_type"`
+	AssignmentFormat    string   `json:"assignment_format"`
+	TargetAudience      string   `json:"target_audience"`
+	SubjectMatter       string   `json:"subject_matter"`
 	ExperienceLevel     string   `json:"experience_level"`
 	DesiredTone         string   `json:"desired_tone"`
 	BiggestWeaknesses   []string `json:"biggest_weaknesses"`
@@ -424,6 +427,9 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 	}
 	var payload struct {
 		WritingType         string   `json:"writing_type"`
+		AssignmentFormat    string   `json:"assignment_format"`
+		TargetAudience      string   `json:"target_audience"`
+		SubjectMatter       string   `json:"subject_matter"`
 		ExperienceLevel     string   `json:"experience_level"`
 		DesiredTone         string   `json:"desired_tone"`
 		BiggestWeaknesses   []string `json:"biggest_weaknesses"`
@@ -438,6 +444,9 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 	profile := domain.OnboardingProfile{
 		UserID:              appContext.UserID,
 		WritingType:         strings.TrimSpace(payload.WritingType),
+		AssignmentFormat:    strings.TrimSpace(payload.AssignmentFormat),
+		TargetAudience:      strings.TrimSpace(payload.TargetAudience),
+		SubjectMatter:       strings.TrimSpace(payload.SubjectMatter),
 		ExperienceLevel:     strings.TrimSpace(payload.ExperienceLevel),
 		DesiredTone:         strings.TrimSpace(payload.DesiredTone),
 		BiggestWeaknesses:   sanitizeStringList(payload.BiggestWeaknesses),
@@ -2034,6 +2043,9 @@ func toUserResponses(users []domain.User) []userResponse {
 func toOnboardingProfileResponse(profile domain.OnboardingProfile) *onboardingProfileResponse {
 	return &onboardingProfileResponse{
 		WritingType:         profile.WritingType,
+		AssignmentFormat:    profile.AssignmentFormat,
+		TargetAudience:      profile.TargetAudience,
+		SubjectMatter:       profile.SubjectMatter,
 		ExperienceLevel:     profile.ExperienceLevel,
 		DesiredTone:         profile.DesiredTone,
 		BiggestWeaknesses:   append([]string(nil), profile.BiggestWeaknesses...),

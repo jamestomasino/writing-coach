@@ -9,6 +9,9 @@ import (
 type OnboardingProfile struct {
 	UserID              int64
 	WritingType         string
+	AssignmentFormat    string
+	TargetAudience      string
+	SubjectMatter       string
 	ExperienceLevel     string
 	DesiredTone         string
 	BiggestWeaknesses   []string
@@ -21,6 +24,9 @@ type OnboardingProfile struct {
 
 func (p OnboardingProfile) Complete() bool {
 	return strings.TrimSpace(p.WritingType) != "" &&
+		strings.TrimSpace(p.AssignmentFormat) != "" &&
+		strings.TrimSpace(p.TargetAudience) != "" &&
+		strings.TrimSpace(p.SubjectMatter) != "" &&
 		strings.TrimSpace(p.ExperienceLevel) != "" &&
 		strings.TrimSpace(p.DesiredTone) != "" &&
 		len(p.BiggestWeaknesses) > 0 &&
@@ -68,6 +74,15 @@ func CoachingBrief(profile OnboardingProfile) string {
 	parts := []string{}
 	if value := strings.TrimSpace(profile.WritingType); value != "" {
 		parts = append(parts, "writing type: "+value)
+	}
+	if value := strings.TrimSpace(profile.AssignmentFormat); value != "" {
+		parts = append(parts, "format: "+value)
+	}
+	if value := strings.TrimSpace(profile.TargetAudience); value != "" {
+		parts = append(parts, "audience: "+value)
+	}
+	if value := strings.TrimSpace(profile.SubjectMatter); value != "" {
+		parts = append(parts, "subject matter: "+value)
 	}
 	if value := strings.TrimSpace(profile.DesiredTone); value != "" {
 		parts = append(parts, "tone: "+value)

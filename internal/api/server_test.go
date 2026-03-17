@@ -473,6 +473,9 @@ func TestOnboardingCreatesAndActivatesGeneratedTrack(t *testing.T) {
 		"application/json",
 		strings.NewReader(`{
 			"writing_type":"thought leadership",
+			"assignment_format":"blog post",
+			"target_audience":"startup founders",
+			"subject_matter":"AI product strategy",
 			"experience_level":"intermediate",
 			"desired_tone":"analytical and decisive",
 			"biggest_weaknesses":["sentence economy","claim clarity"],
@@ -504,6 +507,9 @@ func TestOnboardingCreatesAndActivatesGeneratedTrack(t *testing.T) {
 	}
 	expectedTree := domain.GenerateTreeDefinition("tester", "Tester", domain.OnboardingProfile{
 		WritingType:         "thought leadership",
+		AssignmentFormat:    "blog post",
+		TargetAudience:      "startup founders",
+		SubjectMatter:       "AI product strategy",
 		ExperienceLevel:     "intermediate",
 		DesiredTone:         "analytical and decisive",
 		BiggestWeaknesses:   []string{"sentence economy", "claim clarity"},

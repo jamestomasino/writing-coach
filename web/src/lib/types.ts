@@ -144,6 +144,9 @@ export type UserRecord = {
 
 export type OnboardingProfile = {
   writing_type: string
+  assignment_format: string
+  target_audience: string
+  subject_matter: string
   experience_level: string
   desired_tone: string
   biggest_weaknesses: string[]

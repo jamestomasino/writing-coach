@@ -35,12 +35,28 @@ const outcomeOptions = [
   'write thought leadership with authority',
 ]
 
+const assignmentFormatOptions = [
+  'scene',
+  'short story',
+  'blog post',
+  'op-ed',
+  'memo',
+  'email',
+  'landing page',
+  'product announcement',
+  'essay',
+  'how-to guide',
+]
+
 export function OnboardingView() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [existingProfile, setExistingProfile] = useState(false)
   const [writingType, setWritingType] = useState('fiction')
+  const [assignmentFormat, setAssignmentFormat] = useState('scene')
+  const [targetAudience, setTargetAudience] = useState('')
+  const [subjectMatter, setSubjectMatter] = useState('')
   const [experienceLevel, setExperienceLevel] = useState('intermediate')
   const [desiredTone, setDesiredTone] = useState('')
   const [difficultyIntensity, setDifficultyIntensity] = useState('steady')
@@ -59,6 +75,9 @@ export function OnboardingView() {
         }
         if (onboarding.profile) {
           setWritingType(onboarding.profile.writing_type)
+          setAssignmentFormat(onboarding.profile.assignment_format)
+          setTargetAudience(onboarding.profile.target_audience)
+          setSubjectMatter(onboarding.profile.subject_matter)
           setExperienceLevel(onboarding.profile.experience_level)
           setDesiredTone(onboarding.profile.desired_tone)
           setDifficultyIntensity(onboarding.profile.difficulty_intensity)
@@ -98,6 +117,9 @@ export function OnboardingView() {
       setError(null)
       await saveOnboarding({
         writing_type: writingType,
+        assignment_format: assignmentFormat,
+        target_audience: targetAudience,
+        subject_matter: subjectMatter,
         experience_level: experienceLevel,
         desired_tone: desiredTone,
         biggest_weaknesses: weaknesses,
@@ -143,12 +165,25 @@ export function OnboardingView() {
         <form className="space-y-8" onSubmit={handleSubmit}>
           <FieldGroup>
             <Field>
-              <Label>Writing type</Label>
+              <Label>Primary writing domain</Label>
               <Select value={writingType} onChange={(event) => setWritingType(event.target.value)}>
                 <option value="fiction">Fiction</option>
                 <option value="thought leadership">Thought leadership</option>
                 <option value="professional">Professional writing</option>
+                <option value="academic">Academic writing</option>
+                <option value="marketing">Marketing writing</option>
+                <option value="memoir">Memoir / personal narrative</option>
                 <option value="other">Other</option>
+              </Select>
+            </Field>
+            <Field>
+              <Label>Common assignment format</Label>
+              <Select value={assignmentFormat} onChange={(event) => setAssignmentFormat(event.target.value)}>
+                {assignmentFormatOptions.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
               </Select>
             </Field>
             <Field>
@@ -169,8 +204,27 @@ export function OnboardingView() {
             </Field>
           </FieldGroup>
 
+          <FieldGroup>
+            <Field>
+              <Label>Target audience</Label>
+              <Input
+                value={targetAudience}
+                onChange={(event) => setTargetAudience(event.target.value)}
+                placeholder="Startup founders, fantasy readers, engineering teams, general readers…"
+              />
+            </Field>
+            <Field>
+              <Label>Typical subject matter</Label>
+              <Input
+                value={subjectMatter}
+                onChange={(event) => setSubjectMatter(event.target.value)}
+                placeholder="Developer tools, mythic conflict, grief and family, product launches…"
+              />
+            </Field>
+          </FieldGroup>
+
           <Field>
-            <Label>Desired tone or style</Label>
+            <Label>Tone target</Label>
             <Input value={desiredTone} onChange={(event) => setDesiredTone(event.target.value)} placeholder="Mythic and grave, practical and concise, analytical and decisive…" />
           </Field>
 

@@ -505,12 +505,15 @@ func (s *Store) OnboardingProfileByUserID(ctx context.Context, userID int64) (do
 	var profile domain.OnboardingProfile
 	var weaknessesJSON, outcomesJSON string
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT user_id, writing_type, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json, difficulty_intensity, writing_goals, generated_tree_slug, template_key
+		SELECT user_id, writing_type, assignment_format, target_audience, subject_matter, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json, difficulty_intensity, writing_goals, generated_tree_slug, template_key
 		FROM user_onboarding_profiles
 		WHERE user_id = ?
 	`, userID).Scan(
 		&profile.UserID,
 		&profile.WritingType,
+		&profile.AssignmentFormat,
+		&profile.TargetAudience,
+		&profile.SubjectMatter,
 		&profile.ExperienceLevel,
 		&profile.DesiredTone,
 		&weaknessesJSON,
@@ -535,11 +538,14 @@ func (s *Store) OnboardingProfileByUserID(ctx context.Context, userID int64) (do
 func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.OnboardingProfile) error {
 	_, err := s.SQL.ExecContext(ctx, `
 		INSERT INTO user_onboarding_profiles (
-			user_id, writing_type, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json,
+			user_id, writing_type, assignment_format, target_audience, subject_matter, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json,
 			difficulty_intensity, writing_goals, generated_tree_slug, template_key, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(user_id) DO UPDATE SET
 			writing_type = excluded.writing_type,
+			assignment_format = excluded.assignment_format,
+			target_audience = excluded.target_audience,
+			subject_matter = excluded.subject_matter,
 			experience_level = excluded.experience_level,
 			desired_tone = excluded.desired_tone,
 			biggest_weaknesses_json = excluded.biggest_weaknesses_json,
@@ -549,7 +555,7 @@ func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.Onboar
 			generated_tree_slug = excluded.generated_tree_slug,
 			template_key = excluded.template_key,
 			updated_at = CURRENT_TIMESTAMP
-	`, profile.UserID, profile.WritingType, profile.ExperienceLevel, profile.DesiredTone, mustJSON(profile.BiggestWeaknesses), mustJSON(profile.DesiredOutcomes), profile.DifficultyIntensity, profile.WritingGoals, profile.GeneratedTreeSlug, profile.TemplateKey)
+	`, profile.UserID, profile.WritingType, profile.AssignmentFormat, profile.TargetAudience, profile.SubjectMatter, profile.ExperienceLevel, profile.DesiredTone, mustJSON(profile.BiggestWeaknesses), mustJSON(profile.DesiredOutcomes), profile.DifficultyIntensity, profile.WritingGoals, profile.GeneratedTreeSlug, profile.TemplateKey)
 	return err
 }
 

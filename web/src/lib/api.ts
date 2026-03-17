@@ -169,6 +169,9 @@ export async function provisionUser(input: { slug: string; name: string }) {
 
 export function saveOnboarding(input: {
   writing_type: string
+  assignment_format: string
+  target_audience: string
+  subject_matter: string
   experience_level: string
   desired_tone: string
   biggest_weaknesses: string[]
