@@ -60,12 +60,21 @@ export function ProgressView() {
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [tree, setTree] = useState<Tree | null>(null)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
         const session = await getSession()
+        if (!session.onboarding_complete) {
+          if (!cancelled) {
+            setNeedsOnboarding(true)
+            setDashboard(null)
+            setTree(null)
+          }
+          return
+        }
         const state = await getDashboard()
         let treeData: Tree | null = null
         if (session.active_tree_slug) {
@@ -100,6 +109,16 @@ export function ProgressView() {
 
   if (loading) {
     return <LoadingState label="Loading progress board…" />
+  }
+  if (needsOnboarding) {
+    return (
+      <EmptyState
+        title="Build your starter path first"
+        body="Progress becomes meaningful once your skill map has been created. Start by setting your writing goals and recommended opening skills."
+        actionHref="/onboarding"
+        actionLabel="Set starter path"
+      />
+    )
   }
   if (error || !dashboard) {
     return <EmptyState title="Progress unavailable" body={error ?? 'Could not load progress board.'} actionHref="/" actionLabel="Back to assignment" />

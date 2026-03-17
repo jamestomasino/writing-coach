@@ -6,14 +6,15 @@ import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
 import { Input } from '@/components/input'
 import { Text } from '@/components/text'
-import { listAdmins, listUsers, provisionUser } from '@/lib/api'
-import type { UserRecord } from '@/lib/types'
+import { getSession, listAdmins, listUsers, provisionUser } from '@/lib/api'
+import type { AuthSession, UserRecord } from '@/lib/types'
 import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function AdminView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [session, setSession] = useState<AuthSession | null>(null)
   const [admins, setAdmins] = useState<string[]>([])
   const [users, setUsers] = useState<UserRecord[]>([])
   const [slug, setSlug] = useState('')
@@ -24,6 +25,13 @@ export function AdminView() {
     let cancelled = false
     async function load() {
       try {
+        const sessionData = await getSession()
+        if (!cancelled) {
+          setSession(sessionData)
+        }
+        if (!sessionData.is_admin) {
+          return
+        }
         const [adminData, userData] = await Promise.all([listAdmins(), listUsers()])
         if (!cancelled) {
           setAdmins(adminData.admins)
@@ -63,6 +71,16 @@ export function AdminView() {
 
   if (loading) {
     return <LoadingState label="Loading admin workspace…" />
+  }
+  if (!session?.is_admin) {
+    return (
+      <EmptyState
+        title="Admin workspace unavailable"
+        body="Admin access required."
+        actionHref="/"
+        actionLabel="Back to assignment"
+      />
+    )
   }
   if (error && users.length === 0) {
     return <EmptyState title="Admin workspace unavailable" body={error} actionHref="/" actionLabel="Back to assignment" />
