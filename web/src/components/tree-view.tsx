@@ -110,12 +110,16 @@ export function TreeView() {
     if (!tree || !dashboard) {
       return []
     }
-    const active = new Set(dashboard.active_tgos.map((tgo) => tgo.code))
-    const completed = new Set(dashboard.completed_tgos.map((tgo) => tgo.code))
-    const unlocked = new Set(dashboard.upcoming_tgos.map((tgo) => tgo.code))
+    const treeTGOs = tree.tgos ?? []
+    const activeTGOs = dashboard.active_tgos ?? []
+    const completedTGOs = dashboard.completed_tgos ?? []
+    const upcomingTGOs = dashboard.upcoming_tgos ?? []
+    const active = new Set(activeTGOs.map((tgo) => tgo.code))
+    const completed = new Set(completedTGOs.map((tgo) => tgo.code))
+    const unlocked = new Set(upcomingTGOs.map((tgo) => tgo.code))
     const groups = new Map<string, { order: number; title: string; items: TreeNode[] }>()
 
-    for (const tgo of tree.tgos) {
+    for (const tgo of treeTGOs) {
       const status: TreeNodeStatus = active.has(tgo.code)
         ? 'active'
         : completed.has(tgo.code)
@@ -163,6 +167,10 @@ export function TreeView() {
   }
 
   const profile = onboarding.profile
+  const activeTGOs = dashboard.active_tgos ?? []
+  const completedTGOs = dashboard.completed_tgos ?? []
+  const upcomingTGOs = dashboard.upcoming_tgos ?? []
+  const prioritySkills = tree.priority_skills ?? []
 
   return (
     <div className="space-y-8">
@@ -186,23 +194,23 @@ export function TreeView() {
         <WorkspaceCard>
           <div className="flex items-center justify-between gap-4">
             <Subheading>Current track state</Subheading>
-            <Badge color="zinc">{dashboard.completed_tgos.length} mastered</Badge>
+            <Badge color="zinc">{completedTGOs.length} mastered</Badge>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">Active now</div>
-              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{dashboard.active_tgos.length}</div>
+              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{activeTGOs.length}</div>
               <Text className="mt-1 text-sm">These three skills drive the current assignment review.</Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">Unlocked next</div>
-              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{dashboard.upcoming_tgos.length}</div>
+              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{upcomingTGOs.length}</div>
               <Text className="mt-1 text-sm">These are eligible choices for the next assignment cycle.</Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">Priority skills</div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {tree.priority_skills.slice(0, 3).map((skill) => (
+                {prioritySkills.slice(0, 3).map((skill) => (
                   <Badge key={skill} color="amber">
                     {skill}
                   </Badge>
@@ -294,7 +302,7 @@ export function TreeView() {
           <WorkspaceCard>
             <Subheading>Active skills</Subheading>
             <div className="mt-4 space-y-3">
-              {dashboard.active_tgos.map((tgo) => (
+              {activeTGOs.map((tgo) => (
                 <div key={tgo.code} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/20 dark:bg-blue-500/10">
                   <div className="flex items-center gap-2 text-sm font-semibold text-blue-900 dark:text-blue-200">
                     <SparklesIcon className="size-4" />
@@ -325,8 +333,8 @@ export function TreeView() {
           <WorkspaceCard>
             <Subheading>Mastered skills</Subheading>
             <div className="mt-4 space-y-3">
-              {dashboard.completed_tgos.length === 0 ? <Text>No mastered skills yet.</Text> : null}
-              {dashboard.completed_tgos.map((tgo) => (
+              {completedTGOs.length === 0 ? <Text>No mastered skills yet.</Text> : null}
+              {completedTGOs.map((tgo) => (
                 <div key={tgo.code} className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-500/20 dark:bg-green-500/10">
                   <div className="flex items-center gap-2 text-sm font-semibold text-green-900 dark:text-green-200">
                     <CheckBadgeIcon className="size-4" />

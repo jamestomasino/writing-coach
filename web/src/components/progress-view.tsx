@@ -20,7 +20,7 @@ function rankWidth(index: number, total: number) {
   if (total <= 1) {
     return '100%'
   }
-  const step = 42 / Math.max(total-1, 1)
+  const step = 42 / Math.max(total - 1, 1)
   return `${Math.max(58, Math.round(100 - index * step))}%`
 }
 
@@ -30,7 +30,7 @@ function stageTitle(stage: string) {
 
 function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: Set<string>) {
   const groups = new Map<string, { label: string; total: number; completed: number; active: number }>()
-  for (const tgo of tree.tgos) {
+  for (const tgo of tree.tgos ?? []) {
     const key = `${tgo.stage_order}:${tgo.stage}`
     if (!groups.has(key)) {
       groups.set(key, {
@@ -100,10 +100,10 @@ export function ProgressView() {
     }
   }, [])
 
-  const completedCodes = useMemo(() => new Set(dashboard?.completed_tgos.map((tgo) => tgo.code) ?? []), [dashboard])
-  const activeCodes = useMemo(() => new Set(dashboard?.active_tgos.map((tgo) => tgo.code) ?? []), [dashboard])
-  const totalSkills = tree?.tgos.length ?? dashboard?.completed_tgos.length ?? 0
-  const completedCount = dashboard?.completed_tgos.length ?? 0
+  const completedCodes = useMemo(() => new Set((dashboard?.completed_tgos ?? []).map((tgo) => tgo.code)), [dashboard])
+  const activeCodes = useMemo(() => new Set((dashboard?.active_tgos ?? []).map((tgo) => tgo.code)), [dashboard])
+  const totalSkills = (tree?.tgos ?? []).length || (dashboard?.completed_tgos ?? []).length
+  const completedCount = (dashboard?.completed_tgos ?? []).length
   const completionRatio = totalSkills > 0 ? Math.round((completedCount / totalSkills) * 100) : 0
   const stages = useMemo(() => (tree ? stageCompletion(tree, completedCodes, activeCodes) : []), [activeCodes, completedCodes, tree])
 
@@ -124,6 +124,17 @@ export function ProgressView() {
     return <EmptyState title="Progress unavailable" body={error ?? 'Could not load progress board.'} actionHref="/" actionLabel="Back to assignment" />
   }
 
+  const activeTGOs = dashboard.active_tgos ?? []
+  const completedTGOs = dashboard.completed_tgos ?? []
+  const upcomingTGOs = dashboard.upcoming_tgos ?? []
+  const strongestSkills = dashboard.strongest_skills ?? []
+  const weakestSkills = dashboard.weakest_skills ?? []
+  const history = dashboard.history ?? []
+  const recurringWeaknesses = dashboard.recurring_weaknesses ?? []
+  const recurringFindings = dashboard.recurring_findings ?? []
+  const recurringCompletedSlips = dashboard.recurring_completed_slips ?? []
+  const prioritySkills = tree?.priority_skills ?? []
+
   return (
     <div className="space-y-8">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -134,7 +145,7 @@ export function ProgressView() {
           </Text>
         </div>
         <div className="flex flex-wrap gap-2">
-          {tree?.priority_skills.slice(0, 3).map((skill) => (
+          {prioritySkills.slice(0, 3).map((skill) => (
             <Badge key={skill} color="amber">
               {skill}
             </Badge>
@@ -157,9 +168,9 @@ export function ProgressView() {
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-300">
               <span>{completedCount} completed</span>
-              <span>{dashboard.active_tgos.length} active</span>
-              <span>{dashboard.upcoming_tgos.length} unlocked next</span>
-              <span>{Math.max(totalSkills - completedCount - dashboard.active_tgos.length, 0)} still ahead</span>
+              <span>{activeTGOs.length} active</span>
+              <span>{upcomingTGOs.length} unlocked next</span>
+              <span>{Math.max(totalSkills - completedCount - activeTGOs.length, 0)} still ahead</span>
             </div>
           </div>
           {stages.length > 0 ? (
@@ -194,7 +205,7 @@ export function ProgressView() {
                 Active skills
               </div>
               <div className="mt-3 space-y-3">
-                {dashboard.active_tgos.map((tgo) => (
+                {activeTGOs.map((tgo) => (
                   <div key={tgo.code} className="rounded-xl border border-blue-200/80 bg-white/70 px-3 py-3 dark:border-blue-400/20 dark:bg-black/10">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
@@ -226,7 +237,7 @@ export function ProgressView() {
                 Mastered skills
               </div>
               <Text className="mt-2 text-sm">
-                {dashboard.completed_tgos.length === 0 ? 'No skills have been mastered yet.' : `${dashboard.completed_tgos.length} skills have been marked mastered.`}
+                {completedTGOs.length === 0 ? 'No skills have been mastered yet.' : `${completedTGOs.length} skills have been marked mastered.`}
               </Text>
             </div>
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
@@ -235,9 +246,9 @@ export function ProgressView() {
                 Regression watch
               </div>
               <Text className="mt-2 text-sm">
-                {dashboard.recurring_completed_slips.length === 0
+                {recurringCompletedSlips.length === 0
                   ? 'No mastered-skill regressions are currently being flagged.'
-                  : `${dashboard.recurring_completed_slips.length} maintenance issues need attention.`}
+                  : `${recurringCompletedSlips.length} maintenance issues need attention.`}
               </Text>
             </div>
           </div>
@@ -255,14 +266,14 @@ export function ProgressView() {
                 Strongest
               </div>
               <div className="space-y-3">
-                {dashboard.strongest_skills.map((item, index) => (
+                {strongestSkills.map((item, index) => (
                   <div key={item}>
                     <div className="mb-1 flex items-center justify-between gap-4 text-sm">
                       <span className="text-zinc-900 dark:text-white">{item}</span>
                       <span className="text-zinc-500 dark:text-zinc-400">signal</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
-                      <div className="h-2 rounded-full bg-green-600" style={{ width: rankWidth(index, dashboard.strongest_skills.length) }} />
+                      <div className="h-2 rounded-full bg-green-600" style={{ width: rankWidth(index, strongestSkills.length) }} />
                     </div>
                   </div>
                 ))}
@@ -274,14 +285,14 @@ export function ProgressView() {
                 Weakest
               </div>
               <div className="space-y-3">
-                {dashboard.weakest_skills.map((item, index) => (
+                {weakestSkills.map((item, index) => (
                   <div key={item}>
                     <div className="mb-1 flex items-center justify-between gap-4 text-sm">
                       <span className="text-zinc-900 dark:text-white">{item}</span>
                       <span className="text-zinc-500 dark:text-zinc-400">attention</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
-                      <div className="h-2 rounded-full bg-amber-600" style={{ width: rankWidth(index, dashboard.weakest_skills.length) }} />
+                      <div className="h-2 rounded-full bg-amber-600" style={{ width: rankWidth(index, weakestSkills.length) }} />
                     </div>
                   </div>
                 ))}
@@ -294,8 +305,8 @@ export function ProgressView() {
           <Subheading>Recent activity timeline</Subheading>
           <Text className="mt-2">This compresses the recent coaching loop into a readable sequence so you can see what the system has emphasized lately.</Text>
           <ol className="mt-6 space-y-4">
-            {dashboard.history.length === 0 ? <li className="text-sm text-zinc-600 dark:text-zinc-300">No recent history yet.</li> : null}
-            {dashboard.history.map((item, index) => (
+            {history.length === 0 ? <li className="text-sm text-zinc-600 dark:text-zinc-300">No recent history yet.</li> : null}
+            {history.map((item, index) => (
               <li key={`${item}-${index}`} className="relative pl-6">
                 <span className="absolute left-0 top-1.5 size-2 rounded-full bg-stone-800 dark:bg-stone-200" />
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
@@ -311,8 +322,8 @@ export function ProgressView() {
         <WorkspaceCard>
           <Subheading>Unlocked next</Subheading>
           <div className="mt-4 flex flex-wrap gap-2">
-            {dashboard.upcoming_tgos.length === 0 ? <Text>No new skill unlocks yet.</Text> : null}
-            {dashboard.upcoming_tgos.map((tgo) => (
+            {upcomingTGOs.length === 0 ? <Text>No new skill unlocks yet.</Text> : null}
+            {upcomingTGOs.map((tgo) => (
               <Badge key={tgo.code} color="amber">
                 {tgo.title}
               </Badge>
@@ -322,8 +333,8 @@ export function ProgressView() {
         <WorkspaceCard>
           <Subheading>Recurring weaknesses</Subheading>
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-            {dashboard.recurring_weaknesses.length === 0 ? <li>No repeating weaknesses have been detected yet.</li> : null}
-            {dashboard.recurring_weaknesses.map((item) => (
+            {recurringWeaknesses.length === 0 ? <li>No repeating weaknesses have been detected yet.</li> : null}
+            {recurringWeaknesses.map((item) => (
               <li key={item}>• {item}</li>
             ))}
           </ul>
@@ -331,8 +342,8 @@ export function ProgressView() {
         <WorkspaceCard>
           <Subheading>Analyzer trends</Subheading>
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-            {dashboard.recurring_findings.length === 0 ? <li>No repeated analyzer findings yet.</li> : null}
-            {dashboard.recurring_findings.map((item) => (
+            {recurringFindings.length === 0 ? <li>No repeated analyzer findings yet.</li> : null}
+            {recurringFindings.map((item) => (
               <li key={item}>• {item}</li>
             ))}
           </ul>

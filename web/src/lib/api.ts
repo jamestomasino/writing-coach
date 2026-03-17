@@ -4,6 +4,38 @@ import type { AuthSession, Comparison, Dashboard, Exercise, OnboardingState, Rev
 
 type ErrorBody = { error?: string }
 
+function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : []
+}
+
+function normalizeDashboard(payload: Dashboard): Dashboard {
+  return {
+    ...payload,
+    active_tgos: arrayOrEmpty(payload.active_tgos),
+    completed_tgos: arrayOrEmpty(payload.completed_tgos),
+    upcoming_tgos: arrayOrEmpty(payload.upcoming_tgos),
+    progress_lines: arrayOrEmpty(payload.progress_lines),
+    strongest_skills: arrayOrEmpty(payload.strongest_skills),
+    weakest_skills: arrayOrEmpty(payload.weakest_skills),
+    recurring_weaknesses: arrayOrEmpty(payload.recurring_weaknesses),
+    recurring_findings: arrayOrEmpty(payload.recurring_findings),
+    recurring_completed_slips: arrayOrEmpty(payload.recurring_completed_slips),
+    history: arrayOrEmpty(payload.history),
+  }
+}
+
+function normalizeTree(tree: Tree): Tree {
+  return {
+    ...tree,
+    seed_codes: arrayOrEmpty(tree.seed_codes),
+    priority_skills: arrayOrEmpty(tree.priority_skills),
+    tgos: arrayOrEmpty(tree.tgos).map((tgo) => ({
+      ...tgo,
+      prerequisites: arrayOrEmpty(tgo.prerequisites),
+    })),
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -35,12 +67,12 @@ export function getOnboarding() {
 }
 
 export function getDashboard() {
-  return request<Dashboard>('/api/dashboard')
+  return request<Dashboard>('/api/dashboard').then(normalizeDashboard)
 }
 
 export async function getTree(slug: string) {
   const payload = await request<{ tree: Tree }>(`/api/trees/${slug}`)
-  return payload.tree
+  return normalizeTree(payload.tree)
 }
 
 export async function getExercises(limit = 10) {
