@@ -53,13 +53,13 @@ export function OnboardingView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [existingProfile, setExistingProfile] = useState(false)
-  const [writingType, setWritingType] = useState('fiction')
-  const [assignmentFormat, setAssignmentFormat] = useState('scene')
+  const [writingType, setWritingType] = useState('')
+  const [assignmentFormat, setAssignmentFormat] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
   const [subjectMatter, setSubjectMatter] = useState('')
-  const [experienceLevel, setExperienceLevel] = useState('intermediate')
+  const [experienceLevel, setExperienceLevel] = useState('')
   const [desiredTone, setDesiredTone] = useState('')
-  const [difficultyIntensity, setDifficultyIntensity] = useState('steady')
+  const [difficultyIntensity, setDifficultyIntensity] = useState('')
   const [writingGoals, setWritingGoals] = useState('')
   const [weaknesses, setWeaknesses] = useState<string[]>([])
   const [outcomes, setOutcomes] = useState<string[]>([])
@@ -167,6 +167,9 @@ export function OnboardingView() {
             <Field>
               <Label>Primary writing domain</Label>
               <Select value={writingType} onChange={(event) => setWritingType(event.target.value)}>
+                <option value="" disabled>
+                  Choose a writing domain
+                </option>
                 <option value="fiction">Fiction</option>
                 <option value="thought leadership">Thought leadership</option>
                 <option value="professional">Professional writing</option>
@@ -179,6 +182,9 @@ export function OnboardingView() {
             <Field>
               <Label>Common assignment format</Label>
               <Select value={assignmentFormat} onChange={(event) => setAssignmentFormat(event.target.value)}>
+                <option value="" disabled>
+                  Choose an assignment format
+                </option>
                 {assignmentFormatOptions.map((item) => (
                   <option key={item} value={item}>
                     {item}
@@ -189,6 +195,9 @@ export function OnboardingView() {
             <Field>
               <Label>Experience level</Label>
               <Select value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value)}>
+                <option value="" disabled>
+                  Choose an experience level
+                </option>
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
@@ -197,6 +206,9 @@ export function OnboardingView() {
             <Field>
               <Label>Difficulty and intensity</Label>
               <Select value={difficultyIntensity} onChange={(event) => setDifficultyIntensity(event.target.value)}>
+                <option value="" disabled>
+                  Choose a pace
+                </option>
                 <option value="steady">Steady</option>
                 <option value="ambitious">Ambitious</option>
                 <option value="gentle">Gentle</option>
