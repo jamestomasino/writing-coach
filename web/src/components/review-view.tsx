@@ -8,7 +8,7 @@ import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { createRevisionAssignment, getExercise, getReview, getSubmission } from '@/lib/api'
 import type { Exercise, Review, Submission } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function ReviewView({ reviewId }: { reviewId: number }) {
@@ -17,6 +17,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
   const [review, setReview] = useState<Review | null>(null)
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  const [preparingRevision, setPreparingRevision] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -51,10 +52,14 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       return
     }
     try {
+      setPreparingRevision(true)
+      setError(null)
       const revisionExercise = await createRevisionAssignment(submission.id)
       window.location.href = `/?revisionExercise=${revisionExercise.id}`
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create revision prompt')
+    } finally {
+      setPreparingRevision(false)
     }
   }
 
@@ -73,14 +78,26 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <Text className="mt-2 max-w-3xl">{review.summary}</Text>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleRevisionPrompt} color="dark/zinc">
-            Revise this draft
+          <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
+            {preparingRevision ? 'Preparing revision brief…' : 'Revise this draft'}
           </Button>
           <Button href="/" outline>
             Accept and move on
           </Button>
         </div>
       </header>
+
+      {preparingRevision ? (
+        <TaskProgressState
+          title="Revision brief in progress"
+          body="The app is translating this review into a focused revision brief."
+          steps={[
+            'Load the reviewed draft and coaching artifacts.',
+            'Select the most urgent revision targets.',
+            'Build the next revision assignment around those targets.',
+          ]}
+        />
+      ) : null}
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>

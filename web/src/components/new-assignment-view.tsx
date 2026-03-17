@@ -7,7 +7,7 @@ import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { createAssignment, getDashboard, getSession } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function NewAssignmentView() {
@@ -140,11 +140,12 @@ export function NewAssignmentView() {
                 key={tgo.code}
                 type="button"
                 onClick={() => toggle(tgo.code)}
+                disabled={generating}
                 className={`rounded-2xl border p-4 text-left transition ${
                   active
                     ? 'border-stone-800 bg-stone-900 text-white'
                     : 'border-stone-200 bg-stone-50 text-zinc-900 hover:border-stone-400 dark:border-white/10 dark:bg-white/5 dark:text-white'
-                }`}
+                } ${generating ? 'cursor-not-allowed opacity-60' : ''}`}
               >
                 <div className="flex items-center justify-between gap-4">
                   <span className="font-semibold">{tgo.title}</span>
@@ -163,13 +164,25 @@ export function NewAssignmentView() {
         </div>
       </WorkspaceCard>
 
+      {generating ? (
+        <TaskProgressState
+          title="Assignment generation in progress"
+          body="The app is turning your selected skills into a new assignment brief. This can take a few seconds."
+          steps={[
+            'Lock the selected skill trio for this prompt.',
+            'Generate a brief, constraints, and success criteria.',
+            'Return a ready-to-accept assignment preview.',
+          ]}
+        />
+      ) : null}
+
       {preview ? (
         <WorkspaceCard>
           <div className="flex items-center justify-between gap-4">
             <Subheading>{preview.title}</Subheading>
             <div className="flex gap-2">
               <Button plain onClick={generate} disabled={generating}>
-                Refresh prompt
+                {generating ? 'Refreshing…' : 'Refresh prompt'}
               </Button>
               <Button href="/" color="dark/zinc">
                 Accept and continue

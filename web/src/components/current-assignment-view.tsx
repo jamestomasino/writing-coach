@@ -10,7 +10,7 @@ import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviews, getSession, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
 import type { Dashboard, Exercise, Review, Submission } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 type WorkspaceState = {
@@ -56,7 +56,8 @@ export function CurrentAssignmentView() {
   const [sessionRequired, setSessionRequired] = useState(false)
   const [workspace, setWorkspace] = useState<WorkspaceState | null>(null)
   const [draft, setDraft] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
+  const [preparingRevision, setPreparingRevision] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -139,7 +140,7 @@ export function CurrentAssignmentView() {
       return
     }
     try {
-      setSubmitting(true)
+      setReviewing(true)
       setError(null)
       const submission = await submitDraft({
         exerciseId: workspace.exercise.id,
@@ -151,7 +152,7 @@ export function CurrentAssignmentView() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Review failed')
     } finally {
-      setSubmitting(false)
+      setReviewing(false)
     }
   }
 
@@ -160,13 +161,14 @@ export function CurrentAssignmentView() {
       return
     }
     try {
-      setSubmitting(true)
+      setPreparingRevision(true)
+      setError(null)
       const exercise = await createRevisionAssignment(workspace.submission.id)
       router.push(`/?revisionExercise=${exercise.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create revision prompt')
     } finally {
-      setSubmitting(false)
+      setPreparingRevision(false)
     }
   }
 
@@ -192,6 +194,7 @@ export function CurrentAssignmentView() {
 
   const { dashboard, exercise, review } = workspace
   const isRevisionBrief = searchParams.get('revisionExercise') !== null
+  const busy = reviewing || preparingRevision
 
   if (!exercise) {
     return (
@@ -231,12 +234,36 @@ export function CurrentAssignmentView() {
             New assignment
           </Button>
           {review ? (
-            <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={submitting}>
-              Revise from latest review
+            <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={busy}>
+              {preparingRevision ? 'Preparing revision brief…' : 'Revise from latest review'}
             </Button>
           ) : null}
         </div>
       </header>
+
+      {busy ? (
+        <TaskProgressState
+          title={reviewing ? 'Review in progress' : 'Revision brief in progress'}
+          body={
+            reviewing
+              ? 'The app is analyzing your draft against your active skills and preparing coaching feedback.'
+              : 'The app is building a revision brief from your latest review and active skills.'
+          }
+          steps={
+            reviewing
+              ? [
+                  'Save the latest draft snapshot.',
+                  'Score the draft against the active skill rubric.',
+                  'Assemble the coaching summary and annotations.',
+                ]
+              : [
+                  'Load the latest reviewed draft.',
+                  'Extract the highest-priority revision targets.',
+                  'Generate a focused revision brief for the next pass.',
+                ]
+          }
+        />
+      ) : null}
 
       {isRevisionBrief ? (
         <WorkspaceCard>
@@ -309,19 +336,19 @@ export function CurrentAssignmentView() {
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-stone-50 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5">
               <ArrowUpTrayIcon className="size-4" />
               Upload draft
-              <input type="file" accept=".md,.txt,text/plain,text/markdown" className="hidden" onChange={handleFile} />
+              <input type="file" accept=".md,.txt,text/plain,text/markdown" className="hidden" onChange={handleFile} disabled={busy} />
             </label>
             <Badge color="zinc">{wordCount} words</Badge>
           </div>
         </div>
         <div className="mt-5">
-          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={18} placeholder="Paste your draft here." />
+          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={18} placeholder="Paste your draft here." disabled={busy} />
         </div>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <Text>{workspace.submission ? `Latest saved draft: #${workspace.submission.draft_number}` : 'No draft submitted yet for this assignment.'}</Text>
-          <Button onClick={handleReview} color="dark/zinc" disabled={submitting || draft.trim() === ''}>
+          <Button onClick={handleReview} color="dark/zinc" disabled={busy || draft.trim() === ''}>
             <SparklesIcon />
-            {submitting ? 'Reviewing…' : 'Submit for review'}
+            {reviewing ? 'Reviewing…' : 'Submit for review'}
           </Button>
         </div>
       </WorkspaceCard>
