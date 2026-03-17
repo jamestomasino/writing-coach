@@ -85,7 +85,7 @@ export function AboutView() {
             ) : (
               <>
                 <Button href="/register" color="dark/zinc">
-                  Start with a track
+                  Register
                 </Button>
                 <Button href="/login" outline>
                   Sign in
