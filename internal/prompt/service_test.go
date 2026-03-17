@@ -38,3 +38,19 @@ func TestDeterministicRevisionExercise(t *testing.T) {
 		t.Fatal("expected populated revision brief")
 	}
 }
+
+func TestDeterministicNextExerciseUsesFreshDraftLanguage(t *testing.T) {
+	service := NewService(nil)
+
+	ex := service.NextExercise(context.Background(), Context{
+		CurriculumState: domain.CurriculumState{CurrentFocus: "causal clarity"},
+	})
+
+	lower := strings.ToLower(ex.Brief)
+	if strings.Contains(lower, "rewrite") || strings.Contains(lower, "revise") {
+		t.Fatalf("expected fresh-draft language, got %q", ex.Brief)
+	}
+	if !strings.Contains(lower, "write a new piece") {
+		t.Fatalf("expected explicit new-piece language, got %q", ex.Brief)
+	}
+}

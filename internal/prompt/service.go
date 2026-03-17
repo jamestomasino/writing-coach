@@ -114,19 +114,19 @@ func (deterministicGenerator) NextExercise(_ context.Context, input Context) dom
 	}
 
 	brief := fmt.Sprintf(
-		"Write 700-1000 words centered on %s. Build the piece around concrete action, visible consequence, and a clear turn by the end.",
+		"Write a new piece about %s. Show clear action, clear results, and a clear turn by the end.",
 		focus,
 	)
 	if input.CoachingBrief != "" {
-		brief += " Coaching context: " + input.CoachingBrief + "."
+		brief += " Use this coaching goal: " + input.CoachingBrief + "."
 	}
 	if len(input.RecentWeaknesses) > 0 || len(input.RecurringFindings) > 0 {
-		brief += " Address the recent coaching pattern directly rather than sidestepping it."
+		brief += " Work on the problem that showed up in recent feedback."
 	}
 
-	constraints := []string{"keep the scope tight", "make the central turn legible on the page", "use concrete detail instead of vague filler"}
+	constraints := []string{"keep the piece small and focused", "make the main turn easy to follow", "use clear details instead of vague filler"}
 	if len(input.RecurringFindings) > 0 {
-		constraints = append(constraints, "avoid the recurring prose issue: "+input.RecurringFindings[0])
+		constraints = append(constraints, "avoid this repeated problem: "+input.RecurringFindings[0])
 	}
 
 	return domain.Exercise{
@@ -136,9 +136,9 @@ func (deterministicGenerator) NextExercise(_ context.Context, input Context) dom
 		FocusSkills: tgoSkills(tgos),
 		TGOCodes:    tgoCodes(tgos),
 		SuccessCriteria: []string{
-			"the scene carries a clear emotional progression",
-			"worldbuilding is implied through action and image",
-			"the ending closes a door rather than opening one",
+			"the piece shows a clear change from start to finish",
+			"the setting comes through action and image",
+			"the ending feels clear and finished",
 		},
 	}
 }
