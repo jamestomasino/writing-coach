@@ -10,6 +10,7 @@ const nextConfig = {
       { source: '/api/:path*', destination: `${apiBase}/api/:path*` },
       { source: '/.ory/kratos/public/:path*', destination: `${kratosPublicBase}/:path*` },
       { source: '/.ory/kratos/ui/:path*', destination: `${kratosUIBase}/:path*` },
+      { source: '/.ory/kratos/:path*', destination: `${kratosUIBase}/:path*` },
     ]
   },
 }
