@@ -11,6 +11,7 @@ services:
       kratos:
         condition: service_started
     environment:
+      NEXT_TELEMETRY_DISABLED: "1"
       WRITING_COACH_API_INTERNAL_URL: "http://app:8080"
       WRITING_COACH_KRATOS_PUBLIC_INTERNAL_URL: "http://kratos:4433"
     ports:
