@@ -5,7 +5,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-RUN GOBIN=/out go install github.com/errata-ai/vale/v3/cmd/vale@latest
+RUN GOBIN=/out go install github.com/errata-ai/vale/v3/cmd/vale@v3.7.1
 
 COPY . .
 
