@@ -30,7 +30,7 @@ export function NewAssignmentView() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load TGO selection')
+          setError(err instanceof Error ? err.message : 'Could not load skill selection')
         }
       } finally {
         if (!cancelled) {
@@ -86,7 +86,7 @@ export function NewAssignmentView() {
   }
 
   if (loading) {
-    return <LoadingState label="Loading TGO selection…" />
+    return <LoadingState label="Loading skill selection…" />
   }
   if (error && !dashboard) {
     return <EmptyState title="Could not load new assignment flow" body={error} actionHref="/" actionLabel="Back to assignment" />
@@ -100,15 +100,15 @@ export function NewAssignmentView() {
       <header>
         <Heading>New assignment</Heading>
         <Text className="mt-2 max-w-3xl">
-          Choose exactly three unlocked TGOs. The prompt generator will build the next assignment around this set and your tree’s coaching goals.
+          Choose exactly three unlocked skills. The prompt generator will build the next assignment around this set and your skill map’s coaching goals.
         </Text>
       </header>
 
       {error ? <EmptyState title="Prompt generation issue" body={error} /> : null}
 
       <WorkspaceCard>
-        <Subheading>Choose 3 TGOs</Subheading>
-        <Text className="mt-2">Completed TGOs stay in the maintenance layer. This selection defines the primary review rubric for the next assignment.</Text>
+        <Subheading>Choose 3 skills</Subheading>
+        <Text className="mt-2">Mastered skills stay in the maintenance layer. This selection defines the primary review rubric for the next assignment.</Text>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {selectable.map((tgo) => {
             const active = selected.includes(tgo.code)
@@ -133,7 +133,7 @@ export function NewAssignmentView() {
           })}
         </div>
         <div className="mt-5 flex items-center justify-between gap-3">
-          <Text>{selected.length} of 3 TGOs selected.</Text>
+          <Text>{selected.length} of 3 skills selected.</Text>
           <Button color="dark/zinc" onClick={generate} disabled={selected.length !== 3 || generating}>
             {generating ? 'Generating…' : 'Generate prompt'}
           </Button>

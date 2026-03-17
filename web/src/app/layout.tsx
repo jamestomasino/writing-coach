@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     template: '%s - Writing Coach',
     default: 'Writing Coach',
   },
-  description: 'Assignment-first writing coaching built on TGO skill trees.',
+  description: 'Assignment-first writing coaching built on a progressive writing skill map.',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

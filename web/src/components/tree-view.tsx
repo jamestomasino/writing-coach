@@ -68,7 +68,7 @@ export function TreeView() {
       try {
         const session = await getSession()
         if (!session.authenticated) {
-          throw new Error('Sign in to inspect your skill tree')
+          throw new Error('Sign in to inspect your skill map')
         }
         if (!session.onboarding_complete || !session.active_tree_slug) {
           if (!cancelled) {
@@ -91,7 +91,7 @@ export function TreeView() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load skill tree')
+          setError(err instanceof Error ? err.message : 'Could not load skill map')
         }
       } finally {
         if (!cancelled) {
@@ -146,15 +146,15 @@ export function TreeView() {
   }, [dashboard, tree])
 
   if (loading) {
-    return <LoadingState label="Loading skill tree…" />
+    return <LoadingState label="Loading skill map…" />
   }
   if (!onboarding?.onboarding_complete) {
     return (
       <EmptyState
         title="Build your track first"
-        body="You need to complete the Skill Tree Creator before the app can show a curriculum path."
+        body="You need to complete the starter path setup before the app can show your skill map."
         actionHref="/onboarding"
-        actionLabel="Open Skill Tree Creator"
+        actionLabel="Open starter path"
       />
     )
   }
@@ -186,13 +186,13 @@ export function TreeView() {
         <WorkspaceCard>
           <div className="flex items-center justify-between gap-4">
             <Subheading>Current track state</Subheading>
-            <Badge color="zinc">{dashboard.completed_tgos.length} completed</Badge>
+            <Badge color="zinc">{dashboard.completed_tgos.length} mastered</Badge>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">Active now</div>
               <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{dashboard.active_tgos.length}</div>
-              <Text className="mt-1 text-sm">These three TGOs drive the current assignment review.</Text>
+              <Text className="mt-1 text-sm">These three skills drive the current assignment review.</Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">Unlocked next</div>
@@ -242,8 +242,8 @@ export function TreeView() {
       <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
         <WorkspaceCard>
           <div className="flex items-center justify-between gap-4">
-            <Subheading>TGO tree</Subheading>
-            <Text className="text-sm">Three active at a time. Unlocks flow from completed work.</Text>
+            <Subheading>Skill map</Subheading>
+            <Text className="text-sm">Three active at a time. Unlocks flow from mastered work.</Text>
           </div>
           <div className="mt-6 space-y-8">
             {stages.map((stage) => (
@@ -292,7 +292,7 @@ export function TreeView() {
 
         <div className="space-y-8">
           <WorkspaceCard>
-            <Subheading>Active 3 TGOs</Subheading>
+            <Subheading>Active skills</Subheading>
             <div className="mt-4 space-y-3">
               {dashboard.active_tgos.map((tgo) => (
                 <div key={tgo.code} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/20 dark:bg-blue-500/10">
@@ -307,9 +307,9 @@ export function TreeView() {
           </WorkspaceCard>
 
           <WorkspaceCard>
-            <Subheading>Completed TGOs</Subheading>
+            <Subheading>Mastered skills</Subheading>
             <div className="mt-4 space-y-3">
-              {dashboard.completed_tgos.length === 0 ? <Text>No completed TGOs yet.</Text> : null}
+              {dashboard.completed_tgos.length === 0 ? <Text>No mastered skills yet.</Text> : null}
               {dashboard.completed_tgos.map((tgo) => (
                 <div key={tgo.code} className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-500/20 dark:bg-green-500/10">
                   <div className="flex items-center gap-2 text-sm font-semibold text-green-900 dark:text-green-200">

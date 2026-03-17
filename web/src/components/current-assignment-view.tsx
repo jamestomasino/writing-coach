@@ -174,10 +174,10 @@ export function CurrentAssignmentView() {
       <div className="space-y-8">
         <header>
           <Heading>Current assignment</Heading>
-          <Text className="mt-2">You do not have an active assignment yet. Choose 3 unlocked TGOs and generate the next prompt.</Text>
+          <Text className="mt-2">You do not have an active assignment yet. Choose 3 unlocked skills and generate the next prompt.</Text>
         </header>
         <WorkspaceCard>
-          <Subheading>Active TGOs</Subheading>
+          <Subheading>Active skills</Subheading>
           <div className="mt-4 flex flex-wrap gap-2">
             {dashboard.active_tgos.map((tgo) => (
               <Badge key={tgo.code} color="blue">
@@ -220,7 +220,7 @@ export function CurrentAssignmentView() {
             <div>
               <Subheading>Revision brief</Subheading>
               <Text className="mt-2">
-                This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active TGOs and the coaching notes below.
+                This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active skills and the coaching notes below.
               </Text>
             </div>
             <Button href={`/compare/${workspace.submission?.id ?? 0}`} outline>
@@ -258,8 +258,8 @@ export function CurrentAssignmentView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <Subheading>Active TGOs</Subheading>
-          <Text className="mt-2">These are the three objectives the review will measure most heavily on this assignment.</Text>
+          <Subheading>Active skills</Subheading>
+          <Text className="mt-2">These are the three skills the review will measure most heavily on this assignment.</Text>
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.map((tgo) => (
               <div key={tgo.code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">

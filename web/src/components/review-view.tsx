@@ -84,7 +84,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
-          <Subheading>Active TGO assessments</Subheading>
+          <Subheading>Active skill assessments</Subheading>
           <div className="mt-4 space-y-4">
             {review.tgo_assessments.map((assessment) => (
               <div key={assessment.tgo_code} className="rounded-2xl border border-stone-200 p-4 dark:border-white/10">
@@ -101,11 +101,11 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <Subheading>Completed TGO maintenance</Subheading>
+          <Subheading>Mastered skill maintenance</Subheading>
           <Text className="mt-2">These checks are lighter than the active rubric, but they help catch regression on already established skills.</Text>
           <div className="mt-4 space-y-3">
             {review.completed_tgo_checks.length === 0 ? (
-              <Text>No completed TGO slips were flagged on this pass.</Text>
+              <Text>No mastered-skill slips were flagged on this pass.</Text>
             ) : (
               review.completed_tgo_checks.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">

@@ -93,9 +93,9 @@ export function ProgressView() {
 
   const completedCodes = useMemo(() => new Set(dashboard?.completed_tgos.map((tgo) => tgo.code) ?? []), [dashboard])
   const activeCodes = useMemo(() => new Set(dashboard?.active_tgos.map((tgo) => tgo.code) ?? []), [dashboard])
-  const totalTGOs = tree?.tgos.length ?? dashboard?.completed_tgos.length ?? 0
+  const totalSkills = tree?.tgos.length ?? dashboard?.completed_tgos.length ?? 0
   const completedCount = dashboard?.completed_tgos.length ?? 0
-  const completionRatio = totalTGOs > 0 ? Math.round((completedCount / totalTGOs) * 100) : 0
+  const completionRatio = totalSkills > 0 ? Math.round((completedCount / totalSkills) * 100) : 0
   const stages = useMemo(() => (tree ? stageCompletion(tree, completedCodes, activeCodes) : []), [activeCodes, completedCodes, tree])
 
   if (loading) {
@@ -111,7 +111,7 @@ export function ProgressView() {
         <div>
           <Heading>Progress board</Heading>
           <Text className="mt-2 max-w-3xl">
-            Active TGOs remain the primary measure. Completed TGOs track durable gains, and regression watch keeps earlier wins from quietly eroding.
+            Active skills remain the primary measure. Mastered skills track durable gains, and regression watch keeps earlier wins from quietly eroding.
           </Text>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -128,7 +128,7 @@ export function ProgressView() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <Subheading>Track completion</Subheading>
-              <Text className="mt-2">This is the broad curriculum view: how much of the current skill tree has been completed and how much is currently under active practice.</Text>
+              <Text className="mt-2">This is the broad curriculum view: how much of the current skill map has been mastered and how much is currently under active practice.</Text>
             </div>
             <Badge color="green">{completionRatio}% complete</Badge>
           </div>
@@ -140,7 +140,7 @@ export function ProgressView() {
               <span>{completedCount} completed</span>
               <span>{dashboard.active_tgos.length} active</span>
               <span>{dashboard.upcoming_tgos.length} unlocked next</span>
-              <span>{Math.max(totalTGOs - completedCount - dashboard.active_tgos.length, 0)} still ahead</span>
+              <span>{Math.max(totalSkills - completedCount - dashboard.active_tgos.length, 0)} still ahead</span>
             </div>
           </div>
           {stages.length > 0 ? (
@@ -157,7 +157,7 @@ export function ProgressView() {
                       <div className="h-2 rounded-full bg-stone-700 dark:bg-stone-200" style={{ width: `${stagePercent}%` }} />
                     </div>
                     <Text className="mt-3 text-sm">
-                      {stage.active > 0 ? `${stage.active} active now.` : 'No active TGOs in this stage.'}
+                      {stage.active > 0 ? `${stage.active} active now.` : 'No active skills in this stage.'}
                     </Text>
                   </div>
                 )
@@ -172,7 +172,7 @@ export function ProgressView() {
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-blue-900 dark:text-blue-200">
                 <SparklesIcon className="size-4" />
-                Active TGOs
+                Active skills
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {dashboard.active_tgos.map((tgo) => (
@@ -185,10 +185,10 @@ export function ProgressView() {
             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-500/20 dark:bg-green-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-green-900 dark:text-green-200">
                 <CheckBadgeIcon className="size-4" />
-                Completed TGOs
+                Mastered skills
               </div>
               <Text className="mt-2 text-sm">
-                {dashboard.completed_tgos.length === 0 ? 'No TGOs have been mastered yet.' : `${dashboard.completed_tgos.length} TGOs have been marked complete.`}
+                {dashboard.completed_tgos.length === 0 ? 'No skills have been mastered yet.' : `${dashboard.completed_tgos.length} skills have been marked mastered.`}
               </Text>
             </div>
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
@@ -198,7 +198,7 @@ export function ProgressView() {
               </div>
               <Text className="mt-2 text-sm">
                 {dashboard.recurring_completed_slips.length === 0
-                  ? 'No completed-skill regressions are currently being flagged.'
+                  ? 'No mastered-skill regressions are currently being flagged.'
                   : `${dashboard.recurring_completed_slips.length} maintenance issues need attention.`}
               </Text>
             </div>
@@ -273,7 +273,7 @@ export function ProgressView() {
         <WorkspaceCard>
           <Subheading>Unlocked next</Subheading>
           <div className="mt-4 flex flex-wrap gap-2">
-            {dashboard.upcoming_tgos.length === 0 ? <Text>No new TGO unlocks yet.</Text> : null}
+            {dashboard.upcoming_tgos.length === 0 ? <Text>No new skill unlocks yet.</Text> : null}
             {dashboard.upcoming_tgos.map((tgo) => (
               <Badge key={tgo.code} color="amber">
                 {tgo.title}

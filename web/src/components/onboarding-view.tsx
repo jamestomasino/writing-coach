@@ -122,11 +122,20 @@ export function OnboardingView() {
   return (
     <div className="space-y-8">
       <header>
-        <Heading>Skill tree creator</Heading>
+        <Heading>Set your starting path</Heading>
         <Text className="mt-2 max-w-3xl">
-          Tell the coach what kind of writing you want to improve. This now recommends a starting path into the global writing skill graph, including your first active TGOs and the regions most likely to matter first.
+          Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.
         </Text>
       </header>
+
+      <WorkspaceCard>
+        <Subheading>How the coaching loop works</Subheading>
+        <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
+          <p>You can focus on up to three skills at a time.</p>
+          <p>Your assignment prompt and review are built around those active skills.</p>
+          <p>When you show strong, consistent control, a skill can become mastered and stay in lighter maintenance checks going forward.</p>
+        </div>
+      </WorkspaceCard>
 
       {error ? <EmptyState title="Onboarding issue" body={error} /> : null}
 

@@ -43,7 +43,7 @@ function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' })
     <DropdownMenu className="min-w-64" anchor={anchor}>
       <DropdownItem href="/tree">
         <Squares2X2Icon />
-        <DropdownLabel>Skill tree</DropdownLabel>
+        <DropdownLabel>Skill map</DropdownLabel>
       </DropdownItem>
       <DropdownItem href="/progress">
         <ChartBarSquareIcon />
@@ -119,7 +119,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
               </SidebarItem>
               <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
                 <Squares2X2Icon />
-                <SidebarLabel>Tree</SidebarLabel>
+                <SidebarLabel>Skill map</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="/admin" current={pathname.startsWith('/admin')}>
                 <UserGroupIcon />
@@ -139,7 +139,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
               </SidebarItem>
               <SidebarItem href="/tree">
                 <Squares2X2Icon />
-                <SidebarLabel>Tree browser</SidebarLabel>
+                <SidebarLabel>Skill map</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
 

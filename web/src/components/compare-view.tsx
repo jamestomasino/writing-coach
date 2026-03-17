@@ -120,7 +120,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
       {review ? (
         <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
           <WorkspaceCard>
-            <Subheading>Current TGO state</Subheading>
+            <Subheading>Current skill state</Subheading>
             <div className="mt-4 space-y-4">
               {review.tgo_assessments.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-2xl border border-stone-200 p-4 dark:border-white/10">
@@ -137,9 +137,9 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           </WorkspaceCard>
           <WorkspaceCard>
             <Subheading>Maintenance checks</Subheading>
-            <Text className="mt-2">Completed TGOs are still checked lightly so previously earned skills do not decay unnoticed.</Text>
+            <Text className="mt-2">Mastered skills are still checked lightly so previously earned skills do not decay unnoticed.</Text>
             <div className="mt-4 space-y-3">
-              {review.completed_tgo_checks.length === 0 ? <Text>No completed-skill slips were flagged on this revision.</Text> : null}
+              {review.completed_tgo_checks.length === 0 ? <Text>No mastered-skill slips were flagged on this revision.</Text> : null}
               {review.completed_tgo_checks.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                   <div className="flex items-center justify-between gap-4">
