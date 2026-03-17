@@ -30,6 +30,7 @@ type ExerciseRequest struct {
 	RecentTitles      []string
 	RecentWeaknesses  []string
 	RecurringFindings []string
+	CoachingBrief     string
 }
 
 type RevisionExerciseRequest struct {
@@ -43,6 +44,7 @@ type RevisionExerciseRequest struct {
 	ComparisonSummary string
 	RecentWeaknesses  []string
 	RecurringFindings []string
+	CoachingBrief     string
 }
 
 type ReviewRequest struct {
@@ -53,6 +55,7 @@ type ReviewRequest struct {
 	CompletedTGOs    []domain.TGO
 	AnalysisSummary  string
 	AnalyzerFindings []string
+	CoachingBrief    string
 }
 
 type exerciseResponse struct {
@@ -116,13 +119,14 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		Schema:      exerciseSchema(),
 		SystemInput: exerciseSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s",
+			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
 			emptyDefault(input.CurrentFocus, "scene architecture"),
 			input.DifficultyLevel,
 			joinTGOs(input.ActiveTGOs),
 			joinOrDefault(input.RecentTitles, "none"),
 			joinOrDefault(input.RecentWeaknesses, "none"),
 			joinOrDefault(input.RecurringFindings, "none"),
+			emptyDefault(input.CoachingBrief, "none"),
 		),
 	})
 	if err != nil {
@@ -154,7 +158,7 @@ func (c *Client) GenerateRevisionExercise(ctx context.Context, input RevisionExe
 		Schema:      exerciseSchema(),
 		SystemInput: revisionSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s",
+			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
 			emptyDefault(input.CurrentFocus, "prose precision"),
 			input.DifficultyLevel,
 			joinTGOs(input.ActiveTGOs),
@@ -165,6 +169,7 @@ func (c *Client) GenerateRevisionExercise(ctx context.Context, input RevisionExe
 			emptyDefault(input.ComparisonSummary, "none"),
 			joinOrDefault(input.RecentWeaknesses, "none"),
 			joinOrDefault(input.RecurringFindings, "none"),
+			emptyDefault(input.CoachingBrief, "none"),
 		),
 	})
 	if err != nil {
@@ -196,13 +201,14 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		Schema:      reviewSchema(),
 		SystemInput: reviewSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Submission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nSubmission:\n%s",
+			"Submission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nCoaching context: %s\nSubmission:\n%s",
 			input.SubmissionID,
 			input.WordCount,
 			joinTGOs(input.ActiveTGOs),
 			joinTGOs(input.CompletedTGOs),
 			emptyDefault(input.AnalysisSummary, "none"),
 			joinOrDefault(input.AnalyzerFindings, "none"),
+			emptyDefault(input.CoachingBrief, "none"),
 			input.Content,
 		),
 	})
@@ -365,9 +371,9 @@ func exerciseSystemPrompt() string {
 	return strings.TrimSpace(`
 You are a professional fiction coach generating one brief exercise.
 Return only schema-compliant JSON.
-Target mode: mythopoeic epic tragedy with fantasy influences.
-Favor discipline over ornament.
-Avoid derivative references to named authors.
+Match the user's writing mode and tone only when the supplied coaching context supports it.
+Favor discipline, clarity, and specificity over ornament.
+Avoid derivative references to named authors or genres unless the coaching context clearly calls for them.
 The exercise should train one main weakness and one supporting skill.
 Choose focus skills only from the supplied taxonomy.
 `)
@@ -379,7 +385,7 @@ You are a professional fiction coach generating a rewrite brief for the author's
 Return only schema-compliant JSON.
 Do not generate a fresh unrelated exercise.
 Preserve the core scene, but focus the revision on the most important weaknesses.
-Prioritize mythic tragic force, symbolic discipline, causal clarity, and prose precision.
+Keep the brief aligned to the supplied coaching context without repeating every profile detail.
 Choose focus skills only from the supplied taxonomy.
 `)
 }
@@ -388,7 +394,7 @@ func reviewSystemPrompt() string {
 	return strings.TrimSpace(`
 You are a professional fiction coach reviewing a short fiction exercise.
 Return only schema-compliant JSON.
-Evaluate for narrative clarity, tragic pressure, symbolic control, tonal discipline, and scene construction.
+Evaluate for narrative clarity, control, tonal discipline, and scene construction in the mode implied by the coaching context.
 Do not flatter. Be concrete and developmental.
 Choose the next focus that would most improve the following exercise.
 Choose next_focus only from the supplied taxonomy.

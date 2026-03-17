@@ -24,6 +24,7 @@ type Context struct {
 	RecentTitles       []string
 	RecentWeaknesses   []string
 	RecurringFindings  []string
+	CoachingBrief      string
 	RevisionOf         *domain.Submission
 	RevisionReview     *domain.Review
 	RevisionComparison *review.Comparison
@@ -45,6 +46,7 @@ func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercis
 			RecentTitles:      input.RecentTitles,
 			RecentWeaknesses:  input.RecentWeaknesses,
 			RecurringFindings: input.RecurringFindings,
+			CoachingBrief:     input.CoachingBrief,
 		})
 		if err == nil {
 			exercise.GenerationKind = "openai"
@@ -78,6 +80,7 @@ func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exe
 			ComparisonSummary: revisionSummary(input.RevisionComparison),
 			RecentWeaknesses:  input.RecentWeaknesses,
 			RecurringFindings: input.RecurringFindings,
+			CoachingBrief:     input.CoachingBrief,
 		})
 		if err == nil {
 			exercise.GenerationKind = "openai"
@@ -111,14 +114,17 @@ func (deterministicGenerator) NextExercise(_ context.Context, input Context) dom
 	}
 
 	brief := fmt.Sprintf(
-		"Write 700-1000 words of mythopoeic tragic fantasy centered on %s. Build pressure through implication rather than exposition, and end on an irreversible moral or emotional turn.",
+		"Write 700-1000 words centered on %s. Build the piece around concrete action, visible consequence, and a clear turn by the end.",
 		focus,
 	)
+	if input.CoachingBrief != "" {
+		brief += " Coaching context: " + input.CoachingBrief + "."
+	}
 	if len(input.RecentWeaknesses) > 0 || len(input.RecurringFindings) > 0 {
 		brief += " Address the recent coaching pattern directly rather than sidestepping it."
 	}
 
-	constraints := []string{"third-person limited", "single scene", "one concrete symbol that changes meaning by the end"}
+	constraints := []string{"keep the scope tight", "make the central turn legible on the page", "use concrete detail instead of vague filler"}
 	if len(input.RecurringFindings) > 0 {
 		constraints = append(constraints, "avoid the recurring prose issue: "+input.RecurringFindings[0])
 	}
@@ -154,6 +160,9 @@ func (deterministicGenerator) RevisionExercise(_ context.Context, input Context)
 		"Revise your existing draft rather than replacing it. Preserve the core dramatic event, but rewrite for %s with sharper causality, cleaner prose pressure, and more concrete consequence.",
 		focus,
 	)
+	if input.CoachingBrief != "" {
+		brief += " Coaching context: " + input.CoachingBrief + "."
+	}
 	if input.RevisionComparison != nil && input.RevisionComparison.Summary != "" {
 		brief += " Comparison note: " + input.RevisionComparison.Summary
 	}

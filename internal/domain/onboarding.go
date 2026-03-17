@@ -64,6 +64,26 @@ func TemplateKeyForProfile(profile OnboardingProfile) string {
 	return selectTemplate(profile)
 }
 
+func CoachingBrief(profile OnboardingProfile) string {
+	parts := []string{}
+	if value := strings.TrimSpace(profile.WritingType); value != "" {
+		parts = append(parts, "writing type: "+value)
+	}
+	if value := strings.TrimSpace(profile.DesiredTone); value != "" {
+		parts = append(parts, "tone: "+value)
+	}
+	if len(profile.DesiredOutcomes) > 0 && strings.TrimSpace(profile.DesiredOutcomes[0]) != "" {
+		parts = append(parts, "primary goal: "+strings.TrimSpace(profile.DesiredOutcomes[0]))
+	}
+	if len(profile.BiggestWeaknesses) > 0 && strings.TrimSpace(profile.BiggestWeaknesses[0]) != "" {
+		parts = append(parts, "watch for: "+strings.TrimSpace(profile.BiggestWeaknesses[0]))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, "; ")
+}
+
 var slugCleaner = regexp.MustCompile(`[^a-z0-9]+`)
 
 func generatedTreeSlug(userSlug string) string {

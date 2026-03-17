@@ -1425,6 +1425,7 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) createNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
+	coachingBrief := s.coachingBrief(ctx, appContext.UserID)
 	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
 	if err != nil {
 		log.Printf("create exercise: curriculum state lookup failed for enrollment=%d: %v", appContext.EnrollmentID, err)
@@ -1457,6 +1458,7 @@ func (s Server) createNextExercise(ctx context.Context, appContext session.Conte
 		RecentTitles:      recentTitles,
 		RecentWeaknesses:  recentWeaknesses,
 		RecurringFindings: recurringFindings,
+		CoachingBrief:     coachingBrief,
 	})
 	ex.UserID = appContext.UserID
 	ex.TreeID = appContext.TreeID
@@ -1525,6 +1527,7 @@ func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext sessio
 }
 
 func (s Server) createRevisionExercise(ctx context.Context, appContext session.Context, submissionID int64) (domain.Exercise, error) {
+	coachingBrief := s.coachingBrief(ctx, appContext.UserID)
 	sub, err := s.Store.GetSubmission(ctx, submissionID)
 	if err != nil {
 		return domain.Exercise{}, err
@@ -1568,6 +1571,7 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 		RecentTitles:       recentTitles,
 		RecentWeaknesses:   recentWeaknesses,
 		RecurringFindings:  recurringFindings,
+		CoachingBrief:      coachingBrief,
 		RevisionOf:         &sub,
 		RevisionReview:     &reviewResult,
 		RevisionComparison: cmp,
@@ -1580,6 +1584,14 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	}
 	ex.ID = id
 	return ex, nil
+}
+
+func (s Server) coachingBrief(ctx context.Context, userID int64) string {
+	profile, err := s.Store.OnboardingProfileByUserID(ctx, userID)
+	if err != nil {
+		return ""
+	}
+	return domain.CoachingBrief(profile)
 }
 
 func (s Server) writeEnrollmentBoard(ctx context.Context, w http.ResponseWriter, appContext session.Context) {

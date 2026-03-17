@@ -74,13 +74,13 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 		avgSentenceLength = report.Metrics["avg_sentence_length"]
 	}
 
-	summary := "The draft shows a workable dramatic frame, but the next exercise should push harder on control and inevitability."
+	summary := "The draft shows a workable frame, but the next exercise should push harder on control, clarity, and follow-through."
 	strengths := []string{
-		"The submission sustains a recognizably serious tonal register.",
+		"The submission sustains a clear attempt at a focused mode.",
 		"The scene length is appropriate for a focused exercise.",
 	}
 	weaknesses := []string{
-		"Symbolic and emotional turns can be made more concrete.",
+		"Key turns can be made more concrete and easier to follow.",
 		"Sentence rhythm likely needs stronger variation to avoid flattening the scene.",
 	}
 	nextFocus := "emotional compression"
@@ -93,12 +93,7 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 	}
 	weaknesses = append(weaknesses, analyzer.TopFindings(report, 3)...)
 
-	scores := []domain.SkillScore{
-		{SubmissionID: sub.ID, Skill: "scene architecture", Score: scoreFromWordCount(wordCount)},
-		{SubmissionID: sub.ID, Skill: "narrative clarity", Score: scoreFromSentenceLength(avgSentenceLength)},
-		{SubmissionID: sub.ID, Skill: "mythic tone", Score: 3},
-		{SubmissionID: sub.ID, Skill: "tragic inevitability", Score: scoreFromFindingCount(len(report.Findings))},
-	}
+	scores := defaultScoresForActiveTGOs(sub.ID, activeTGOs, wordCount, avgSentenceLength, len(report.Findings))
 
 	return domain.Review{
 		SubmissionID:       sub.ID,
@@ -112,6 +107,34 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 		NextFocus:          nextFocus,
 		MetricWordCount:    wordCount,
 	}, scores
+}
+
+func defaultScoresForActiveTGOs(submissionID int64, activeTGOs []domain.TGO, wordCount, avgSentenceLength, findingCount int) []domain.SkillScore {
+	activeTGOs = ensureReviewTGOs(activeTGOs)
+	seen := map[string]bool{}
+	scores := []domain.SkillScore{
+		{SubmissionID: submissionID, Skill: "scene architecture", Score: scoreFromWordCount(wordCount)},
+		{SubmissionID: submissionID, Skill: "narrative clarity", Score: scoreFromSentenceLength(avgSentenceLength)},
+	}
+	for _, score := range scores {
+		seen[score.Skill] = true
+	}
+	for _, tgo := range activeTGOs {
+		skill := domain.TGOCodeToSkill[tgo.Code]
+		if skill == "" || seen[skill] {
+			continue
+		}
+		seen[skill] = true
+		scores = append(scores, domain.SkillScore{
+			SubmissionID: submissionID,
+			Skill:        skill,
+			Score:        scoreFromFindingCount(findingCount),
+		})
+		if len(scores) >= 4 {
+			break
+		}
+	}
+	return scores
 }
 
 func scoreFromWordCount(wordCount int) int {
