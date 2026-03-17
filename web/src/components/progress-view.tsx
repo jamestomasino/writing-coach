@@ -139,41 +139,37 @@ export function ProgressView() {
   const recurringCompletedSlips = dashboard.recurring_completed_slips ?? []
   const completedAssignments = dashboard.completed_assignments ?? 0
   const profile = onboarding?.profile
+  const profileCards = profile
+    ? [
+        { label: 'Writing type', value: profile.writing_type },
+        { label: 'Experience level', value: profile.experience_level },
+        { label: 'Desired tone', value: profile.desired_tone },
+        { label: 'Goals', value: profile.writing_goals },
+      ]
+    : []
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr] xl:items-start">
-        <header>
-          <Heading>{tree?.title ?? 'Progress board'}</Heading>
-          <Text className="mt-2 max-w-4xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
-        </header>
+      <header>
+        <Heading>{tree?.title ?? 'Progress board'}</Heading>
+        <Text className="mt-2 max-w-4xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
+      </header>
 
+      {profile ? (
+        <section aria-label="Track profile" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {profileCards.map((item) => (
+            <WorkspaceCard key={item.label} className="p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{item.label}</div>
+              <Text className="mt-3 text-sm leading-6 text-zinc-900 dark:text-white">{item.value}</Text>
+            </WorkspaceCard>
+          ))}
+        </section>
+      ) : (
         <WorkspaceCard>
           <Subheading>Track profile</Subheading>
-          {profile ? (
-            <dl className="mt-4 space-y-4 text-sm text-zinc-700 dark:text-zinc-300">
-              <div>
-                <dt className="font-semibold text-zinc-950 dark:text-white">Writing type</dt>
-                <dd className="mt-1">{profile.writing_type}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-zinc-950 dark:text-white">Experience level</dt>
-                <dd className="mt-1">{profile.experience_level}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-zinc-950 dark:text-white">Desired tone</dt>
-                <dd className="mt-1">{profile.desired_tone}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-zinc-950 dark:text-white">Goals</dt>
-                <dd className="mt-1">{profile.writing_goals}</dd>
-              </div>
-            </dl>
-          ) : (
-            <Text className="mt-3">This track was seeded without a persisted onboarding profile.</Text>
-          )}
+          <Text className="mt-3">This track was seeded without a persisted onboarding profile.</Text>
         </WorkspaceCard>
-      </div>
+      )}
 
       <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
         <WorkspaceCard>
