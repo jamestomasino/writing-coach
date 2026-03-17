@@ -28,6 +28,10 @@ export type TGO = {
   active_slot?: number
   prerequisites?: string[]
   mastery_hint?: string
+  progress_mode?: string
+  mastery_stage?: string
+  mastery_percent?: number
+  mastery_evidence_count?: number
 }
 
 export type Exercise = {

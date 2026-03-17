@@ -74,11 +74,15 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 		if slot == 0 {
 			continue
 		}
-		statuses, err := store.RecentTGOStatuses(ctx, enrollmentID, assessment.TGOCode, 2)
+		tgo, ok := findTGO(active, assessment.TGOCode)
+		if !ok {
+			continue
+		}
+		signal, err := store.TGOMasterySignal(ctx, enrollmentID, tgo, assessment.Status)
 		if err != nil {
 			return Recommendation{}, err
 		}
-		if len(statuses) < 2 || statuses[0] != "mastered" || statuses[1] == "developing" {
+		if !signal.Ready {
 			continue
 		}
 		completedSet[assessment.TGOCode] = true
@@ -119,4 +123,13 @@ func findSlot(active []domain.TGO, code string) int {
 		}
 	}
 	return 0
+}
+
+func findTGO(active []domain.TGO, code string) (domain.TGO, bool) {
+	for _, tgo := range active {
+		if tgo.Code == code {
+			return tgo, true
+		}
+	}
+	return domain.TGO{}, false
 }

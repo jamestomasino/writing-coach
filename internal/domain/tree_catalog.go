@@ -41,6 +41,7 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 			StageOrder:    order,
 			Prerequisites: append([]string(nil), prerequisites...),
 			MasteryHint:   mastery,
+			ProgressMode:  InferProgressMode(skill),
 		}
 	}
 

@@ -137,4 +137,91 @@ func TestEnsureDefaultUserTreeSeedsTreeSpecificTGOs(t *testing.T) {
 	if active[0].Code != "word-choice" {
 		t.Fatalf("first active tgo = %q", active[0].Code)
 	}
+	if active[0].ProgressMode != domain.ProgressModePercent {
+		t.Fatalf("expected percent progress mode, got %q", active[0].ProgressMode)
+	}
+}
+
+func TestTGOMasterySignalUsesRollingEvidence(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, treeID, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "youth-writing-foundations")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+
+	exID, err := store.SaveExercise(ctx, domain.Exercise{
+		UserID:          userID,
+		TreeID:          treeID,
+		Title:           "Test",
+		Brief:           "Brief",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"sentence variety"},
+		SuccessCriteria: []string{"two"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+
+	statuses := []string{"secure", "mastered", "mastered"}
+	var target domain.TGO
+	active, err := store.ActiveTGOs(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("active tgos: %v", err)
+	}
+	target = active[1]
+
+	for i, status := range statuses {
+		subID, err := store.SaveSubmission(ctx, domain.Submission{
+			UserID:     userID,
+			TreeID:     treeID,
+			ExerciseID: exID,
+			Content:    "Sentence control improves across drafts.",
+			WordCount:  5,
+		})
+		if err != nil {
+			t.Fatalf("save submission %d: %v", i, err)
+		}
+		if _, err := store.SaveReview(ctx, domain.Review{
+			UserID:           userID,
+			TreeID:           treeID,
+			SubmissionID:     subID,
+			ReviewKind:       "deterministic",
+			Summary:          "Summary",
+			Strengths:        []string{"s"},
+			Weaknesses:       []string{"w"},
+			AnalyzerFindings: []string{"f"},
+			TGOAssessments: []domain.TGOAssessment{
+				{TGOCode: target.Code, Status: status, Evidence: "evidence"},
+			},
+			NextFocus:       target.Title,
+			MetricWordCount: 5,
+		}, nil); err != nil {
+			t.Fatalf("save review %d: %v", i, err)
+		}
+	}
+
+	signal, err := store.TGOMasterySignal(ctx, enrollmentID, target, "")
+	if err != nil {
+		t.Fatalf("mastery signal: %v", err)
+	}
+	if signal.Percent == 0 || signal.EvidenceCount != 3 {
+		t.Fatalf("unexpected signal: %#v", signal)
+	}
+	if !signal.Ready {
+		t.Fatalf("signal should be ready: %#v", signal)
+	}
 }

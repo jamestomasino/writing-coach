@@ -301,6 +301,22 @@ export function TreeView() {
                     {tgo.title}
                   </div>
                   <Text className="mt-1 text-sm">{tgo.description}</Text>
+                  {tgo.progress_mode === 'percent' ? (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between gap-3 text-xs font-medium uppercase tracking-[0.16em] text-blue-800/80 dark:text-blue-200/80">
+                        <span>Mastery progress</span>
+                        <span>{tgo.mastery_percent ?? 0}%</span>
+                      </div>
+                      <div className="mt-2 h-2 rounded-full bg-blue-200/70 dark:bg-blue-200/15">
+                        <div className="h-2 rounded-full bg-blue-800 dark:bg-blue-200" style={{ width: `${tgo.mastery_percent ?? 0}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <Text className="mt-3 text-sm">
+                      <span className="font-semibold text-blue-900 dark:text-blue-200">Mastery state:</span>{' '}
+                      {tgo.mastery_stage ?? 'emerging'}
+                    </Text>
+                  )}
                 </div>
               ))}
             </div>

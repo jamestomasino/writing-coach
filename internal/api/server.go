@@ -196,15 +196,19 @@ type curriculumStateResponse struct {
 }
 
 type tgoResponse struct {
-	ID            int64    `json:"id"`
-	Code          string   `json:"code"`
-	Title         string   `json:"title"`
-	Description   string   `json:"description"`
-	Stage         string   `json:"stage"`
-	StageOrder    int      `json:"stage_order"`
-	ActiveSlot    int      `json:"active_slot,omitempty"`
-	Prerequisites []string `json:"prerequisites,omitempty"`
-	MasteryHint   string   `json:"mastery_hint,omitempty"`
+	ID             int64    `json:"id"`
+	Code           string   `json:"code"`
+	Title          string   `json:"title"`
+	Description    string   `json:"description"`
+	Stage          string   `json:"stage"`
+	StageOrder     int      `json:"stage_order"`
+	ActiveSlot     int      `json:"active_slot,omitempty"`
+	Prerequisites  []string `json:"prerequisites,omitempty"`
+	MasteryHint    string   `json:"mastery_hint,omitempty"`
+	ProgressMode   string   `json:"progress_mode,omitempty"`
+	MasteryStage   string   `json:"mastery_stage,omitempty"`
+	MasteryPercent int      `json:"mastery_percent,omitempty"`
+	EvidenceCount  int      `json:"mastery_evidence_count,omitempty"`
 }
 
 type exerciseResponse struct {
@@ -349,6 +353,7 @@ func (s Server) handleSkillGraph(w http.ResponseWriter, r *http.Request) {
 				ActiveSlot:    node.ActiveSlot,
 				Prerequisites: append([]string(nil), node.Prerequisites...),
 				MasteryHint:   node.MasteryHint,
+				ProgressMode:  node.ProgressMode,
 			},
 			SourceTreeSlug:  node.SourceTreeSlug,
 			SourceTreeTitle: node.SourceTreeTitle,
@@ -654,6 +659,7 @@ func (s Server) handleTreeCreate(w http.ResponseWriter, r *http.Request) {
 			StageOrder:    item.StageOrder,
 			Prerequisites: append([]string(nil), item.Prerequisites...),
 			MasteryHint:   item.MasteryHint,
+			ProgressMode:  item.ProgressMode,
 		})
 	}
 	if len(def.SeedCodes) == 0 && len(def.TGOs) >= 3 {
@@ -720,6 +726,7 @@ func (s Server) handleTreeUpdate(w http.ResponseWriter, r *http.Request) {
 			StageOrder:    item.StageOrder,
 			Prerequisites: append([]string(nil), item.Prerequisites...),
 			MasteryHint:   item.MasteryHint,
+			ProgressMode:  item.ProgressMode,
 		})
 	}
 	if len(def.SeedCodes) == 0 && len(def.TGOs) >= 3 {
@@ -1623,6 +1630,16 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		activeSet[tgo.Code] = true
 	}
 	upcoming := domain.NextUnlockedFromDefinition(treeDef, completedSet, activeSet, 3)
+	for i := range activeTGOs {
+		signal, err := s.Store.TGOMasterySignal(ctx, appContext.EnrollmentID, activeTGOs[i], "")
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+		activeTGOs[i].MasteryStage = signal.Stage
+		activeTGOs[i].MasteryPercent = signal.Percent
+		activeTGOs[i].EvidenceCount = signal.EvidenceCount
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"context":                   requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
@@ -2006,15 +2023,19 @@ func toTGOResponses(tgos []domain.TGO) []tgoResponse {
 	var out []tgoResponse
 	for _, tgo := range tgos {
 		out = append(out, tgoResponse{
-			ID:            tgo.ID,
-			Code:          tgo.Code,
-			Title:         tgo.Title,
-			Description:   tgo.Description,
-			Stage:         tgo.Stage,
-			StageOrder:    tgo.StageOrder,
-			ActiveSlot:    tgo.ActiveSlot,
-			Prerequisites: tgo.Prerequisites,
-			MasteryHint:   tgo.MasteryHint,
+			ID:             tgo.ID,
+			Code:           tgo.Code,
+			Title:          tgo.Title,
+			Description:    tgo.Description,
+			Stage:          tgo.Stage,
+			StageOrder:     tgo.StageOrder,
+			ActiveSlot:     tgo.ActiveSlot,
+			Prerequisites:  tgo.Prerequisites,
+			MasteryHint:    tgo.MasteryHint,
+			ProgressMode:   tgo.ProgressMode,
+			MasteryStage:   tgo.MasteryStage,
+			MasteryPercent: tgo.MasteryPercent,
+			EvidenceCount:  tgo.EvidenceCount,
 		})
 	}
 	return out

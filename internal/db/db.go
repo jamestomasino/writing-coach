@@ -302,7 +302,7 @@ func (s *Store) TreeDefinitionBySlug(ctx context.Context, slug string) (domain.T
 		return domain.TGOTreeDefinition{}, err
 	}
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, tt.prerequisites_json, tt.mastery_hint
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, c.progress_mode, tt.prerequisites_json, tt.mastery_hint
 		FROM tree_tgos tt
 		JOIN tgo_trees t ON t.id = tt.tree_id
 		JOIN tgo_catalog c ON c.code = tt.tgo_code
@@ -316,7 +316,7 @@ func (s *Store) TreeDefinitionBySlug(ctx context.Context, slug string) (domain.T
 	for rows.Next() {
 		var tgo domain.TGO
 		var prereqsJSON string
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &prereqsJSON, &tgo.MasteryHint); err != nil {
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &prereqsJSON, &tgo.MasteryHint); err != nil {
 			return domain.TGOTreeDefinition{}, err
 		}
 		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
@@ -356,15 +356,20 @@ func (s *Store) SaveTreeDefinition(ctx context.Context, def domain.TGOTreeDefini
 	}
 
 	for _, tgo := range def.TGOs {
+		progressMode := tgo.ProgressMode
+		if progressMode == "" {
+			progressMode = domain.ProgressModeStage
+		}
 		if _, err = tx.ExecContext(ctx, `
-			INSERT INTO tgo_catalog (code, title, description, stage, stage_order)
-			VALUES (?, ?, ?, ?, ?)
+			INSERT INTO tgo_catalog (code, title, description, stage, stage_order, progress_mode)
+			VALUES (?, ?, ?, ?, ?, ?)
 			ON CONFLICT(code) DO UPDATE SET
 				title = excluded.title,
 				description = excluded.description,
 				stage = excluded.stage,
-				stage_order = excluded.stage_order
-		`, tgo.Code, tgo.Title, tgo.Description, tgo.Stage, tgo.StageOrder); err != nil {
+				stage_order = excluded.stage_order,
+				progress_mode = excluded.progress_mode
+		`, tgo.Code, tgo.Title, tgo.Description, tgo.Stage, tgo.StageOrder, progressMode); err != nil {
 			return err
 		}
 		if _, err = tx.ExecContext(ctx, `
@@ -916,7 +921,7 @@ func (s *Store) SaveReviewArtifacts(ctx context.Context, artifacts domain.Review
 
 func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TGO, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, a.slot, tt.prerequisites_json, tt.mastery_hint
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, c.progress_mode, a.slot, tt.prerequisites_json, tt.mastery_hint
 		FROM enrollment_active_tgos a
 		JOIN tgo_catalog c ON c.code = a.tgo_code
 		LEFT JOIN user_tree_enrollments e ON e.id = a.enrollment_id
@@ -932,7 +937,7 @@ func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TG
 	for rows.Next() {
 		var tgo domain.TGO
 		var prereqsJSON string
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
 			return nil, err
 		}
 		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
@@ -945,7 +950,7 @@ func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TG
 
 func (s *Store) CompletedTGOs(ctx context.Context, enrollmentID int64) ([]domain.TGO, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, 0, tt.prerequisites_json, tt.mastery_hint
+		SELECT c.id, c.code, c.title, c.description, c.stage, c.stage_order, c.progress_mode, 0, tt.prerequisites_json, tt.mastery_hint
 		FROM enrollment_completed_tgos x
 		JOIN tgo_catalog c ON c.code = x.tgo_code
 		LEFT JOIN user_tree_enrollments e ON e.id = x.enrollment_id
@@ -961,7 +966,7 @@ func (s *Store) CompletedTGOs(ctx context.Context, enrollmentID int64) ([]domain
 	for rows.Next() {
 		var tgo domain.TGO
 		var prereqsJSON string
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
 			return nil, err
 		}
 		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
@@ -999,6 +1004,17 @@ func (s *Store) RecentTGOStatuses(ctx context.Context, enrollmentID int64, code 
 		out = append(out, status)
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) TGOMasterySignal(ctx context.Context, enrollmentID int64, tgo domain.TGO, currentStatus string) (domain.TGOMasterySignal, error) {
+	statuses, err := s.RecentTGOStatuses(ctx, enrollmentID, tgo.Code, 5)
+	if err != nil {
+		return domain.TGOMasterySignal{}, err
+	}
+	if currentStatus != "" {
+		statuses = append([]string{currentStatus}, statuses...)
+	}
+	return domain.ComputeMasterySignal(tgo.ProgressMode, statuses), nil
 }
 
 func (s *Store) ReplaceActiveTGO(ctx context.Context, enrollmentID int64, slot int, completedCode string, nextCode string) error {

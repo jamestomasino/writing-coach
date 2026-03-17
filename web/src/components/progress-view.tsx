@@ -174,11 +174,30 @@ export function ProgressView() {
                 <SparklesIcon className="size-4" />
                 Active skills
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 space-y-3">
                 {dashboard.active_tgos.map((tgo) => (
-                  <Badge key={tgo.code} color="blue">
-                    {tgo.title}
-                  </Badge>
+                  <div key={tgo.code} className="rounded-xl border border-blue-200/80 bg-white/70 px-3 py-3 dark:border-blue-400/20 dark:bg-black/10">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
+                      <Badge color="blue">{tgo.stage}</Badge>
+                    </div>
+                    {tgo.progress_mode === 'percent' ? (
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between gap-3 text-xs font-medium uppercase tracking-[0.16em] text-blue-800/80 dark:text-blue-200/80">
+                          <span>Mastery progress</span>
+                          <span>{tgo.mastery_percent ?? 0}%</span>
+                        </div>
+                        <div className="mt-2 h-2 rounded-full bg-blue-200/70 dark:bg-blue-200/15">
+                          <div className="h-2 rounded-full bg-blue-800 dark:bg-blue-200" style={{ width: `${tgo.mastery_percent ?? 0}%` }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <Text className="mt-2 text-sm">
+                        <span className="font-semibold text-blue-950 dark:text-blue-100">Mastery state:</span>{' '}
+                        {tgo.mastery_stage ?? 'emerging'}
+                      </Text>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

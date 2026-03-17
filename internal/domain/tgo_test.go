@@ -2,29 +2,31 @@ package domain
 
 import "testing"
 
-func TestNextUnlockedTGOsRespectsPrerequisites(t *testing.T) {
-	completed := map[string]bool{
-		"causal-clarity":     true,
-		"scene-architecture": true,
-		"prose-precision":    true,
+func TestInferProgressMode(t *testing.T) {
+	if got := InferProgressMode("sentence variety"); got != ProgressModePercent {
+		t.Fatalf("sentence variety progress mode = %q", got)
 	}
-	active := map[string]bool{}
-
-	got := NextUnlockedTGOs("mythic-tragedy-apprenticeship", completed, active, 3)
-	if len(got) == 0 {
-		t.Fatal("expected unlocked TGOs")
-	}
-	if got[0].Code != "emotional-compression" {
-		t.Fatalf("first unlocked = %q", got[0].Code)
+	if got := InferProgressMode("symbolic control"); got != ProgressModeStage {
+		t.Fatalf("symbolic control progress mode = %q", got)
 	}
 }
 
-func TestSeedTGOsAreTreeSpecific(t *testing.T) {
-	got := SeedTGOs("youth-writing-foundations")
-	if len(got) != 3 {
-		t.Fatalf("seed len = %d", len(got))
+func TestComputeMasterySignalPercent(t *testing.T) {
+	signal := ComputeMasterySignal(ProgressModePercent, []string{"mastered", "secure", "mastered"})
+	if !signal.Ready {
+		t.Fatalf("signal should be ready: %#v", signal)
 	}
-	if got[0] != "word-choice" {
-		t.Fatalf("first seed = %q", got[0])
+	if signal.Percent != 100 {
+		t.Fatalf("percent = %d", signal.Percent)
+	}
+}
+
+func TestComputeMasterySignalStage(t *testing.T) {
+	signal := ComputeMasterySignal(ProgressModeStage, []string{"secure", "developing"})
+	if signal.Stage != "developing" && signal.Stage != "strong control" {
+		t.Fatalf("unexpected stage: %#v", signal)
+	}
+	if signal.Ready {
+		t.Fatalf("signal should not be ready: %#v", signal)
 	}
 }

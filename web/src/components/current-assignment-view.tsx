@@ -24,6 +24,30 @@ function countWords(value: string) {
   return value.trim() === '' ? 0 : value.trim().split(/\s+/).length
 }
 
+function renderMasteryState(tgo: Dashboard['active_tgos'][number]) {
+  if (tgo.progress_mode === 'percent') {
+    const percent = tgo.mastery_percent ?? 0
+    return (
+      <div className="mt-3">
+        <div className="flex items-center justify-between gap-4 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+          <span>Mastery progress</span>
+          <span>{percent}%</span>
+        </div>
+        <div className="mt-2 h-2 rounded-full bg-stone-200 dark:bg-white/10">
+          <div className="h-2 rounded-full bg-stone-800 dark:bg-stone-200" style={{ width: `${percent}%` }} />
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
+      <span className="font-semibold text-zinc-950 dark:text-white">Mastery state:</span>{' '}
+      {tgo.mastery_stage ?? 'emerging'}
+      {tgo.mastery_evidence_count ? ` across ${tgo.mastery_evidence_count} review${tgo.mastery_evidence_count === 1 ? '' : 's'}` : ''}
+    </div>
+  )
+}
+
 export function CurrentAssignmentView() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -268,6 +292,7 @@ export function CurrentAssignmentView() {
                   <Badge color="cyan">{tgo.stage}</Badge>
                 </div>
                 <Text className="mt-2">{tgo.description}</Text>
+                {renderMasteryState(tgo)}
               </div>
             ))}
           </div>
