@@ -1026,6 +1026,7 @@ func (s Server) handleExerciseGet(w http.ResponseWriter, r *http.Request) {
 func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
+		log.Printf("prompt next: resolve session failed: %v", err)
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -1039,6 +1040,7 @@ func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 		}
 		if len(payload.TGOCodes) > 0 {
 			if err := s.setActiveTGOsForSelection(r.Context(), appContext, payload.TGOCodes); err != nil {
+				log.Printf("prompt next: set active skills failed for user=%d tree=%d enrollment=%d codes=%v: %v", appContext.UserID, appContext.TreeID, appContext.EnrollmentID, payload.TGOCodes, err)
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
@@ -1046,6 +1048,7 @@ func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 	}
 	ex, err := s.createNextExercise(r.Context(), appContext)
 	if err != nil {
+		log.Printf("prompt next: create exercise failed for user=%d tree=%d enrollment=%d: %v", appContext.UserID, appContext.TreeID, appContext.EnrollmentID, err)
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -1424,22 +1427,27 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 func (s Server) createNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
 	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
 	if err != nil {
+		log.Printf("create exercise: curriculum state lookup failed for enrollment=%d: %v", appContext.EnrollmentID, err)
 		return domain.Exercise{}, err
 	}
 	recentTitles, err := s.Store.RecentExerciseTitles(ctx, appContext.UserID, appContext.TreeID, 3)
 	if err != nil {
+		log.Printf("create exercise: recent titles lookup failed for user=%d tree=%d: %v", appContext.UserID, appContext.TreeID, err)
 		return domain.Exercise{}, err
 	}
 	recentWeaknesses, err := s.Store.RecurringWeaknesses(ctx, appContext.UserID, appContext.TreeID, 5)
 	if err != nil {
+		log.Printf("create exercise: recurring weaknesses lookup failed for user=%d tree=%d: %v", appContext.UserID, appContext.TreeID, err)
 		return domain.Exercise{}, err
 	}
 	recurringFindings, err := s.Store.RecurringAnalyzerFindings(ctx, appContext.UserID, appContext.TreeID, 5)
 	if err != nil {
+		log.Printf("create exercise: recurring findings lookup failed for user=%d tree=%d: %v", appContext.UserID, appContext.TreeID, err)
 		return domain.Exercise{}, err
 	}
 	activeTGOs, err := s.Store.ActiveTGOs(ctx, appContext.EnrollmentID)
 	if err != nil {
+		log.Printf("create exercise: active skills lookup failed for enrollment=%d: %v", appContext.EnrollmentID, err)
 		return domain.Exercise{}, err
 	}
 
@@ -1454,6 +1462,7 @@ func (s Server) createNextExercise(ctx context.Context, appContext session.Conte
 	ex.TreeID = appContext.TreeID
 	id, err := s.Store.SaveExercise(ctx, ex)
 	if err != nil {
+		log.Printf("create exercise: save failed for user=%d tree=%d title=%q generation=%q: %v", appContext.UserID, appContext.TreeID, ex.Title, ex.GenerationKind, err)
 		return domain.Exercise{}, err
 	}
 	ex.ID = id
