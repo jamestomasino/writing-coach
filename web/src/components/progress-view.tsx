@@ -6,11 +6,9 @@ import {
   ArrowTrendingUpIcon,
   CheckBadgeIcon,
   ExclamationTriangleIcon,
-  ArrowPathIcon,
   SparklesIcon,
 } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
-import { Button } from '@/components/button'
 import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
@@ -144,23 +142,10 @@ export function ProgressView() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <Heading>{tree?.title ?? 'Progress board'}</Heading>
-              <Text className="mt-2 max-w-3xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button href="/new-assignment" outline>
-                New assignment
-              </Button>
-              <Button href="/onboarding" color="dark/zinc">
-                <ArrowPathIcon />
-                Refresh track
-              </Button>
-            </div>
-          </div>
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] xl:items-start">
+        <header>
+          <Heading>{tree?.title ?? 'Progress board'}</Heading>
+          <Text className="mt-2 max-w-3xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
         </header>
 
         <WorkspaceCard>
