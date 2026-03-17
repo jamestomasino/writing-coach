@@ -133,7 +133,7 @@ export function ProgressView() {
   const recurringWeaknesses = dashboard.recurring_weaknesses ?? []
   const recurringFindings = dashboard.recurring_findings ?? []
   const recurringCompletedSlips = dashboard.recurring_completed_slips ?? []
-  const prioritySkills = tree?.priority_skills ?? []
+  const headerSkills = activeTGOs.length > 0 ? activeTGOs.map((tgo) => tgo.title) : tree?.priority_skills ?? []
 
   return (
     <div className="space-y-8">
@@ -145,7 +145,7 @@ export function ProgressView() {
           </Text>
         </div>
         <div className="flex flex-wrap gap-2">
-          {prioritySkills.slice(0, 3).map((skill) => (
+          {headerSkills.slice(0, 3).map((skill) => (
             <Badge key={skill} color="amber">
               {skill}
             </Badge>
