@@ -5,12 +5,14 @@ import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
-import { createAssignment, getDashboard, getSession } from '@/lib/api'
+import { acceptAssignment, createAssignment, getDashboard, getSession } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
 import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
+import { useRouter } from 'next/navigation'
 
 export function NewAssignmentView() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
@@ -18,6 +20,7 @@ export function NewAssignmentView() {
   const [selected, setSelected] = useState<string[]>([])
   const [preview, setPreview] = useState<Exercise | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [accepting, setAccepting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -96,6 +99,22 @@ export function NewAssignmentView() {
       setError(err instanceof Error ? err.message : 'Could not generate assignment')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  async function acceptPreview() {
+    if (!preview) {
+      return
+    }
+    try {
+      setAccepting(true)
+      setError(null)
+      await acceptAssignment(preview)
+      router.push('/')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not accept assignment')
+    } finally {
+      setAccepting(false)
     }
   }
 
@@ -200,8 +219,8 @@ export function NewAssignmentView() {
               <Button plain onClick={generate} disabled={generating}>
                 {generating ? 'Refreshing…' : 'Refresh prompt'}
               </Button>
-              <Button href="/" color="dark/zinc">
-                Accept and continue
+              <Button onClick={acceptPreview} color="dark/zinc" disabled={generating || accepting}>
+                {accepting ? 'Accepting…' : 'Accept and continue'}
               </Button>
             </div>
           </div>

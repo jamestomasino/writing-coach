@@ -119,6 +119,23 @@ export async function createAssignment(tgoCodes?: string[]) {
   return payload.exercise
 }
 
+export async function acceptAssignment(exercise: Exercise) {
+  const payload = await request<{ exercise: Exercise }>('/api/prompts/accept', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: exercise.title,
+      brief: exercise.brief,
+      constraints: exercise.constraints,
+      focus_skills: exercise.focus_skills,
+      tgo_codes: exercise.tgo_codes,
+      success_criteria: exercise.success_criteria,
+      generation_kind: exercise.generation_kind,
+      provider_note: exercise.provider_note ?? '',
+    }),
+  })
+  return payload.exercise
+}
+
 export async function createRevisionAssignment(submissionId: number) {
   const payload = await request<{ exercise: Exercise }>('/api/prompts/revise', {
     method: 'POST',

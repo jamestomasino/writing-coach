@@ -512,12 +512,34 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("prompt status: %d", promptResp.StatusCode)
 	}
 	var promptPayload struct {
-		Exercise struct {
-			ID int64 `json:"id"`
-		} `json:"exercise"`
+		Exercise exerciseResponse `json:"exercise"`
 	}
 	if err := json.NewDecoder(promptResp.Body).Decode(&promptPayload); err != nil {
 		t.Fatalf("decode prompt: %v", err)
+	}
+	acceptResp, err := http.Post(
+		testServer.URL+"/api/prompts/accept?user=tester&tree=mythic-tragedy-apprenticeship",
+		"application/json",
+		strings.NewReader(mustJSONString(map[string]any{
+			"title":            promptPayload.Exercise.Title,
+			"brief":            promptPayload.Exercise.Brief,
+			"constraints":      promptPayload.Exercise.Constraints,
+			"focus_skills":     promptPayload.Exercise.FocusSkills,
+			"tgo_codes":        promptPayload.Exercise.TGOCodes,
+			"success_criteria": promptPayload.Exercise.SuccessCriteria,
+			"generation_kind":  promptPayload.Exercise.GenerationKind,
+			"provider_note":    promptPayload.Exercise.ProviderNote,
+		})),
+	)
+	if err != nil {
+		t.Fatalf("accept prompt: %v", err)
+	}
+	defer acceptResp.Body.Close()
+	if acceptResp.StatusCode != http.StatusOK {
+		t.Fatalf("accept prompt status: %d", acceptResp.StatusCode)
+	}
+	if err := json.NewDecoder(acceptResp.Body).Decode(&promptPayload); err != nil {
+		t.Fatalf("decode accepted prompt: %v", err)
 	}
 
 	exercisesResp, err := http.Get(testServer.URL + "/api/exercises?user=tester&tree=mythic-tragedy-apprenticeship")
@@ -659,6 +681,78 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	}
 	if payload.Exercise.TGOCodes[0] != "scene-architecture" || payload.Exercise.TGOCodes[2] != "causal-clarity" {
 		t.Fatalf("expected selected TGO to persist, got %v", payload.Exercise.TGOCodes)
+	}
+}
+
+func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	resp, err := http.Post(
+		testServer.URL+"/api/prompts/next?user=tester",
+		"application/json",
+		strings.NewReader(`{"tgo_codes":["scene-architecture","prose-precision","causal-clarity"]}`),
+	)
+	if err != nil {
+		t.Fatalf("preview prompt: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("preview status: %d", resp.StatusCode)
+	}
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	exercises, err := harness.Store.ListExercises(context.Background(), user.ID, tree.ID, 10)
+	if err != nil {
+		t.Fatalf("list exercises after preview: %v", err)
+	}
+	if len(exercises) != 0 {
+		t.Fatalf("expected no saved exercises after preview, got %d", len(exercises))
+	}
+
+	var payload struct {
+		Exercise exerciseResponse `json:"exercise"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode preview payload: %v", err)
+	}
+
+	acceptResp, err := http.Post(
+		testServer.URL+"/api/prompts/accept?user=tester",
+		"application/json",
+		strings.NewReader(mustJSONString(map[string]any{
+			"title":            payload.Exercise.Title,
+			"brief":            payload.Exercise.Brief,
+			"constraints":      payload.Exercise.Constraints,
+			"focus_skills":     payload.Exercise.FocusSkills,
+			"tgo_codes":        payload.Exercise.TGOCodes,
+			"success_criteria": payload.Exercise.SuccessCriteria,
+			"generation_kind":  payload.Exercise.GenerationKind,
+			"provider_note":    payload.Exercise.ProviderNote,
+		})),
+	)
+	if err != nil {
+		t.Fatalf("accept prompt: %v", err)
+	}
+	defer acceptResp.Body.Close()
+	if acceptResp.StatusCode != http.StatusOK {
+		t.Fatalf("accept status: %d", acceptResp.StatusCode)
+	}
+
+	exercises, err = harness.Store.ListExercises(context.Background(), user.ID, tree.ID, 10)
+	if err != nil {
+		t.Fatalf("list exercises after accept: %v", err)
+	}
+	if len(exercises) != 1 {
+		t.Fatalf("expected one saved exercise after accept, got %d", len(exercises))
 	}
 }
 
@@ -1279,4 +1373,12 @@ func newTestServerWithConfig(t *testing.T, store *db.Store, cfg config.Config) *
 
 func int64String(value int64) string {
 	return strconv.FormatInt(value, 10)
+}
+
+func mustJSONString(value any) string {
+	data, err := json.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
 }

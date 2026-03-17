@@ -79,6 +79,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/exercises", s.handleExercisesList)
 	mux.HandleFunc("GET /api/exercises/{id}", s.handleExerciseGet)
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
+	mux.HandleFunc("POST /api/prompts/accept", s.handlePromptAccept)
 	mux.HandleFunc("POST /api/prompts/revise", s.handlePromptRevise)
 	mux.HandleFunc("GET /api/submissions", s.handleSubmissionsList)
 	mux.HandleFunc("POST /api/submissions", s.handleSubmissionCreate)
@@ -1077,12 +1078,63 @@ func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	ex, err := s.createNextExercise(r.Context(), appContext)
+	ex, err := s.generateNextExercise(r.Context(), appContext)
 	if err != nil {
 		log.Printf("prompt next: create exercise failed for user=%d tree=%d enrollment=%d: %v", appContext.UserID, appContext.TreeID, appContext.EnrollmentID, err)
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":  requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"exercise": toExerciseResponse(ex),
+	})
+}
+
+func (s Server) handlePromptAccept(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	var payload struct {
+		Title           string   `json:"title"`
+		Brief           string   `json:"brief"`
+		Constraints     []string `json:"constraints"`
+		FocusSkills     []string `json:"focus_skills"`
+		TGOCodes        []string `json:"tgo_codes"`
+		SuccessCriteria []string `json:"success_criteria"`
+		GenerationKind  string   `json:"generation_kind"`
+		ProviderNote    string   `json:"provider_note"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	ex := domain.Exercise{
+		UserID:          appContext.UserID,
+		TreeID:          appContext.TreeID,
+		Title:           strings.TrimSpace(payload.Title),
+		Brief:           strings.TrimSpace(payload.Brief),
+		Constraints:     sanitizeStringList(payload.Constraints),
+		FocusSkills:     sanitizeStringList(payload.FocusSkills),
+		TGOCodes:        sanitizeStringList(payload.TGOCodes),
+		SuccessCriteria: sanitizeStringList(payload.SuccessCriteria),
+		GenerationKind:  strings.TrimSpace(payload.GenerationKind),
+		ProviderNote:    strings.TrimSpace(payload.ProviderNote),
+	}
+	if ex.Title == "" || ex.Brief == "" || len(ex.Constraints) == 0 || len(ex.SuccessCriteria) == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("preview exercise is incomplete"))
+		return
+	}
+	if ex.GenerationKind == "" {
+		ex.GenerationKind = "accepted-preview"
+	}
+	id, err := s.saveExercise(r.Context(), ex)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ex.ID = id
 	writeJSON(w, http.StatusOK, map[string]any{
 		"context":  requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
 		"exercise": toExerciseResponse(ex),
@@ -1455,7 +1507,7 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s Server) createNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
+func (s Server) generateNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
 	profile := s.onboardingProfile(ctx, appContext.UserID)
 	coachingBrief := s.coachingBrief(ctx, appContext.UserID)
 	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
@@ -1497,13 +1549,29 @@ func (s Server) createNextExercise(ctx context.Context, appContext session.Conte
 		ex.FocusSkills = focusSkillsForTGOs(activeTGOs, ex.FocusSkills)
 		ex.TGOCodes = tgoCodesForExercise(activeTGOs)
 	}
-	ex.UserID = appContext.UserID
-	ex.TreeID = appContext.TreeID
+	return ex, nil
+}
+
+func (s Server) saveExercise(ctx context.Context, ex domain.Exercise) (int64, error) {
 	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	id, err := s.Store.SaveExercise(saveCtx, ex)
 	if err != nil {
-		log.Printf("create exercise: save failed for user=%d tree=%d title=%q generation=%q: %v", appContext.UserID, appContext.TreeID, ex.Title, ex.GenerationKind, err)
+		log.Printf("create exercise: save failed for user=%d tree=%d title=%q generation=%q: %v", ex.UserID, ex.TreeID, ex.Title, ex.GenerationKind, err)
+		return 0, err
+	}
+	return id, nil
+}
+
+func (s Server) createNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
+	ex, err := s.generateNextExercise(ctx, appContext)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	ex.UserID = appContext.UserID
+	ex.TreeID = appContext.TreeID
+	id, err := s.saveExercise(ctx, ex)
+	if err != nil {
 		return domain.Exercise{}, err
 	}
 	ex.ID = id
