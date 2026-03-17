@@ -237,7 +237,8 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
     return <EmptyState title="Authentication unavailable" body={error ?? 'Could not load the account flow.'} actionHref="/" actionLabel="Back to home" />
   }
 
-  const submitLabel = grouped.submit[0] ? fieldLabel(grouped.submit[0]) || meta.submitLabel : meta.submitLabel
+  const submitNode = grouped.submit[0]
+  const submitLabel = submitNode ? fieldLabel(submitNode) || meta.submitLabel : meta.submitLabel
 
   return (
     <div className="grid w-full max-w-lg grid-cols-1 gap-8">
@@ -295,7 +296,14 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
           })}
         </FieldGroup>
 
-        <Button type="submit" color="dark/zinc" className="w-full">
+        <Button
+          type="submit"
+          color="dark/zinc"
+          className="w-full"
+          name={submitNode?.attributes.name}
+          value={submitNode?.attributes.value ?? ''}
+          disabled={submitNode?.attributes.disabled}
+        >
           {submitLabel}
         </Button>
       </form>
