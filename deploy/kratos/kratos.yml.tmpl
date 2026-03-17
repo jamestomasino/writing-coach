@@ -6,13 +6,12 @@ serve:
     cors:
       enabled: true
       allowed_origins:
-        - __KRATOS_UI_PUBLIC_URL__
         - __COACH_PUBLIC_URL__
   admin:
     base_url: __KRATOS_ADMIN_BASE_URL__
 
 selfservice:
-  default_browser_return_url: __KRATOS_UI_PUBLIC_URL__
+  default_browser_return_url: __COACH_PUBLIC_URL__
   allowed_return_urls:
     - __KRATOS_ALLOWED_RETURN_URL_1__
     - __KRATOS_ALLOWED_RETURN_URL_2__
@@ -24,29 +23,29 @@ selfservice:
 
   flows:
     error:
-      ui_url: __KRATOS_UI_PUBLIC_URL__/error
+      ui_url: __COACH_PUBLIC_URL__/error
     settings:
-      ui_url: __KRATOS_UI_PUBLIC_URL__/settings
+      ui_url: __COACH_PUBLIC_URL__/settings
       privileged_session_max_age: 15m
     recovery:
       enabled: true
-      ui_url: __KRATOS_UI_PUBLIC_URL__/recovery
+      ui_url: __COACH_PUBLIC_URL__/recovery
       use: code
     verification:
       enabled: true
-      ui_url: __KRATOS_UI_PUBLIC_URL__/verification
+      ui_url: __COACH_PUBLIC_URL__/verification
       use: code
       after:
-        default_browser_return_url: __KRATOS_UI_PUBLIC_URL__/
+        default_browser_return_url: __COACH_PUBLIC_URL__/
     logout:
       after:
-        default_browser_return_url: __KRATOS_UI_PUBLIC_URL__/login
+        default_browser_return_url: __COACH_PUBLIC_URL__/login
     login:
-      ui_url: __KRATOS_UI_PUBLIC_URL__/login
+      ui_url: __COACH_PUBLIC_URL__/login
       lifespan: 10m
     registration:
       lifespan: 10m
-      ui_url: __KRATOS_UI_PUBLIC_URL__/registration
+      ui_url: __COACH_PUBLIC_URL__/register
       after:
         password:
           hooks:

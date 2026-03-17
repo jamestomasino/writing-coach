@@ -10,12 +10,9 @@ services:
         condition: service_started
       kratos:
         condition: service_started
-      kratos-selfservice-ui:
-        condition: service_started
     environment:
       WRITING_COACH_API_INTERNAL_URL: "http://app:8080"
       WRITING_COACH_KRATOS_PUBLIC_INTERNAL_URL: "http://kratos:4433"
-      WRITING_COACH_KRATOS_UI_INTERNAL_URL: "http://kratos-selfservice-ui:3000"
     ports:
       - "${WEB_PORT_BIND:-127.0.0.1:11234:3000}"
 
@@ -63,8 +60,8 @@ services:
       COACH_PUBLIC_URL: "${COACH_PUBLIC_URL:-https://coach.tomasino.org}"
       KRATOS_PUBLIC_BASE_URL: "${KRATOS_PUBLIC_BASE_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/public}"
       KRATOS_ADMIN_BASE_URL: "http://kratos:4434/"
-      KRATOS_UI_PUBLIC_URL: "${KRATOS_UI_PUBLIC_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/ui}"
-      KRATOS_ALLOWED_RETURN_URLS: "${KRATOS_ALLOWED_RETURN_URLS:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/ui,${COACH_PUBLIC_URL:-https://coach.tomasino.org}}"
+      KRATOS_UI_PUBLIC_URL: "${KRATOS_UI_PUBLIC_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}}"
+      KRATOS_ALLOWED_RETURN_URLS: "${KRATOS_ALLOWED_RETURN_URLS:-${COACH_PUBLIC_URL:-https://coach.tomasino.org},${COACH_PUBLIC_URL:-https://coach.tomasino.org}/login,${COACH_PUBLIC_URL:-https://coach.tomasino.org}/register}"
       KRATOS_SMTP_CONNECTION_URI: "${KRATOS_SMTP_CONNECTION_URI:-smtps://test:test@mailslurper:1025/?skip_ssl_verify=true}"
     volumes:
       - kratos-data:/var/lib/sqlite
@@ -89,27 +86,14 @@ services:
       COACH_PUBLIC_URL: "${COACH_PUBLIC_URL:-https://coach.tomasino.org}"
       KRATOS_PUBLIC_BASE_URL: "${KRATOS_PUBLIC_BASE_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/public}"
       KRATOS_ADMIN_BASE_URL: "http://kratos:4434/"
-      KRATOS_UI_PUBLIC_URL: "${KRATOS_UI_PUBLIC_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/ui}"
-      KRATOS_ALLOWED_RETURN_URLS: "${KRATOS_ALLOWED_RETURN_URLS:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/ui,${COACH_PUBLIC_URL:-https://coach.tomasino.org}}"
+      KRATOS_UI_PUBLIC_URL: "${KRATOS_UI_PUBLIC_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}}"
+      KRATOS_ALLOWED_RETURN_URLS: "${KRATOS_ALLOWED_RETURN_URLS:-${COACH_PUBLIC_URL:-https://coach.tomasino.org},${COACH_PUBLIC_URL:-https://coach.tomasino.org}/login,${COACH_PUBLIC_URL:-https://coach.tomasino.org}/register}"
       KRATOS_SMTP_CONNECTION_URI: "${KRATOS_SMTP_CONNECTION_URI:-smtps://test:test@mailslurper:1025/?skip_ssl_verify=true}"
     command: ["/etc/config/kratos/render-config.sh", "serve"]
     volumes:
       - kratos-data:/var/lib/sqlite
       - ./deploy/kratos:/etc/config/kratos
 
-  kratos-selfservice-ui:
-    image: oryd/kratos-selfservice-ui-node:v25.4.0
-    container_name: writing-coach-kratos-ui
-    restart: unless-stopped
-    depends_on:
-      kratos:
-        condition: service_started
-    environment:
-      KRATOS_PUBLIC_URL: "http://kratos:4433/"
-      KRATOS_BROWSER_URL: "${KRATOS_BROWSER_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/public}"
-      COOKIE_SECRET: "${KRATOS_UI_COOKIE_SECRET:-change-me-change-me-change-me-change-me}"
-      CSRF_COOKIE_NAME: "ory_csrf_ui"
-      CSRF_COOKIE_SECRET: "${KRATOS_UI_CSRF_SECRET:-change-me-change-me-change-me-change-me}"
   mailslurper:
     image: oryd/mailslurper:latest-smtps
     container_name: writing-coach-mailslurper

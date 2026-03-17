@@ -82,7 +82,7 @@ export function AdminView() {
       <div className="grid gap-8 xl:grid-cols-[1.4fr_1fr]">
         <WorkspaceCard>
           <Subheading>Provision user</Subheading>
-          <Text className="mt-2">This prepares the internal user record. Browser authentication still runs through Kratos registration and login.</Text>
+          <Text className="mt-2">This prepares the internal user record. Browser authentication now runs through the app’s own branded account flows backed by Kratos.</Text>
           <form className="mt-5" onSubmit={handleProvision}>
             <FieldGroup>
               <Field>

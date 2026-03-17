@@ -131,6 +131,6 @@ The web app should run as the only published service in Compose and proxy:
 
 - `/api/*` to the Go API
 - `/.ory/kratos/public/*` to Kratos public
-- `/.ory/kratos/ui/*` to Kratos self-service UI
+- branded auth routes in the web app, backed by Kratos browser flows
 
 That keeps host nginx simple: one upstream for the entire product.

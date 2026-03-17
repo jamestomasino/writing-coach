@@ -207,7 +207,7 @@ That stack includes:
 - `Vale` bundled into the app image
 - `LanguageTool` as a dedicated Java container
 - `Ory Kratos` for account management and password handling
-- `Ory Kratos Self-Service UI` for registration/login flows
+- `Ory Kratos` for account management and password handling
 - `Mailslurper` for local verification/recovery email testing
 
 Everything required to run the stack now lives inside `docker-compose.yml` and `.env`. No host-side LanguageTool, Vale, database, or auth service is required. The app stores its SQLite/config state under `/app/.writing-coach` in the `writing-coach-data` volume, and Kratos stores its identity SQLite DB in the `kratos-data` volume.
@@ -241,7 +241,7 @@ Default localhost binding from `.env.example`:
 
 - `11234` writing-coach web entrypoint
 
-The web container proxies `/api`, `/.ory/kratos/public`, and `/.ory/kratos/ui` internally over the Docker network, so host nginx only needs a single upstream:
+The web container proxies `/api` and `/.ory/kratos/public` internally over the Docker network, so host nginx only needs a single upstream:
 
 ```nginx
 server {

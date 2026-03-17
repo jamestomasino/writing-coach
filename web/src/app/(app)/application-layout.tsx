@@ -27,6 +27,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   LockClosedIcon,
+  Cog6ToothIcon,
   UserPlusIcon,
 } from '@heroicons/react/16/solid'
 import {
@@ -52,6 +53,10 @@ function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' })
       <DropdownItem href="/new-assignment">
         <PencilSquareIcon />
         <DropdownLabel>New assignment</DropdownLabel>
+      </DropdownItem>
+      <DropdownItem href="/settings">
+        <Cog6ToothIcon />
+        <DropdownLabel>Settings</DropdownLabel>
       </DropdownItem>
       <DropdownDivider />
       <DropdownItem href="/.ory/kratos/public/self-service/logout/browser">
