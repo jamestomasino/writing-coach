@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import dagre from 'dagre'
 import {
   Background,
   Controls,
@@ -44,6 +43,8 @@ const nodeTypes = {
 
 const nodeWidth = 240
 const nodeHeight = 156
+const columnGap = 320
+const rowGap = 220
 
 function statusLabel(status: TreeNodeStatus) {
   switch (status) {
@@ -139,16 +140,6 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
   const completed = new Set((dashboard.completed_tgos ?? []).map((tgo) => tgo.code))
   const unlocked = new Set((dashboard.upcoming_tgos ?? []).map((tgo) => tgo.code))
   const titleByCode = new Map(treeTGOs.map((tgo) => [tgo.code, tgo.title]))
-  const graph = new dagre.graphlib.Graph()
-  graph.setDefaultEdgeLabel(() => ({}))
-  graph.setGraph({
-    rankdir: 'LR',
-    nodesep: 36,
-    ranksep: 128,
-    marginx: 24,
-    marginy: 24,
-  })
-
   const unlocks = new Map<string, string[]>()
   for (const tgo of treeTGOs) {
     for (const prerequisite of tgo.prerequisites ?? []) {
@@ -180,19 +171,57 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
       selected: selectedCode === tgo.code,
     }
     dataByCode.set(tgo.code, data)
-    graph.setNode(tgo.code, { width: nodeWidth, height: nodeHeight })
   }
 
-  for (const tgo of treeTGOs) {
-    for (const prerequisite of tgo.prerequisites ?? []) {
-      graph.setEdge(prerequisite, tgo.code)
+  const stageMap = new Map<string, { order: number; nodes: GraphNodeData[] }>()
+  for (const data of dataByCode.values()) {
+    const existing = stageMap.get(data.stage)
+    if (!existing) {
+      stageMap.set(data.stage, { order: data.stage_order, nodes: [data] })
+      continue
     }
+    existing.order = Math.min(existing.order, data.stage_order)
+    existing.nodes.push(data)
   }
 
-  dagre.layout(graph)
+  const orderedStages = [...stageMap.entries()]
+    .sort((a, b) => a[1].order - b[1].order)
+    .map(([stage, value], index) => ({
+      stage,
+      order: value.order,
+      index,
+      nodes: value.nodes.sort((a, b) => {
+        const statusOrder = { active: 0, unlocked: 1, completed: 2, locked: 3 }
+        const score = statusOrder[a.status] - statusOrder[b.status]
+        return score !== 0 ? score : a.title.localeCompare(b.title)
+      }),
+    }))
+
+  const stageX = new Map<string, number>()
+  for (const stage of orderedStages) {
+    if (stage.index === 0) {
+      stageX.set(stage.stage, 0)
+      continue
+    }
+    const ring = Math.ceil(stage.index / 2)
+    const direction = stage.index % 2 === 1 ? 1 : -1
+    stageX.set(stage.stage, direction * ring * columnGap)
+  }
+
+  const positionByCode = new Map<string, { x: number; y: number }>()
+  for (const stage of orderedStages) {
+    const x = stageX.get(stage.stage) ?? 0
+    const totalHeight = (stage.nodes.length - 1) * rowGap
+    stage.nodes.forEach((node, index) => {
+      positionByCode.set(node.code, {
+        x,
+        y: index * rowGap - totalHeight / 2,
+      })
+    })
+  }
 
   const nodes: Node<GraphNodeData>[] = treeTGOs.map((tgo) => {
-    const positioned = graph.node(tgo.code)
+    const positioned = positionByCode.get(tgo.code) ?? { x: 0, y: 0 }
     return {
       id: tgo.code,
       type: 'skillNode',
@@ -220,7 +249,7 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
         id: `${prerequisite}->${tgo.code}`,
         source: prerequisite,
         target: tgo.code,
-        type: 'smoothstep',
+        type: 'bezier',
         animated: target.status === 'active' || target.status === 'unlocked',
         style: {
           stroke,
