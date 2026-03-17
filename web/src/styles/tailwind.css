@@ -1,19 +1,6 @@
-@import '@xyflow/react/dist/style.css';
 @import 'tailwindcss';
 
 @theme {
   --font-sans: Inter, sans-serif;
   --font-sans--font-feature-settings: 'cv11';
-}
-
-.react-flow__attribution {
-  display: none;
-}
-
-.react-flow__minimap-mask {
-  fill: rgba(0, 0, 0, 0.46);
-}
-
-.react-flow__edge-path {
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
 }
