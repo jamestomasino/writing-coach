@@ -7,6 +7,14 @@ export const metadata: Metadata = {
     default: 'Writing Coach',
   },
   description: 'Assignment-first writing coaching built on a progressive writing skill map.',
+  icons: {
+    icon: [
+      { url: '/favicon-writing-coach.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: '/favicon-writing-coach.svg',
+    apple: '/favicon-writing-coach.svg',
+  },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

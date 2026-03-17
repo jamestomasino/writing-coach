@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { Avatar } from '@/components/avatar'
 import {
   Dropdown,
@@ -159,11 +160,13 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center gap-3 px-2 py-2">
-              <Avatar initials="WC" className="bg-stone-800 text-white" />
+            <div className="flex items-center gap-3 px-2 py-1">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-950/70 ring-1 ring-white/10 dark:bg-white/5">
+                <Image src="/logo-writing-coach.svg" alt="Writing Coach logo" width={24} height={24} priority />
+              </div>
               <div className="min-w-0">
-                <div className="truncate text-sm/5 font-medium text-zinc-950 dark:text-white">Writing Coach</div>
-                <div className="truncate text-xs/5 text-zinc-500 dark:text-zinc-400">Assignment-first coaching</div>
+                <div className="text-lg/6 font-semibold text-zinc-950 dark:text-white">Writing Coach</div>
+                <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">Assignment-first coaching</div>
               </div>
             </div>
           </SidebarHeader>
