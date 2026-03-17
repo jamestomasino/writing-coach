@@ -144,25 +144,26 @@ export function ProgressView() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Heading>{tree?.title ?? 'Progress board'}</Heading>
-          <Text className="mt-2 max-w-3xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button href="/new-assignment" outline>
-            New assignment
-          </Button>
-          <Button href="/onboarding" color="dark/zinc">
-            <ArrowPathIcon />
-            Refresh track
-          </Button>
-        </div>
-      </header>
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <header className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <Heading>{tree?.title ?? 'Progress board'}</Heading>
+              <Text className="mt-2 max-w-3xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button href="/new-assignment" outline>
+                New assignment
+              </Button>
+              <Button href="/onboarding" color="dark/zinc">
+                <ArrowPathIcon />
+                Refresh track
+              </Button>
+            </div>
+          </div>
+        </header>
 
-      <div className="flex justify-end">
-        <div className="w-full xl:max-w-[28rem]">
-          <WorkspaceCard>
+        <WorkspaceCard>
           <Subheading>Track profile</Subheading>
           {profile ? (
             <dl className="mt-4 space-y-4 text-sm text-zinc-700 dark:text-zinc-300">
@@ -186,8 +187,7 @@ export function ProgressView() {
           ) : (
             <Text className="mt-3">This track was seeded without a persisted onboarding profile.</Text>
           )}
-          </WorkspaceCard>
-        </div>
+        </WorkspaceCard>
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
