@@ -554,6 +554,129 @@ func TestOnboardingCreatesAndActivatesGeneratedTrack(t *testing.T) {
 	if sessionPayload.Context.TreeSlug != expectedTree.Slug {
 		t.Fatalf("context tree slug = %q", sessionPayload.Context.TreeSlug)
 	}
+
+	getResp, err := http.Get(testServer.URL + "/api/onboarding?user=tester")
+	if err != nil {
+		t.Fatalf("get onboarding: %v", err)
+	}
+	defer getResp.Body.Close()
+	if getResp.StatusCode != http.StatusOK {
+		t.Fatalf("get onboarding status: %d", getResp.StatusCode)
+	}
+	var getPayload struct {
+		Profile struct {
+			AssignmentFormat string `json:"assignment_format"`
+			TargetAudience   string `json:"target_audience"`
+			SubjectMatter    string `json:"subject_matter"`
+		} `json:"profile"`
+	}
+	if err := json.NewDecoder(getResp.Body).Decode(&getPayload); err != nil {
+		t.Fatalf("decode onboarding get: %v", err)
+	}
+	if getPayload.Profile.AssignmentFormat != "blog post" {
+		t.Fatalf("assignment format = %q", getPayload.Profile.AssignmentFormat)
+	}
+	if getPayload.Profile.TargetAudience != "startup founders" {
+		t.Fatalf("target audience = %q", getPayload.Profile.TargetAudience)
+	}
+	if getPayload.Profile.SubjectMatter != "AI product strategy" {
+		t.Fatalf("subject matter = %q", getPayload.Profile.SubjectMatter)
+	}
+}
+
+func TestOnboardingUpdatesExistingProfilePromptSeedFields(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	initialPayload := `{
+		"writing_type":"fiction",
+		"assignment_format":"scene",
+		"target_audience":"fantasy readers",
+		"subject_matter":"mythic conflict",
+		"experience_level":"intermediate",
+		"desired_tone":"mythic and grave",
+		"biggest_weaknesses":["scene architecture","word choice"],
+		"desired_outcomes":["publish stronger fiction","develop a distinctive voice"],
+		"difficulty_intensity":"steady",
+		"writing_goals":"I want to write stronger scenes."
+	}`
+	resp, err := http.Post(
+		testServer.URL+"/api/onboarding?user=tester",
+		"application/json",
+		strings.NewReader(initialPayload),
+	)
+	if err != nil {
+		t.Fatalf("post initial onboarding: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("initial onboarding status: %d", resp.StatusCode)
+	}
+
+	updatePayload := `{
+		"writing_type":"marketing",
+		"assignment_format":"landing page",
+		"target_audience":"product-led growth teams",
+		"subject_matter":"B2B SaaS launches",
+		"experience_level":"advanced",
+		"desired_tone":"clear and persuasive",
+		"biggest_weaknesses":["sentence economy","claim clarity"],
+		"desired_outcomes":["improve professional communication","write thought leadership with authority"],
+		"difficulty_intensity":"ambitious",
+		"writing_goals":"I want sharper conversion-focused drafts."
+	}`
+	updateResp, err := http.Post(
+		testServer.URL+"/api/onboarding?user=tester",
+		"application/json",
+		strings.NewReader(updatePayload),
+	)
+	if err != nil {
+		t.Fatalf("post updated onboarding: %v", err)
+	}
+	defer updateResp.Body.Close()
+	if updateResp.StatusCode != http.StatusOK {
+		t.Fatalf("updated onboarding status: %d", updateResp.StatusCode)
+	}
+
+	getResp, err := http.Get(testServer.URL + "/api/onboarding?user=tester")
+	if err != nil {
+		t.Fatalf("get onboarding after update: %v", err)
+	}
+	defer getResp.Body.Close()
+	if getResp.StatusCode != http.StatusOK {
+		t.Fatalf("get onboarding after update status: %d", getResp.StatusCode)
+	}
+	var getPayload struct {
+		Profile struct {
+			WritingType      string `json:"writing_type"`
+			AssignmentFormat string `json:"assignment_format"`
+			TargetAudience   string `json:"target_audience"`
+			SubjectMatter    string `json:"subject_matter"`
+			DesiredTone      string `json:"desired_tone"`
+			WritingGoals     string `json:"writing_goals"`
+		} `json:"profile"`
+	}
+	if err := json.NewDecoder(getResp.Body).Decode(&getPayload); err != nil {
+		t.Fatalf("decode onboarding after update: %v", err)
+	}
+	if getPayload.Profile.WritingType != "marketing" {
+		t.Fatalf("writing type = %q", getPayload.Profile.WritingType)
+	}
+	if getPayload.Profile.AssignmentFormat != "landing page" {
+		t.Fatalf("assignment format = %q", getPayload.Profile.AssignmentFormat)
+	}
+	if getPayload.Profile.TargetAudience != "product-led growth teams" {
+		t.Fatalf("target audience = %q", getPayload.Profile.TargetAudience)
+	}
+	if getPayload.Profile.SubjectMatter != "B2B SaaS launches" {
+		t.Fatalf("subject matter = %q", getPayload.Profile.SubjectMatter)
+	}
+	if getPayload.Profile.DesiredTone != "clear and persuasive" {
+		t.Fatalf("desired tone = %q", getPayload.Profile.DesiredTone)
+	}
+	if getPayload.Profile.WritingGoals != "I want sharper conversion-focused drafts." {
+		t.Fatalf("writing goals = %q", getPayload.Profile.WritingGoals)
+	}
 }
 
 func TestSkillGraphEndpoint(t *testing.T) {
