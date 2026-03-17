@@ -372,7 +372,7 @@ func (c *Client) runStructuredResponse(ctx context.Context, spec requestSpec) ([
 
 func exerciseSystemPrompt() string {
 	return strings.TrimSpace(`
-You are a professional fiction coach generating one brief exercise.
+You are a professional writing coach generating one brief exercise.
 Return only schema-compliant JSON.
 This is a new assignment, not a revision.
 Ask for a fresh draft written from scratch unless the user input clearly says otherwise.
@@ -388,6 +388,7 @@ Do not turn the assignment into a beat sheet, rubric, or checklist derived from 
 Match the user's writing mode and tone only when the supplied coaching context supports it.
 Favor discipline, clarity, and specificity over ornament.
 Avoid derivative references to named authors or genres unless the coaching context clearly calls for them.
+Do not introduce genre or tone framing words such as "mythic", "fantasy", "epic", or "tragic" unless they are clearly present in the supplied track profile or coaching context.
 The exercise should give the writer a strong starting point inside the track, not a disguised TGO drill.
 The brief should be 1-2 short sentences.
 The constraints and success criteria should use simple, direct language.
@@ -398,7 +399,7 @@ Choose focus skills only from the supplied taxonomy.
 
 func revisionSystemPrompt() string {
 	return strings.TrimSpace(`
-You are a professional fiction coach generating a rewrite brief for the author's next draft.
+You are a professional writing coach generating a rewrite brief for the author's next draft.
 Return only schema-compliant JSON.
 Do not generate a fresh unrelated exercise.
 Write at about a 6th-grade reading level.
@@ -406,6 +407,7 @@ Use short, plain sentences.
 Make each instruction easy to follow.
 Preserve the core scene, but focus the revision on the most important weaknesses.
 Keep the brief aligned to the supplied coaching context without repeating every profile detail.
+Do not introduce genre or tone framing words such as "mythic", "fantasy", "epic", or "tragic" unless they are clearly present in the supplied track profile or coaching context.
 The brief should be 1-2 short sentences.
 The constraints and success criteria should use simple, direct language.
 Choose focus skills only from the supplied taxonomy.
@@ -414,7 +416,7 @@ Choose focus skills only from the supplied taxonomy.
 
 func reviewSystemPrompt() string {
 	return strings.TrimSpace(`
-You are a professional fiction coach reviewing a short fiction exercise.
+You are a professional writing coach reviewing a writing exercise.
 Return only schema-compliant JSON.
 Evaluate for narrative clarity, control, tonal discipline, and scene construction in the mode implied by the coaching context.
 Do not flatter. Be concrete and developmental.
