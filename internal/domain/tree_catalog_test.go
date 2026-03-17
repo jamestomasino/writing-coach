@@ -3,8 +3,8 @@ package domain
 import "testing"
 
 func TestBuiltInTreesHaveDepthAndSeeds(t *testing.T) {
-	if len(BuiltInTrees) < 9 {
-		t.Fatalf("expected at least 9 built-in trees, got %d", len(BuiltInTrees))
+	if len(BuiltInTrees) < 14 {
+		t.Fatalf("expected at least 14 built-in trees, got %d", len(BuiltInTrees))
 	}
 	for _, tree := range BuiltInTrees {
 		if len(tree.TGOs) < 50 {
@@ -122,11 +122,33 @@ func TestRecommendedStarterCodesForBroaderFictionTemplates(t *testing.T) {
 	if len(starter) != 3 {
 		t.Fatalf("starter codes = %#v", starter)
 	}
-	if starter[0] != "story-causal-clarity" {
+	if starter[0] != "fantasy-story-causal-clarity" {
 		t.Fatalf("starter codes = %#v", starter)
 	}
 	regions := RecommendedRegionSlugs(profile)
-	if len(regions) == 0 || regions[0] != storyCraftTree.Slug {
+	if len(regions) == 0 || regions[0] != fantasyFictionTree.Slug {
 		t.Fatalf("regions = %#v", regions)
+	}
+}
+
+func TestExpandedFictionTreesAreAvailable(t *testing.T) {
+	trees := []TGOTreeDefinition{
+		fantasyFictionTree,
+		scienceFictionTree,
+		romanceFictionTree,
+		literaryFictionTree,
+		mysteryThrillerTree,
+	}
+
+	for _, tree := range trees {
+		if len(tree.TGOs) < 50 {
+			t.Fatalf("tree %s has only %d TGOs", tree.Slug, len(tree.TGOs))
+		}
+		if len(tree.SeedCodes) != 3 {
+			t.Fatalf("tree %s seed codes = %#v", tree.Slug, tree.SeedCodes)
+		}
+		if len(tree.PrioritySkills) < 6 {
+			t.Fatalf("tree %s priority skills = %#v", tree.Slug, tree.PrioritySkills)
+		}
 	}
 }

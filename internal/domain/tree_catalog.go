@@ -612,7 +612,116 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 
 var (
 	mythicTragedyTree, youthFoundationsTree, storyCraftTree, thoughtLeadershipTree, professionalWritingTree, academicEssayTree, technicalWritingTree, persuasiveWritingTree, memoirNarrativeTree, BuiltInTrees, TGOCodeToSkill = buildBuiltInCatalog()
+	fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree                                                                                                                       = buildExpandedFictionTrees()
 )
+
+func init() {
+	BuiltInTrees = append(BuiltInTrees, fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree)
+	registerTreeSkills(fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree)
+}
+
+func buildExpandedFictionTrees() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition) {
+	return cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+			Slug:           "fantasy-fiction-track",
+			Title:          "Fantasy Track",
+			Description:    "Fiction track for fantasy writers building scene control, world pressure, character stakes, and durable narrative movement.",
+			CodePrefix:     "fantasy",
+			PrioritySkills: []string{"worldbuilding economy", "image freshness", "scene architecture", "narrative clarity", "dialogue intelligence", "emotional compression", "prose precision"},
+		}),
+		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+			Slug:           "science-fiction-track",
+			Title:          "Science Fiction Track",
+			Description:    "Fiction track for science fiction writers building idea pressure, scene clarity, world logic, and character consequence.",
+			CodePrefix:     "scifi",
+			PrioritySkills: []string{"worldbuilding economy", "narrative clarity", "scene architecture", "prose precision", "dialogue intelligence", "image freshness", "structure and pacing"},
+		}),
+		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+			Slug:           "romance-fiction-track",
+			Title:          "Romance Track",
+			Description:    "Fiction track for romance writers building relationship pressure, scene turns, emotional movement, and clear character stakes.",
+			CodePrefix:     "romance",
+			PrioritySkills: []string{"scene architecture", "emotional compression", "dialogue intelligence", "story development", "narrative clarity", "voice presence", "prose precision"},
+		}),
+		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+			Slug:           "literary-fiction-track",
+			Title:          "Literary Fiction Track",
+			Description:    "Fiction track for literary writers building scene control, image discipline, emotional pressure, and formal clarity.",
+			CodePrefix:     "literary",
+			PrioritySkills: []string{"image freshness", "emotional compression", "prose precision", "narrative clarity", "scene architecture", "dialogue intelligence", "story development"},
+		}),
+		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+			Slug:           "mystery-thriller-track",
+			Title:          "Mystery and Thriller Track",
+			Description:    "Fiction track for mystery and thriller writers building suspense, clue control, scene pressure, and reader orientation.",
+			CodePrefix:     "thriller",
+			PrioritySkills: []string{"narrative clarity", "scene architecture", "structure and pacing", "dialogue intelligence", "worldbuilding economy", "prose precision", "story development"},
+		})
+}
+
+type cloneTreeOptions struct {
+	Slug           string
+	Title          string
+	Description    string
+	CodePrefix     string
+	PrioritySkills []string
+}
+
+func cloneTreeDefinition(base TGOTreeDefinition, options cloneTreeOptions) TGOTreeDefinition {
+	codeMap := make(map[string]string, len(base.TGOs))
+	for _, tgo := range base.TGOs {
+		codeMap[tgo.Code] = options.CodePrefix + "-" + tgo.Code
+	}
+
+	out := TGOTreeDefinition{
+		Slug:           options.Slug,
+		Title:          options.Title,
+		Description:    options.Description,
+		PrioritySkills: append([]string(nil), options.PrioritySkills...),
+	}
+	for _, code := range base.SeedCodes {
+		if next, ok := codeMap[code]; ok {
+			out.SeedCodes = append(out.SeedCodes, next)
+		}
+	}
+	for _, tgo := range base.TGOs {
+		clone := tgo
+		clone.Code = codeMap[tgo.Code]
+		clone.Prerequisites = remapCodes(tgo.Prerequisites, codeMap)
+		out.TGOs = append(out.TGOs, clone)
+	}
+	return out
+}
+
+func remapCodes(values []string, codeMap map[string]string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if mapped, ok := codeMap[value]; ok {
+			out = append(out, mapped)
+			continue
+		}
+		out = append(out, value)
+	}
+	return out
+}
+
+func registerTreeSkills(trees ...TGOTreeDefinition) {
+	for _, tree := range trees {
+		for _, tgo := range tree.TGOs {
+			if skill := TGOCodeToSkill[trimStoryClonePrefix(tgo.Code)]; skill != "" {
+				TGOCodeToSkill[tgo.Code] = skill
+			}
+		}
+	}
+}
+
+func trimStoryClonePrefix(code string) string {
+	for _, prefix := range []string{"fantasy-", "scifi-", "romance-", "literary-", "thriller-"} {
+		if len(code) > len(prefix) && code[:len(prefix)] == prefix {
+			return code[len(prefix):]
+		}
+	}
+	return code
+}
 
 func treeForTemplateKey(templateKey string) TGOTreeDefinition {
 	switch templateKey {
@@ -630,8 +739,16 @@ func treeForTemplateKey(templateKey string) TGOTreeDefinition {
 		return thoughtLeadershipTree
 	case "professional-writing":
 		return professionalWritingTree
-	case "fantasy-fiction", "science-fiction", "romance-fiction", "literary-fiction", "mystery-thriller":
-		return storyCraftTree
+	case "fantasy-fiction":
+		return fantasyFictionTree
+	case "science-fiction":
+		return scienceFictionTree
+	case "romance-fiction":
+		return romanceFictionTree
+	case "literary-fiction":
+		return literaryFictionTree
+	case "mystery-thriller":
+		return mysteryThrillerTree
 	case "story-craft":
 		return storyCraftTree
 	default:
@@ -725,7 +842,17 @@ func RecommendedRegionSlugs(profile OnboardingProfile) []string {
 	regions := []string{primary}
 	switch primary {
 	case storyCraftTree.Slug:
-		regions = append(regions, memoirNarrativeTree.Slug, persuasiveWritingTree.Slug)
+		regions = append(regions, fantasyFictionTree.Slug, memoirNarrativeTree.Slug)
+	case fantasyFictionTree.Slug:
+		regions = append(regions, storyCraftTree.Slug, scienceFictionTree.Slug)
+	case scienceFictionTree.Slug:
+		regions = append(regions, fantasyFictionTree.Slug, mysteryThrillerTree.Slug)
+	case romanceFictionTree.Slug:
+		regions = append(regions, literaryFictionTree.Slug, memoirNarrativeTree.Slug)
+	case literaryFictionTree.Slug:
+		regions = append(regions, memoirNarrativeTree.Slug, storyCraftTree.Slug)
+	case mysteryThrillerTree.Slug:
+		regions = append(regions, scienceFictionTree.Slug, storyCraftTree.Slug)
 	case youthFoundationsTree.Slug:
 		regions = append(regions, storyCraftTree.Slug, academicEssayTree.Slug)
 	case thoughtLeadershipTree.Slug:
