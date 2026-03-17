@@ -104,6 +104,7 @@ type authSessionResponse struct {
 	Context            *requestContextResponse `json:"context,omitempty"`
 	OnboardingComplete bool                    `json:"onboarding_complete"`
 	ActiveTreeSlug     string                  `json:"active_tree_slug,omitempty"`
+	IsAdmin            bool                    `json:"is_admin"`
 }
 
 type authIdentityResponse struct {
@@ -308,6 +309,11 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 			Subject: ident.Subject,
 			Email:   ident.Email,
 			Name:    ident.Name,
+		}
+		if ident.Email != "" {
+			if allowed, err := s.Store.IsAdminEmail(r.Context(), ident.Email); err == nil {
+				resp.IsAdmin = allowed
+			}
 		}
 	}
 	if appContext, err := s.resolveSession(r.Context(), r); err == nil {

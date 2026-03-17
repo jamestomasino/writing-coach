@@ -8,6 +8,7 @@ export type RequestContext = {
 export type AuthSession = {
   authenticated: boolean
   auth_mode: string
+  is_admin: boolean
   onboarding_complete: boolean
   active_tree_slug?: string
   identity?: {

@@ -73,6 +73,7 @@ function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' })
 export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -81,10 +82,12 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
         const session = await getSession()
         if (!cancelled) {
           setAuthenticated(session.authenticated)
+          setIsAdmin(session.is_admin)
         }
       } catch {
         if (!cancelled) {
           setAuthenticated(false)
+          setIsAdmin(false)
         }
       }
     }
@@ -123,11 +126,15 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   <ChartBarSquareIcon />
                   <DropdownLabel>Progress board</DropdownLabel>
                 </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/admin">
-                  <LockClosedIcon />
-                  <DropdownLabel>Admin</DropdownLabel>
-                </DropdownItem>
+                {isAdmin ? (
+                  <>
+                    <DropdownDivider />
+                    <DropdownItem href="/admin">
+                      <LockClosedIcon />
+                      <DropdownLabel>Admin</DropdownLabel>
+                    </DropdownItem>
+                  </>
+                ) : null}
               </DropdownMenu>
             </Dropdown>
           </SidebarHeader>
@@ -150,10 +157,12 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 <Squares2X2Icon />
                 <SidebarLabel>Skill map</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/admin" current={pathname.startsWith('/admin')}>
-                <UserGroupIcon />
-                <SidebarLabel>Admin</SidebarLabel>
-              </SidebarItem>
+              {isAdmin ? (
+                <SidebarItem href="/admin" current={pathname.startsWith('/admin')}>
+                  <UserGroupIcon />
+                  <SidebarLabel>Admin</SidebarLabel>
+                </SidebarItem>
+              ) : null}
             </SidebarSection>
 
             <SidebarSection className="max-lg:hidden">
