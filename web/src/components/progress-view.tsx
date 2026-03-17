@@ -6,13 +6,15 @@ import {
   ArrowTrendingUpIcon,
   CheckBadgeIcon,
   ExclamationTriangleIcon,
+  ArrowPathIcon,
   SparklesIcon,
 } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
+import { Button } from '@/components/button'
 import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
-import { getDashboard, getSession, getTree } from '@/lib/api'
-import type { Dashboard, Tree } from '@/lib/types'
+import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
+import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
 import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -62,6 +64,7 @@ export function ProgressView() {
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [tree, setTree] = useState<Tree | null>(null)
+  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => {
@@ -77,13 +80,14 @@ export function ProgressView() {
           }
           return
         }
-        const state = await getDashboard()
-        let treeData: Tree | null = null
-        if (session.active_tree_slug) {
-          treeData = await getTree(session.active_tree_slug)
-        }
+        const [state, onboardingData, treeData] = await Promise.all([
+          getDashboard(),
+          getOnboarding(),
+          session.active_tree_slug ? getTree(session.active_tree_slug) : Promise.resolve(null),
+        ])
         if (!cancelled) {
           setDashboard(state)
+          setOnboarding(onboardingData)
           setTree(treeData)
         }
       } catch (err) {
@@ -135,26 +139,84 @@ export function ProgressView() {
   const recurringWeaknesses = dashboard.recurring_weaknesses ?? []
   const recurringFindings = dashboard.recurring_findings ?? []
   const recurringCompletedSlips = dashboard.recurring_completed_slips ?? []
-  const headerSkills = activeTGOs.length > 0 ? activeTGOs.map((tgo) => tgo.title) : tree?.priority_skills ?? []
   const completedAssignments = dashboard.completed_assignments ?? 0
+  const profile = onboarding?.profile
 
   return (
     <div className="space-y-8">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Heading>Progress board</Heading>
-          <Text className="mt-2 max-w-3xl">
-            Active skills remain the primary measure. Mastered skills track durable gains, and regression watch keeps earlier wins from quietly eroding.
-          </Text>
+          <Heading>{tree?.title ?? 'Progress board'}</Heading>
+          <Text className="mt-2 max-w-3xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
         </div>
         <div className="flex flex-wrap gap-2">
-          {headerSkills.slice(0, 3).map((skill) => (
-            <Badge key={skill} color="amber">
-              {skill}
-            </Badge>
-          ))}
+          <Button href="/new-assignment" outline>
+            New assignment
+          </Button>
+          <Button href="/onboarding" color="dark/zinc">
+            <ArrowPathIcon />
+            Refresh track
+          </Button>
         </div>
       </header>
+
+      <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
+        <WorkspaceCard>
+          <div className="flex items-center justify-between gap-4">
+            <Subheading>Current track state</Subheading>
+            <Badge color="zinc">{completedTGOs.length} mastered</Badge>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Active now</div>
+              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{activeTGOs.length}</div>
+              <Text className="mt-1 text-sm">These three skills drive the current assignment review.</Text>
+            </div>
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Unlocked next</div>
+              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{upcomingTGOs.length}</div>
+              <Text className="mt-1 text-sm">These are eligible choices for the next assignment cycle.</Text>
+            </div>
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Current review focus</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {activeTGOs.slice(0, 3).map((tgo) => (
+                  <Badge key={tgo.code} color="blue">
+                    {tgo.title}
+                  </Badge>
+                ))}
+              </div>
+              <Text className="mt-2 text-sm">These are the skills the coach is measuring most closely right now.</Text>
+            </div>
+          </div>
+        </WorkspaceCard>
+
+        <WorkspaceCard>
+          <Subheading>Track profile</Subheading>
+          {profile ? (
+            <dl className="mt-4 space-y-4 text-sm text-zinc-700 dark:text-zinc-300">
+              <div>
+                <dt className="font-semibold text-zinc-950 dark:text-white">Writing type</dt>
+                <dd className="mt-1">{profile.writing_type}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-zinc-950 dark:text-white">Experience level</dt>
+                <dd className="mt-1">{profile.experience_level}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-zinc-950 dark:text-white">Desired tone</dt>
+                <dd className="mt-1">{profile.desired_tone}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-zinc-950 dark:text-white">Goals</dt>
+                <dd className="mt-1">{profile.writing_goals}</dd>
+              </div>
+            </dl>
+          ) : (
+            <Text className="mt-3">This track was seeded without a persisted onboarding profile.</Text>
+          )}
+        </WorkspaceCard>
+      </div>
 
       <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
         <WorkspaceCard>
