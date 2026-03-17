@@ -464,7 +464,7 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	}
 }
 
-func TestOnboardingCreatesAndActivatesGlobalGraph(t *testing.T) {
+func TestOnboardingCreatesAndActivatesGeneratedTrack(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
@@ -502,7 +502,16 @@ func TestOnboardingCreatesAndActivatesGlobalGraph(t *testing.T) {
 	if !onboardingPayload.OnboardingComplete {
 		t.Fatal("expected onboarding to complete")
 	}
-	if onboardingPayload.Tree.Slug != domain.GlobalSkillGraphSlug {
+	expectedTree := domain.GenerateTreeDefinition("tester", "Tester", domain.OnboardingProfile{
+		WritingType:         "thought leadership",
+		ExperienceLevel:     "intermediate",
+		DesiredTone:         "analytical and decisive",
+		BiggestWeaknesses:   []string{"sentence economy", "claim clarity"},
+		DesiredOutcomes:     []string{"write thought leadership with authority", "develop a distinctive voice"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "I want to publish stronger essays with clearer arguments.",
+	})
+	if onboardingPayload.Tree.Slug != expectedTree.Slug {
 		t.Fatalf("tree slug = %q", onboardingPayload.Tree.Slug)
 	}
 	if len(onboardingPayload.StarterTGOCodes) != 3 {
@@ -533,10 +542,10 @@ func TestOnboardingCreatesAndActivatesGlobalGraph(t *testing.T) {
 	if !sessionPayload.OnboardingComplete {
 		t.Fatal("expected auth session to report onboarding complete")
 	}
-	if sessionPayload.ActiveTreeSlug != domain.GlobalSkillGraphSlug {
+	if sessionPayload.ActiveTreeSlug != expectedTree.Slug {
 		t.Fatalf("active tree slug = %q", sessionPayload.ActiveTreeSlug)
 	}
-	if sessionPayload.Context.TreeSlug != domain.GlobalSkillGraphSlug {
+	if sessionPayload.Context.TreeSlug != expectedTree.Slug {
 		t.Fatalf("context tree slug = %q", sessionPayload.Context.TreeSlug)
 	}
 }

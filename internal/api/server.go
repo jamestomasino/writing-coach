@@ -456,7 +456,7 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
-	treeDef := domain.GlobalSkillGraphDefinition()
+	treeDef := domain.GenerateTreeDefinition(appContext.UserSlug, user.Name, profile)
 	profile.GeneratedTreeSlug = treeDef.Slug
 	starterCodes := domain.RecommendedStarterCodes(profile)
 	recommendedRegions := domain.RecommendedRegionSlugs(profile)
