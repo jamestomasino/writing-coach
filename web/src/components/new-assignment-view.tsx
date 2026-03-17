@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
+import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { acceptAssignment, createAssignment, getDashboard, getSession } from '@/lib/api'
@@ -200,7 +201,7 @@ export function NewAssignmentView() {
               </div>
             </div>
             <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 dark:border-cyan-400/20 dark:bg-black/10 lg:w-80">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-900 dark:text-cyan-100">Working</div>
+              <Eyebrow tone="cyan">Working</Eyebrow>
               <div className="mt-3 space-y-2" role="status" aria-live="polite" aria-label="Assignment generation in progress">
                 <div className="h-2 w-full animate-pulse rounded-full bg-cyan-200/80 dark:bg-cyan-200/15" />
                 <div className="h-2 w-5/6 animate-pulse rounded-full bg-cyan-200/70 [animation-delay:120ms] dark:bg-cyan-200/12" />

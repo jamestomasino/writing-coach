@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/button'
+import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
 import { Text, Strong } from '@/components/text'
 import { WorkspaceCard } from '@/components/workspace-card'
@@ -23,9 +24,7 @@ function AboutCard({
 }) {
   return (
     <WorkspaceCard className="border-stone-200/80 bg-white/90 dark:border-white/10 dark:bg-zinc-900">
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
-        {eyebrow}
-      </div>
+      <Eyebrow>{eyebrow}</Eyebrow>
       <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{title}</Subheading>
       <Text className="mt-3">{body}</Text>
     </WorkspaceCard>
@@ -61,9 +60,7 @@ export function AboutView() {
     <div className="space-y-8">
       <section className="overflow-hidden rounded-[2rem] border border-stone-200 bg-linear-to-br from-stone-100 via-white to-sky-50 p-8 shadow-sm ring-1 ring-black/3 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/40 dark:ring-white/10">
         <div className="max-w-3xl">
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">
-            About Writing Coach
-          </div>
+          <Eyebrow className="tracking-[0.22em]">About Writing Coach</Eyebrow>
           <Heading className="mt-4 text-4xl/11 sm:text-3xl/10">
             Practice that builds real writing skill
           </Heading>

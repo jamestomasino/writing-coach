@@ -1,4 +1,5 @@
 import { Button } from '@/components/button'
+import { Eyebrow } from '@/components/eyebrow'
 import { Heading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { WorkspaceCard } from './workspace-card'
@@ -70,9 +71,7 @@ export function TaskProgressState({
           role="status"
           aria-live="polite"
         >
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-900 dark:text-amber-100">
-            Progress
-          </div>
+          <Eyebrow tone="amber">Progress</Eyebrow>
           <ol className="mt-3 space-y-3">
             {steps.map((step, index) => (
               <li key={step} className="flex items-start gap-3 text-sm text-amber-950 dark:text-amber-50">

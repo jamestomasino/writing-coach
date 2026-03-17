@@ -16,6 +16,7 @@ import {
   type NodeProps,
 } from '@xyflow/react'
 import { Badge } from '@/components/badge'
+import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
@@ -117,7 +118,7 @@ function SkillTreeNode({ data }: NodeProps<Node<GraphNodeData>>) {
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-400">{stageTitle(data.stage)}</div>
+          <Eyebrow tone="white" className="text-[10px] tracking-[0.24em]">{stageTitle(data.stage)}</Eyebrow>
           <div className="mt-2 text-sm font-semibold leading-5 text-white">{data.title}</div>
         </div>
         <div className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ring-1 ${tone.badge}`}>
@@ -388,7 +389,7 @@ export function TreeView() {
 
             <aside className="border-t border-white/10 bg-black/24 xl:border-l xl:border-t-0">
               <div className="p-5">
-                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Selected skill</div>
+                <Eyebrow tone="white" className="tracking-[0.22em]">Selected skill</Eyebrow>
                 {selected ? (
                   <div className="mt-4 space-y-5">
                     <div>
@@ -403,17 +404,17 @@ export function TreeView() {
 
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Stage</div>
+                        <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Stage</Eyebrow>
                         <Text className="mt-2 text-sm text-zinc-100">{stageTitle(selected.stage)}</Text>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Unlocks</div>
+                        <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Unlocks</Eyebrow>
                         <Text className="mt-2 text-sm text-zinc-100">{selected.unlocks.length}</Text>
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Requires</div>
+                      <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Requires</Eyebrow>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {selected.prerequisites.length === 0 ? (
                           <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-300">Seed node</div>
@@ -428,7 +429,7 @@ export function TreeView() {
                     </div>
 
                     <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Unlock pathway</div>
+                      <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Unlock pathway</Eyebrow>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {selected.unlocks.length === 0 ? (
                           <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-300">Terminal node</div>
@@ -444,7 +445,7 @@ export function TreeView() {
 
                     {selected.mastery_hint ? (
                       <div className="rounded-2xl border border-emerald-300/18 bg-emerald-400/10 p-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100/80">Mastery marker</div>
+                        <Eyebrow tone="emerald" className="text-[11px] tracking-[0.16em] dark:text-emerald-100/80">Mastery marker</Eyebrow>
                         <Text className="mt-2 text-sm text-emerald-50">{selected.mastery_hint}</Text>
                       </div>
                     ) : null}

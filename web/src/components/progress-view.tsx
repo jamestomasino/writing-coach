@@ -9,6 +9,7 @@ import {
   SparklesIcon,
 } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
+import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
@@ -159,7 +160,7 @@ export function ProgressView() {
         <section aria-label="Track profile" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {profileCards.map((item) => (
             <WorkspaceCard key={item.label} className="p-5">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{item.label}</div>
+              <Eyebrow>{item.label}</Eyebrow>
               <Text className="mt-3 text-sm leading-6 text-zinc-900 dark:text-white">{item.value}</Text>
             </WorkspaceCard>
           ))}
@@ -198,7 +199,7 @@ export function ProgressView() {
                 return (
                   <div key={stage.label} className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                     <div className="flex items-center justify-between gap-4">
-                      <div className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{stage.label}</div>
+                      <Eyebrow>{stage.label}</Eyebrow>
                       <Badge color="zinc">{stage.completed}/{stage.total}</Badge>
                     </div>
                     <div className="mt-3 h-2 rounded-full bg-stone-200 dark:bg-white/10">
