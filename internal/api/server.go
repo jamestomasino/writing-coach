@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/curriculum"
@@ -1462,7 +1463,9 @@ func (s Server) createNextExercise(ctx context.Context, appContext session.Conte
 	})
 	ex.UserID = appContext.UserID
 	ex.TreeID = appContext.TreeID
-	id, err := s.Store.SaveExercise(ctx, ex)
+	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	id, err := s.Store.SaveExercise(saveCtx, ex)
 	if err != nil {
 		log.Printf("create exercise: save failed for user=%d tree=%d title=%q generation=%q: %v", appContext.UserID, appContext.TreeID, ex.Title, ex.GenerationKind, err)
 		return domain.Exercise{}, err
@@ -1578,7 +1581,9 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	})
 	ex.UserID = appContext.UserID
 	ex.TreeID = appContext.TreeID
-	id, err := s.Store.SaveExercise(ctx, ex)
+	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	id, err := s.Store.SaveExercise(saveCtx, ex)
 	if err != nil {
 		return domain.Exercise{}, err
 	}
