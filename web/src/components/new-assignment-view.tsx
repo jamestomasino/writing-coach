@@ -14,6 +14,7 @@ export function NewAssignmentView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [preview, setPreview] = useState<Exercise | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -22,7 +23,14 @@ export function NewAssignmentView() {
     let cancelled = false
     async function load() {
       try {
-        await getSession()
+        const session = await getSession()
+        if (!session.onboarding_complete) {
+          if (!cancelled) {
+            setNeedsOnboarding(true)
+            setDashboard(null)
+          }
+          return
+        }
         const state = await getDashboard()
         if (!cancelled) {
           setDashboard(state)
@@ -87,6 +95,16 @@ export function NewAssignmentView() {
 
   if (loading) {
     return <LoadingState label="Loading skill selection…" />
+  }
+  if (needsOnboarding) {
+    return (
+      <EmptyState
+        title="Build your starter path first"
+        body="You need an active skill map before you can choose skills for a new assignment."
+        actionHref="/onboarding"
+        actionLabel="Set starter path"
+      />
+    )
   }
   if (error && !dashboard) {
     return <EmptyState title="Could not load new assignment flow" body={error} actionHref="/" actionLabel="Back to assignment" />
