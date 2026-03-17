@@ -110,8 +110,8 @@ func CoachingBrief(profile OnboardingProfile) string {
 	if value := strings.TrimSpace(profile.SubjectMatter); value != "" {
 		parts = append(parts, "subject matter: "+value)
 	}
-	if value := strings.TrimSpace(profile.DesiredTone); value != "" {
-		parts = append(parts, "tone: "+value)
+	if value := PromptToneGuidance(profile); value != "" {
+		parts = append(parts, "tone guidance: "+value)
 	}
 	if len(profile.DesiredOutcomes) > 0 && strings.TrimSpace(profile.DesiredOutcomes[0]) != "" {
 		parts = append(parts, "primary goal: "+strings.TrimSpace(profile.DesiredOutcomes[0]))
@@ -123,6 +123,104 @@ func CoachingBrief(profile OnboardingProfile) string {
 		return ""
 	}
 	return strings.Join(parts, "; ")
+}
+
+func PromptToneGuidance(profile OnboardingProfile) string {
+	raw := strings.TrimSpace(profile.DesiredTone)
+	if raw == "" {
+		return ""
+	}
+
+	normalized := strings.ToLower(raw)
+	replacer := strings.NewReplacer("/", ",", ";", ",", "&", ",", " and ", ",")
+	parts := strings.Split(replacer.Replace(normalized), ",")
+
+	seen := map[string]bool{}
+	var guidance []string
+	add := func(value string) {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			return
+		}
+		seen[value] = true
+		guidance = append(guidance, value)
+	}
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		switch part {
+		case "serious":
+			add("keep the mood weighty and controlled")
+		case "emotional":
+			add("keep the emotional stakes close to the surface")
+		case "clear":
+			add("make each sentence easy to follow")
+		case "persuasive":
+			add("use direct claims and concrete stakes")
+		case "analytical":
+			add("favor clean reasoning over ornament")
+		case "decisive":
+			add("sound confident and specific")
+		case "practical":
+			add("prefer useful specifics over abstraction")
+		case "concise":
+			add("keep the language lean")
+		case "grave":
+			add("avoid breezy or playful phrasing")
+		case "mythic":
+			add("use elevated but readable language with a sense of larger forces")
+		case "funny", "humorous", "comic":
+			add("allow brief moments of wit without undercutting the main pressure")
+		case "warm":
+			add("let the voice feel humane and open")
+		case "formal":
+			add("keep the diction disciplined and composed")
+		}
+	}
+
+	if len(guidance) == 0 {
+		return raw
+	}
+	if len(guidance) > 3 {
+		guidance = guidance[:3]
+	}
+	return strings.Join(guidance, "; ")
+}
+
+func PromptGoal(profile OnboardingProfile) string {
+	if value := strings.TrimSpace(profile.WritingGoals); value != "" {
+		return value
+	}
+	if len(profile.DesiredOutcomes) > 0 {
+		return strings.TrimSpace(profile.DesiredOutcomes[0])
+	}
+	return ""
+}
+
+func PromptProfileLines(profile OnboardingProfile) []string {
+	lines := []string{}
+	if value := strings.TrimSpace(profile.WritingType); value != "" {
+		lines = append(lines, "writing domain: "+value)
+	}
+	if value := strings.TrimSpace(profile.AssignmentFormat); value != "" {
+		lines = append(lines, "assignment format: "+value)
+	}
+	if value := strings.TrimSpace(profile.TargetAudience); value != "" {
+		lines = append(lines, "target audience: "+value)
+	}
+	if value := strings.TrimSpace(profile.SubjectMatter); value != "" {
+		lines = append(lines, "prompt material: draw from "+value)
+	}
+	if value := PromptToneGuidance(profile); value != "" {
+		lines = append(lines, "tone guidance: "+value)
+	}
+	if value := PromptGoal(profile); value != "" {
+		lines = append(lines, "goal: "+value)
+	}
+	if len(profile.DesiredOutcomes) > 0 {
+		lines = append(lines, "desired outcomes: "+strings.Join(profile.DesiredOutcomes, ", "))
+	}
+	return lines
 }
 
 var slugCleaner = regexp.MustCompile(`[^a-z0-9]+`)

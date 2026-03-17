@@ -574,14 +574,9 @@ func formatOnboardingProfile(profile *domain.OnboardingProfile) string {
 	if profile == nil {
 		return "none"
 	}
-	lines := []string{
-		"writing domain: " + emptyDefault(profile.WritingType, "none"),
-		"assignment format: " + emptyDefault(profile.AssignmentFormat, "none"),
-		"target audience: " + emptyDefault(profile.TargetAudience, "none"),
-		"subject matter: " + emptyDefault(profile.SubjectMatter, "none"),
-		"tone target: " + emptyDefault(profile.DesiredTone, "none"),
-		"writing goals: " + emptyDefault(profile.WritingGoals, "none"),
-		"desired outcomes: " + joinOrDefault(profile.DesiredOutcomes, "none"),
+	lines := domain.PromptProfileLines(*profile)
+	if len(lines) == 0 {
+		return "none"
 	}
 	return strings.Join(lines, "\n")
 }

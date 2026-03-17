@@ -219,25 +219,32 @@ export function OnboardingView() {
           <FieldGroup>
             <Field>
               <Label>Target audience</Label>
+              <Text className="mt-1 text-sm">Who should the writing feel written for?</Text>
               <Input
                 value={targetAudience}
                 onChange={(event) => setTargetAudience(event.target.value)}
-                placeholder="Startup founders, fantasy readers, engineering teams, general readers…"
+                placeholder="Startup founders, hiring managers, general readers, fantasy fans…"
               />
             </Field>
             <Field>
               <Label>Typical subject matter</Label>
+              <Text className="mt-1 text-sm">What kinds of situations, topics, or worlds should assignments draw from?</Text>
               <Input
                 value={subjectMatter}
                 onChange={(event) => setSubjectMatter(event.target.value)}
-                placeholder="Developer tools, mythic conflict, grief and family, product launches…"
+                placeholder="Developer tools, workplace conflict, family pressure, product launches…"
               />
             </Field>
           </FieldGroup>
 
           <Field>
             <Label>Tone target</Label>
-            <Input value={desiredTone} onChange={(event) => setDesiredTone(event.target.value)} placeholder="Mythic and grave, practical and concise, analytical and decisive…" />
+            <Text className="mt-1 text-sm">How should the writing feel to a reader?</Text>
+            <Input
+              value={desiredTone}
+              onChange={(event) => setDesiredTone(event.target.value)}
+              placeholder="Weighty and restrained, clear and persuasive, analytical and direct…"
+            />
           </Field>
 
           <Field>

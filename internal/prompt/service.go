@@ -295,10 +295,10 @@ func deterministicBrief(profile domain.OnboardingProfile) string {
 	format := fallbackText(profile.AssignmentFormat, "piece")
 	audience := fallbackText(profile.TargetAudience, "your intended audience")
 	subject := fallbackText(profile.SubjectMatter, "a topic that fits your track")
-	tone := strings.TrimSpace(profile.DesiredTone)
+	tone := domain.PromptToneGuidance(profile)
 	brief := fmt.Sprintf("Write a new %s for %s about %s.", format, audience, subject)
 	if tone != "" {
-		brief += " Keep the tone " + tone + "."
+		brief += " Tone guidance: " + tone + "."
 	}
 	return brief
 }
@@ -311,8 +311,8 @@ func deterministicConstraints(profile domain.OnboardingProfile) []string {
 		"write for this audience: " + fallbackText(profile.TargetAudience, "your intended audience"),
 		"use details that fit this writing domain: " + domainLabel,
 	}
-	if tone := strings.TrimSpace(profile.DesiredTone); tone != "" {
-		constraints = append(constraints, "keep the tone "+tone)
+	if tone := domain.PromptToneGuidance(profile); tone != "" {
+		constraints = append(constraints, tone)
 	}
 	return constraints
 }
