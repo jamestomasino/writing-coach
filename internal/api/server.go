@@ -431,6 +431,7 @@ func (s Server) handleOnboardingGet(w http.ResponseWriter, r *http.Request) {
 	}
 	treeResponses := s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)
 	treeResponse := treeResponses[0]
+	treeResponse = s.applyGeneratedTreeProfileDisplay(r.Context(), appContext, tree, treeResponse)
 	writeJSON(w, http.StatusOK, onboardingResponse{
 		Profile:            toOnboardingProfileResponse(profile),
 		OnboardingComplete: profile.Complete(),
@@ -729,11 +730,7 @@ func (s Server) handleTreeGet(w http.ResponseWriter, r *http.Request) {
 	}
 	response := s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0]
 	if appContext, err := s.resolveSession(r.Context(), r); err == nil {
-		if profile, err := s.Store.OnboardingProfileByUserID(r.Context(), appContext.UserID); err == nil && profile.GeneratedTreeSlug == tree.Slug {
-			if user, err := s.Store.UserBySlug(r.Context(), appContext.UserSlug); err == nil {
-				response.Title, response.Description = domain.GeneratedTreeDisplay(user.Name, profile, tree.Title, tree.Description)
-			}
-		}
+		response = s.applyGeneratedTreeProfileDisplay(r.Context(), appContext, tree, response)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tree": response})
 }
@@ -2195,6 +2192,20 @@ func (s Server) toTreeResponses(ctx context.Context, trees []domain.TGOTree, inc
 		out = append(out, item)
 	}
 	return out
+}
+
+func (s Server) applyGeneratedTreeProfileDisplay(ctx context.Context, appContext session.Context, tree domain.TGOTree, response treeResponse) treeResponse {
+	profile, err := s.Store.OnboardingProfileByUserID(ctx, appContext.UserID)
+	if err != nil || profile.GeneratedTreeSlug != tree.Slug {
+		return response
+	}
+	user, err := s.Store.UserBySlug(ctx, appContext.UserSlug)
+	if err != nil {
+		return response
+	}
+	response.Title, response.Description = domain.GeneratedTreeDisplay(user.Name, profile, tree.Title, tree.Description)
+	response.PrioritySkills = nil
+	return response
 }
 
 func toEnrollmentResponses(enrollments []domain.Enrollment) []enrollmentResponse {

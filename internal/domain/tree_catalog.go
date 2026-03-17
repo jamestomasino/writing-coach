@@ -630,10 +630,12 @@ func treeForTemplateKey(templateKey string) TGOTreeDefinition {
 		return thoughtLeadershipTree
 	case "professional-writing":
 		return professionalWritingTree
+	case "fantasy-fiction", "science-fiction", "romance-fiction", "literary-fiction", "mystery-thriller":
+		return storyCraftTree
 	case "story-craft":
 		return storyCraftTree
 	default:
-		return mythicTragedyTree
+		return storyCraftTree
 	}
 }
 
@@ -722,10 +724,8 @@ func RecommendedRegionSlugs(profile OnboardingProfile) []string {
 	primary := treeForTemplateKey(TemplateKeyForProfile(profile)).Slug
 	regions := []string{primary}
 	switch primary {
-	case mythicTragedyTree.Slug:
-		regions = append(regions, storyCraftTree.Slug, memoirNarrativeTree.Slug)
 	case storyCraftTree.Slug:
-		regions = append(regions, mythicTragedyTree.Slug, memoirNarrativeTree.Slug)
+		regions = append(regions, memoirNarrativeTree.Slug, persuasiveWritingTree.Slug)
 	case youthFoundationsTree.Slug:
 		regions = append(regions, storyCraftTree.Slug, academicEssayTree.Slug)
 	case thoughtLeadershipTree.Slug:
@@ -739,7 +739,7 @@ func RecommendedRegionSlugs(profile OnboardingProfile) []string {
 	case persuasiveWritingTree.Slug:
 		regions = append(regions, thoughtLeadershipTree.Slug, academicEssayTree.Slug)
 	case memoirNarrativeTree.Slug:
-		regions = append(regions, storyCraftTree.Slug, mythicTragedyTree.Slug)
+		regions = append(regions, storyCraftTree.Slug, thoughtLeadershipTree.Slug)
 	}
 	return regions
 }

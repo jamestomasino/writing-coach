@@ -81,3 +81,60 @@ func TestGeneratedTreeDisplayUsesProfileLanguageInsteadOfTemplateBranding(t *tes
 		t.Fatalf("expected description summary to use profile language, got %q", description)
 	}
 }
+
+func TestTemplateKeyForProfileUsesBroaderFictionTemplates(t *testing.T) {
+	cases := []struct {
+		name    string
+		profile OnboardingProfile
+		want    string
+	}{
+		{
+			name: "generic fiction defaults to story craft",
+			profile: OnboardingProfile{
+				WritingType:     "fiction",
+				ExperienceLevel: "advanced",
+				DesiredTone:     "serious and emotional",
+				WritingGoals:    "write stronger scenes",
+			},
+			want: "story-craft",
+		},
+		{
+			name: "fantasy gets fantasy template",
+			profile: OnboardingProfile{
+				WritingType:     "fantasy fiction",
+				ExperienceLevel: "advanced",
+				DesiredTone:     "serious and emotional",
+				WritingGoals:    "write an epic fantasy novel",
+			},
+			want: "fantasy-fiction",
+		},
+		{
+			name: "science fiction gets science fiction template",
+			profile: OnboardingProfile{
+				WritingType:     "science fiction",
+				ExperienceLevel: "advanced",
+				DesiredTone:     "clear and reflective",
+				WritingGoals:    "write stronger science fiction",
+			},
+			want: "science-fiction",
+		},
+		{
+			name: "romance gets romance template",
+			profile: OnboardingProfile{
+				WritingType:     "romance",
+				ExperienceLevel: "intermediate",
+				DesiredTone:     "warm and emotional",
+				WritingGoals:    "write stronger romance scenes",
+			},
+			want: "romance-fiction",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := TemplateKeyForProfile(tc.profile); got != tc.want {
+				t.Fatalf("template key = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

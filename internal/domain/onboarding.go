@@ -64,28 +64,7 @@ func (p OnboardingProfile) MissingFields() []string {
 
 func GenerateTreeDefinition(userSlug, userName string, profile OnboardingProfile) TGOTreeDefinition {
 	templateKey := selectTemplate(profile)
-	var def TGOTreeDefinition
-	switch templateKey {
-	case "youth-foundations":
-		def = youthFoundationsTree
-	case "academic-essay":
-		def = academicEssayTree
-	case "technical-writing":
-		def = technicalWritingTree
-	case "persuasive-writing":
-		def = persuasiveWritingTree
-	case "memoir-personal-narrative":
-		def = memoirNarrativeTree
-	case "thought-leadership":
-		def = thoughtLeadershipTree
-	case "professional-writing":
-		def = professionalWritingTree
-	case "story-craft":
-		def = storyCraftTree
-	default:
-		def = mythicTragedyTree
-		templateKey = "mythic-tragedy"
-	}
+	def := treeForTemplateKey(templateKey)
 
 	def.Slug = generatedTreeSlug(userSlug)
 	def.Title = generatedTreeTitle(userName, profile, def.Title)
@@ -307,12 +286,19 @@ func selectTemplate(profile OnboardingProfile) string {
 		return "thought-leadership"
 	case "professional", "professional writing", "professional-writing":
 		return "professional-writing"
+	case "fantasy", "fantasy fiction", "epic fantasy", "urban fantasy":
+		return "fantasy-fiction"
+	case "science fiction", "sci-fi", "sci fi", "speculative fiction":
+		return "science-fiction"
+	case "romance", "romance fiction", "romantic fiction":
+		return "romance-fiction"
+	case "literary fiction", "literary":
+		return "literary-fiction"
+	case "mystery", "thriller", "mystery thriller", "crime fiction":
+		return "mystery-thriller"
 	case "fiction", "story", "stories":
 		if experience == "beginner" {
 			return "youth-foundations"
-		}
-		if strings.Contains(toneAndGoals, "myth") || strings.Contains(toneAndGoals, "fantasy") || strings.Contains(toneAndGoals, "tragic") {
-			return "mythic-tragedy"
 		}
 		if strings.Contains(toneAndGoals, "memoir") || strings.Contains(toneAndGoals, "personal narrative") {
 			return "memoir-personal-narrative"
@@ -333,6 +319,21 @@ func selectTemplate(profile OnboardingProfile) string {
 		}
 		if strings.Contains(toneAndGoals, "memoir") || strings.Contains(toneAndGoals, "personal narrative") {
 			return "memoir-personal-narrative"
+		}
+		if strings.Contains(toneAndGoals, "fantasy") {
+			return "fantasy-fiction"
+		}
+		if strings.Contains(toneAndGoals, "science fiction") || strings.Contains(toneAndGoals, "sci-fi") || strings.Contains(toneAndGoals, "sci fi") {
+			return "science-fiction"
+		}
+		if strings.Contains(toneAndGoals, "romance") {
+			return "romance-fiction"
+		}
+		if strings.Contains(toneAndGoals, "literary fiction") {
+			return "literary-fiction"
+		}
+		if strings.Contains(toneAndGoals, "mystery") || strings.Contains(toneAndGoals, "thriller") {
+			return "mystery-thriller"
 		}
 		if strings.Contains(toneAndGoals, "thought leadership") {
 			return "thought-leadership"
@@ -388,6 +389,16 @@ func generatedTrackLabel(profile OnboardingProfile, fallback string) string {
 		return "Thought Leadership Track"
 	case "professional-writing":
 		return "Professional Writing Track"
+	case "fantasy-fiction":
+		return "Fantasy Track"
+	case "science-fiction":
+		return "Science Fiction Track"
+	case "romance-fiction":
+		return "Romance Track"
+	case "literary-fiction":
+		return "Literary Fiction Track"
+	case "mystery-thriller":
+		return "Mystery and Thriller Track"
 	case "story-craft":
 		return "Story Craft Track"
 	default:

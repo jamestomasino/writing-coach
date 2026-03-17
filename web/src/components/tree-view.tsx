@@ -170,8 +170,6 @@ export function TreeView() {
   const activeTGOs = dashboard.active_tgos ?? []
   const completedTGOs = dashboard.completed_tgos ?? []
   const upcomingTGOs = dashboard.upcoming_tgos ?? []
-  const prioritySkills = tree.priority_skills ?? []
-
   return (
     <div className="space-y-8">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -208,14 +206,15 @@ export function TreeView() {
               <Text className="mt-1 text-sm">These are eligible choices for the next assignment cycle.</Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Priority skills</div>
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Current review focus</div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {prioritySkills.slice(0, 3).map((skill) => (
-                  <Badge key={skill} color="amber">
-                    {skill}
+                {activeTGOs.slice(0, 3).map((tgo) => (
+                  <Badge key={tgo.code} color="blue">
+                    {tgo.title}
                   </Badge>
                 ))}
               </div>
+              <Text className="mt-2 text-sm">These are the skills the coach is measuring most closely right now.</Text>
             </div>
           </div>
         </WorkspaceCard>

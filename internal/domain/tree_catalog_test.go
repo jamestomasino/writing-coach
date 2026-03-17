@@ -106,3 +106,27 @@ func TestRecommendedStarterCodes(t *testing.T) {
 		t.Fatalf("regions = %#v", regions)
 	}
 }
+
+func TestRecommendedStarterCodesForBroaderFictionTemplates(t *testing.T) {
+	profile := OnboardingProfile{
+		WritingType:         "fantasy fiction",
+		ExperienceLevel:     "advanced",
+		DesiredTone:         "serious and emotional",
+		BiggestWeaknesses:   []string{"scene work"},
+		DesiredOutcomes:     []string{"novel"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "write stronger fantasy scenes",
+	}
+
+	starter := RecommendedStarterCodes(profile)
+	if len(starter) != 3 {
+		t.Fatalf("starter codes = %#v", starter)
+	}
+	if starter[0] != "story-causal-clarity" {
+		t.Fatalf("starter codes = %#v", starter)
+	}
+	regions := RecommendedRegionSlugs(profile)
+	if len(regions) == 0 || regions[0] != storyCraftTree.Slug {
+		t.Fatalf("regions = %#v", regions)
+	}
+}
