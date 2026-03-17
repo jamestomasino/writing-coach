@@ -7,7 +7,7 @@ import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { createAssignment, getDashboard, getSession } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
-import { EmptyState, LoadingState, TaskProgressState } from './status-state'
+import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function NewAssignmentView() {
@@ -89,6 +89,7 @@ export function NewAssignmentView() {
     try {
       setGenerating(true)
       setError(null)
+      setPreview(null)
       const exercise = await createAssignment(selected)
       setPreview(exercise)
     } catch (err) {
@@ -165,15 +166,30 @@ export function NewAssignmentView() {
       </WorkspaceCard>
 
       {generating ? (
-        <TaskProgressState
-          title="Assignment generation in progress"
-          body="The app is turning your selected skills into a new assignment brief. This can take a few seconds."
-          steps={[
-            'Lock the selected skill trio for this prompt.',
-            'Generate a brief, constraints, and success criteria.',
-            'Return a ready-to-accept assignment preview.',
-          ]}
-        />
+        <WorkspaceCard className="border-cyan-200 bg-cyan-50 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div
+                className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-cyan-300 bg-white/80 dark:border-cyan-400/20 dark:bg-black/10"
+                aria-hidden="true"
+              >
+                <span className="size-5 animate-spin rounded-full border-2 border-cyan-700/25 border-t-cyan-700 dark:border-cyan-200/25 dark:border-t-cyan-200" />
+              </div>
+              <div>
+                <Subheading>Generating assignment</Subheading>
+                <Text className="mt-2">Building a new prompt from your selected skills. This usually takes a few seconds.</Text>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 dark:border-cyan-400/20 dark:bg-black/10 lg:w-80">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-900 dark:text-cyan-100">Working</div>
+              <div className="mt-3 space-y-2" role="status" aria-live="polite" aria-label="Assignment generation in progress">
+                <div className="h-2 w-full animate-pulse rounded-full bg-cyan-200/80 dark:bg-cyan-200/15" />
+                <div className="h-2 w-5/6 animate-pulse rounded-full bg-cyan-200/70 [animation-delay:120ms] dark:bg-cyan-200/12" />
+                <div className="h-2 w-2/3 animate-pulse rounded-full bg-cyan-200/60 [animation-delay:240ms] dark:bg-cyan-200/10" />
+              </div>
+            </div>
+          </div>
+        </WorkspaceCard>
       ) : null}
 
       {preview ? (
