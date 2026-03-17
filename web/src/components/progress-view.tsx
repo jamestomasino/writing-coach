@@ -29,12 +29,13 @@ function stageTitle(stage: string) {
 }
 
 function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: Set<string>) {
-  const groups = new Map<string, { label: string; total: number; completed: number; active: number }>()
+  const groups = new Map<string, { label: string; order: number; total: number; completed: number; active: number }>()
   for (const tgo of tree.tgos ?? []) {
-    const key = `${tgo.stage_order}:${tgo.stage}`
+    const key = tgo.stage
     if (!groups.has(key)) {
       groups.set(key, {
         label: stageTitle(tgo.stage),
+        order: tgo.stage_order,
         total: 0,
         completed: 0,
         active: 0,
@@ -44,6 +45,7 @@ function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: S
     if (!group) {
       continue
     }
+    group.order = Math.min(group.order, tgo.stage_order)
     group.total++
     if (completedCodes.has(tgo.code)) {
       group.completed++
@@ -52,7 +54,7 @@ function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: S
       group.active++
     }
   }
-  return [...groups.values()]
+  return [...groups.values()].sort((a, b) => a.order - b.order)
 }
 
 export function ProgressView() {
