@@ -1,6 +1,11 @@
 package openai
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/tomasino/writing-coach/internal/domain"
+)
 
 func TestNormalizeReview(t *testing.T) {
 	value := reviewResponse{
@@ -34,5 +39,21 @@ func TestNormalizeReview(t *testing.T) {
 	}
 	if got.CompletedTGOChecks[0].Status != "holding" {
 		t.Fatalf("completed status = %q", got.CompletedTGOChecks[0].Status)
+	}
+}
+
+func TestMeasurabilityGuidanceUsesHintsNotRawTGOs(t *testing.T) {
+	got := measurabilityGuidance([]domain.TGO{
+		{Code: "dialogue-intelligence", Description: "Make speech reveal rank, motive, and fracture under restraint."},
+		{Code: "scene-architecture", Description: "Stage turns clearly so ritual and conflict remain legible."},
+		{Code: "symbolic-control", Description: "Let objects carry fate without explaining their meaning."},
+	})
+
+	lower := strings.ToLower(got)
+	if strings.Contains(lower, "dialogue intelligence") || strings.Contains(lower, "stage turns clearly") {
+		t.Fatalf("expected abstract measurability guidance, got %q", got)
+	}
+	if !strings.Contains(lower, "dialogue") {
+		t.Fatalf("expected dialogue measurability hint, got %q", got)
 	}
 }

@@ -120,9 +120,9 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		Schema:      exerciseSchema(),
 		SystemInput: exerciseSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Writing track profile:\n%s\nReview rubric skills: %s\nUse the review rubric skills only as hidden measurability guidance. Do not name them or build the topic from them. Instead, make sure the assignment naturally gives the writer a chance to show those things on the page when possible.\nCurrent focus: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+			"Writing track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
 			formatOnboardingProfile(input.OnboardingProfile),
-			joinTGOs(input.ActiveTGOs),
+			measurabilityGuidance(input.ActiveTGOs),
 			emptyDefault(input.CurrentFocus, "none"),
 			input.DifficultyLevel,
 			joinOrDefault(input.RecentTitles, "none"),
@@ -383,6 +383,8 @@ Build the assignment from the writing track profile first: writing domain, forma
 The supplied review rubric skills are for later evaluation, not for choosing the assignment topic.
 If a review skill needs a visible feature to be measurable, quietly make room for that feature in the assignment.
 Example: if the review skill depends on dialogue quality, the assignment should create a natural reason for dialogue to appear.
+Never copy the hidden review guidance into the visible brief, constraints, or success criteria.
+Do not turn the assignment into a beat sheet, rubric, or checklist derived from the review criteria.
 Match the user's writing mode and tone only when the supplied coaching context supports it.
 Favor discipline, clarity, and specificity over ornament.
 Avoid derivative references to named authors or genres unless the coaching context clearly calls for them.
@@ -612,6 +614,49 @@ func activeTGOCodes(activeTGOs []domain.TGO) []string {
 		out = append(out, code)
 	}
 	return out
+}
+
+func measurabilityGuidance(activeTGOs []domain.TGO) string {
+	if len(activeTGOs) == 0 {
+		return "Keep the assignment concrete enough that craft choices can be reviewed."
+	}
+
+	seen := map[string]bool{}
+	var hints []string
+	add := func(hint string) {
+		if hint == "" || seen[hint] {
+			return
+		}
+		seen[hint] = true
+		hints = append(hints, hint)
+	}
+
+	for _, tgo := range activeTGOs {
+		skill := strings.ToLower(strings.TrimSpace(domain.TGOCodeToSkill[tgo.Code]))
+		text := strings.ToLower(strings.Join([]string{tgo.Code, tgo.Title, tgo.Description}, " "))
+		switch {
+		case skill == "dialogue intelligence" || strings.Contains(text, "dialogue"):
+			add("Make room for at least a little dialogue if it fits the format.")
+		case skill == "scene architecture" || skill == "narrative clarity" || skill == "clarity and coherence" || skill == "structural signposting" || strings.Contains(text, "scene") || strings.Contains(text, "causal") || strings.Contains(text, "sequence"):
+			add("Give the piece a clear sequence so a reviewer can follow what happens and why.")
+		case skill == "symbolic control" || skill == "image freshness" || skill == "descriptive precision" || strings.Contains(text, "symbol") || strings.Contains(text, "image") || strings.Contains(text, "object"):
+			add("Include at least one concrete image, object, or detail that can carry meaning.")
+		case skill == "evidence integration" || skill == "reasoning quality" || skill == "analysis depth" || strings.Contains(text, "evidence") || strings.Contains(text, "reason") || strings.Contains(text, "analysis"):
+			add("Leave room for a clear example, support, or line of reasoning.")
+		case skill == "audience alignment" || skill == "actionability" || skill == "scannability" || skill == "user goal alignment" || strings.Contains(text, "audience") || strings.Contains(text, "reader"):
+			add("Make the purpose and audience legible in the piece.")
+		case skill == "voice presence" || skill == "tone calibration" || skill == "authority and voice" || skill == "rhetorical force" || strings.Contains(text, "voice") || strings.Contains(text, "tone"):
+			add("Give the writer room to show voice and tone through the draft itself.")
+		}
+	}
+
+	if len(hints) == 0 {
+		return "Keep the assignment concrete enough that the selected review skills can be judged from the draft."
+	}
+	if len(hints) > 2 {
+		hints = hints[:2]
+	}
+	return strings.Join(hints, " ")
 }
 
 func normalizeReview(value reviewResponse) reviewResponse {
