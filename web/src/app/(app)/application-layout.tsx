@@ -36,6 +36,7 @@ import {
 import {
   ChartBarSquareIcon,
   HomeIcon,
+  InformationCircleIcon,
   PencilSquareIcon,
   Squares2X2Icon,
   UserGroupIcon,
@@ -173,32 +174,43 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
 
           <SidebarBody>
             <SidebarSection>
-              <SidebarHeading>Assignments</SidebarHeading>
-              <SidebarItem href="/" current={pathname === '/'}>
-                <HomeIcon />
-                <SidebarLabel>Current assignment</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/new-assignment" current={pathname.startsWith('/new-assignment')}>
-                <PencilSquareIcon />
-                <SidebarLabel>New assignment</SidebarLabel>
+              <SidebarItem href="/about" current={pathname.startsWith('/about')}>
+                <InformationCircleIcon />
+                <SidebarLabel>About</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
 
-            <SidebarSection>
-              <SidebarHeading>Track</SidebarHeading>
-              <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
-                <ChartBarSquareIcon />
-                <SidebarLabel>Track progress</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/onboarding" current={pathname.startsWith('/onboarding')}>
-                <ArrowPathIcon />
-                <SidebarLabel>Change track</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
-                <Squares2X2Icon />
-                <SidebarLabel>Skill map</SidebarLabel>
-              </SidebarItem>
-            </SidebarSection>
+            {authenticated === true ? (
+              <>
+                <SidebarSection>
+                  <SidebarHeading>Assignments</SidebarHeading>
+                  <SidebarItem href="/" current={pathname === '/'}>
+                    <HomeIcon />
+                    <SidebarLabel>Current assignment</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/new-assignment" current={pathname.startsWith('/new-assignment')}>
+                    <PencilSquareIcon />
+                    <SidebarLabel>New assignment</SidebarLabel>
+                  </SidebarItem>
+                </SidebarSection>
+
+                <SidebarSection>
+                  <SidebarHeading>Track</SidebarHeading>
+                  <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
+                    <ChartBarSquareIcon />
+                    <SidebarLabel>Track progress</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/onboarding" current={pathname.startsWith('/onboarding')}>
+                    <ArrowPathIcon />
+                    <SidebarLabel>Change track</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
+                    <Squares2X2Icon />
+                    <SidebarLabel>Skill map</SidebarLabel>
+                  </SidebarItem>
+                </SidebarSection>
+              </>
+            ) : null}
 
             <SidebarSpacer />
 
