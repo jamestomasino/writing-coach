@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 type OnboardingProfile struct {
@@ -270,30 +271,11 @@ func generatedTreeTitle(userName string, profile OnboardingProfile, fallback str
 	if name == "" {
 		name = "Writer"
 	}
-	switch selectTemplate(profile) {
-	case "youth-foundations":
-		return fmt.Sprintf("%s's Foundations Track", name)
-	case "academic-essay":
-		return fmt.Sprintf("%s's Academic Essay Track", name)
-	case "technical-writing":
-		return fmt.Sprintf("%s's Technical Writing Track", name)
-	case "persuasive-writing":
-		return fmt.Sprintf("%s's Persuasive Writing Track", name)
-	case "memoir-personal-narrative":
-		return fmt.Sprintf("%s's Memoir Track", name)
-	case "thought-leadership":
-		return fmt.Sprintf("%s's Thought Leadership Track", name)
-	case "professional-writing":
-		return fmt.Sprintf("%s's Professional Writing Track", name)
-	case "story-craft":
-		return fmt.Sprintf("%s's Story Craft Track", name)
-	default:
-		return fmt.Sprintf("%s's Mythic Fiction Track", name)
-	}
+	return fmt.Sprintf("%s's %s", name, generatedTrackLabel(profile, fallback))
 }
 
 func generatedTreeDescription(profile OnboardingProfile, fallback string) string {
-	parts := []string{fallback}
+	parts := []string{generatedTrackSummary(profile)}
 	if tone := strings.TrimSpace(profile.DesiredTone); tone != "" {
 		parts = append(parts, "Tone target: "+tone+".")
 	}
@@ -301,6 +283,10 @@ func generatedTreeDescription(profile OnboardingProfile, fallback string) string
 		parts = append(parts, "Goals: "+goals)
 	}
 	return strings.Join(parts, " ")
+}
+
+func GeneratedTreeDisplay(userName string, profile OnboardingProfile, fallbackTitle, fallbackDescription string) (string, string) {
+	return generatedTreeTitle(userName, profile, fallbackTitle), generatedTreeDescription(profile, fallbackDescription)
 }
 
 func selectTemplate(profile OnboardingProfile) string {
@@ -376,4 +362,74 @@ func looksLikeFictionDomain(value string) bool {
 		}
 	}
 	return false
+}
+
+func generatedTrackLabel(profile OnboardingProfile, fallback string) string {
+	if label := strings.TrimSpace(profile.WritingType); label != "" {
+		label = displayCase(label)
+		if !strings.Contains(strings.ToLower(label), "track") {
+			label += " Track"
+		}
+		return label
+	}
+
+	switch selectTemplate(profile) {
+	case "youth-foundations":
+		return "Foundations Track"
+	case "academic-essay":
+		return "Academic Essay Track"
+	case "technical-writing":
+		return "Technical Writing Track"
+	case "persuasive-writing":
+		return "Persuasive Writing Track"
+	case "memoir-personal-narrative":
+		return "Memoir Track"
+	case "thought-leadership":
+		return "Thought Leadership Track"
+	case "professional-writing":
+		return "Professional Writing Track"
+	case "story-craft":
+		return "Story Craft Track"
+	default:
+		if strings.TrimSpace(fallback) != "" {
+			return fallback
+		}
+		return "Writing Track"
+	}
+}
+
+func generatedTrackSummary(profile OnboardingProfile) string {
+	writingType := strings.TrimSpace(profile.WritingType)
+	format := strings.TrimSpace(profile.AssignmentFormat)
+	audience := strings.TrimSpace(profile.TargetAudience)
+
+	switch {
+	case writingType != "" && format != "" && audience != "":
+		return fmt.Sprintf("Skill track for %s, with %s assignments for %s.", writingType, format, audience)
+	case writingType != "" && format != "":
+		return fmt.Sprintf("Skill track for %s, with a focus on %s assignments.", writingType, format)
+	case writingType != "" && audience != "":
+		return fmt.Sprintf("Skill track for %s, shaped for %s.", writingType, audience)
+	case writingType != "":
+		return fmt.Sprintf("Skill track for %s.", writingType)
+	case format != "" && audience != "":
+		return fmt.Sprintf("Skill track for %s assignments for %s.", format, audience)
+	case format != "":
+		return fmt.Sprintf("Skill track for %s assignments.", format)
+	default:
+		return "Skill track for writing practice."
+	}
+}
+
+func displayCase(value string) string {
+	words := strings.Fields(value)
+	for i, word := range words {
+		runes := []rune(strings.ToLower(word))
+		if len(runes) == 0 {
+			continue
+		}
+		runes[0] = unicode.ToUpper(runes[0])
+		words[i] = string(runes)
+	}
+	return strings.Join(words, " ")
 }

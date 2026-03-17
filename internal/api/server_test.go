@@ -1017,6 +1017,63 @@ func TestOnboardingUpdatesExistingProfilePromptSeedFields(t *testing.T) {
 	}
 }
 
+func TestTreeGetUsesProfileDisplayForGeneratedTrack(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Post(
+		testServer.URL+"/api/onboarding?user=tester",
+		"application/json",
+		strings.NewReader(`{
+			"writing_type":"fiction",
+			"assignment_format":"scene",
+			"target_audience":"fantasy readers",
+			"subject_matter":"succession fights and sacred relics",
+			"experience_level":"advanced",
+			"desired_tone":"serious and emotional, literary, philosophical",
+			"biggest_weaknesses":["symbol control","line pressure"],
+			"desired_outcomes":["stronger long-form fiction","stronger symbolic control"],
+			"difficulty_intensity":"intensive",
+			"writing_goals":"I want to become a great author at mythopoeic literature, epic fantasy, and world building."
+		}`),
+	)
+	if err != nil {
+		t.Fatalf("post onboarding: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("onboarding status: %d", resp.StatusCode)
+	}
+
+	treeResp, err := http.Get(testServer.URL + "/api/trees/tester-track?user=tester")
+	if err != nil {
+		t.Fatalf("get generated tree: %v", err)
+	}
+	defer treeResp.Body.Close()
+	if treeResp.StatusCode != http.StatusOK {
+		t.Fatalf("tree status: %d", treeResp.StatusCode)
+	}
+
+	var payload struct {
+		Tree struct {
+			Title       string `json:"title"`
+			Description string `json:"description"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(treeResp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode tree payload: %v", err)
+	}
+	if payload.Tree.Title != "Tester's Fiction Track" {
+		t.Fatalf("tree title = %q", payload.Tree.Title)
+	}
+	if strings.Contains(payload.Tree.Description, "Advanced mythopoeic tragic fiction track.") {
+		t.Fatalf("tree description leaked template branding: %q", payload.Tree.Description)
+	}
+	if !strings.Contains(payload.Tree.Description, "Skill track for fiction, with scene assignments for fantasy readers.") {
+		t.Fatalf("tree description = %q", payload.Tree.Description)
+	}
+}
+
 func TestOnboardingValidationNamesMissingFields(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

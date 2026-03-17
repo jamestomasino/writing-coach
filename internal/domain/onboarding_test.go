@@ -57,3 +57,27 @@ func TestPromptScenarioGuidanceDemandsConcreteSituation(t *testing.T) {
 		t.Fatalf("expected subject matter to shape guidance, got %q", got)
 	}
 }
+
+func TestGeneratedTreeDisplayUsesProfileLanguageInsteadOfTemplateBranding(t *testing.T) {
+	profile := OnboardingProfile{
+		WritingType:      "fiction",
+		AssignmentFormat: "scene",
+		TargetAudience:   "fantasy readers",
+		DesiredTone:      "serious and emotional, literary, philosophical",
+		WritingGoals:     "I want to become a great author at mythopoeic literature, epic fantasy, and world building.",
+	}
+
+	title, description := GeneratedTreeDisplay("James Tomasino", profile, "Mythic Fiction Track", "Advanced mythopoeic tragic fiction track.")
+	if strings.Contains(title, "Mythic Fiction Track") {
+		t.Fatalf("expected title to use profile language, got %q", title)
+	}
+	if title != "James Tomasino's Fiction Track" {
+		t.Fatalf("unexpected title %q", title)
+	}
+	if strings.Contains(description, "Advanced mythopoeic tragic fiction track.") {
+		t.Fatalf("expected description to avoid template branding, got %q", description)
+	}
+	if !strings.Contains(description, "Skill track for fiction, with scene assignments for fantasy readers.") {
+		t.Fatalf("expected description summary to use profile language, got %q", description)
+	}
+}

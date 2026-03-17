@@ -727,7 +727,15 @@ func (s Server) handleTreeGet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, status, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"tree": s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0]})
+	response := s.toTreeResponses(r.Context(), []domain.TGOTree{tree}, true)[0]
+	if appContext, err := s.resolveSession(r.Context(), r); err == nil {
+		if profile, err := s.Store.OnboardingProfileByUserID(r.Context(), appContext.UserID); err == nil && profile.GeneratedTreeSlug == tree.Slug {
+			if user, err := s.Store.UserBySlug(r.Context(), appContext.UserSlug); err == nil {
+				response.Title, response.Description = domain.GeneratedTreeDisplay(user.Name, profile, tree.Title, tree.Description)
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tree": response})
 }
 
 func (s Server) handleTreeUpdate(w http.ResponseWriter, r *http.Request) {
