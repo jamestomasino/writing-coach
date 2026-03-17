@@ -89,3 +89,27 @@ func TestDeterministicNextExerciseUsesOnboardingProfileAsPromptSeed(t *testing.T
 		t.Fatalf("expected selected review tg os to persist, got %v", ex.TGOCodes)
 	}
 }
+
+func TestDeterministicNextExerciseAddsConcreteScenarioGuidance(t *testing.T) {
+	service := NewService(nil)
+
+	profile := &domain.OnboardingProfile{
+		WritingType:      "fantasy fiction",
+		AssignmentFormat: "scene",
+		TargetAudience:   "fantasy readers",
+		SubjectMatter:    "inheritance fights over sacred relics",
+		DesiredTone:      "serious and emotional",
+	}
+
+	ex := service.NextExercise(context.Background(), Context{
+		OnboardingProfile: profile,
+	})
+
+	lower := strings.ToLower(ex.Brief)
+	if !strings.Contains(lower, "specific pressure point") {
+		t.Fatalf("expected concrete scenario pressure in brief, got %q", ex.Brief)
+	}
+	if !strings.Contains(lower, "inheritance fights over sacred relics") {
+		t.Fatalf("expected subject matter in brief, got %q", ex.Brief)
+	}
+}

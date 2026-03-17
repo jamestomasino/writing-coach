@@ -296,7 +296,13 @@ func deterministicBrief(profile domain.OnboardingProfile) string {
 	audience := fallbackText(profile.TargetAudience, "your intended audience")
 	subject := fallbackText(profile.SubjectMatter, "a topic that fits your track")
 	tone := domain.PromptToneGuidance(profile)
-	brief := fmt.Sprintf("Write a new %s for %s about %s.", format, audience, subject)
+	brief := fmt.Sprintf("Write a new %s for %s, using %s as the core situation.", format, audience, subject)
+	if scenario := domain.PromptScenarioGuidance(profile); scenario != "" {
+		parts := strings.Split(scenario, ";")
+		if len(parts) > 1 {
+			brief += " " + strings.TrimSpace(parts[len(parts)-1]) + "."
+		}
+	}
 	if tone != "" {
 		brief += " Tone guidance: " + tone + "."
 	}

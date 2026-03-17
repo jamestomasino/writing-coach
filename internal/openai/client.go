@@ -380,11 +380,17 @@ Write at about a 6th-grade reading level.
 Use short, plain sentences.
 Make the request easy to understand on the first read.
 Build the assignment from the writing track profile first: writing domain, format, audience, subject matter, tone, and goals.
+Use the track profile to create a concrete premise, situation, or communication problem, not a generic template.
+The brief must give the writer a real starting point: a pressure point, choice, conflict, reader need, or message to handle.
+If the assignment is fictional, ground it in a specific dramatic situation rather than only naming a setting or mood.
+If the assignment is nonfiction, ground it in a specific reader need, decision, objection, or communication task.
+Make the title specific enough to feel like a real assignment, not a category label.
 The supplied review rubric skills are for later evaluation, not for choosing the assignment topic.
 If a review skill needs a visible feature to be measurable, quietly make room for that feature in the assignment.
 Example: if the review skill depends on dialogue quality, the assignment should create a natural reason for dialogue to appear.
 Never copy the hidden review guidance into the visible brief, constraints, or success criteria.
 Do not turn the assignment into a beat sheet, rubric, or checklist derived from the review criteria.
+Do not let the constraints carry the whole assignment. The brief itself must contain the core situation.
 Match the user's writing mode and tone only when the supplied coaching context supports it.
 Favor discipline, clarity, and specificity over ornament.
 Avoid derivative references to named authors or genres unless the coaching context clearly calls for them.

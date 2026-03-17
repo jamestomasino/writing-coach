@@ -57,3 +57,16 @@ func TestMeasurabilityGuidanceUsesHintsNotRawTGOs(t *testing.T) {
 		t.Fatalf("expected dialogue measurability hint, got %q", got)
 	}
 }
+
+func TestExerciseSystemPromptRequiresConcretePremise(t *testing.T) {
+	got := strings.ToLower(exerciseSystemPrompt())
+	if !strings.Contains(got, "concrete premise") {
+		t.Fatalf("expected concrete-premise instruction, got %q", got)
+	}
+	if !strings.Contains(got, "real starting point") {
+		t.Fatalf("expected real-starting-point instruction, got %q", got)
+	}
+	if !strings.Contains(got, "brief itself must contain the core situation") {
+		t.Fatalf("expected brief/core situation instruction, got %q", got)
+	}
+}

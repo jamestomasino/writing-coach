@@ -217,10 +217,40 @@ func PromptProfileLines(profile OnboardingProfile) []string {
 	if value := PromptGoal(profile); value != "" {
 		lines = append(lines, "goal: "+value)
 	}
+	if value := PromptScenarioGuidance(profile); value != "" {
+		lines = append(lines, "assignment seed: "+value)
+	}
 	if len(profile.DesiredOutcomes) > 0 {
 		lines = append(lines, "desired outcomes: "+strings.Join(profile.DesiredOutcomes, ", "))
 	}
 	return lines
+}
+
+func PromptScenarioGuidance(profile OnboardingProfile) string {
+	format := strings.TrimSpace(profile.AssignmentFormat)
+	subject := strings.TrimSpace(profile.SubjectMatter)
+	audience := strings.TrimSpace(profile.TargetAudience)
+	domainLabel := strings.TrimSpace(profile.WritingType)
+
+	switch {
+	case looksLikeFictionFormat(format) || looksLikeFictionDomain(domainLabel):
+		parts := []string{"build the assignment around one concrete character situation or turning problem"}
+		if subject != "" {
+			parts = append(parts, "drawn from "+subject)
+		}
+		parts = append(parts, "give the writer a specific pressure point, choice, or conflict instead of a generic setup")
+		return strings.Join(parts, "; ")
+	default:
+		parts := []string{"build the assignment around one concrete communication situation"}
+		if subject != "" {
+			parts = append(parts, "drawn from "+subject)
+		}
+		if audience != "" {
+			parts = append(parts, "for "+audience)
+		}
+		parts = append(parts, "give the writer a real problem, decision, or message to handle instead of a generic topic")
+		return strings.Join(parts, "; ")
+	}
 }
 
 var slugCleaner = regexp.MustCompile(`[^a-z0-9]+`)
@@ -326,4 +356,24 @@ func selectTemplate(profile OnboardingProfile) string {
 		}
 	}
 	return "story-craft"
+}
+
+func looksLikeFictionFormat(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	for _, token := range []string{"scene", "story", "chapter", "dialogue", "monologue"} {
+		if strings.Contains(value, token) {
+			return true
+		}
+	}
+	return false
+}
+
+func looksLikeFictionDomain(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	for _, token := range []string{"fiction", "fantasy", "novel", "short story", "memoir", "narrative"} {
+		if strings.Contains(value, token) {
+			return true
+		}
+	}
+	return false
 }

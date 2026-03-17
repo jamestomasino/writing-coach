@@ -36,4 +36,24 @@ func TestPromptProfileLinesUseInterpretedToneGuidance(t *testing.T) {
 	if strings.Contains(joined, "clear and persuasive") {
 		t.Fatalf("expected interpreted tone guidance, got %q", joined)
 	}
+	if !strings.Contains(joined, "assignment seed:") {
+		t.Fatalf("expected assignment seed guidance, got %q", joined)
+	}
+}
+
+func TestPromptScenarioGuidanceDemandsConcreteSituation(t *testing.T) {
+	got := PromptScenarioGuidance(OnboardingProfile{
+		WritingType:      "fantasy fiction",
+		AssignmentFormat: "scene",
+		TargetAudience:   "fantasy readers",
+		SubjectMatter:    "oaths, sacred objects, and succession fights",
+	})
+
+	lower := strings.ToLower(got)
+	if !strings.Contains(lower, "concrete") || !strings.Contains(lower, "specific pressure point") {
+		t.Fatalf("expected concrete fiction guidance, got %q", got)
+	}
+	if !strings.Contains(lower, "oaths") {
+		t.Fatalf("expected subject matter to shape guidance, got %q", got)
+	}
 }
