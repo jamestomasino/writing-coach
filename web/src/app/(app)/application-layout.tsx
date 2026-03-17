@@ -22,12 +22,14 @@ import {
   SidebarSpacer,
 } from '@/components/sidebar'
 import { SidebarLayout } from '@/components/sidebar-layout'
+import { getSession } from '@/lib/api'
 import {
   ArrowRightStartOnRectangleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   LockClosedIcon,
   Cog6ToothIcon,
+  ArrowLeftEndOnRectangleIcon,
   UserPlusIcon,
 } from '@heroicons/react/16/solid'
 import {
@@ -37,6 +39,7 @@ import {
   Squares2X2Icon,
   UserGroupIcon,
 } from '@heroicons/react/20/solid'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' }) {
@@ -69,6 +72,27 @@ function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' })
 
 export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const session = await getSession()
+        if (!cancelled) {
+          setAuthenticated(session.authenticated)
+        }
+      } catch {
+        if (!cancelled) {
+          setAuthenticated(false)
+        }
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <SidebarLayout
@@ -151,10 +175,23 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
             <SidebarSpacer />
 
             <SidebarSection>
-              <SidebarItem href="/register">
-                <UserPlusIcon />
-                <SidebarLabel>Register</SidebarLabel>
-              </SidebarItem>
+              {authenticated === false ? (
+                <>
+                  <SidebarItem href="/login">
+                    <ArrowLeftEndOnRectangleIcon />
+                    <SidebarLabel>Sign in</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/register">
+                    <UserPlusIcon />
+                    <SidebarLabel>Register</SidebarLabel>
+                  </SidebarItem>
+                </>
+              ) : authenticated === true ? (
+                <SidebarItem href="/settings" current={pathname.startsWith('/settings')}>
+                  <Cog6ToothIcon />
+                  <SidebarLabel>Settings</SidebarLabel>
+                </SidebarItem>
+              ) : null}
             </SidebarSection>
           </SidebarBody>
 
