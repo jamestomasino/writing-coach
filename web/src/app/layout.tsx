@@ -6,7 +6,8 @@ export const metadata: Metadata = {
     template: '%s - Writing Coach',
     default: 'Writing Coach',
   },
-  description: 'Assignment-first writing coaching built on a progressive writing skill map.',
+  description:
+    'Writing Coach provides a skill-based coaching system for writers, combining focused objectives, progressive skill tracking, targeted prompts, and detailed review feedback.',
   icons: {
     icon: [
       { url: '/favicon-writing-coach.svg', type: 'image/svg+xml' },
