@@ -55,6 +55,7 @@ services:
     image: oryd/kratos:v25.4.0
     container_name: writing-coach-kratos-migrate
     restart: on-failure
+    entrypoint: ["/bin/sh"]
     environment:
       DSN: "sqlite:///var/lib/sqlite/db.sqlite?_fk=true&mode=rwc"
       SECRETS_COOKIE_0: "${KRATOS_COOKIE_SECRET:-change-me-change-me-change-me-change-me}"
@@ -68,12 +69,13 @@ services:
     volumes:
       - kratos-data:/var/lib/sqlite
       - ./deploy/kratos:/etc/config/kratos
-    command: ["sh", "/etc/config/kratos/render-config.sh", "migrate"]
+    command: ["/etc/config/kratos/render-config.sh", "migrate"]
 
   kratos:
     image: oryd/kratos:v25.4.0
     container_name: writing-coach-kratos
     restart: unless-stopped
+    entrypoint: ["/bin/sh"]
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
@@ -90,7 +92,7 @@ services:
       KRATOS_UI_PUBLIC_URL: "${KRATOS_UI_PUBLIC_URL:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/ui}"
       KRATOS_ALLOWED_RETURN_URLS: "${KRATOS_ALLOWED_RETURN_URLS:-${COACH_PUBLIC_URL:-https://coach.tomasino.org}/.ory/kratos/ui,${COACH_PUBLIC_URL:-https://coach.tomasino.org}}"
       KRATOS_SMTP_CONNECTION_URI: "${KRATOS_SMTP_CONNECTION_URI:-smtps://test:test@mailslurper:1025/?skip_ssl_verify=true}"
-    command: ["sh", "/etc/config/kratos/render-config.sh", "serve"]
+    command: ["/etc/config/kratos/render-config.sh", "serve"]
     volumes:
       - kratos-data:/var/lib/sqlite
       - ./deploy/kratos:/etc/config/kratos
