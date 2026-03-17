@@ -3,8 +3,8 @@ package domain
 import "testing"
 
 func TestBuiltInTreesHaveDepthAndSeeds(t *testing.T) {
-	if len(BuiltInTrees) < 14 {
-		t.Fatalf("expected at least 14 built-in trees, got %d", len(BuiltInTrees))
+	if len(BuiltInTrees) < 19 {
+		t.Fatalf("expected at least 19 built-in trees, got %d", len(BuiltInTrees))
 	}
 	for _, tree := range BuiltInTrees {
 		if len(tree.TGOs) < 50 {
@@ -150,5 +150,51 @@ func TestExpandedFictionTreesAreAvailable(t *testing.T) {
 		if len(tree.PrioritySkills) < 6 {
 			t.Fatalf("tree %s priority skills = %#v", tree.Slug, tree.PrioritySkills)
 		}
+	}
+}
+
+func TestExpandedNonfictionTreesAreAvailable(t *testing.T) {
+	trees := []TGOTreeDefinition{
+		marketingWritingTree,
+		contentMarketingTree,
+		journalismReportingTree,
+		educationalWritingTree,
+		grantWritingTree,
+	}
+
+	for _, tree := range trees {
+		if len(tree.TGOs) < 45 {
+			t.Fatalf("tree %s has only %d TGOs", tree.Slug, len(tree.TGOs))
+		}
+		if len(tree.SeedCodes) != 3 {
+			t.Fatalf("tree %s seed codes = %#v", tree.Slug, tree.SeedCodes)
+		}
+		if len(tree.PrioritySkills) < 6 {
+			t.Fatalf("tree %s priority skills = %#v", tree.Slug, tree.PrioritySkills)
+		}
+	}
+}
+
+func TestRecommendedStarterCodesForExpandedNonfictionTemplates(t *testing.T) {
+	profile := OnboardingProfile{
+		WritingType:         "marketing writing",
+		ExperienceLevel:     "advanced",
+		DesiredTone:         "clear and persuasive",
+		BiggestWeaknesses:   []string{"positioning"},
+		DesiredOutcomes:     []string{"stronger launch copy"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "write stronger marketing campaigns",
+	}
+
+	starter := RecommendedStarterCodes(profile)
+	if len(starter) != 3 {
+		t.Fatalf("starter codes = %#v", starter)
+	}
+	if starter[0] != "marketing-claim-clarity" {
+		t.Fatalf("starter codes = %#v", starter)
+	}
+	regions := RecommendedRegionSlugs(profile)
+	if len(regions) == 0 || regions[0] != marketingWritingTree.Slug {
+		t.Fatalf("regions = %#v", regions)
 	}
 }

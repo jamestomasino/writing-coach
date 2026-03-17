@@ -613,11 +613,35 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 var (
 	mythicTragedyTree, youthFoundationsTree, storyCraftTree, thoughtLeadershipTree, professionalWritingTree, academicEssayTree, technicalWritingTree, persuasiveWritingTree, memoirNarrativeTree, BuiltInTrees, TGOCodeToSkill = buildBuiltInCatalog()
 	fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree                                                                                                                       = buildExpandedFictionTrees()
+	marketingWritingTree, contentMarketingTree, journalismReportingTree, educationalWritingTree, grantWritingTree                                                                                                              = buildExpandedNonfictionTrees()
 )
 
 func init() {
-	BuiltInTrees = append(BuiltInTrees, fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree)
-	registerTreeSkills(fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree)
+	BuiltInTrees = append(
+		BuiltInTrees,
+		fantasyFictionTree,
+		scienceFictionTree,
+		romanceFictionTree,
+		literaryFictionTree,
+		mysteryThrillerTree,
+		marketingWritingTree,
+		contentMarketingTree,
+		journalismReportingTree,
+		educationalWritingTree,
+		grantWritingTree,
+	)
+	registerTreeSkills(
+		fantasyFictionTree,
+		scienceFictionTree,
+		romanceFictionTree,
+		literaryFictionTree,
+		mysteryThrillerTree,
+		marketingWritingTree,
+		contentMarketingTree,
+		journalismReportingTree,
+		educationalWritingTree,
+		grantWritingTree,
+	)
 }
 
 func buildExpandedFictionTrees() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition) {
@@ -655,6 +679,44 @@ func buildExpandedFictionTrees() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeD
 			Description:    "Fiction track for mystery and thriller writers building suspense, clue control, scene pressure, and reader orientation.",
 			CodePrefix:     "thriller",
 			PrioritySkills: []string{"narrative clarity", "scene architecture", "structure and pacing", "dialogue intelligence", "worldbuilding economy", "prose precision", "story development"},
+		})
+}
+
+func buildExpandedNonfictionTrees() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition) {
+	return cloneTreeDefinition(thoughtLeadershipTree, cloneTreeOptions{
+			Slug:           "marketing-writing-track",
+			Title:          "Marketing Writing Track",
+			Description:    "Nonfiction track for marketing writers building audience fit, positioning, persuasive structure, and action-driving clarity.",
+			CodePrefix:     "marketing",
+			PrioritySkills: []string{"audience alignment", "claim clarity", "actionability", "sentence economy", "structural signposting", "rhetorical force", "evidence integration"},
+		}),
+		cloneTreeDefinition(persuasiveWritingTree, cloneTreeOptions{
+			Slug:           "content-marketing-track",
+			Title:          "Content Marketing Track",
+			Description:    "Nonfiction track for content marketers building reader value, trust, conversion framing, and durable structure.",
+			CodePrefix:     "content",
+			PrioritySkills: []string{"audience alignment", "claim clarity", "insight density", "structural signposting", "actionability", "evidence integration", "rhetorical force"},
+		}),
+		cloneTreeDefinition(thoughtLeadershipTree, cloneTreeOptions{
+			Slug:           "journalism-reporting-track",
+			Title:          "Journalism and Reporting Track",
+			Description:    "Nonfiction track for reported writing that builds clarity, sourcing discipline, structure, reader trust, and explanatory force.",
+			CodePrefix:     "journalism",
+			PrioritySkills: []string{"clarity and coherence", "structural signposting", "evidence integration", "authority and voice", "audience alignment", "sentence economy", "insight density"},
+		}),
+		cloneTreeDefinition(academicEssayTree, cloneTreeOptions{
+			Slug:           "educational-writing-track",
+			Title:          "Educational Writing Track",
+			Description:    "Nonfiction track for instructional and explanatory writing that builds concept clarity, examples, structure, and reader understanding.",
+			CodePrefix:     "education",
+			PrioritySkills: []string{"clarity and coherence", "structural signposting", "evidence integration", "actionability", "scannability", "analysis depth", "audience alignment"},
+		}),
+		cloneTreeDefinition(professionalWritingTree, cloneTreeOptions{
+			Slug:           "grant-writing-track",
+			Title:          "Grant Writing Track",
+			Description:    "Nonfiction track for grant writers building need framing, proposal structure, evidence use, clarity, and persuasive justification.",
+			CodePrefix:     "grant",
+			PrioritySkills: []string{"claim clarity", "evidence integration", "structural signposting", "audience alignment", "actionability", "clarity and coherence", "sentence economy"},
 		})
 }
 
@@ -715,7 +777,10 @@ func registerTreeSkills(trees ...TGOTreeDefinition) {
 }
 
 func trimStoryClonePrefix(code string) string {
-	for _, prefix := range []string{"fantasy-", "scifi-", "romance-", "literary-", "thriller-"} {
+	for _, prefix := range []string{
+		"fantasy-", "scifi-", "romance-", "literary-", "thriller-",
+		"marketing-", "content-", "journalism-", "education-", "grant-",
+	} {
 		if len(code) > len(prefix) && code[:len(prefix)] == prefix {
 			return code[len(prefix):]
 		}
@@ -739,6 +804,16 @@ func treeForTemplateKey(templateKey string) TGOTreeDefinition {
 		return thoughtLeadershipTree
 	case "professional-writing":
 		return professionalWritingTree
+	case "marketing-writing":
+		return marketingWritingTree
+	case "content-marketing":
+		return contentMarketingTree
+	case "journalism-reporting":
+		return journalismReportingTree
+	case "educational-writing":
+		return educationalWritingTree
+	case "grant-writing":
+		return grantWritingTree
 	case "fantasy-fiction":
 		return fantasyFictionTree
 	case "science-fiction":
@@ -856,15 +931,25 @@ func RecommendedRegionSlugs(profile OnboardingProfile) []string {
 	case youthFoundationsTree.Slug:
 		regions = append(regions, storyCraftTree.Slug, academicEssayTree.Slug)
 	case thoughtLeadershipTree.Slug:
-		regions = append(regions, persuasiveWritingTree.Slug, professionalWritingTree.Slug)
+		regions = append(regions, journalismReportingTree.Slug, marketingWritingTree.Slug)
 	case professionalWritingTree.Slug:
-		regions = append(regions, technicalWritingTree.Slug, persuasiveWritingTree.Slug)
+		regions = append(regions, technicalWritingTree.Slug, grantWritingTree.Slug)
+	case marketingWritingTree.Slug:
+		regions = append(regions, contentMarketingTree.Slug, persuasiveWritingTree.Slug)
+	case contentMarketingTree.Slug:
+		regions = append(regions, marketingWritingTree.Slug, thoughtLeadershipTree.Slug)
+	case journalismReportingTree.Slug:
+		regions = append(regions, thoughtLeadershipTree.Slug, educationalWritingTree.Slug)
+	case educationalWritingTree.Slug:
+		regions = append(regions, academicEssayTree.Slug, journalismReportingTree.Slug)
+	case grantWritingTree.Slug:
+		regions = append(regions, professionalWritingTree.Slug, persuasiveWritingTree.Slug)
 	case academicEssayTree.Slug:
-		regions = append(regions, thoughtLeadershipTree.Slug, persuasiveWritingTree.Slug)
+		regions = append(regions, educationalWritingTree.Slug, thoughtLeadershipTree.Slug)
 	case technicalWritingTree.Slug:
 		regions = append(regions, professionalWritingTree.Slug, academicEssayTree.Slug)
 	case persuasiveWritingTree.Slug:
-		regions = append(regions, thoughtLeadershipTree.Slug, academicEssayTree.Slug)
+		regions = append(regions, marketingWritingTree.Slug, grantWritingTree.Slug)
 	case memoirNarrativeTree.Slug:
 		regions = append(regions, storyCraftTree.Slug, thoughtLeadershipTree.Slug)
 	}

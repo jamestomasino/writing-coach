@@ -286,6 +286,16 @@ func selectTemplate(profile OnboardingProfile) string {
 		return "thought-leadership"
 	case "professional", "professional writing", "professional-writing":
 		return "professional-writing"
+	case "marketing", "marketing writing", "copywriting":
+		return "marketing-writing"
+	case "content marketing", "content strategy", "brand content":
+		return "content-marketing"
+	case "journalism", "reporting", "journalism and reporting":
+		return "journalism-reporting"
+	case "educational writing", "instructional writing", "explanatory writing":
+		return "educational-writing"
+	case "grant writing", "grant proposal", "grants":
+		return "grant-writing"
 	case "fantasy", "fantasy fiction", "epic fantasy", "urban fantasy":
 		return "fantasy-fiction"
 	case "science fiction", "sci-fi", "sci fi", "speculative fiction":
@@ -338,6 +348,21 @@ func selectTemplate(profile OnboardingProfile) string {
 		if strings.Contains(toneAndGoals, "thought leadership") {
 			return "thought-leadership"
 		}
+		if strings.Contains(toneAndGoals, "marketing") || strings.Contains(toneAndGoals, "copywriting") {
+			return "marketing-writing"
+		}
+		if strings.Contains(toneAndGoals, "content marketing") || strings.Contains(toneAndGoals, "content strategy") {
+			return "content-marketing"
+		}
+		if strings.Contains(toneAndGoals, "journalism") || strings.Contains(toneAndGoals, "reporting") {
+			return "journalism-reporting"
+		}
+		if strings.Contains(toneAndGoals, "educational writing") || strings.Contains(toneAndGoals, "instructional writing") || strings.Contains(toneAndGoals, "explanatory writing") {
+			return "educational-writing"
+		}
+		if strings.Contains(toneAndGoals, "grant writing") || strings.Contains(toneAndGoals, "grant proposal") {
+			return "grant-writing"
+		}
 		if strings.Contains(toneAndGoals, "professional") || strings.Contains(toneAndGoals, "business") {
 			return "professional-writing"
 		}
@@ -389,6 +414,16 @@ func generatedTrackLabel(profile OnboardingProfile, fallback string) string {
 		return "Thought Leadership Track"
 	case "professional-writing":
 		return "Professional Writing Track"
+	case "marketing-writing":
+		return "Marketing Writing Track"
+	case "content-marketing":
+		return "Content Marketing Track"
+	case "journalism-reporting":
+		return "Journalism and Reporting Track"
+	case "educational-writing":
+		return "Educational Writing Track"
+	case "grant-writing":
+		return "Grant Writing Track"
 	case "fantasy-fiction":
 		return "Fantasy Track"
 	case "science-fiction":

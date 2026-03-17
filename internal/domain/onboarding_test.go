@@ -138,3 +138,70 @@ func TestTemplateKeyForProfileUsesBroaderFictionTemplates(t *testing.T) {
 		})
 	}
 }
+
+func TestTemplateKeyForProfileUsesExpandedNonfictionTemplates(t *testing.T) {
+	cases := []struct {
+		name    string
+		profile OnboardingProfile
+		want    string
+	}{
+		{
+			name: "marketing routes to marketing template",
+			profile: OnboardingProfile{
+				WritingType:     "marketing writing",
+				ExperienceLevel: "advanced",
+				DesiredTone:     "clear and persuasive",
+				WritingGoals:    "write stronger launch copy",
+			},
+			want: "marketing-writing",
+		},
+		{
+			name: "content marketing routes to content marketing template",
+			profile: OnboardingProfile{
+				WritingType:     "content marketing",
+				ExperienceLevel: "intermediate",
+				DesiredTone:     "clear and helpful",
+				WritingGoals:    "write stronger educational content",
+			},
+			want: "content-marketing",
+		},
+		{
+			name: "journalism routes to journalism template",
+			profile: OnboardingProfile{
+				WritingType:     "journalism",
+				ExperienceLevel: "advanced",
+				DesiredTone:     "clear and direct",
+				WritingGoals:    "write stronger reported features",
+			},
+			want: "journalism-reporting",
+		},
+		{
+			name: "educational writing routes to educational template",
+			profile: OnboardingProfile{
+				WritingType:     "educational writing",
+				ExperienceLevel: "intermediate",
+				DesiredTone:     "clear and practical",
+				WritingGoals:    "write better learning material",
+			},
+			want: "educational-writing",
+		},
+		{
+			name: "grant writing routes to grant template",
+			profile: OnboardingProfile{
+				WritingType:     "grant writing",
+				ExperienceLevel: "advanced",
+				DesiredTone:     "formal and persuasive",
+				WritingGoals:    "write stronger grant proposals",
+			},
+			want: "grant-writing",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := TemplateKeyForProfile(tc.profile); got != tc.want {
+				t.Fatalf("template key = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
