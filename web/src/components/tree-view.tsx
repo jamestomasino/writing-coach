@@ -337,9 +337,9 @@ export function TreeView() {
       <div className="space-y-8">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <Heading>Skill map</Heading>
+            <Heading>Skill Tree</Heading>
             <Text className="mt-2 max-w-3xl">
-              This page is the game board. Follow glowing pathways to see what is live now, what just opened, and what remains locked behind earlier craft work.
+              This tree shows how your learning track opens over time. When you show steady control of the active skills, those skills can become mastered and new connected skills unlock to become the next focus of your assignments and reviews.
             </Text>
           </div>
           <div className="flex flex-wrap gap-2 text-sm text-zinc-600 dark:text-zinc-300">
