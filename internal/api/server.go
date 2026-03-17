@@ -1657,6 +1657,11 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	completedAssignments, err := s.Store.CompletedAssignmentCount(ctx, appContext.UserID, appContext.TreeID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
 	recurringWeaknesses, err := s.Store.RecurringWeaknesses(ctx, appContext.UserID, appContext.TreeID, 5)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -1704,6 +1709,7 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		"active_tgos":               toTGOResponses(activeTGOs),
 		"completed_tgos":            toTGOResponses(completedTGOs),
 		"upcoming_tgos":             toTGOResponses(upcoming),
+		"completed_assignments":     completedAssignments,
 		"progress_lines":            progress,
 		"strongest_skills":          strongest,
 		"weakest_skills":            weakest,

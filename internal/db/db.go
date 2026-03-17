@@ -1539,6 +1539,22 @@ func (s *Store) History(ctx context.Context, userID, treeID int64) ([]string, er
 	return items, rows.Err()
 }
 
+func (s *Store) CompletedAssignmentCount(ctx context.Context, userID, treeID int64) (int, error) {
+	var count int
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT COUNT(DISTINCT e.id)
+		FROM exercises e
+		WHERE e.user_id = ? AND e.tree_id = ?
+		  AND EXISTS (
+			SELECT 1
+			FROM submissions s
+			JOIN reviews r ON r.submission_id = s.id AND r.user_id = s.user_id AND r.tree_id = s.tree_id
+			WHERE s.exercise_id = e.id AND s.user_id = e.user_id AND s.tree_id = e.tree_id
+		  )
+	`, userID, treeID).Scan(&count)
+	return count, err
+}
+
 func (s *Store) RecentExerciseTitles(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT title

@@ -32,6 +32,94 @@ func TestDashboardEndpoint(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected status: %d", resp.StatusCode)
 	}
+
+	var payload struct {
+		CompletedAssignments int `json:"completed_assignments"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode dashboard: %v", err)
+	}
+	if payload.CompletedAssignments != 0 {
+		t.Fatalf("expected empty dashboard count, got %d", payload.CompletedAssignments)
+	}
+}
+
+func TestDashboardReportsCompletedAssignments(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+
+	exerciseID, err := harness.Store.SaveExercise(context.Background(), domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Assignment One",
+		Brief:           "Write something.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "openai",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(context.Background(), domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "A finished draft.",
+		WordCount:  3,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(context.Background(), domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     submissionID,
+		ReviewKind:       "coach",
+		Summary:          "Solid.",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"tighten"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "prose precision",
+		MetricWordCount:  3,
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "causal-clarity", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "scene-architecture", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "prose-precision", Status: "developing", Evidence: "n/a"},
+		},
+	}, nil); err != nil {
+		t.Fatalf("save review: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get dashboard: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		CompletedAssignments int `json:"completed_assignments"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode dashboard: %v", err)
+	}
+	if payload.CompletedAssignments != 1 {
+		t.Fatalf("completed assignments = %d", payload.CompletedAssignments)
+	}
 }
 
 func TestReadyEndpoint(t *testing.T) {

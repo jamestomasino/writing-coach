@@ -134,6 +134,7 @@ export function ProgressView() {
   const recurringFindings = dashboard.recurring_findings ?? []
   const recurringCompletedSlips = dashboard.recurring_completed_slips ?? []
   const headerSkills = activeTGOs.length > 0 ? activeTGOs.map((tgo) => tgo.title) : tree?.priority_skills ?? []
+  const completedAssignments = dashboard.completed_assignments ?? 0
 
   return (
     <div className="space-y-8">
@@ -238,6 +239,14 @@ export function ProgressView() {
               </div>
               <Text className="mt-2 text-sm">
                 {completedTGOs.length === 0 ? 'No skills have been mastered yet.' : `${completedTGOs.length} skills have been marked mastered.`}
+              </Text>
+            </div>
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="text-sm font-semibold text-zinc-900 dark:text-white">Assignments completed</div>
+              <Text className="mt-2 text-sm">
+                {completedAssignments === 0
+                  ? 'No assignments have been completed yet.'
+                  : `${completedAssignments} assignments have been completed, including revision rounds.`}
               </Text>
             </div>
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
