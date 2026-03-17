@@ -54,3 +54,38 @@ func TestDeterministicNextExerciseUsesFreshDraftLanguage(t *testing.T) {
 		t.Fatalf("expected explicit new-piece language, got %q", ex.Brief)
 	}
 }
+
+func TestDeterministicNextExerciseUsesOnboardingProfileAsPromptSeed(t *testing.T) {
+	service := NewService(nil)
+
+	profile := &domain.OnboardingProfile{
+		WritingType:      "marketing",
+		AssignmentFormat: "landing page",
+		TargetAudience:   "product-led growth teams",
+		SubjectMatter:    "B2B SaaS launches",
+		DesiredTone:      "clear and persuasive",
+		WritingGoals:     "Drive sharper conversion-focused drafts.",
+		DesiredOutcomes:  []string{"improve professional communication"},
+	}
+	active := []domain.TGO{
+		{Code: "dialogue-intelligence", Title: "Dialogue Intelligence"},
+		{Code: "scene-architecture", Title: "Scene Architecture"},
+		{Code: "prose-precision", Title: "Prose Precision"},
+	}
+
+	ex := service.NextExercise(context.Background(), Context{
+		OnboardingProfile: profile,
+		ActiveTGOs:        active,
+	})
+
+	lower := strings.ToLower(ex.Brief)
+	if !strings.Contains(lower, "landing page") || !strings.Contains(lower, "b2b saas launches") {
+		t.Fatalf("expected onboarding profile to shape brief, got %q", ex.Brief)
+	}
+	if strings.Contains(lower, "dialogue intelligence") || strings.Contains(lower, "scene architecture") {
+		t.Fatalf("expected brief to avoid naming review rubric skills, got %q", ex.Brief)
+	}
+	if len(ex.TGOCodes) != 3 {
+		t.Fatalf("expected selected review tg os to persist, got %v", ex.TGOCodes)
+	}
+}

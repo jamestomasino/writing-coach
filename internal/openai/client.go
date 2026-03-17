@@ -27,6 +27,7 @@ type ExerciseRequest struct {
 	CurrentFocus      string
 	DifficultyLevel   int
 	ActiveTGOs        []domain.TGO
+	OnboardingProfile *domain.OnboardingProfile
 	RecentTitles      []string
 	RecentWeaknesses  []string
 	RecurringFindings []string
@@ -119,10 +120,11 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		Schema:      exerciseSchema(),
 		SystemInput: exerciseSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
-			emptyDefault(input.CurrentFocus, "scene architecture"),
-			input.DifficultyLevel,
+			"Writing track profile:\n%s\nReview rubric skills: %s\nUse the review rubric skills only as hidden measurability guidance. Do not name them or build the topic from them. Instead, make sure the assignment naturally gives the writer a chance to show those things on the page when possible.\nCurrent focus: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+			formatOnboardingProfile(input.OnboardingProfile),
 			joinTGOs(input.ActiveTGOs),
+			emptyDefault(input.CurrentFocus, "none"),
+			input.DifficultyLevel,
 			joinOrDefault(input.RecentTitles, "none"),
 			joinOrDefault(input.RecentWeaknesses, "none"),
 			joinOrDefault(input.RecurringFindings, "none"),
@@ -146,7 +148,8 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		Title:           parsed.Title,
 		Brief:           parsed.Brief,
 		Constraints:     parsed.Constraints,
-		FocusSkills:     parsed.FocusSkills,
+		FocusSkills:     coalesceFocusSkills(input.ActiveTGOs, parsed.FocusSkills),
+		TGOCodes:        activeTGOCodes(input.ActiveTGOs),
 		SuccessCriteria: parsed.SuccessCriteria,
 	}, nil
 }
@@ -376,10 +379,14 @@ Ask for a fresh draft written from scratch unless the user input clearly says ot
 Write at about a 6th-grade reading level.
 Use short, plain sentences.
 Make the request easy to understand on the first read.
+Build the assignment from the writing track profile first: writing domain, format, audience, subject matter, tone, and goals.
+The supplied review rubric skills are for later evaluation, not for choosing the assignment topic.
+If a review skill needs a visible feature to be measurable, quietly make room for that feature in the assignment.
+Example: if the review skill depends on dialogue quality, the assignment should create a natural reason for dialogue to appear.
 Match the user's writing mode and tone only when the supplied coaching context supports it.
 Favor discipline, clarity, and specificity over ornament.
 Avoid derivative references to named authors or genres unless the coaching context clearly calls for them.
-The exercise should train one main weakness and one supporting skill.
+The exercise should give the writer a strong starting point inside the track, not a disguised TGO drill.
 The brief should be 1-2 short sentences.
 The constraints and success criteria should use simple, direct language.
 Do not use words like "rewrite" or "revise" unless this is explicitly a revision task.
@@ -557,6 +564,54 @@ func normalizeExercise(value exerciseResponse) exerciseResponse {
 	value.FocusSkills = normalizeStrings(value.FocusSkills)
 	value.SuccessCriteria = normalizeStrings(value.SuccessCriteria)
 	return value
+}
+
+func formatOnboardingProfile(profile *domain.OnboardingProfile) string {
+	if profile == nil {
+		return "none"
+	}
+	lines := []string{
+		"writing domain: " + emptyDefault(profile.WritingType, "none"),
+		"assignment format: " + emptyDefault(profile.AssignmentFormat, "none"),
+		"target audience: " + emptyDefault(profile.TargetAudience, "none"),
+		"subject matter: " + emptyDefault(profile.SubjectMatter, "none"),
+		"tone target: " + emptyDefault(profile.DesiredTone, "none"),
+		"writing goals: " + emptyDefault(profile.WritingGoals, "none"),
+		"desired outcomes: " + joinOrDefault(profile.DesiredOutcomes, "none"),
+	}
+	return strings.Join(lines, "\n")
+}
+
+func coalesceFocusSkills(activeTGOs []domain.TGO, fallback []string) []string {
+	if len(activeTGOs) == 0 {
+		return fallback
+	}
+	seen := map[string]bool{}
+	var out []string
+	for _, tgo := range activeTGOs {
+		skill := strings.TrimSpace(domain.TGOCodeToSkill[tgo.Code])
+		if skill == "" || seen[skill] {
+			continue
+		}
+		seen[skill] = true
+		out = append(out, skill)
+	}
+	if len(out) == 0 {
+		return fallback
+	}
+	return out
+}
+
+func activeTGOCodes(activeTGOs []domain.TGO) []string {
+	var out []string
+	for _, tgo := range activeTGOs {
+		code := strings.TrimSpace(tgo.Code)
+		if code == "" {
+			continue
+		}
+		out = append(out, code)
+	}
+	return out
 }
 
 func normalizeReview(value reviewResponse) reviewResponse {

@@ -100,7 +100,7 @@ export function NewAssignmentView() {
   }
 
   if (loading) {
-    return <LoadingState label="Loading skill selection…" />
+    return <LoadingState label="Loading assignment setup…" />
   }
   if (needsOnboarding) {
     return (
@@ -124,15 +124,15 @@ export function NewAssignmentView() {
       <header>
         <Heading>New assignment</Heading>
         <Text className="mt-2 max-w-3xl">
-          Choose exactly three unlocked skills. The prompt generator will build the next assignment around this set and your skill map’s coaching goals.
+          Choose exactly three skills for the next review. The assignment prompt itself comes from your track details, while this selection sets what the review will measure most closely.
         </Text>
       </header>
 
       {error ? <EmptyState title="Prompt generation issue" body={error} /> : null}
 
       <WorkspaceCard>
-        <Subheading>Choose 3 skills</Subheading>
-        <Text className="mt-2">Mastered skills stay in the maintenance layer. This selection defines the primary review rubric for the next assignment.</Text>
+        <Subheading>Choose 3 review skills</Subheading>
+        <Text className="mt-2">Mastered skills stay in the maintenance layer. This selection defines the primary review rubric for the next assignment, not the prompt premise.</Text>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {selectable.map((tgo) => {
             const active = selected.includes(tgo.code)
@@ -177,7 +177,7 @@ export function NewAssignmentView() {
               </div>
               <div>
                 <Subheading>Generating assignment</Subheading>
-                <Text className="mt-2">Building a new prompt from your selected skills. This usually takes a few seconds.</Text>
+                <Text className="mt-2">Building a new prompt from your track details and current coaching context. This usually takes a few seconds.</Text>
               </div>
             </div>
             <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 dark:border-cyan-400/20 dark:bg-black/10 lg:w-80">

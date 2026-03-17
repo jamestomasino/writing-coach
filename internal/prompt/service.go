@@ -21,6 +21,7 @@ type Service struct {
 type Context struct {
 	CurriculumState    domain.CurriculumState
 	ActiveTGOs         []domain.TGO
+	OnboardingProfile  *domain.OnboardingProfile
 	RecentTitles       []string
 	RecentWeaknesses   []string
 	RecurringFindings  []string
@@ -43,6 +44,7 @@ func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercis
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
 			ActiveTGOs:        input.ActiveTGOs,
+			OnboardingProfile: input.OnboardingProfile,
 			RecentTitles:      input.RecentTitles,
 			RecentWeaknesses:  input.RecentWeaknesses,
 			RecurringFindings: input.RecurringFindings,
@@ -102,44 +104,53 @@ func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exe
 }
 
 func (deterministicGenerator) NextExercise(_ context.Context, input Context) domain.Exercise {
-	focus := input.CurriculumState.CurrentFocus
-	if focus == "" {
-		focus = "scene architecture"
-	}
 	tgos := ensureDefaultTGOs(input.ActiveTGOs)
+	profile := input.OnboardingProfile
+	title := "New Writing Assignment"
+	brief := "Write a new piece from scratch."
+	constraints := []string{"keep the piece small and focused", "make the main turn easy to follow", "use clear details instead of vague filler"}
+	success := []string{
+		"the piece fits the assignment format",
+		"the draft stays clear from start to finish",
+		"the ending feels complete and intentional",
+	}
 
-	title := fmt.Sprintf("Exercise in %s", titleCase(focus))
+	if profile != nil {
+		title = deterministicTitle(*profile)
+		brief = deterministicBrief(*profile)
+		constraints = deterministicConstraints(*profile)
+		success = deterministicSuccessCriteria(*profile)
+	} else {
+		focus := input.CurriculumState.CurrentFocus
+		if focus == "" {
+			focus = "scene architecture"
+		}
+		title = fmt.Sprintf("Exercise in %s", titleCase(focus))
+		brief = fmt.Sprintf(
+			"Write a new piece about %s. Show clear action, clear results, and a clear turn by the end.",
+			focus,
+		)
+	}
 	if len(input.RecentTitles) > 0 {
 		title = fmt.Sprintf("%s After %d Prior Trials", title, len(input.RecentTitles))
 	}
-
-	brief := fmt.Sprintf(
-		"Write a new piece about %s. Show clear action, clear results, and a clear turn by the end.",
-		focus,
-	)
 	if input.CoachingBrief != "" {
-		brief += " Use this coaching goal: " + input.CoachingBrief + "."
+		brief += " Track context: " + input.CoachingBrief + "."
 	}
 	if len(input.RecentWeaknesses) > 0 || len(input.RecurringFindings) > 0 {
 		brief += " Work on the problem that showed up in recent feedback."
 	}
-
-	constraints := []string{"keep the piece small and focused", "make the main turn easy to follow", "use clear details instead of vague filler"}
 	if len(input.RecurringFindings) > 0 {
 		constraints = append(constraints, "avoid this repeated problem: "+input.RecurringFindings[0])
 	}
 
 	return domain.Exercise{
-		Title:       title,
-		Brief:       brief + " TGOs: " + strings.Join(tgoTitles(tgos), "; "),
-		Constraints: constraints,
-		FocusSkills: tgoSkills(tgos),
-		TGOCodes:    tgoCodes(tgos),
-		SuccessCriteria: []string{
-			"the piece shows a clear change from start to finish",
-			"the setting comes through action and image",
-			"the ending feels clear and finished",
-		},
+		Title:           title,
+		Brief:           brief,
+		Constraints:     constraints,
+		FocusSkills:     tgoSkills(tgos),
+		TGOCodes:        tgoCodes(tgos),
+		SuccessCriteria: success,
 	}
 }
 
@@ -266,4 +277,79 @@ func titleCase(value string) string {
 		words[i] = string(runes)
 	}
 	return strings.Join(words, " ")
+}
+
+func deterministicTitle(profile domain.OnboardingProfile) string {
+	format := strings.TrimSpace(profile.AssignmentFormat)
+	subject := strings.TrimSpace(profile.SubjectMatter)
+	if format == "" {
+		format = "writing piece"
+	}
+	if subject == "" {
+		return "New " + titleCase(format)
+	}
+	return fmt.Sprintf("%s on %s", titleCase(format), titleCase(subject))
+}
+
+func deterministicBrief(profile domain.OnboardingProfile) string {
+	format := fallbackText(profile.AssignmentFormat, "piece")
+	audience := fallbackText(profile.TargetAudience, "your intended audience")
+	subject := fallbackText(profile.SubjectMatter, "a topic that fits your track")
+	tone := strings.TrimSpace(profile.DesiredTone)
+	brief := fmt.Sprintf("Write a new %s for %s about %s.", format, audience, subject)
+	if tone != "" {
+		brief += " Keep the tone " + tone + "."
+	}
+	return brief
+}
+
+func deterministicConstraints(profile domain.OnboardingProfile) []string {
+	format := fallbackText(profile.AssignmentFormat, "piece")
+	domainLabel := fallbackText(profile.WritingType, "track")
+	constraints := []string{
+		"stay inside the chosen format: " + format,
+		"write for this audience: " + fallbackText(profile.TargetAudience, "your intended audience"),
+		"use details that fit this writing domain: " + domainLabel,
+	}
+	if tone := strings.TrimSpace(profile.DesiredTone); tone != "" {
+		constraints = append(constraints, "keep the tone "+tone)
+	}
+	return constraints
+}
+
+func deterministicSuccessCriteria(profile domain.OnboardingProfile) []string {
+	success := []string{
+		"the draft clearly fits the assignment format",
+		"the piece feels written for the target audience",
+		"the subject matter stays consistent from start to finish",
+	}
+	if goal := firstNonEmptyString(profile.WritingGoals, firstItem(profile.DesiredOutcomes)); goal != "" {
+		success = append(success, "the draft supports this track goal: "+goal)
+	}
+	return success
+}
+
+func fallbackText(value, fallback string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func firstItem(values []string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
 }

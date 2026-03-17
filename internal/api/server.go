@@ -1435,6 +1435,7 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) createNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
+	profile := s.onboardingProfile(ctx, appContext.UserID)
 	coachingBrief := s.coachingBrief(ctx, appContext.UserID)
 	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
 	if err != nil {
@@ -1465,11 +1466,16 @@ func (s Server) createNextExercise(ctx context.Context, appContext session.Conte
 	ex := s.Prompts.NextExercise(ctx, prompt.Context{
 		CurriculumState:   state,
 		ActiveTGOs:        activeTGOs,
+		OnboardingProfile: profile,
 		RecentTitles:      recentTitles,
 		RecentWeaknesses:  recentWeaknesses,
 		RecurringFindings: recurringFindings,
 		CoachingBrief:     coachingBrief,
 	})
+	if len(activeTGOs) > 0 {
+		ex.FocusSkills = focusSkillsForTGOs(activeTGOs, ex.FocusSkills)
+		ex.TGOCodes = tgoCodesForExercise(activeTGOs)
+	}
 	ex.UserID = appContext.UserID
 	ex.TreeID = appContext.TreeID
 	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
@@ -1601,11 +1607,19 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 }
 
 func (s Server) coachingBrief(ctx context.Context, userID int64) string {
-	profile, err := s.Store.OnboardingProfileByUserID(ctx, userID)
-	if err != nil {
+	profile := s.onboardingProfile(ctx, userID)
+	if profile == nil {
 		return ""
 	}
-	return domain.CoachingBrief(profile)
+	return domain.CoachingBrief(*profile)
+}
+
+func (s Server) onboardingProfile(ctx context.Context, userID int64) *domain.OnboardingProfile {
+	profile, err := s.Store.OnboardingProfileByUserID(ctx, userID)
+	if err != nil {
+		return nil
+	}
+	return &profile
 }
 
 func (s Server) writeEnrollmentBoard(ctx context.Context, w http.ResponseWriter, appContext session.Context) {
@@ -2122,6 +2136,35 @@ func toTGOResponses(tgos []domain.TGO) []tgoResponse {
 			MasteryPercent: tgo.MasteryPercent,
 			EvidenceCount:  tgo.EvidenceCount,
 		})
+	}
+	return out
+}
+
+func focusSkillsForTGOs(tgos []domain.TGO, fallback []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, tgo := range tgos {
+		skill := strings.TrimSpace(domain.TGOCodeToSkill[tgo.Code])
+		if skill == "" || seen[skill] {
+			continue
+		}
+		seen[skill] = true
+		out = append(out, skill)
+	}
+	if len(out) == 0 {
+		return fallback
+	}
+	return out
+}
+
+func tgoCodesForExercise(tgos []domain.TGO) []string {
+	var out []string
+	for _, tgo := range tgos {
+		code := strings.TrimSpace(tgo.Code)
+		if code == "" {
+			continue
+		}
+		out = append(out, code)
 	}
 	return out
 }
