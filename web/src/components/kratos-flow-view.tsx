@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/button'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
+import { Eyebrow } from '@/components/eyebrow'
 import { EmptyState, LoadingState } from '@/components/status-state'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
@@ -243,6 +244,7 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
   return (
     <div className="grid w-full max-w-lg grid-cols-1 gap-8">
       <div>
+        <Eyebrow>{kind === 'settings' ? 'Settings' : 'Account'}</Eyebrow>
         <Heading>{meta.title}</Heading>
         <Text className="mt-3">{meta.intro}</Text>
       </div>
@@ -310,6 +312,7 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
 
       {kind === 'verification' || kind === 'recovery' ? (
         <div className="space-y-2 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+          <Eyebrow>Account flow</Eyebrow>
           <Subheading>Need a different account flow?</Subheading>
           <Text className="mt-2 text-sm">
             <TextLink href="/login">Return to sign in</TextLink>

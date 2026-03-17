@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/button'
+import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { resetAccountData } from '@/lib/api'
@@ -32,6 +33,7 @@ export function ResetDataCard() {
 
   return (
     <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 dark:border-rose-500/20 dark:bg-rose-500/10">
+      <Eyebrow className="text-rose-700 dark:text-rose-300">Danger zone</Eyebrow>
       <Subheading>Reset coaching data</Subheading>
       <Text className="mt-2">
         This clears your onboarding profile, generated track, assignments, submissions, reviews, and progress history. Your account and sign-in remain intact.

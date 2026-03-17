@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowPathIcon, ArrowUpTrayIcon, SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
+import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
@@ -265,10 +266,12 @@ export function CurrentAssignmentView() {
     return (
       <div className="space-y-8">
         <header>
+          <Eyebrow>Assignment workspace</Eyebrow>
           <Heading>Current assignment</Heading>
           <Text className="mt-2">You do not have an active assignment yet. Choose 3 unlocked skills and generate the next prompt.</Text>
         </header>
         <WorkspaceCard>
+          <Eyebrow>Current focus</Eyebrow>
           <Subheading>Active skills</Subheading>
           <div className="mt-4 flex flex-wrap gap-2">
             {dashboard.active_tgos.map((tgo) => (
@@ -291,6 +294,7 @@ export function CurrentAssignmentView() {
     <div className="space-y-8">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
+          <Eyebrow>Assignment workspace</Eyebrow>
           <Heading>{exercise.title}</Heading>
           <Text className="mt-2 max-w-3xl">{exercise.brief}</Text>
         </div>
@@ -334,6 +338,7 @@ export function CurrentAssignmentView() {
         <WorkspaceCard>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
+              <Eyebrow>Review status</Eyebrow>
               <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
                 <ExclamationTriangleIcon className="size-4" />
                 Review failed
@@ -354,6 +359,7 @@ export function CurrentAssignmentView() {
         <WorkspaceCard>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
+              <Eyebrow>Revision mode</Eyebrow>
               <Subheading>Revision brief</Subheading>
               <Text className="mt-2">
                 This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active skills and the coaching notes below.
@@ -370,7 +376,10 @@ export function CurrentAssignmentView() {
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
           <div className="flex items-center justify-between gap-4">
-            <Subheading>Prompt</Subheading>
+            <div>
+              <Eyebrow>Assignment brief</Eyebrow>
+              <Subheading>Prompt</Subheading>
+            </div>
             <Badge color="zinc">{exercise.generation_kind}</Badge>
           </div>
           <div className="mt-4 space-y-5">
@@ -394,6 +403,7 @@ export function CurrentAssignmentView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
+          <Eyebrow>Current focus</Eyebrow>
           <Subheading>Active skills</Subheading>
           <Text className="mt-2">These are the three skills the review will measure most heavily on this assignment.</Text>
           <div className="mt-4 space-y-3">
@@ -414,6 +424,7 @@ export function CurrentAssignmentView() {
       <WorkspaceCard>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <Eyebrow>Write and submit</Eyebrow>
             <Subheading>Draft submission</Subheading>
             <Text className="mt-2">Paste plain text or markdown, or load a local draft file before requesting a review.</Text>
           </div>
@@ -448,6 +459,7 @@ export function CurrentAssignmentView() {
         <WorkspaceCard>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
+              <Eyebrow>Latest feedback</Eyebrow>
               <Subheading>Latest coaching pass</Subheading>
               <Text className="mt-2">{review.summary}</Text>
             </div>

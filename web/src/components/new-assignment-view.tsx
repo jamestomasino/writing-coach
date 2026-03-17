@@ -142,6 +142,7 @@ export function NewAssignmentView() {
   return (
     <div className="space-y-8">
       <header>
+        <Eyebrow>Assignment setup</Eyebrow>
         <Heading>New assignment</Heading>
         <Text className="mt-2 max-w-3xl">
           Choose exactly three skills for the next review. The assignment prompt itself comes from your track details, while this selection sets what the review will measure most closely.
@@ -151,6 +152,7 @@ export function NewAssignmentView() {
       {error ? <EmptyState title="Prompt generation issue" body={error} /> : null}
 
       <WorkspaceCard>
+        <Eyebrow>Review focus</Eyebrow>
         <Subheading>Choose 3 review skills</Subheading>
         <Text className="mt-2">Mastered skills stay in the maintenance layer. This selection defines the primary review rubric for the next assignment, not the prompt premise.</Text>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -196,6 +198,7 @@ export function NewAssignmentView() {
                 <span className="size-5 animate-spin rounded-full border-2 border-cyan-700/25 border-t-cyan-700 dark:border-cyan-200/25 dark:border-t-cyan-200" />
               </div>
               <div>
+                <Eyebrow tone="cyan">Assignment generation</Eyebrow>
                 <Subheading>Generating assignment</Subheading>
                 <Text className="mt-2">Building a new prompt from your track details and current coaching context. This usually takes a few seconds.</Text>
               </div>
@@ -215,7 +218,10 @@ export function NewAssignmentView() {
       {preview ? (
         <WorkspaceCard>
           <div className="flex items-center justify-between gap-4">
-            <Subheading>{preview.title}</Subheading>
+            <div>
+              <Eyebrow>Generated prompt</Eyebrow>
+              <Subheading>{preview.title}</Subheading>
+            </div>
             <div className="flex gap-2">
               <Button plain onClick={generate} disabled={generating}>
                 {generating ? 'Refreshing…' : 'Refresh prompt'}

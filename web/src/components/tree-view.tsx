@@ -338,6 +338,7 @@ export function TreeView() {
       <div className="space-y-8">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <Eyebrow>Track map</Eyebrow>
             <Heading>Skill Tree</Heading>
             <Text className="mt-2 max-w-3xl">
               This tree shows how your learning track opens over time. When you show steady control of the active skills, those skills can become mastered and new connected skills unlock to become the next focus of your assignments and reviews.

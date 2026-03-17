@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/button'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
+import { Eyebrow } from '@/components/eyebrow'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
 import { Input } from '@/components/input'
@@ -120,6 +121,7 @@ export function OnboardingView() {
   return (
     <div className="space-y-8">
       <header>
+        <Eyebrow>Track setup</Eyebrow>
         <Heading>{existingProfile ? 'Change your track' : 'Set your starting path'}</Heading>
         <Text className="mt-2 max-w-3xl">
           {existingProfile
@@ -129,6 +131,7 @@ export function OnboardingView() {
       </header>
 
       <WorkspaceCard>
+        <Eyebrow>How it works</Eyebrow>
         <Subheading>How the coaching loop works</Subheading>
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
           <p>You can focus on up to three skills at a time.</p>
@@ -234,6 +237,7 @@ export function OnboardingView() {
 
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
+              <Eyebrow>Diagnosis</Eyebrow>
               <Subheading>Biggest weaknesses</Subheading>
               <div className="mt-4 space-y-3">
                 {options.weaknesses.map((item) => (
@@ -245,6 +249,7 @@ export function OnboardingView() {
               </div>
             </div>
             <div>
+              <Eyebrow>Target state</Eyebrow>
               <Subheading>Desired outcomes</Subheading>
               <div className="mt-4 space-y-3">
                 {options.desired_outcomes.map((item) => (
