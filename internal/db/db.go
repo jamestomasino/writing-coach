@@ -1555,6 +1555,40 @@ func (s *Store) CompletedAssignmentCount(ctx context.Context, userID, treeID int
 	return count, err
 }
 
+func (s *Store) ResetUserData(ctx context.Context, userID int64) error {
+	tx, err := s.SQL.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	statements := []string{
+		`DELETE FROM review_artifacts WHERE review_id IN (SELECT id FROM reviews WHERE user_id = ?)`,
+		`DELETE FROM review_tgo_assessments WHERE review_id IN (SELECT id FROM reviews WHERE user_id = ?)`,
+		`DELETE FROM submission_skill_scores WHERE submission_id IN (SELECT id FROM submissions WHERE user_id = ?)`,
+		`DELETE FROM reviews WHERE user_id = ?`,
+		`DELETE FROM submissions WHERE user_id = ?`,
+		`DELETE FROM exercises WHERE user_id = ?`,
+		`DELETE FROM enrollment_completed_tgos WHERE enrollment_id IN (SELECT id FROM user_tree_enrollments WHERE user_id = ?)`,
+		`DELETE FROM enrollment_active_tgos WHERE enrollment_id IN (SELECT id FROM user_tree_enrollments WHERE user_id = ?)`,
+		`DELETE FROM user_curriculum_state WHERE enrollment_id IN (SELECT id FROM user_tree_enrollments WHERE user_id = ?)`,
+		`DELETE FROM user_tree_enrollments WHERE user_id = ?`,
+		`DELETE FROM user_onboarding_profiles WHERE user_id = ?`,
+		`UPDATE users SET active_tree_slug = '' WHERE id = ?`,
+	}
+	for _, statement := range statements {
+		if _, err = tx.ExecContext(ctx, statement, userID); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (s *Store) RecentExerciseTitles(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT title

@@ -53,6 +53,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/ready", s.handleReady)
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
+	mux.HandleFunc("POST /api/account/reset", s.handleAccountReset)
 	mux.HandleFunc("GET /api/skill-graph", s.handleSkillGraph)
 	mux.HandleFunc("GET /api/onboarding", s.handleOnboardingGet)
 	mux.HandleFunc("POST /api/onboarding", s.handleOnboardingUpsert)
@@ -380,6 +381,21 @@ func (s Server) handleSkillGraph(w http.ResponseWriter, r *http.Request) {
 			"regions":     regions,
 			"nodes":       nodes,
 		},
+	})
+}
+
+func (s Server) handleAccountReset(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.Store.ResetUserData(r.Context(), appContext.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok": true,
 	})
 }
 

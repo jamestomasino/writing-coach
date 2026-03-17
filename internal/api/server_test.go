@@ -122,6 +122,116 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 	}
 }
 
+func TestAccountResetClearsUserDataButKeepsAccount(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	if err := harness.Store.SaveOnboardingProfile(context.Background(), domain.OnboardingProfile{
+		UserID:              user.ID,
+		WritingType:         "marketing",
+		AssignmentFormat:    "landing page",
+		TargetAudience:      "buyers",
+		SubjectMatter:       "product launch",
+		ExperienceLevel:     "intermediate",
+		DesiredTone:         "clear",
+		BiggestWeaknesses:   []string{"sentence economy"},
+		DesiredOutcomes:     []string{"improve professional communication"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "Write sharper marketing copy.",
+		GeneratedTreeSlug:   "tester-track",
+		TemplateKey:         "professional-writing",
+	}); err != nil {
+		t.Fatalf("save onboarding: %v", err)
+	}
+	exerciseID, err := harness.Store.SaveExercise(context.Background(), domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Assignment One",
+		Brief:           "Write something.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "openai",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(context.Background(), domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "A finished draft.",
+		WordCount:  3,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(context.Background(), domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     submissionID,
+		ReviewKind:       "coach",
+		Summary:          "Solid.",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"tighten"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "prose precision",
+		MetricWordCount:  3,
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "causal-clarity", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "scene-architecture", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "prose-precision", Status: "developing", Evidence: "n/a"},
+		},
+	}, nil); err != nil {
+		t.Fatalf("save review: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/account/reset?user=tester", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("new reset request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("reset request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("reset status = %d", resp.StatusCode)
+	}
+
+	if _, err := harness.Store.OnboardingProfileByUserID(context.Background(), user.ID); err == nil {
+		t.Fatal("expected onboarding profile to be cleared")
+	}
+	exercises, err := harness.Store.ListExercises(context.Background(), user.ID, tree.ID, 10)
+	if err != nil {
+		t.Fatalf("list exercises: %v", err)
+	}
+	if len(exercises) != 0 {
+		t.Fatalf("expected exercises cleared, got %d", len(exercises))
+	}
+	userAfter, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user after reset: %v", err)
+	}
+	if userAfter.ID != user.ID {
+		t.Fatalf("expected user account to remain, got id %d", userAfter.ID)
+	}
+	if userAfter.ActiveTreeSlug != "" {
+		t.Fatalf("expected active tree slug cleared, got %q", userAfter.ActiveTreeSlug)
+	}
+}
+
 func TestReadyEndpoint(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

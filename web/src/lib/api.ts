@@ -184,3 +184,10 @@ export function saveOnboarding(input: {
     body: JSON.stringify(input),
   })
 }
+
+export function resetAccountData() {
+  return request<{ ok: boolean }>('/api/account/reset', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
