@@ -684,6 +684,52 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	}
 }
 
+func TestPromptNextUsesSelectedTGOsForSuccessCriteria(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Post(
+		testServer.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship",
+		"application/json",
+		strings.NewReader(`{"tgo_codes":["scene-architecture","prose-precision","causal-clarity"]}`),
+	)
+	if err != nil {
+		t.Fatalf("prompt next with selection: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("prompt status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Exercise struct {
+			SuccessCriteria []string `json:"success_criteria"`
+		} `json:"exercise"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode prompt response: %v", err)
+	}
+
+	want := []string{
+		"Stage turns, entrances, exits, and power shifts cleanly.",
+		"Replace soft modifiers with exact nouns and verbs.",
+		"Make action and consequence legible beat by beat.",
+	}
+	if len(payload.Exercise.SuccessCriteria) != len(want) {
+		t.Fatalf("success criteria count = %d, want %d (%v)", len(payload.Exercise.SuccessCriteria), len(want), payload.Exercise.SuccessCriteria)
+	}
+	for i := range want {
+		if payload.Exercise.SuccessCriteria[i] != want[i] {
+			t.Fatalf("success criterion %d = %q, want %q", i, payload.Exercise.SuccessCriteria[i], want[i])
+		}
+	}
+	for _, criterion := range payload.Exercise.SuccessCriteria {
+		if strings.Contains(strings.ToLower(criterion), "word") {
+			t.Fatalf("unexpected non-TGO success criterion leaked into rubric: %q", criterion)
+		}
+	}
+}
+
 func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")

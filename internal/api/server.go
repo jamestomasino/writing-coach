@@ -1548,6 +1548,7 @@ func (s Server) generateNextExercise(ctx context.Context, appContext session.Con
 	if len(activeTGOs) > 0 {
 		ex.FocusSkills = focusSkillsForTGOs(activeTGOs, ex.FocusSkills)
 		ex.TGOCodes = tgoCodesForExercise(activeTGOs)
+		ex.SuccessCriteria = successCriteriaForTGOs(activeTGOs, ex.SuccessCriteria)
 	}
 	return ex, nil
 }
@@ -2283,6 +2284,33 @@ func tgoCodesForExercise(tgos []domain.TGO) []string {
 			continue
 		}
 		out = append(out, code)
+	}
+	return out
+}
+
+func successCriteriaForTGOs(tgos []domain.TGO, fallback []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, tgo := range tgos {
+		criterion := strings.TrimSpace(tgo.Description)
+		if criterion == "" {
+			criterion = strings.TrimSpace(tgo.MasteryHint)
+		}
+		if criterion == "" {
+			continue
+		}
+		criterion = strings.ToUpper(criterion[:1]) + criterion[1:]
+		if !strings.HasSuffix(criterion, ".") && !strings.HasSuffix(criterion, "!") && !strings.HasSuffix(criterion, "?") {
+			criterion += "."
+		}
+		if seen[criterion] {
+			continue
+		}
+		seen[criterion] = true
+		out = append(out, criterion)
+	}
+	if len(out) == 0 {
+		return fallback
 	}
 	return out
 }
