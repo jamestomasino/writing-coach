@@ -9,8 +9,10 @@ import {
   SparklesIcon,
 } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
+import { CardHeader } from '@/components/card-header'
 import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
+import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
 import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
@@ -151,10 +153,11 @@ export function ProgressView() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <Heading>{tree?.title ?? 'Progress board'}</Heading>
-        <Text className="mt-2 max-w-4xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
-      </header>
+      <PageHeader
+        eyebrow="Progress"
+        title={tree?.title ?? 'Progress board'}
+        intro={tree?.description ?? 'Active skills remain the primary measure.'}
+      />
 
       {profile ? (
         <section aria-label="Track profile" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -174,13 +177,12 @@ export function ProgressView() {
 
       <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
         <WorkspaceCard>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Subheading>Track completion</Subheading>
-              <Text className="mt-2">This is the broad curriculum view: how much of the current skill map has been mastered and how much is currently under active practice.</Text>
-            </div>
-            <Badge color="green">{completionRatio}% complete</Badge>
-          </div>
+          <CardHeader
+            eyebrow="Progress"
+            title="Track completion"
+            description="This is the broad curriculum view: how much of the current skill map has been mastered and how much is currently under active practice."
+            actions={<Badge color="green">{completionRatio}% complete</Badge>}
+          />
           <div className="mt-6">
             <div className="h-3 rounded-full bg-stone-200 dark:bg-white/10">
               <div className="h-3 rounded-full bg-stone-800 dark:bg-stone-200" style={{ width: `${completionRatio}%` }} />
@@ -216,7 +218,7 @@ export function ProgressView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <Subheading>Current coaching state</Subheading>
+          <CardHeader eyebrow="Status" title="Current coaching state" />
           <div className="mt-5 space-y-4">
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-blue-900 dark:text-blue-200">

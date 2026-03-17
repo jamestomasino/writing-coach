@@ -5,8 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowPathIcon, ArrowUpTrayIcon, SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
+import { CardHeader } from '@/components/card-header'
+import { Callout } from '@/components/callout'
 import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
+import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
@@ -265,14 +268,13 @@ export function CurrentAssignmentView() {
   if (!exercise) {
     return (
       <div className="space-y-8">
-        <header>
-          <Eyebrow>Assignment workspace</Eyebrow>
-          <Heading>Current assignment</Heading>
-          <Text className="mt-2">You do not have an active assignment yet. Choose 3 unlocked skills and generate the next prompt.</Text>
-        </header>
+        <PageHeader
+          eyebrow="Assignment workspace"
+          title="Current assignment"
+          intro="You do not have an active assignment yet. Choose 3 unlocked skills and generate the next prompt."
+        />
         <WorkspaceCard>
-          <Eyebrow>Current focus</Eyebrow>
-          <Subheading>Active skills</Subheading>
+          <CardHeader eyebrow="Current focus" title="Active skills" />
           <div className="mt-4 flex flex-wrap gap-2">
             {dashboard.active_tgos.map((tgo) => (
               <Badge key={tgo.code} color="blue">
@@ -292,23 +294,23 @@ export function CurrentAssignmentView() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Eyebrow>Assignment workspace</Eyebrow>
-          <Heading>{exercise.title}</Heading>
-          <Text className="mt-2 max-w-3xl">{exercise.brief}</Text>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button href="/new-assignment" outline>
-            New assignment
-          </Button>
-          {review ? (
-            <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={busy}>
-              {preparingRevision ? 'Preparing revision brief…' : 'Revise from latest review'}
+      <PageHeader
+        eyebrow="Assignment workspace"
+        title={exercise.title}
+        intro={exercise.brief}
+        actions={
+          <>
+            <Button href="/new-assignment" outline>
+              New assignment
             </Button>
-          ) : null}
-        </div>
-      </header>
+            {review ? (
+              <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={busy}>
+                {preparingRevision ? 'Preparing revision brief…' : 'Revise from latest review'}
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       {reviewPending ? (
         <TaskProgressState
@@ -335,53 +337,44 @@ export function CurrentAssignmentView() {
       ) : null}
 
       {reviewFailed ? (
-        <WorkspaceCard>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <Eyebrow>Review status</Eyebrow>
-              <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
-                <ExclamationTriangleIcon className="size-4" />
-                Review failed
-              </div>
-              <Text className="mt-2">
-                The draft saved, but the background review did not finish. You can retry without losing your submission.
-              </Text>
-              {reviewJob?.last_error ? <Text className="mt-2 text-sm">{reviewJob.last_error}</Text> : null}
-            </div>
+        <Callout
+          tone="warning"
+          eyebrow="Review status"
+          title="Review failed"
+          body="The draft saved, but the background review did not finish. You can retry without losing your submission."
+          actions={
             <Button onClick={handleRetryReview} color="dark/zinc" disabled={reviewing}>
               {reviewing ? 'Retrying…' : 'Retry review'}
             </Button>
+          }
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
+            <ExclamationTriangleIcon className="size-4" />
+            Background review interrupted
           </div>
-        </WorkspaceCard>
+          {reviewJob?.last_error ? <Text className="mt-2 text-sm">{reviewJob.last_error}</Text> : null}
+        </Callout>
       ) : null}
 
       {isRevisionBrief ? (
         <WorkspaceCard>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <Eyebrow>Revision mode</Eyebrow>
-              <Subheading>Revision brief</Subheading>
-              <Text className="mt-2">
-                This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active skills and the coaching notes below.
-              </Text>
-            </div>
-            <Button href={`/compare/${workspace.submission?.id ?? 0}`} outline>
-              <ArrowPathIcon />
-              Open revision compare
-            </Button>
-          </div>
+          <CardHeader
+            eyebrow="Revision mode"
+            title="Revision brief"
+            description="This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active skills and the coaching notes below."
+            actions={
+              <Button href={`/compare/${workspace.submission?.id ?? 0}`} outline>
+                <ArrowPathIcon />
+                Open revision compare
+              </Button>
+            }
+          />
         </WorkspaceCard>
       ) : null}
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Eyebrow>Assignment brief</Eyebrow>
-              <Subheading>Prompt</Subheading>
-            </div>
-            <Badge color="zinc">{exercise.generation_kind}</Badge>
-          </div>
+          <CardHeader eyebrow="Assignment brief" title="Prompt" actions={<Badge color="zinc">{exercise.generation_kind}</Badge>} />
           <div className="mt-4 space-y-5">
             <div>
               <Strong>Constraints</Strong>
@@ -403,9 +396,11 @@ export function CurrentAssignmentView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <Eyebrow>Current focus</Eyebrow>
-          <Subheading>Active skills</Subheading>
-          <Text className="mt-2">These are the three skills the review will measure most heavily on this assignment.</Text>
+          <CardHeader
+            eyebrow="Current focus"
+            title="Active skills"
+            description="These are the three skills the review will measure most heavily on this assignment."
+          />
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.map((tgo) => (
               <div key={tgo.code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
@@ -424,9 +419,11 @@ export function CurrentAssignmentView() {
       <WorkspaceCard>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <Eyebrow>Write and submit</Eyebrow>
-            <Subheading>Draft submission</Subheading>
-            <Text className="mt-2">Paste plain text or markdown, or load a local draft file before requesting a review.</Text>
+            <CardHeader
+              eyebrow="Write and submit"
+              title="Draft submission"
+              description="Paste plain text or markdown, or load a local draft file before requesting a review."
+            />
           </div>
           <div className="flex items-center gap-3">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-stone-50 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5">
@@ -457,21 +454,21 @@ export function CurrentAssignmentView() {
 
       {review ? (
         <WorkspaceCard>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <Eyebrow>Latest feedback</Eyebrow>
-              <Subheading>Latest coaching pass</Subheading>
-              <Text className="mt-2">{review.summary}</Text>
-            </div>
-            <div className="flex gap-2">
-              <Button href={`/reviews/${review.id}`} outline>
-                Open review
-              </Button>
-              <Button href={`/compare/${workspace.submission?.id ?? 0}`} plain>
-                Compare drafts
-              </Button>
-            </div>
-          </div>
+          <CardHeader
+            eyebrow="Latest feedback"
+            title="Latest coaching pass"
+            description={review.summary}
+            actions={
+              <div className="flex gap-2">
+                <Button href={`/reviews/${review.id}`} outline>
+                  Open review
+                </Button>
+                <Button href={`/compare/${workspace.submission?.id ?? 0}`} plain>
+                  Compare drafts
+                </Button>
+              </div>
+            }
+          />
           {review.artifacts?.comparison ? (
             <div className="mt-5 grid gap-4 lg:grid-cols-3">
               <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">

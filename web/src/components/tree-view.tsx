@@ -18,6 +18,7 @@ import {
 import { Badge } from '@/components/badge'
 import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
+import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
 import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
@@ -336,20 +337,18 @@ export function TreeView() {
   return (
     <ReactFlowProvider>
       <div className="space-y-8">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <Eyebrow>Track map</Eyebrow>
-            <Heading>Skill Tree</Heading>
-            <Text className="mt-2 max-w-3xl">
-              This tree shows how your learning track opens over time. When you show steady control of the active skills, those skills can become mastered and new connected skills unlock to become the next focus of your assignments and reviews.
-            </Text>
-          </div>
-          <div className="flex flex-wrap gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-            <Badge color="blue">{activeCount} active</Badge>
-            <Badge color="green">{completedCount} mastered</Badge>
-            <Badge color="amber">{unlockedCount} unlocked next</Badge>
-          </div>
-        </header>
+        <PageHeader
+          eyebrow="Track map"
+          title="Skill Tree"
+          intro="This tree shows how your learning track opens over time. When you show steady control of the active skills, those skills can become mastered and new connected skills unlock to become the next focus of your assignments and reviews."
+          actions={
+            <>
+              <Badge color="blue">{activeCount} active</Badge>
+              <Badge color="green">{completedCount} mastered</Badge>
+              <Badge color="amber">{unlockedCount} unlocked next</Badge>
+            </>
+          }
+        />
 
         <WorkspaceCard className="overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.12),_transparent_28%),linear-gradient(180deg,rgba(24,24,27,0.98),rgba(9,9,11,0.98))] p-0 text-white">
           <div className="grid min-h-[46rem] gap-0 xl:grid-cols-[minmax(0,1fr)_22rem]">

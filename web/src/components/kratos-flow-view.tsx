@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/button'
+import { CardHeader } from '@/components/card-header'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
 import { Eyebrow } from '@/components/eyebrow'
 import { EmptyState, LoadingState } from '@/components/status-state'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
 import { Input } from '@/components/input'
+import { PageHeader } from '@/components/page-header'
 import { Text, TextLink } from '@/components/text'
 
 type FlowKind = 'login' | 'registration' | 'verification' | 'recovery' | 'settings'
@@ -243,11 +245,7 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
 
   return (
     <div className="grid w-full max-w-lg grid-cols-1 gap-8">
-      <div>
-        <Eyebrow>{kind === 'settings' ? 'Settings' : 'Account'}</Eyebrow>
-        <Heading>{meta.title}</Heading>
-        <Text className="mt-3">{meta.intro}</Text>
-      </div>
+      <PageHeader eyebrow={kind === 'settings' ? 'Settings' : 'Account'} title={meta.title} intro={meta.intro} />
 
       <FlowMessages messages={flow.ui.messages} />
 
@@ -312,8 +310,7 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
 
       {kind === 'verification' || kind === 'recovery' ? (
         <div className="space-y-2 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
-          <Eyebrow>Account flow</Eyebrow>
-          <Subheading>Need a different account flow?</Subheading>
+          <CardHeader eyebrow="Account flow" title="Need a different account flow?" />
           <Text className="mt-2 text-sm">
             <TextLink href="/login">Return to sign in</TextLink>
             {' · '}

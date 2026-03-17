@@ -4,6 +4,11 @@
 @theme {
   --font-sans: Inter, sans-serif;
   --font-sans--font-feature-settings: 'cv11';
+  --radius-panel: 1rem;
+  --radius-section: 1.5rem;
+  --color-accent: var(--color-amber-500);
+  --color-accent-soft: var(--color-amber-100);
+  --color-surface-muted: var(--color-stone-50);
 }
 
 .react-flow__attribution {

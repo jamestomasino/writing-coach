@@ -3,11 +3,13 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/button'
+import { CardHeader } from '@/components/card-header'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
 import { Eyebrow } from '@/components/eyebrow'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
 import { Input } from '@/components/input'
+import { PageHeader } from '@/components/page-header'
 import { Select } from '@/components/select'
 import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
@@ -120,19 +122,18 @@ export function OnboardingView() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <Eyebrow>Track setup</Eyebrow>
-        <Heading>{existingProfile ? 'Change your track' : 'Set your starting path'}</Heading>
-        <Text className="mt-2 max-w-3xl">
-          {existingProfile
+      <PageHeader
+        eyebrow="Track setup"
+        title={existingProfile ? 'Change your track' : 'Set your starting path'}
+        intro={
+          existingProfile
             ? 'Update the writing profile that shapes your coaching track. Saving here refreshes the recommended path, active skills, and future assignment focus.'
-            : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'}
-        </Text>
-      </header>
+            : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'
+        }
+      />
 
       <WorkspaceCard>
-        <Eyebrow>How it works</Eyebrow>
-        <Subheading>How the coaching loop works</Subheading>
+        <CardHeader eyebrow="How it works" title="How the coaching loop works" />
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
           <p>You can focus on up to three skills at a time.</p>
           <p>Your assignment prompt and review are built around those active skills.</p>
@@ -237,8 +238,7 @@ export function OnboardingView() {
 
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
-              <Eyebrow>Diagnosis</Eyebrow>
-              <Subheading>Biggest weaknesses</Subheading>
+              <CardHeader eyebrow="Diagnosis" title="Biggest weaknesses" />
               <div className="mt-4 space-y-3">
                 {options.weaknesses.map((item) => (
                   <CheckboxField key={item.value}>
@@ -249,8 +249,7 @@ export function OnboardingView() {
               </div>
             </div>
             <div>
-              <Eyebrow>Target state</Eyebrow>
-              <Subheading>Desired outcomes</Subheading>
+              <CardHeader eyebrow="Target state" title="Desired outcomes" />
               <div className="mt-4 space-y-3">
                 {options.desired_outcomes.map((item) => (
                   <CheckboxField key={item.value}>

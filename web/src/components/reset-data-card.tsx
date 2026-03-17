@@ -3,9 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/button'
-import { Eyebrow } from '@/components/eyebrow'
-import { Subheading } from '@/components/heading'
-import { Text } from '@/components/text'
+import { Callout } from '@/components/callout'
 import { resetAccountData } from '@/lib/api'
 
 export function ResetDataCard() {
@@ -32,18 +30,18 @@ export function ResetDataCard() {
   }
 
   return (
-    <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 dark:border-rose-500/20 dark:bg-rose-500/10">
-      <Eyebrow className="text-rose-700 dark:text-rose-300">Danger zone</Eyebrow>
-      <Subheading>Reset coaching data</Subheading>
-      <Text className="mt-2">
-        This clears your onboarding profile, generated track, assignments, submissions, reviews, and progress history. Your account and sign-in remain intact.
-      </Text>
-      {error ? <Text className="mt-3 text-sm text-rose-700 dark:text-rose-200">{error}</Text> : null}
-      <div className="mt-4">
+    <Callout
+      tone="danger"
+      eyebrow="Danger zone"
+      title="Reset coaching data"
+      body="This clears your onboarding profile, generated track, assignments, submissions, reviews, and progress history. Your account and sign-in remain intact."
+      actions={
         <Button color="rose" onClick={handleReset} disabled={working}>
           {working ? 'Resetting…' : 'Reset all user data'}
         </Button>
-      </div>
-    </div>
+      }
+    >
+      {error ? <div className="text-sm text-rose-700 dark:text-rose-200">{error}</div> : null}
+    </Callout>
   )
 }

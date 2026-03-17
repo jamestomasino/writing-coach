@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
+import { CardHeader } from '@/components/card-header'
 import { Heading, Subheading } from '@/components/heading'
+import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { createRevisionAssignment, getComparison, getReviews, getSubmission } from '@/lib/api'
 import type { Comparison, Review, Submission } from '@/lib/types'
@@ -66,24 +68,25 @@ export function CompareView({ submissionId }: { submissionId: number }) {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Heading>Revision compare</Heading>
-          <Text className="mt-2 max-w-3xl">{comparison.summary}</Text>
-        </div>
-        <Button onClick={handleRevisionPrompt} color="dark/zinc">
-          <ArrowPathIcon />
-          Revise again
-        </Button>
-      </header>
+      <PageHeader
+        eyebrow="Compare"
+        title="Revision compare"
+        intro={comparison.summary}
+        actions={
+          <Button onClick={handleRevisionPrompt} color="dark/zinc">
+            <ArrowPathIcon />
+            Revise again
+          </Button>
+        }
+      />
 
       <div className="grid gap-8 lg:grid-cols-3">
         <WorkspaceCard>
-          <Subheading>Draft</Subheading>
+          <CardHeader eyebrow="Draft" title="Draft" />
           <Text className="mt-2">Revision draft #{submission.draft_number}</Text>
         </WorkspaceCard>
         <WorkspaceCard>
-          <Subheading>Word delta</Subheading>
+          <CardHeader eyebrow="Delta" title="Word delta" />
           <div className="mt-3">
             <Badge color={comparison.word_delta >= 0 ? 'green' : 'amber'}>
               {comparison.word_delta >= 0 ? `+${comparison.word_delta}` : comparison.word_delta}
@@ -91,14 +94,14 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           </div>
         </WorkspaceCard>
         <WorkspaceCard>
-          <Subheading>Persistence check</Subheading>
+          <CardHeader eyebrow="Persistence" title="Persistence check" />
           <Text className="mt-2">{comparison.persisting_weaknesses.length} weaknesses still carrying forward.</Text>
         </WorkspaceCard>
       </div>
 
       <div className="grid gap-8 xl:grid-cols-2">
         <WorkspaceCard>
-          <Subheading>Addressed weaknesses</Subheading>
+          <CardHeader eyebrow="Resolved" title="Addressed weaknesses" />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
             {comparison.addressed_weaknesses.length === 0 ? <li>No weaknesses were marked resolved yet.</li> : null}
             {comparison.addressed_weaknesses.map((item) => (
@@ -107,7 +110,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           </ul>
         </WorkspaceCard>
         <WorkspaceCard>
-          <Subheading>Persisting weaknesses</Subheading>
+          <CardHeader eyebrow="Still active" title="Persisting weaknesses" />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
             {comparison.persisting_weaknesses.length === 0 ? <li>No persisting weaknesses were flagged.</li> : null}
             {comparison.persisting_weaknesses.map((item) => (
@@ -120,7 +123,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
       {review ? (
         <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
           <WorkspaceCard>
-            <Subheading>Current skill state</Subheading>
+            <CardHeader eyebrow="State" title="Current skill state" />
             <div className="mt-4 space-y-4">
               {review.tgo_assessments.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-2xl border border-stone-200 p-4 dark:border-white/10">
@@ -136,8 +139,11 @@ export function CompareView({ submissionId }: { submissionId: number }) {
             </div>
           </WorkspaceCard>
           <WorkspaceCard>
-            <Subheading>Maintenance checks</Subheading>
-            <Text className="mt-2">Mastered skills are still checked lightly so previously earned skills do not decay unnoticed.</Text>
+            <CardHeader
+              eyebrow="Maintenance"
+              title="Maintenance checks"
+              description="Mastered skills are still checked lightly so previously earned skills do not decay unnoticed."
+            />
             <div className="mt-4 space-y-3">
               {review.completed_tgo_checks.length === 0 ? <Text>No mastered-skill slips were flagged on this revision.</Text> : null}
               {review.completed_tgo_checks.map((assessment) => (
@@ -156,7 +162,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
 
       {review?.skill_scores.length ? (
         <WorkspaceCard>
-          <Subheading>Skill scores</Subheading>
+          <CardHeader eyebrow="Scores" title="Skill scores" />
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
             {review.skill_scores.map((item) => (
               <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">

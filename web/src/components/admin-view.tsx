@@ -2,9 +2,11 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { Button } from '@/components/button'
+import { CardHeader } from '@/components/card-header'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
 import { Input } from '@/components/input'
+import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getSession, listAdmins, listUsers, provisionUser } from '@/lib/api'
 import type { AuthSession, UserRecord } from '@/lib/types'
@@ -88,19 +90,21 @@ export function AdminView() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <Heading>Admin</Heading>
-        <Text className="mt-2 max-w-3xl">
-          Admin scope stays intentionally narrow. For now, this screen provisions user records ahead of first login and exposes the current admin allowlist.
-        </Text>
-      </header>
+      <PageHeader
+        eyebrow="Operations"
+        title="Admin"
+        intro="Admin scope stays intentionally narrow. For now, this screen provisions user records ahead of first login and exposes the current admin allowlist."
+      />
 
       {error ? <EmptyState title="Admin action failed" body={error} /> : null}
 
       <div className="grid gap-8 xl:grid-cols-[1.4fr_1fr]">
         <WorkspaceCard>
-          <Subheading>Provision user</Subheading>
-          <Text className="mt-2">This prepares the internal user record. Browser authentication now runs through the app’s own branded account flows backed by Kratos.</Text>
+          <CardHeader
+            eyebrow="Provisioning"
+            title="Provision user"
+            description="This prepares the internal user record. Browser authentication now runs through the app’s own branded account flows backed by Kratos."
+          />
           <form className="mt-5" onSubmit={handleProvision}>
             <FieldGroup>
               <Field>
@@ -121,7 +125,7 @@ export function AdminView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <Subheading>Admin allowlist</Subheading>
+          <CardHeader eyebrow="Access" title="Admin allowlist" />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
             {admins.map((admin) => (
               <li key={admin}>• {admin}</li>
@@ -131,7 +135,7 @@ export function AdminView() {
       </div>
 
       <WorkspaceCard>
-        <Subheading>Provisioned users</Subheading>
+        <CardHeader eyebrow="Directory" title="Provisioned users" />
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
           {users.map((user) => (
             <div key={user.id} className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">

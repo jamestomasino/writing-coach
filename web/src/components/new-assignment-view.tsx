@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
+import { CardHeader } from '@/components/card-header'
 import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
+import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { acceptAssignment, createAssignment, getDashboard, getSession } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
@@ -141,20 +143,20 @@ export function NewAssignmentView() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <Eyebrow>Assignment setup</Eyebrow>
-        <Heading>New assignment</Heading>
-        <Text className="mt-2 max-w-3xl">
-          Choose exactly three skills for the next review. The assignment prompt itself comes from your track details, while this selection sets what the review will measure most closely.
-        </Text>
-      </header>
+      <PageHeader
+        eyebrow="Assignment setup"
+        title="New assignment"
+        intro="Choose exactly three skills for the next review. The assignment prompt itself comes from your track details, while this selection sets what the review will measure most closely."
+      />
 
       {error ? <EmptyState title="Prompt generation issue" body={error} /> : null}
 
       <WorkspaceCard>
-        <Eyebrow>Review focus</Eyebrow>
-        <Subheading>Choose 3 review skills</Subheading>
-        <Text className="mt-2">Mastered skills stay in the maintenance layer. This selection defines the primary review rubric for the next assignment, not the prompt premise.</Text>
+        <CardHeader
+          eyebrow="Review focus"
+          title="Choose 3 review skills"
+          description="Mastered skills stay in the maintenance layer. This selection defines the primary review rubric for the next assignment, not the prompt premise."
+        />
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {selectable.map((tgo) => {
             const active = selected.includes(tgo.code)
@@ -217,20 +219,20 @@ export function NewAssignmentView() {
 
       {preview ? (
         <WorkspaceCard>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Eyebrow>Generated prompt</Eyebrow>
-              <Subheading>{preview.title}</Subheading>
-            </div>
-            <div className="flex gap-2">
-              <Button plain onClick={generate} disabled={generating}>
-                {generating ? 'Refreshing…' : 'Refresh prompt'}
-              </Button>
-              <Button onClick={acceptPreview} color="dark/zinc" disabled={generating || accepting}>
-                {accepting ? 'Accepting…' : 'Accept and continue'}
-              </Button>
-            </div>
-          </div>
+          <CardHeader
+            eyebrow="Generated prompt"
+            title={preview.title}
+            actions={
+              <div className="flex gap-2">
+                <Button plain onClick={generate} disabled={generating}>
+                  {generating ? 'Refreshing…' : 'Refresh prompt'}
+                </Button>
+                <Button onClick={acceptPreview} color="dark/zinc" disabled={generating || accepting}>
+                  {accepting ? 'Accepting…' : 'Accept and continue'}
+                </Button>
+              </div>
+            }
+          />
           <Text className="mt-3">{preview.brief}</Text>
           <div className="mt-5 grid gap-6 lg:grid-cols-2">
             <div>
