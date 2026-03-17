@@ -679,6 +679,55 @@ func TestOnboardingUpdatesExistingProfilePromptSeedFields(t *testing.T) {
 	}
 }
 
+func TestOnboardingValidationNamesMissingFields(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Post(
+		testServer.URL+"/api/onboarding?user=tester",
+		"application/json",
+		strings.NewReader(`{
+			"writing_type":"marketing",
+			"assignment_format":"landing page",
+			"target_audience":"",
+			"subject_matter":"",
+			"experience_level":"advanced",
+			"desired_tone":"",
+			"biggest_weaknesses":[],
+			"desired_outcomes":[],
+			"difficulty_intensity":"steady",
+			"writing_goals":""
+		}`),
+	)
+	if err != nil {
+		t.Fatalf("post invalid onboarding: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("invalid onboarding status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode invalid onboarding response: %v", err)
+	}
+	expectedParts := []string{
+		"target audience",
+		"typical subject matter",
+		"tone target",
+		"biggest weaknesses",
+		"desired outcomes",
+		"writing goals",
+	}
+	for _, part := range expectedParts {
+		if !strings.Contains(payload.Error, part) {
+			t.Fatalf("expected error to contain %q, got %q", part, payload.Error)
+		}
+	}
+}
+
 func TestSkillGraphEndpoint(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

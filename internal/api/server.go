@@ -455,7 +455,7 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		WritingGoals:        strings.TrimSpace(payload.WritingGoals),
 	}
 	if !profile.Complete() {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("all onboarding fields are required"))
+		writeError(w, http.StatusBadRequest, fmt.Errorf("missing onboarding fields: %s", strings.Join(profile.MissingFields(), ", ")))
 		return
 	}
 

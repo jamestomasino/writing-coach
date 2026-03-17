@@ -23,16 +23,42 @@ type OnboardingProfile struct {
 }
 
 func (p OnboardingProfile) Complete() bool {
-	return strings.TrimSpace(p.WritingType) != "" &&
-		strings.TrimSpace(p.AssignmentFormat) != "" &&
-		strings.TrimSpace(p.TargetAudience) != "" &&
-		strings.TrimSpace(p.SubjectMatter) != "" &&
-		strings.TrimSpace(p.ExperienceLevel) != "" &&
-		strings.TrimSpace(p.DesiredTone) != "" &&
-		len(p.BiggestWeaknesses) > 0 &&
-		len(p.DesiredOutcomes) > 0 &&
-		strings.TrimSpace(p.DifficultyIntensity) != "" &&
-		strings.TrimSpace(p.WritingGoals) != ""
+	return len(p.MissingFields()) == 0
+}
+
+func (p OnboardingProfile) MissingFields() []string {
+	var missing []string
+	if strings.TrimSpace(p.WritingType) == "" {
+		missing = append(missing, "primary writing domain")
+	}
+	if strings.TrimSpace(p.AssignmentFormat) == "" {
+		missing = append(missing, "common assignment format")
+	}
+	if strings.TrimSpace(p.TargetAudience) == "" {
+		missing = append(missing, "target audience")
+	}
+	if strings.TrimSpace(p.SubjectMatter) == "" {
+		missing = append(missing, "typical subject matter")
+	}
+	if strings.TrimSpace(p.ExperienceLevel) == "" {
+		missing = append(missing, "experience level")
+	}
+	if strings.TrimSpace(p.DesiredTone) == "" {
+		missing = append(missing, "tone target")
+	}
+	if len(p.BiggestWeaknesses) == 0 {
+		missing = append(missing, "biggest weaknesses")
+	}
+	if len(p.DesiredOutcomes) == 0 {
+		missing = append(missing, "desired outcomes")
+	}
+	if strings.TrimSpace(p.DifficultyIntensity) == "" {
+		missing = append(missing, "difficulty and intensity")
+	}
+	if strings.TrimSpace(p.WritingGoals) == "" {
+		missing = append(missing, "writing goals")
+	}
+	return missing
 }
 
 func GenerateTreeDefinition(userSlug, userName string, profile OnboardingProfile) TGOTreeDefinition {
