@@ -142,10 +142,10 @@ export function ProgressView() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] xl:items-start">
+      <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr] xl:items-start">
         <header>
           <Heading>{tree?.title ?? 'Progress board'}</Heading>
-          <Text className="mt-2 max-w-3xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
+          <Text className="mt-2 max-w-4xl">{tree?.description ?? 'Active skills remain the primary measure.'}</Text>
         </header>
 
         <WorkspaceCard>
