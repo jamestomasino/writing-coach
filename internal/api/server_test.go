@@ -48,6 +48,30 @@ func TestReadyEndpoint(t *testing.T) {
 	}
 }
 
+func TestRecoveryMiddlewareReturnsJSON500(t *testing.T) {
+	handler := withRecovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("boom")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/panic", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "application/json") {
+		t.Fatalf("content-type = %q", got)
+	}
+	var payload errorResponse
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error payload: %v", err)
+	}
+	if payload.Error != "internal server error" {
+		t.Fatalf("error payload = %q", payload.Error)
+	}
+}
+
 func TestTreeAndEnrollmentEndpoints(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

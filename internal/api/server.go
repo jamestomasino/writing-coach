@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -83,7 +85,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/reviews", s.handleReviewCreate)
 	mux.HandleFunc("GET /api/reviews/{id}", s.handleReviewGet)
 	mux.HandleFunc("GET /api/compare", s.handleCompare)
-	return withCORS(withAuth(mux, s.Config.APIToken, s.Config.KratosPublicURL))
+	return withServerLogging(withRecovery(withCORS(withAuth(mux, s.Config.APIToken, s.Config.KratosPublicURL))))
 }
 
 type errorResponse struct {
@@ -1932,6 +1934,45 @@ func withCORS(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (r *statusRecorder) Write(b []byte) (int, error) {
+	if r.status == 0 {
+		r.status = http.StatusOK
+	}
+	return r.ResponseWriter.Write(b)
+}
+
+func withServerLogging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusRecorder{ResponseWriter: w}
+		next.ServeHTTP(recorder, r)
+		if recorder.status >= 500 {
+			log.Printf("api %s %s -> %d", r.Method, r.URL.Path, recorder.status)
+		}
+	})
+}
+
+func withRecovery(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				log.Printf("api panic: %s %s: %v\n%s", r.Method, r.URL.Path, recovered, debug.Stack())
+				writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
+			}
+		}()
 		next.ServeHTTP(w, r)
 	})
 }
