@@ -39,6 +39,7 @@ export function OnboardingView() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [existingProfile, setExistingProfile] = useState(false)
   const [writingType, setWritingType] = useState('fiction')
   const [experienceLevel, setExperienceLevel] = useState('intermediate')
   const [desiredTone, setDesiredTone] = useState('')
@@ -64,10 +65,7 @@ export function OnboardingView() {
           setWritingGoals(onboarding.profile.writing_goals)
           setWeaknesses(onboarding.profile.biggest_weaknesses)
           setOutcomes(onboarding.profile.desired_outcomes)
-        }
-        if (onboarding.onboarding_complete) {
-          router.replace('/')
-          return
+          setExistingProfile(true)
         }
       } catch (err) {
         if (!cancelled) {
@@ -122,9 +120,11 @@ export function OnboardingView() {
   return (
     <div className="space-y-8">
       <header>
-        <Heading>Set your starting path</Heading>
+        <Heading>{existingProfile ? 'Change your track' : 'Set your starting path'}</Heading>
         <Text className="mt-2 max-w-3xl">
-          Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.
+          {existingProfile
+            ? 'Update the writing profile that shapes your coaching track. Saving here refreshes the recommended path, active skills, and future assignment focus.'
+            : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'}
         </Text>
       </header>
 
@@ -206,7 +206,7 @@ export function OnboardingView() {
 
           <div className="flex justify-end">
             <Button type="submit" color="dark/zinc" disabled={saving}>
-              {saving ? 'Preparing recommendations…' : 'Set starter path'}
+              {saving ? 'Preparing recommendations…' : existingProfile ? 'Update track' : 'Set starter path'}
             </Button>
           </div>
         </form>
