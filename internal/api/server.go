@@ -55,6 +55,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
 	mux.HandleFunc("POST /api/account/reset", s.handleAccountReset)
 	mux.HandleFunc("GET /api/skill-graph", s.handleSkillGraph)
+	mux.HandleFunc("GET /api/onboarding/options", s.handleOnboardingOptions)
 	mux.HandleFunc("GET /api/onboarding", s.handleOnboardingGet)
 	mux.HandleFunc("POST /api/onboarding", s.handleOnboardingUpsert)
 	mux.HandleFunc("GET /api/admins", s.handleAdminsList)
@@ -133,6 +134,20 @@ type onboardingResponse struct {
 	StarterTGOCodes    []string                   `json:"starter_tgo_codes,omitempty"`
 	RecommendedRegions []string                   `json:"recommended_regions,omitempty"`
 	Context            *requestContextResponse    `json:"context,omitempty"`
+}
+
+type onboardingOptionResponse struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+type onboardingOptionsResponse struct {
+	WritingDomains    []onboardingOptionResponse `json:"writing_domains"`
+	AssignmentFormats []onboardingOptionResponse `json:"assignment_formats"`
+	ExperienceLevels  []onboardingOptionResponse `json:"experience_levels"`
+	DifficultyLevels  []onboardingOptionResponse `json:"difficulty_levels"`
+	Weaknesses        []onboardingOptionResponse `json:"weaknesses"`
+	DesiredOutcomes   []onboardingOptionResponse `json:"desired_outcomes"`
 }
 
 type onboardingProfileResponse struct {
@@ -402,6 +417,18 @@ func (s Server) handleAccountReset(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok": true,
+	})
+}
+
+func (s Server) handleOnboardingOptions(w http.ResponseWriter, r *http.Request) {
+	options := domain.AvailableOnboardingOptions()
+	writeJSON(w, http.StatusOK, onboardingOptionsResponse{
+		WritingDomains:    toOnboardingOptionResponses(options.WritingDomains),
+		AssignmentFormats: toOnboardingOptionResponses(options.AssignmentFormats),
+		ExperienceLevels:  toOnboardingOptionResponses(options.ExperienceLevels),
+		DifficultyLevels:  toOnboardingOptionResponses(options.DifficultyLevels),
+		Weaknesses:        toOnboardingOptionResponses(options.Weaknesses),
+		DesiredOutcomes:   toOnboardingOptionResponses(options.DesiredOutcomes),
 	})
 }
 
@@ -2218,6 +2245,17 @@ func toEnrollmentResponses(enrollments []domain.Enrollment) []enrollmentResponse
 			UserSlug:  enrollment.UserSlug,
 			TreeSlug:  enrollment.TreeSlug,
 			CreatedAt: db.Since(enrollment.CreatedAt),
+		})
+	}
+	return out
+}
+
+func toOnboardingOptionResponses(values []domain.OnboardingOption) []onboardingOptionResponse {
+	out := make([]onboardingOptionResponse, 0, len(values))
+	for _, value := range values {
+		out = append(out, onboardingOptionResponse{
+			Value: value.Value,
+			Label: value.Label,
 		})
 	}
 	return out

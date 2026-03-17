@@ -10,49 +10,26 @@ import { Input } from '@/components/input'
 import { Select } from '@/components/select'
 import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
-import { getOnboarding, saveOnboarding } from '@/lib/api'
+import { getOnboarding, getOnboardingOptions, saveOnboarding } from '@/lib/api'
+import type { OnboardingOptions } from '@/lib/types'
 import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
-const weaknessOptions = [
-  'word choice',
-  'sentence variety',
-  'sentence economy',
-  'paragraph control',
-  'narrative clarity',
-  'scene architecture',
-  'symbolic control',
-  'tone calibration',
-  'evidence integration',
-]
-
-const outcomeOptions = [
-  'publish stronger fiction',
-  'write clearer essays',
-  'improve professional communication',
-  'develop a distinctive voice',
-  'build revision discipline',
-  'write thought leadership with authority',
-]
-
-const assignmentFormatOptions = [
-  'scene',
-  'short story',
-  'blog post',
-  'op-ed',
-  'memo',
-  'email',
-  'landing page',
-  'product announcement',
-  'essay',
-  'how-to guide',
-]
+const emptyOptions: OnboardingOptions = {
+  writing_domains: [],
+  assignment_formats: [],
+  experience_levels: [],
+  difficulty_levels: [],
+  weaknesses: [],
+  desired_outcomes: [],
+}
 
 export function OnboardingView() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [existingProfile, setExistingProfile] = useState(false)
+  const [options, setOptions] = useState<OnboardingOptions>(emptyOptions)
   const [writingType, setWritingType] = useState('')
   const [assignmentFormat, setAssignmentFormat] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
@@ -69,10 +46,11 @@ export function OnboardingView() {
     let cancelled = false
     async function load() {
       try {
-        const onboarding = await getOnboarding()
+        const [onboarding, nextOptions] = await Promise.all([getOnboarding(), getOnboardingOptions()])
         if (cancelled) {
           return
         }
+        setOptions(nextOptions)
         if (onboarding.profile) {
           setWritingType(onboarding.profile.writing_type)
           setAssignmentFormat(onboarding.profile.assignment_format)
@@ -170,13 +148,11 @@ export function OnboardingView() {
                 <option value="" disabled>
                   Choose a writing domain
                 </option>
-                <option value="fiction">Fiction</option>
-                <option value="thought leadership">Thought leadership</option>
-                <option value="professional">Professional writing</option>
-                <option value="academic">Academic writing</option>
-                <option value="marketing">Marketing writing</option>
-                <option value="memoir">Memoir / personal narrative</option>
-                <option value="other">Other</option>
+                {options.writing_domains.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </Select>
             </Field>
             <Field>
@@ -185,9 +161,9 @@ export function OnboardingView() {
                 <option value="" disabled>
                   Choose an assignment format
                 </option>
-                {assignmentFormatOptions.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
+                {options.assignment_formats.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
                   </option>
                 ))}
               </Select>
@@ -198,9 +174,11 @@ export function OnboardingView() {
                 <option value="" disabled>
                   Choose an experience level
                 </option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
+                {options.experience_levels.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </Select>
             </Field>
             <Field>
@@ -209,9 +187,11 @@ export function OnboardingView() {
                 <option value="" disabled>
                   Choose a pace
                 </option>
-                <option value="steady">Steady</option>
-                <option value="ambitious">Ambitious</option>
-                <option value="gentle">Gentle</option>
+                {options.difficulty_levels.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </Select>
             </Field>
           </FieldGroup>
@@ -256,10 +236,10 @@ export function OnboardingView() {
             <div>
               <Subheading>Biggest weaknesses</Subheading>
               <div className="mt-4 space-y-3">
-                {weaknessOptions.map((item) => (
-                  <CheckboxField key={item}>
-                    <Checkbox checked={weaknesses.includes(item)} onChange={() => toggle(weaknesses, setWeaknesses, item)} />
-                    <Label>{item}</Label>
+                {options.weaknesses.map((item) => (
+                  <CheckboxField key={item.value}>
+                    <Checkbox checked={weaknesses.includes(item.value)} onChange={() => toggle(weaknesses, setWeaknesses, item.value)} />
+                    <Label>{item.label}</Label>
                   </CheckboxField>
                 ))}
               </div>
@@ -267,10 +247,10 @@ export function OnboardingView() {
             <div>
               <Subheading>Desired outcomes</Subheading>
               <div className="mt-4 space-y-3">
-                {outcomeOptions.map((item) => (
-                  <CheckboxField key={item}>
-                    <Checkbox checked={outcomes.includes(item)} onChange={() => toggle(outcomes, setOutcomes, item)} />
-                    <Label>{item}</Label>
+                {options.desired_outcomes.map((item) => (
+                  <CheckboxField key={item.value}>
+                    <Checkbox checked={outcomes.includes(item.value)} onChange={() => toggle(outcomes, setOutcomes, item.value)} />
+                    <Label>{item.label}</Label>
                   </CheckboxField>
                 ))}
               </div>

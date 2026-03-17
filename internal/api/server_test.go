@@ -246,6 +246,48 @@ func TestReadyEndpoint(t *testing.T) {
 	}
 }
 
+func TestOnboardingOptionsEndpoint(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/onboarding/options")
+	if err != nil {
+		t.Fatalf("get onboarding options: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("options status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		WritingDomains []struct {
+			Value string `json:"value"`
+			Label string `json:"label"`
+		} `json:"writing_domains"`
+		AssignmentFormats []struct {
+			Value string `json:"value"`
+		} `json:"assignment_formats"`
+		Weaknesses []struct {
+			Value string `json:"value"`
+		} `json:"weaknesses"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode onboarding options: %v", err)
+	}
+	if len(payload.WritingDomains) < 10 {
+		t.Fatalf("writing domains = %#v", payload.WritingDomains)
+	}
+	if payload.WritingDomains[0].Value == "" || payload.WritingDomains[0].Label == "" {
+		t.Fatalf("first writing domain = %#v", payload.WritingDomains[0])
+	}
+	if len(payload.AssignmentFormats) == 0 || payload.AssignmentFormats[0].Value == "" {
+		t.Fatalf("assignment formats = %#v", payload.AssignmentFormats)
+	}
+	if len(payload.Weaknesses) == 0 || payload.Weaknesses[0].Value == "" {
+		t.Fatalf("weaknesses = %#v", payload.Weaknesses)
+	}
+}
+
 func TestRecoveryMiddlewareReturnsJSON500(t *testing.T) {
 	handler := withRecovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		panic("boom")

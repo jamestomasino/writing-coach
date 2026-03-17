@@ -1,6 +1,17 @@
 'use client'
 
-import type { AuthSession, Comparison, Dashboard, Exercise, OnboardingState, Review, Submission, Tree, UserRecord } from './types'
+import type {
+  AuthSession,
+  Comparison,
+  Dashboard,
+  Exercise,
+  OnboardingOptions,
+  OnboardingState,
+  Review,
+  Submission,
+  Tree,
+  UserRecord,
+} from './types'
 
 type ErrorBody = { error?: string }
 
@@ -64,6 +75,10 @@ export function getSession() {
 
 export function getOnboarding() {
   return request<OnboardingState>('/api/onboarding')
+}
+
+export function getOnboardingOptions() {
+  return request<OnboardingOptions>('/api/onboarding/options')
 }
 
 export function getDashboard() {

@@ -23,6 +23,20 @@ type OnboardingProfile struct {
 	TemplateKey         string
 }
 
+type OnboardingOption struct {
+	Value string
+	Label string
+}
+
+type OnboardingOptions struct {
+	WritingDomains    []OnboardingOption
+	AssignmentFormats []OnboardingOption
+	ExperienceLevels  []OnboardingOption
+	DifficultyLevels  []OnboardingOption
+	Weaknesses        []OnboardingOption
+	DesiredOutcomes   []OnboardingOption
+}
+
 func (p OnboardingProfile) Complete() bool {
 	return len(p.MissingFields()) == 0
 }
@@ -60,6 +74,72 @@ func (p OnboardingProfile) MissingFields() []string {
 		missing = append(missing, "writing goals")
 	}
 	return missing
+}
+
+func AvailableOnboardingOptions() OnboardingOptions {
+	return OnboardingOptions{
+		WritingDomains: []OnboardingOption{
+			{Value: "fiction", Label: "Fiction"},
+			{Value: "fantasy fiction", Label: "Fantasy fiction"},
+			{Value: "science fiction", Label: "Science fiction"},
+			{Value: "romance", Label: "Romance"},
+			{Value: "literary fiction", Label: "Literary fiction"},
+			{Value: "mystery", Label: "Mystery / thriller"},
+			{Value: "thought leadership", Label: "Thought leadership"},
+			{Value: "professional writing", Label: "Professional writing"},
+			{Value: "marketing writing", Label: "Marketing writing"},
+			{Value: "content marketing", Label: "Content marketing"},
+			{Value: "journalism", Label: "Journalism / reporting"},
+			{Value: "educational writing", Label: "Educational writing"},
+			{Value: "grant writing", Label: "Grant writing"},
+			{Value: "academic writing", Label: "Academic writing"},
+			{Value: "technical writing", Label: "Technical writing"},
+			{Value: "persuasive writing", Label: "Persuasive writing"},
+			{Value: "memoir", Label: "Memoir / personal narrative"},
+			{Value: "other", Label: "Other"},
+		},
+		AssignmentFormats: []OnboardingOption{
+			{Value: "scene", Label: "scene"},
+			{Value: "short story", Label: "short story"},
+			{Value: "blog post", Label: "blog post"},
+			{Value: "op-ed", Label: "op-ed"},
+			{Value: "memo", Label: "memo"},
+			{Value: "email", Label: "email"},
+			{Value: "landing page", Label: "landing page"},
+			{Value: "product announcement", Label: "product announcement"},
+			{Value: "essay", Label: "essay"},
+			{Value: "how-to guide", Label: "how-to guide"},
+		},
+		ExperienceLevels: []OnboardingOption{
+			{Value: "beginner", Label: "Beginner"},
+			{Value: "intermediate", Label: "Intermediate"},
+			{Value: "advanced", Label: "Advanced"},
+		},
+		DifficultyLevels: []OnboardingOption{
+			{Value: "steady", Label: "Steady"},
+			{Value: "ambitious", Label: "Ambitious"},
+			{Value: "gentle", Label: "Gentle"},
+		},
+		Weaknesses: []OnboardingOption{
+			{Value: "word choice", Label: "word choice"},
+			{Value: "sentence variety", Label: "sentence variety"},
+			{Value: "sentence economy", Label: "sentence economy"},
+			{Value: "paragraph control", Label: "paragraph control"},
+			{Value: "narrative clarity", Label: "narrative clarity"},
+			{Value: "scene architecture", Label: "scene architecture"},
+			{Value: "symbolic control", Label: "symbolic control"},
+			{Value: "tone calibration", Label: "tone calibration"},
+			{Value: "evidence integration", Label: "evidence integration"},
+		},
+		DesiredOutcomes: []OnboardingOption{
+			{Value: "publish stronger fiction", Label: "publish stronger fiction"},
+			{Value: "write clearer essays", Label: "write clearer essays"},
+			{Value: "improve professional communication", Label: "improve professional communication"},
+			{Value: "develop a distinctive voice", Label: "develop a distinctive voice"},
+			{Value: "build revision discipline", Label: "build revision discipline"},
+			{Value: "write thought leadership with authority", Label: "write thought leadership with authority"},
+		},
+	}
 }
 
 func GenerateTreeDefinition(userSlug, userName string, profile OnboardingProfile) TGOTreeDefinition {

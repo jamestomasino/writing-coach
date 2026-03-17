@@ -167,3 +167,17 @@ export type OnboardingState = {
   starter_tgo_codes?: string[]
   recommended_regions?: string[]
 }
+
+export type OnboardingOption = {
+  value: string
+  label: string
+}
+
+export type OnboardingOptions = {
+  writing_domains: OnboardingOption[]
+  assignment_formats: OnboardingOption[]
+  experience_levels: OnboardingOption[]
+  difficulty_levels: OnboardingOption[]
+  weaknesses: OnboardingOption[]
+  desired_outcomes: OnboardingOption[]
+}
