@@ -352,17 +352,6 @@ export function TreeView() {
         <WorkspaceCard className="overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.12),_transparent_28%),linear-gradient(180deg,rgba(24,24,27,0.98),rgba(9,9,11,0.98))] p-0 text-white">
           <div className="grid min-h-[46rem] gap-0 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="relative min-h-[38rem]">
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap gap-2 p-5">
-                <div className="rounded-full border border-cyan-300/25 bg-cyan-400/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
-                  Active nodes pulse
-                </div>
-                <div className="rounded-full border border-amber-300/25 bg-amber-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-100">
-                  Open paths glow
-                </div>
-                <div className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
-                  Mastered paths stay lit
-                </div>
-              </div>
               <ReactFlow
                 nodes={graph.nodes}
                 edges={graph.edges}
