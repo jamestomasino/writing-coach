@@ -62,7 +62,7 @@ function AccountDropdownMenu({ anchor }: { anchor: 'top start' | 'bottom end' })
         <DropdownLabel>Settings</DropdownLabel>
       </DropdownItem>
       <DropdownDivider />
-      <DropdownItem href="/.ory/kratos/public/self-service/logout/browser">
+      <DropdownItem href="/logout">
         <ArrowRightStartOnRectangleIcon />
         <DropdownLabel>Sign out</DropdownLabel>
       </DropdownItem>
