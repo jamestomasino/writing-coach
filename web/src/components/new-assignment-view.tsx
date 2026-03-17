@@ -56,13 +56,18 @@ export function NewAssignmentView() {
     if (!dashboard) {
       return []
     }
-    const items = [...dashboard.active_tgos]
+    const byDisplayKey = new Map<string, Dashboard['active_tgos'][number]>()
+    for (const tgo of dashboard.active_tgos) {
+      const key = `${tgo.title.trim().toLowerCase()}::${tgo.description.trim().toLowerCase()}`
+      byDisplayKey.set(key, tgo)
+    }
     for (const tgo of dashboard.upcoming_tgos) {
-      if (!items.some((item) => item.code === tgo.code)) {
-        items.push(tgo)
+      const key = `${tgo.title.trim().toLowerCase()}::${tgo.description.trim().toLowerCase()}`
+      if (!byDisplayKey.has(key)) {
+        byDisplayKey.set(key, tgo)
       }
     }
-    return items
+    return [...byDisplayKey.values()]
   }, [dashboard])
 
   function toggle(code: string) {
