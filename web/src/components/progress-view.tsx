@@ -160,38 +160,9 @@ export function ProgressView() {
         </div>
       </header>
 
-      <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
-        <WorkspaceCard>
-          <div className="flex items-center justify-between gap-4">
-            <Subheading>Current track state</Subheading>
-            <Badge color="zinc">{completedTGOs.length} mastered</Badge>
-          </div>
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Active now</div>
-              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{activeTGOs.length}</div>
-              <Text className="mt-1 text-sm">These three skills drive the current assignment review.</Text>
-            </div>
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Unlocked next</div>
-              <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100">{upcomingTGOs.length}</div>
-              <Text className="mt-1 text-sm">These are eligible choices for the next assignment cycle.</Text>
-            </div>
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Current review focus</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {activeTGOs.slice(0, 3).map((tgo) => (
-                  <Badge key={tgo.code} color="blue">
-                    {tgo.title}
-                  </Badge>
-                ))}
-              </div>
-              <Text className="mt-2 text-sm">These are the skills the coach is measuring most closely right now.</Text>
-            </div>
-          </div>
-        </WorkspaceCard>
-
-        <WorkspaceCard>
+      <div className="flex justify-end">
+        <div className="w-full xl:max-w-[28rem]">
+          <WorkspaceCard>
           <Subheading>Track profile</Subheading>
           {profile ? (
             <dl className="mt-4 space-y-4 text-sm text-zinc-700 dark:text-zinc-300">
@@ -215,7 +186,8 @@ export function ProgressView() {
           ) : (
             <Text className="mt-3">This track was seeded without a persisted onboarding profile.</Text>
           )}
-        </WorkspaceCard>
+          </WorkspaceCard>
+        </div>
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
