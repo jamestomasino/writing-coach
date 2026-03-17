@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tomasino/writing-coach/internal/analyzer"
 	"github.com/tomasino/writing-coach/internal/config"
@@ -633,17 +634,23 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("create review: %v", err)
 	}
 	defer reviewResp.Body.Close()
-	if reviewResp.StatusCode != http.StatusCreated {
+	if reviewResp.StatusCode != http.StatusAccepted {
 		t.Fatalf("review status: %d", reviewResp.StatusCode)
 	}
 	var reviewPayload struct {
-		Review struct {
-			ID int64 `json:"id"`
-		} `json:"review"`
+		Job struct {
+			ID     int64  `json:"id"`
+			Status string `json:"status"`
+		} `json:"job"`
 	}
 	if err := json.NewDecoder(reviewResp.Body).Decode(&reviewPayload); err != nil {
 		t.Fatalf("decode review: %v", err)
 	}
+	if reviewPayload.Job.ID == 0 || reviewPayload.Job.Status == "" {
+		t.Fatalf("expected queued review job, got %+v", reviewPayload.Job)
+	}
+
+	reviewID := waitForReview(t, testServer.URL, submissionPayload.Submission.ID)
 
 	reviewsResp, err := http.Get(testServer.URL + "/api/reviews?user=tester&tree=mythic-tragedy-apprenticeship&submission_id=" + int64String(submissionPayload.Submission.ID))
 	if err != nil {
@@ -654,7 +661,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("review list status: %d", reviewsResp.StatusCode)
 	}
 
-	singleReviewResp, err := http.Get(testServer.URL + "/api/reviews/" + int64String(reviewPayload.Review.ID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	singleReviewResp, err := http.Get(testServer.URL + "/api/reviews/" + int64String(reviewID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
 	if err != nil {
 		t.Fatalf("get review: %v", err)
 	}
@@ -1509,8 +1516,11 @@ func newTestServerWithConfig(t *testing.T, store *db.Store, cfg config.Config) *
 		Reviews:    review.NewService(nil, analyzer.Service{}),
 		Curriculum: curriculum.NewService(),
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go server.runReviewWorker(ctx)
 	testServer := httptest.NewServer(server.routes())
 	t.Cleanup(func() {
+		cancel()
 		testServer.Close()
 	})
 	return testServer
@@ -1526,4 +1536,35 @@ func mustJSONString(value any) string {
 		panic(err)
 	}
 	return string(data)
+}
+
+func waitForReview(t *testing.T, baseURL string, submissionID int64) int64 {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := http.Get(baseURL + "/api/review-jobs?user=tester&tree=mythic-tragedy-apprenticeship&submission_id=" + int64String(submissionID))
+		if err != nil {
+			t.Fatalf("get review job: %v", err)
+		}
+		var payload struct {
+			Job struct {
+				ReviewID int64  `json:"review_id"`
+				Status   string `json:"status"`
+			} `json:"job"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			resp.Body.Close()
+			t.Fatalf("decode review job: %v", err)
+		}
+		resp.Body.Close()
+		if payload.Job.Status == "completed" && payload.Job.ReviewID != 0 {
+			return payload.Job.ReviewID
+		}
+		if payload.Job.Status == "failed" {
+			t.Fatalf("review job failed for submission %d", submissionID)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for review job for submission %d", submissionID)
+	return 0
 }

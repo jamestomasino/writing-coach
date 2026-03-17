@@ -125,7 +125,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
               {review.tgo_assessments.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-2xl border border-stone-200 p-4 dark:border-white/10">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_code}</span>
+                    <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_title ?? assessment.tgo_code}</span>
                     <Badge color={assessment.status === 'mastered' ? 'green' : assessment.status === 'developing' ? 'amber' : 'zinc'}>
                       {assessment.status}
                     </Badge>
@@ -143,7 +143,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
               {review.completed_tgo_checks.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_code}</span>
+                    <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_title ?? assessment.tgo_code}</span>
                     <Badge color="amber">{assessment.status}</Badge>
                   </div>
                   <Text className="mt-2">{assessment.evidence}</Text>
@@ -152,6 +152,22 @@ export function CompareView({ submissionId }: { submissionId: number }) {
             </div>
           </WorkspaceCard>
         </div>
+      ) : null}
+
+      {review?.skill_scores.length ? (
+        <WorkspaceCard>
+          <Subheading>Skill scores</Subheading>
+          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            {review.skill_scores.map((item) => (
+              <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-semibold capitalize text-zinc-950 dark:text-white">{item.skill}</span>
+                  <Badge color={item.score >= 4 ? 'green' : item.score === 3 ? 'amber' : 'rose'}>{item.score}/5</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </WorkspaceCard>
       ) : null}
     </div>
   )

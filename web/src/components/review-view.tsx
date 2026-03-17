@@ -106,7 +106,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
             {review.tgo_assessments.map((assessment) => (
               <div key={assessment.tgo_code} className="rounded-2xl border border-stone-200 p-4 dark:border-white/10">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_code}</span>
+                  <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_title ?? assessment.tgo_code}</span>
                   <Badge color={assessment.status === 'mastered' ? 'green' : assessment.status === 'developing' ? 'amber' : 'zinc'}>
                     {assessment.status}
                   </Badge>
@@ -127,7 +127,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
               review.completed_tgo_checks.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_code}</span>
+                    <span className="font-semibold text-zinc-950 dark:text-white">{assessment.tgo_title ?? assessment.tgo_code}</span>
                     <Badge color="amber">{assessment.status}</Badge>
                   </div>
                   <Text className="mt-2">{assessment.evidence}</Text>
@@ -139,6 +139,20 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       </div>
 
       <div className="grid gap-8 xl:grid-cols-2">
+        <WorkspaceCard>
+          <Subheading>Skill scores</Subheading>
+          <Text className="mt-2">These scores summarize the latest draft across the tracked skill dimensions.</Text>
+          <div className="mt-4 space-y-3">
+            {review.skill_scores.map((item) => (
+              <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-semibold capitalize text-zinc-950 dark:text-white">{item.skill}</span>
+                  <Badge color={item.score >= 4 ? 'green' : item.score === 3 ? 'amber' : 'rose'}>{item.score}/5</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </WorkspaceCard>
         <WorkspaceCard>
           <Subheading>Strengths</Subheading>
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
@@ -205,7 +219,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                   <Badge color={item.severity === 'high' ? 'rose' : item.severity === 'medium' ? 'amber' : 'zinc'}>
                     {item.severity}
                   </Badge>
-                  <Badge color="blue">{item.tgo_code}</Badge>
+                  <Badge color="blue">{item.tgo_title ?? item.tgo_code}</Badge>
                   <Badge color="cyan">{item.category}</Badge>
                 </div>
                 <blockquote className="mt-3 border-l-2 border-stone-300 pl-4 text-sm italic text-zinc-700 dark:border-white/15 dark:text-zinc-200">

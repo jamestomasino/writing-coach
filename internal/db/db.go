@@ -1128,6 +1128,10 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 	if err != nil {
 		return domain.Review{}, err
 	}
+	review.SkillScores, err = s.SubmissionSkillScores(ctx, review.SubmissionID)
+	if err != nil {
+		return domain.Review{}, err
+	}
 	return review, nil
 }
 
@@ -1161,6 +1165,10 @@ func (s *Store) GetReview(ctx context.Context, reviewID int64) (domain.Review, e
 		return domain.Review{}, err
 	}
 	review.TGOAssessments, err = s.ReviewTGOAssessments(ctx, review.ID)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.SkillScores, err = s.SubmissionSkillScores(ctx, review.SubmissionID)
 	if err != nil {
 		return domain.Review{}, err
 	}
@@ -1204,8 +1212,181 @@ func (s *Store) ListReviews(ctx context.Context, userID, treeID, submissionID in
 			return nil, err
 		}
 		reviews[i].TGOAssessments = assessments
+		reviews[i].SkillScores, err = s.SubmissionSkillScores(ctx, reviews[i].SubmissionID)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return reviews, nil
+}
+
+func (s *Store) SubmissionSkillScores(ctx context.Context, submissionID int64) ([]domain.SkillScore, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT submission_id, skill_name, score
+		FROM submission_skill_scores
+		WHERE submission_id = ?
+		ORDER BY score DESC, skill_name ASC
+	`, submissionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var scores []domain.SkillScore
+	for rows.Next() {
+		var score domain.SkillScore
+		if err := rows.Scan(&score.SubmissionID, &score.Skill, &score.Score); err != nil {
+			return nil, err
+		}
+		scores = append(scores, score)
+	}
+	return scores, rows.Err()
+}
+
+func (s *Store) EnqueueReviewJob(ctx context.Context, job domain.ReviewJob) (domain.ReviewJob, error) {
+	if job.MaxAttempts <= 0 {
+		job.MaxAttempts = 3
+	}
+	_, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO review_jobs (user_id, tree_id, enrollment_id, submission_id, status, max_attempts)
+		VALUES (?, ?, ?, ?, 'queued', ?)
+		ON CONFLICT(submission_id) DO UPDATE SET
+			user_id = excluded.user_id,
+			tree_id = excluded.tree_id,
+			enrollment_id = excluded.enrollment_id,
+			status = CASE
+				WHEN review_jobs.review_id IS NOT NULL THEN 'completed'
+				ELSE 'queued'
+			END,
+			last_error = '',
+			updated_at = CURRENT_TIMESTAMP
+	`, job.UserID, job.TreeID, job.EnrollmentID, job.SubmissionID, job.MaxAttempts)
+	if err != nil {
+		return domain.ReviewJob{}, err
+	}
+	return s.ReviewJobBySubmission(ctx, job.UserID, job.TreeID, job.SubmissionID)
+}
+
+func (s *Store) ReviewJobBySubmission(ctx context.Context, userID, treeID, submissionID int64) (domain.ReviewJob, error) {
+	var job domain.ReviewJob
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT id, user_id, tree_id, enrollment_id, submission_id, COALESCE(review_id, 0), status, attempt_count, max_attempts, last_error, created_at, updated_at
+		FROM review_jobs
+		WHERE user_id = ? AND tree_id = ? AND submission_id = ?
+	`, userID, treeID, submissionID).Scan(
+		&job.ID,
+		&job.UserID,
+		&job.TreeID,
+		&job.EnrollmentID,
+		&job.SubmissionID,
+		&job.ReviewID,
+		&job.Status,
+		&job.AttemptCount,
+		&job.MaxAttempts,
+		&job.LastError,
+		&job.CreatedAt,
+		&job.UpdatedAt,
+	)
+	if err != nil {
+		return domain.ReviewJob{}, err
+	}
+	return job, nil
+}
+
+func (s *Store) RequeueStaleReviewJobs(ctx context.Context, staleAfter time.Duration) error {
+	if staleAfter <= 0 {
+		staleAfter = 3 * time.Minute
+	}
+	_, err := s.SQL.ExecContext(ctx, `
+		UPDATE review_jobs
+		SET status = 'queued',
+			last_error = CASE
+				WHEN last_error = '' THEN 'review worker was interrupted; retrying'
+				ELSE last_error
+			END,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE status = 'running' AND updated_at <= ?
+	`, time.Now().UTC().Add(-staleAfter))
+	return err
+}
+
+func (s *Store) ClaimNextReviewJob(ctx context.Context) (domain.ReviewJob, error) {
+	tx, err := s.SQL.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.ReviewJob{}, err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	var job domain.ReviewJob
+	err = tx.QueryRowContext(ctx, `
+		SELECT id, user_id, tree_id, enrollment_id, submission_id, COALESCE(review_id, 0), status, attempt_count, max_attempts, last_error, created_at, updated_at
+		FROM review_jobs
+		WHERE status = 'queued'
+		ORDER BY id ASC
+		LIMIT 1
+	`).Scan(
+		&job.ID,
+		&job.UserID,
+		&job.TreeID,
+		&job.EnrollmentID,
+		&job.SubmissionID,
+		&job.ReviewID,
+		&job.Status,
+		&job.AttemptCount,
+		&job.MaxAttempts,
+		&job.LastError,
+		&job.CreatedAt,
+		&job.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = tx.Rollback()
+			return domain.ReviewJob{}, err
+		}
+		return domain.ReviewJob{}, err
+	}
+	if _, err = tx.ExecContext(ctx, `
+		UPDATE review_jobs
+		SET status = 'running',
+			attempt_count = attempt_count + 1,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, job.ID); err != nil {
+		return domain.ReviewJob{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return domain.ReviewJob{}, err
+	}
+	job.AttemptCount++
+	job.Status = "running"
+	job.UpdatedAt = time.Now().UTC()
+	return job, nil
+}
+
+func (s *Store) CompleteReviewJob(ctx context.Context, jobID, reviewID int64) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		UPDATE review_jobs
+		SET review_id = ?, status = 'completed', last_error = '', updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, reviewID, jobID)
+	return err
+}
+
+func (s *Store) FailReviewJob(ctx context.Context, job domain.ReviewJob, lastError string) error {
+	status := "queued"
+	if job.AttemptCount >= job.MaxAttempts {
+		status = "failed"
+	}
+	_, err := s.SQL.ExecContext(ctx, `
+		UPDATE review_jobs
+		SET status = ?, last_error = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, status, lastError, job.ID)
+	return err
 }
 
 func (s *Store) ReviewTGOAssessments(ctx context.Context, reviewID int64) ([]domain.TGOAssessment, error) {

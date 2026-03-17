@@ -59,8 +59,14 @@ export type Submission = {
 
 export type TGOAssessment = {
   tgo_code: string
+  tgo_title?: string
   status: string
   evidence: string
+}
+
+export type SkillScore = {
+  skill: string
+  score: number
 }
 
 export type Review = {
@@ -74,6 +80,7 @@ export type Review = {
   analyzer_findings: string[]
   next_focus: string
   metric_word_count: number
+  skill_scores: SkillScore[]
   tgo_assessments: TGOAssessment[]
   completed_tgo_checks: TGOAssessment[]
   annotations: ReviewAnnotation[]
@@ -88,9 +95,22 @@ export type Review = {
 export type ReviewAnnotation = {
   quote: string
   tgo_code: string
+  tgo_title?: string
   category: string
   comment: string
   severity: string
+}
+
+export type ReviewJob = {
+  id: number
+  submission_id: number
+  review_id?: number
+  status: string
+  attempt_count: number
+  max_attempts: number
+  last_error?: string
+  created_at: string
+  updated_at: string
 }
 
 export type Comparison = {

@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowPathIcon, ArrowUpTrayIcon, SparklesIcon } from '@heroicons/react/16/solid'
+import { ArrowPathIcon, ArrowUpTrayIcon, SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { Heading, Subheading } from '@/components/heading'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
-import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviews, getSession, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
-import type { Dashboard, Exercise, Review, Submission } from '@/lib/types'
+import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
+import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
 import { EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -58,6 +58,7 @@ export function CurrentAssignmentView() {
   const [draft, setDraft] = useState('')
   const [reviewing, setReviewing] = useState(false)
   const [preparingRevision, setPreparingRevision] = useState(false)
+  const [reviewJob, setReviewJob] = useState<ReviewJob | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -88,18 +89,25 @@ export function CurrentAssignmentView() {
         }
         let submission: Submission | undefined
         let review: Review | undefined
+        let pendingJob: ReviewJob | null = null
         if (exercise) {
           const submissions = await getSubmissions(exercise.id, 1)
           submission = submissions[0]
           if (submission) {
             const reviews = await getReviews(submission.id, 1)
             review = reviews[0]
+            if (!review) {
+              try {
+                pendingJob = await getReviewJob(submission.id)
+              } catch {}
+            }
           }
         }
 
         if (!cancelled) {
           setWorkspace({ dashboard, exercise, submission, review })
           setDraft(submission?.content ?? '')
+          setReviewJob(pendingJob)
           setSessionRequired(false)
           setError(null)
         }
@@ -125,6 +133,38 @@ export function CurrentAssignmentView() {
     }
   }, [router, searchParams])
 
+  useEffect(() => {
+    if (!reviewJob || !workspace?.submission) {
+      return
+    }
+    if (reviewJob.status !== 'queued' && reviewJob.status !== 'running') {
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setInterval(async () => {
+      try {
+        const job = await getReviewJob(workspace.submission!.id)
+        if (cancelled) {
+          return
+        }
+        setReviewJob(job)
+        if (job.status === 'completed' && job.review_id) {
+          router.push(`/reviews/${job.review_id}`)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Could not refresh review status')
+        }
+      }
+    }, 2000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [reviewJob, router, workspace?.submission])
+
   const wordCount = useMemo(() => countWords(draft), [draft])
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -147,10 +187,33 @@ export function CurrentAssignmentView() {
         content: draft,
         parentSubmissionId: workspace.submission?.id,
       })
-      const review = await reviewSubmission(submission.id)
-      router.push(`/reviews/${review.id}`)
+      const job = await reviewSubmission(submission.id)
+      setWorkspace({ ...workspace, submission, review: undefined })
+      setReviewJob(job)
+      if (job.status === 'completed' && job.review_id) {
+        router.push(`/reviews/${job.review_id}`)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Review failed')
+    } finally {
+      setReviewing(false)
+    }
+  }
+
+  async function handleRetryReview() {
+    if (!workspace?.submission) {
+      return
+    }
+    try {
+      setReviewing(true)
+      setError(null)
+      const job = await reviewSubmission(workspace.submission.id)
+      setReviewJob(job)
+      if (job.status === 'completed' && job.review_id) {
+        router.push(`/reviews/${job.review_id}`)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not retry review')
     } finally {
       setReviewing(false)
     }
@@ -194,7 +257,9 @@ export function CurrentAssignmentView() {
 
   const { dashboard, exercise, review } = workspace
   const isRevisionBrief = searchParams.get('revisionExercise') !== null
-  const busy = reviewing || preparingRevision
+  const reviewPending = reviewJob?.status === 'queued' || reviewJob?.status === 'running'
+  const reviewFailed = reviewJob?.status === 'failed'
+  const busy = reviewing || preparingRevision || reviewPending
 
   if (!exercise) {
     return (
@@ -241,28 +306,48 @@ export function CurrentAssignmentView() {
         </div>
       </header>
 
-      {busy ? (
+      {reviewPending ? (
         <TaskProgressState
-          title={reviewing ? 'Review in progress' : 'Revision brief in progress'}
-          body={
-            reviewing
-              ? 'The app is analyzing your draft against your active skills and preparing coaching feedback.'
-              : 'The app is building a revision brief from your latest review and active skills.'
-          }
-          steps={
-            reviewing
-              ? [
-                  'Save the latest draft snapshot.',
-                  'Score the draft against the active skill rubric.',
-                  'Assemble the coaching summary and annotations.',
-                ]
-              : [
-                  'Load the latest reviewed draft.',
-                  'Extract the highest-priority revision targets.',
-                  'Generate a focused revision brief for the next pass.',
-                ]
-          }
+          title="Review in progress"
+          body="Your draft is saved. The app is reviewing it in the background against the active skills and will open the coaching pass when it is ready."
+          steps={[
+            'Save the latest draft snapshot.',
+            'Score the draft against the active skill rubric.',
+            'Assemble the coaching summary, annotations, and next focus.',
+          ]}
         />
+      ) : null}
+
+      {preparingRevision ? (
+        <TaskProgressState
+          title="Revision brief in progress"
+          body="The app is building a revision brief from your latest review and active skills."
+          steps={[
+            'Load the latest reviewed draft.',
+            'Extract the highest-priority revision targets.',
+            'Generate a focused revision brief for the next pass.',
+          ]}
+        />
+      ) : null}
+
+      {reviewFailed ? (
+        <WorkspaceCard>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
+                <ExclamationTriangleIcon className="size-4" />
+                Review failed
+              </div>
+              <Text className="mt-2">
+                The draft saved, but the background review did not finish. You can retry without losing your submission.
+              </Text>
+              {reviewJob?.last_error ? <Text className="mt-2 text-sm">{reviewJob.last_error}</Text> : null}
+            </div>
+            <Button onClick={handleRetryReview} color="dark/zinc" disabled={reviewing}>
+              {reviewing ? 'Retrying…' : 'Retry review'}
+            </Button>
+          </div>
+        </WorkspaceCard>
       ) : null}
 
       {isRevisionBrief ? (
@@ -344,11 +429,17 @@ export function CurrentAssignmentView() {
         <div className="mt-5">
           <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={18} placeholder="Paste your draft here." disabled={busy} />
         </div>
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <Text>{workspace.submission ? `Latest saved draft: #${workspace.submission.draft_number}` : 'No draft submitted yet for this assignment.'}</Text>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <Text>
+            {workspace.submission
+              ? reviewPending
+                ? `Latest saved draft: #${workspace.submission.draft_number}. Review queued ${reviewJob?.updated_at ?? 'just now'}.`
+                : `Latest saved draft: #${workspace.submission.draft_number}`
+              : 'No draft submitted yet for this assignment.'}
+          </Text>
           <Button onClick={handleReview} color="dark/zinc" disabled={busy || draft.trim() === ''}>
             <SparklesIcon />
-            {reviewing ? 'Reviewing…' : 'Submit for review'}
+            {reviewing || reviewPending ? 'Review queued…' : 'Submit for review'}
           </Button>
         </div>
       </WorkspaceCard>

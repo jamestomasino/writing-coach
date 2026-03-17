@@ -32,6 +32,8 @@ type Server struct {
 }
 
 func (s Server) Serve(ctx context.Context) error {
+	go s.runReviewWorker(ctx)
+
 	server := &http.Server{
 		Addr:    s.Config.HTTPAddr,
 		Handler: s.routes(),
@@ -85,6 +87,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/submissions", s.handleSubmissionsList)
 	mux.HandleFunc("POST /api/submissions", s.handleSubmissionCreate)
 	mux.HandleFunc("GET /api/submissions/{id}", s.handleSubmissionGet)
+	mux.HandleFunc("GET /api/review-jobs", s.handleReviewJobGet)
 	mux.HandleFunc("GET /api/reviews", s.handleReviewsList)
 	mux.HandleFunc("POST /api/reviews", s.handleReviewCreate)
 	mux.HandleFunc("GET /api/reviews/{id}", s.handleReviewGet)
@@ -269,6 +272,7 @@ type scoreResponse struct {
 
 type tgoAssessmentResponse struct {
 	TGOCode  string `json:"tgo_code"`
+	TGOTitle string `json:"tgo_title,omitempty"`
 	Status   string `json:"status"`
 	Evidence string `json:"evidence"`
 }
@@ -284,6 +288,7 @@ type reviewResponse struct {
 	AnalyzerFindings   []string                `json:"analyzer_findings"`
 	NextFocus          string                  `json:"next_focus"`
 	MetricWordCount    int                     `json:"metric_word_count"`
+	SkillScores        []scoreResponse         `json:"skill_scores"`
 	TGOAssessments     []tgoAssessmentResponse `json:"tgo_assessments"`
 	CompletedTGOChecks []tgoAssessmentResponse `json:"completed_tgo_checks"`
 	Annotations        []annotationResponse    `json:"annotations,omitempty"`
@@ -309,9 +314,22 @@ type reviewArtifactsPayload struct {
 type annotationResponse struct {
 	Quote    string `json:"quote"`
 	TGOCode  string `json:"tgo_code"`
+	TGOTitle string `json:"tgo_title,omitempty"`
 	Category string `json:"category"`
 	Comment  string `json:"comment"`
 	Severity string `json:"severity"`
+}
+
+type reviewJobResponse struct {
+	ID           int64  `json:"id"`
+	SubmissionID int64  `json:"submission_id"`
+	ReviewID     int64  `json:"review_id,omitempty"`
+	Status       string `json:"status"`
+	AttemptCount int    `json:"attempt_count"`
+	MaxAttempts  int    `json:"max_attempts"`
+	LastError    string `json:"last_error,omitempty"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
 }
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -1330,50 +1348,72 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
 		return
 	}
-	activeTGOs, err := s.Store.ActiveTGOs(r.Context(), appContext.EnrollmentID)
+	if existing, err := s.Store.LatestReviewForSubmission(r.Context(), sub.ID); err == nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+			"review":  toReviewResponse(existing),
+			"job": reviewJobResponse{
+				SubmissionID: sub.ID,
+				ReviewID:     existing.ID,
+				Status:       "completed",
+			},
+		})
+		return
+	}
+	job, err := s.Store.EnqueueReviewJob(r.Context(), domain.ReviewJob{
+		UserID:       appContext.UserID,
+		TreeID:       appContext.TreeID,
+		EnrollmentID: appContext.EnrollmentID,
+		SubmissionID: sub.ID,
+		MaxAttempts:  3,
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	completedTGOs, err := s.Store.CompletedTGOs(r.Context(), appContext.EnrollmentID)
+	log.Printf("review job queued: job=%d submission=%d user=%d tree=%d", job.ID, job.SubmissionID, job.UserID, job.TreeID)
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"job":     toReviewJobResponse(job),
+	})
+}
+
+func (s Server) handleReviewJobGet(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	reviewResult := s.Reviews.ReviewSubmissionDetailed(r.Context(), sub, activeTGOs, completedTGOs)
-	reviewResult.Review.UserID = appContext.UserID
-	reviewResult.Review.TreeID = appContext.TreeID
-	recommendation, err := s.Curriculum.SyncTGOs(r.Context(), s.Store, appContext.TreeSlug, appContext.EnrollmentID, reviewResult.Review)
+	submissionID, err := parseOptionalInt64(r.URL.Query().Get("submission_id"))
+	if err != nil || submissionID == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("submission_id is required"))
+		return
+	}
+	sub, err := s.Store.GetSubmission(r.Context(), submissionID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
 		return
 	}
-	reviewResult.Review.NextFocus = recommendation.Focus
-	reviewID, err := s.Store.SaveReview(r.Context(), reviewResult.Review, reviewResult.Scores)
+	if !belongsToContext(sub.UserID, sub.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
+		return
+	}
+	job, err := s.Store.ReviewJobBySubmission(r.Context(), appContext.UserID, appContext.TreeID, submissionID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
 		return
 	}
-	if err := s.Store.SaveReviewArtifacts(r.Context(), domain.ReviewArtifacts{
-		ReviewID:           reviewID,
-		AnalyzerReportJSON: mustJSON(reviewResult.AnalyzerReport),
-		RecommendationJSON: mustJSON(recommendation),
-		ComparisonJSON:     mustJSON(s.reviewComparisonPayload(r.Context(), sub, reviewResult.Review)),
-		AnnotationsJSON:    mustJSON(reviewResult.Review.Annotations),
-	}); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if err := s.Store.UpdateCurriculumState(r.Context(), appContext.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	reviewResult.Review.ID = reviewID
-	writeJSON(w, http.StatusCreated, map[string]any{
-		"context":        requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"review":         toReviewResponse(reviewResult.Review),
-		"skill_scores":   toScoreResponses(reviewResult.Scores),
-		"recommendation": recommendation,
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"job":     toReviewJobResponse(job),
 	})
 }
 
@@ -2038,12 +2078,113 @@ func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submissi
 	}
 }
 
+func (s Server) runReviewWorker(ctx context.Context) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := s.Store.RequeueStaleReviewJobs(ctx, 3*time.Minute); err != nil {
+				log.Printf("review worker: requeue stale jobs failed: %v", err)
+			}
+			if err := s.processNextReviewJob(ctx); err != nil && !errors.Is(err, sql.ErrNoRows) {
+				log.Printf("review worker: process failed: %v", err)
+			}
+		}
+	}
+}
+
+func (s Server) processNextReviewJob(ctx context.Context) error {
+	job, err := s.Store.ClaimNextReviewJob(ctx)
+	if err != nil {
+		return err
+	}
+	log.Printf("review job started: job=%d submission=%d attempt=%d", job.ID, job.SubmissionID, job.AttemptCount)
+	if err := s.processReviewJob(ctx, job); err != nil {
+		log.Printf("review job failed: job=%d submission=%d attempt=%d err=%v", job.ID, job.SubmissionID, job.AttemptCount, err)
+		if failErr := s.Store.FailReviewJob(ctx, job, err.Error()); failErr != nil {
+			log.Printf("review job failure update failed: job=%d err=%v", job.ID, failErr)
+		}
+		return err
+	}
+	log.Printf("review job completed: job=%d submission=%d", job.ID, job.SubmissionID)
+	return nil
+}
+
+func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) error {
+	sub, err := s.Store.GetSubmission(ctx, job.SubmissionID)
+	if err != nil {
+		return fmt.Errorf("load submission: %w", err)
+	}
+	if existing, err := s.Store.LatestReviewForSubmission(ctx, sub.ID); err == nil {
+		return s.Store.CompleteReviewJob(ctx, job.ID, existing.ID)
+	}
+	activeTGOs, err := s.Store.ActiveTGOs(ctx, job.EnrollmentID)
+	if err != nil {
+		return fmt.Errorf("load active tgos: %w", err)
+	}
+	completedTGOs, err := s.Store.CompletedTGOs(ctx, job.EnrollmentID)
+	if err != nil {
+		return fmt.Errorf("load completed tgos: %w", err)
+	}
+	treeSlug, err := s.treeSlugForJob(ctx, job)
+	if err != nil {
+		return fmt.Errorf("load tree slug: %w", err)
+	}
+
+	reviewResult := s.Reviews.ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
+	reviewResult.Review.UserID = job.UserID
+	reviewResult.Review.TreeID = job.TreeID
+	recommendation, err := s.Curriculum.SyncTGOs(ctx, s.Store, treeSlug, job.EnrollmentID, reviewResult.Review)
+	if err != nil {
+		return fmt.Errorf("sync curriculum: %w", err)
+	}
+	reviewResult.Review.NextFocus = recommendation.Focus
+	reviewID, err := s.Store.SaveReview(ctx, reviewResult.Review, reviewResult.Scores)
+	if err != nil {
+		return fmt.Errorf("save review: %w", err)
+	}
+	if err := s.Store.SaveReviewArtifacts(ctx, domain.ReviewArtifacts{
+		ReviewID:           reviewID,
+		AnalyzerReportJSON: mustJSON(reviewResult.AnalyzerReport),
+		RecommendationJSON: mustJSON(recommendation),
+		ComparisonJSON:     mustJSON(s.reviewComparisonPayload(ctx, sub, reviewResult.Review)),
+		AnnotationsJSON:    mustJSON(reviewResult.Review.Annotations),
+	}); err != nil {
+		return fmt.Errorf("save review artifacts: %w", err)
+	}
+	if err := s.Store.UpdateCurriculumState(ctx, job.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
+		return fmt.Errorf("update curriculum state: %w", err)
+	}
+	if err := s.Store.CompleteReviewJob(ctx, job.ID, reviewID); err != nil {
+		return fmt.Errorf("complete review job: %w", err)
+	}
+	return nil
+}
+
+func (s Server) treeSlugForJob(ctx context.Context, job domain.ReviewJob) (string, error) {
+	var slug string
+	err := s.Store.SQL.QueryRowContext(ctx, `
+		SELECT t.slug
+		FROM user_tree_enrollments e
+		JOIN tgo_trees t ON t.id = e.tree_id
+		WHERE e.id = ?
+	`, job.EnrollmentID).Scan(&slug)
+	return slug, err
+}
+
 func decodeReviewArtifacts(artifacts domain.ReviewArtifacts) *reviewArtifactsPayload {
 	payload := &reviewArtifactsPayload{}
 	_ = json.Unmarshal([]byte(artifacts.AnalyzerReportJSON), &payload.AnalyzerReport)
 	_ = json.Unmarshal([]byte(artifacts.RecommendationJSON), &payload.Recommendation)
 	_ = json.Unmarshal([]byte(artifacts.ComparisonJSON), &payload.Comparison)
 	_ = json.Unmarshal([]byte(artifacts.AnnotationsJSON), &payload.Annotations)
+	for i := range payload.Annotations {
+		payload.Annotations[i].TGOTitle = tgoTitleForCode(payload.Annotations[i].TGOCode)
+	}
 	return payload
 }
 
@@ -2396,10 +2537,12 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 		AnalyzerFindings: reviewResult.AnalyzerFindings,
 		NextFocus:        reviewResult.NextFocus,
 		MetricWordCount:  reviewResult.MetricWordCount,
+		SkillScores:      toScoreResponses(reviewResult.SkillScores),
 	}
 	for _, assessment := range reviewResult.TGOAssessments {
 		out.TGOAssessments = append(out.TGOAssessments, tgoAssessmentResponse{
 			TGOCode:  assessment.TGOCode,
+			TGOTitle: tgoTitleForCode(assessment.TGOCode),
 			Status:   assessment.Status,
 			Evidence: assessment.Evidence,
 		})
@@ -2407,6 +2550,7 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 	for _, check := range reviewResult.CompletedTGOChecks {
 		out.CompletedTGOChecks = append(out.CompletedTGOChecks, tgoAssessmentResponse{
 			TGOCode:  check.TGOCode,
+			TGOTitle: tgoTitleForCode(check.TGOCode),
 			Status:   check.Status,
 			Evidence: check.Evidence,
 		})
@@ -2415,6 +2559,7 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 		out.Annotations = append(out.Annotations, annotationResponse{
 			Quote:    annotation.Quote,
 			TGOCode:  annotation.TGOCode,
+			TGOTitle: tgoTitleForCode(annotation.TGOCode),
 			Category: annotation.Category,
 			Comment:  annotation.Comment,
 			Severity: annotation.Severity,
@@ -2429,4 +2574,25 @@ func toScoreResponses(scores []domain.SkillScore) []scoreResponse {
 		out = append(out, scoreResponse{Skill: score.Skill, Score: score.Score})
 	}
 	return out
+}
+
+func toReviewJobResponse(job domain.ReviewJob) reviewJobResponse {
+	return reviewJobResponse{
+		ID:           job.ID,
+		SubmissionID: job.SubmissionID,
+		ReviewID:     job.ReviewID,
+		Status:       job.Status,
+		AttemptCount: job.AttemptCount,
+		MaxAttempts:  job.MaxAttempts,
+		LastError:    job.LastError,
+		CreatedAt:    db.Since(job.CreatedAt),
+		UpdatedAt:    db.Since(job.UpdatedAt),
+	}
+}
+
+func tgoTitleForCode(code string) string {
+	if tgo, ok := domain.TGOByCode(code); ok {
+		return tgo.Title
+	}
+	return strings.ReplaceAll(code, "-", " ")
 }

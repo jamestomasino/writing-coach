@@ -97,6 +97,7 @@ type Review struct {
 	ProviderNote       string
 	CreatedAt          time.Time
 	MetricWordCount    int
+	SkillScores        []SkillScore
 }
 
 type ReviewAnnotation struct {
@@ -120,4 +121,19 @@ type SkillScore struct {
 	SubmissionID int64
 	Skill        string
 	Score        int
+}
+
+type ReviewJob struct {
+	ID           int64
+	UserID       int64
+	TreeID       int64
+	EnrollmentID int64
+	SubmissionID int64
+	ReviewID     int64
+	Status       string
+	AttemptCount int
+	MaxAttempts  int
+	LastError    string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }

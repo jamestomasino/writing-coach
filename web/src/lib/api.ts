@@ -8,6 +8,7 @@ import type {
   OnboardingOptions,
   OnboardingState,
   Review,
+  ReviewJob,
   Submission,
   Tree,
   UserRecord,
@@ -44,6 +45,25 @@ function normalizeTree(tree: Tree): Tree {
       ...tgo,
       prerequisites: arrayOrEmpty(tgo.prerequisites),
     })),
+  }
+}
+
+function normalizeReview(review: Review): Review {
+  return {
+    ...review,
+    strengths: arrayOrEmpty(review.strengths),
+    weaknesses: arrayOrEmpty(review.weaknesses),
+    analyzer_findings: arrayOrEmpty(review.analyzer_findings),
+    skill_scores: arrayOrEmpty(review.skill_scores),
+    tgo_assessments: arrayOrEmpty(review.tgo_assessments),
+    completed_tgo_checks: arrayOrEmpty(review.completed_tgo_checks),
+    annotations: arrayOrEmpty(review.annotations),
+    artifacts: review.artifacts
+      ? {
+          ...review.artifacts,
+          annotations: arrayOrEmpty(review.artifacts.annotations),
+        }
+      : undefined,
   }
 }
 
@@ -112,12 +132,12 @@ export async function getSubmission(submissionId: number) {
 
 export async function getReviews(submissionId: number, limit = 10) {
   const payload = await request<{ reviews: Review[] }>(`/api/reviews?submission_id=${submissionId}&limit=${limit}`)
-  return payload.reviews
+  return payload.reviews.map(normalizeReview)
 }
 
 export async function getReview(reviewId: number) {
   const payload = await request<{ review: Review }>(`/api/reviews/${reviewId}`)
-  return payload.review
+  return normalizeReview(payload.review)
 }
 
 export async function getComparison(submissionId: number, against?: number) {
@@ -176,11 +196,16 @@ export async function submitDraft(input: {
 }
 
 export async function reviewSubmission(submissionId: number) {
-  const payload = await request<{ review: Review }>('/api/reviews', {
+  const payload = await request<{ job: ReviewJob }>('/api/reviews', {
     method: 'POST',
     body: JSON.stringify({ submission_id: submissionId }),
   })
-  return payload.review
+  return payload.job
+}
+
+export async function getReviewJob(submissionId: number) {
+  const payload = await request<{ job: ReviewJob }>(`/api/review-jobs?submission_id=${submissionId}`)
+  return payload.job
 }
 
 export function listAdmins() {
