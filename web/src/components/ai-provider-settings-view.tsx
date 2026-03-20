@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { CardHeader } from '@/components/card-header'
@@ -26,6 +27,82 @@ function providerLabel(value?: string) {
   return providerOptions.find((item) => item.value === value)?.label ?? value ?? 'System provider'
 }
 
+function providerStatus(settings: AIProviderSettings | null) {
+  if (!settings?.ready) {
+    return {
+      label: 'Setup required',
+      detail: 'Add a personal provider or enable a shared fallback before generation can run.',
+      badgeColor: 'rose' as const,
+    }
+  }
+  if (settings.enabled && settings.provider) {
+    return {
+      label: providerLabel(settings.provider),
+      detail: 'Your personal provider is active for future generation.',
+      badgeColor: 'emerald' as const,
+    }
+  }
+  return {
+    label: 'System provider',
+    detail: settings?.system_fallback ? 'The app will use the shared provider while it remains available.' : 'No shared provider is available.',
+    badgeColor: settings?.system_fallback ? ('amber' as const) : ('rose' as const),
+  }
+}
+
+function classifyProviderIssue(message: string | null) {
+  const text = (message ?? '').toLowerCase()
+  if (!text) {
+    return null
+  }
+  if (text.includes('rejected this api key')) {
+    return {
+      title: 'API key rejected',
+      body: 'This provider did not accept the key. Check that you copied the full key and that it belongs to the selected provider.',
+      tone: 'danger' as const,
+    }
+  }
+  if (text.includes('out of quota') || text.includes('billing')) {
+    return {
+      title: 'Quota or billing issue',
+      body: 'The provider account cannot be used right now. Check quota, credits, or billing on the provider side.',
+      tone: 'warning' as const,
+    }
+  }
+  if (text.includes('rate-limiting')) {
+    return {
+      title: 'Provider is rate-limiting requests',
+      body: 'Try again in a moment, or switch to another provider if you have one.',
+      tone: 'warning' as const,
+    }
+  }
+  if (text.includes('temporarily unavailable') || text.includes('timed out')) {
+    return {
+      title: 'Provider is temporarily unavailable',
+      body: 'This usually means an endpoint or upstream issue. Confirm the base URL and try again shortly.',
+      tone: 'warning' as const,
+    }
+  }
+  return {
+    title: 'Provider issue',
+    body: message ?? 'The provider could not be used right now.',
+    tone: 'danger' as const,
+  }
+}
+
+function formatLocalTimestamp(value?: string) {
+  if (!value) {
+    return null
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
 export function AIProviderSettingsView({ required = false, nextPath }: { required?: boolean; nextPath?: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -40,6 +117,9 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   const [saving, setSaving] = useState(false)
   const [validating, setValidating] = useState(false)
   const [validationMessage, setValidationMessage] = useState<string | null>(null)
+  const status = providerStatus(settings)
+  const issue = classifyProviderIssue(error)
+  const validatedAt = formatLocalTimestamp(settings?.validated_at)
 
   useEffect(() => {
     let cancelled = false
@@ -163,15 +243,24 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
       <WorkspaceCard>
         <CardHeader eyebrow="Status" title="Current provider status" />
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-          <p>
-            Effective provider: <span className="font-semibold text-zinc-950 dark:text-white">{settings?.enabled && settings?.provider ? providerLabel(settings.provider) : 'System provider'}</span>
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p>
+              Effective provider: <span className="font-semibold text-zinc-950 dark:text-white">{status.label}</span>
+            </p>
+            <Badge color={status.badgeColor}>{settings?.enabled && settings?.provider ? 'Personal' : settings?.system_fallback ? 'Shared' : 'Needed'}</Badge>
+          </div>
+          <p>{status.detail}</p>
           <p>
             System fallback: <span className="font-semibold text-zinc-950 dark:text-white">{settings?.system_fallback ? 'available' : 'not available'}</span>
           </p>
           {settings?.has_key ? (
             <p>
               Saved key: <span className="font-semibold text-zinc-950 dark:text-white">••••{settings.key_last4}</span>
+            </p>
+          ) : null}
+          {validatedAt ? (
+            <p>
+              Last checked: <span className="font-semibold text-zinc-950 dark:text-white">{validatedAt}</span>
             </p>
           ) : null}
         </div>
@@ -189,12 +278,20 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         </Callout>
       ) : null}
 
-      {error ? (
-        <EmptyState title="AI settings issue" body={error} />
+      {issue ? (
+        <Callout title={issue.title} body={issue.body} tone={issue.tone} />
       ) : null}
 
       {validationMessage ? (
-        <Callout title="Provider check">{validationMessage}</Callout>
+        <Callout title="Provider check" body={validationMessage} tone="success" />
+      ) : null}
+
+      {settings?.last_validation_error ? (
+        <Callout
+          title="Last validation issue"
+          body={settings.last_validation_error}
+          tone="warning"
+        />
       ) : null}
 
       <WorkspaceCard>
