@@ -45,6 +45,7 @@ export type Exercise = {
   success_criteria: string[]
   generation_kind: string
   provider_note?: string
+  source_submission_id?: number
 }
 
 export type Submission = {

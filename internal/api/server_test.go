@@ -1474,6 +1474,21 @@ type testHarness struct {
 	Store *db.Store
 }
 
+func configureTestSQLite(t *testing.T, store *db.Store) {
+	t.Helper()
+
+	pragmas := []string{
+		"PRAGMA journal_mode = MEMORY",
+		"PRAGMA synchronous = OFF",
+		"PRAGMA temp_store = MEMORY",
+	}
+	for _, pragma := range pragmas {
+		if _, err := store.SQL.Exec(pragma); err != nil {
+			t.Fatalf("configure sqlite pragma %q: %v", pragma, err)
+		}
+	}
+}
+
 func newTestHarnessWithAuth(t *testing.T, apiToken, kratosPublicURL string) testHarness {
 	t.Helper()
 	root := t.TempDir()
@@ -1481,6 +1496,7 @@ func newTestHarnessWithAuth(t *testing.T, apiToken, kratosPublicURL string) test
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	configureTestSQLite(t, store)
 
 	ctx := context.Background()
 	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {

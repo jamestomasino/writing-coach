@@ -244,15 +244,16 @@ type tgoResponse struct {
 }
 
 type exerciseResponse struct {
-	ID              int64    `json:"id"`
-	Title           string   `json:"title"`
-	Brief           string   `json:"brief"`
-	Constraints     []string `json:"constraints"`
-	FocusSkills     []string `json:"focus_skills"`
-	TGOCodes        []string `json:"tgo_codes"`
-	SuccessCriteria []string `json:"success_criteria"`
-	GenerationKind  string   `json:"generation_kind"`
-	ProviderNote    string   `json:"provider_note,omitempty"`
+	ID                 int64    `json:"id"`
+	Title              string   `json:"title"`
+	Brief              string   `json:"brief"`
+	Constraints        []string `json:"constraints"`
+	FocusSkills        []string `json:"focus_skills"`
+	TGOCodes           []string `json:"tgo_codes"`
+	SuccessCriteria    []string `json:"success_criteria"`
+	GenerationKind     string   `json:"generation_kind"`
+	ProviderNote       string   `json:"provider_note,omitempty"`
+	SourceSubmissionID int64    `json:"source_submission_id,omitempty"`
 }
 
 type submissionResponse struct {
@@ -2297,15 +2298,16 @@ func withRecovery(next http.Handler) http.Handler {
 
 func toExerciseResponse(ex domain.Exercise) exerciseResponse {
 	return exerciseResponse{
-		ID:              ex.ID,
-		Title:           ex.Title,
-		Brief:           ex.Brief,
-		Constraints:     ex.Constraints,
-		FocusSkills:     ex.FocusSkills,
-		TGOCodes:        ex.TGOCodes,
-		SuccessCriteria: ex.SuccessCriteria,
-		GenerationKind:  ex.GenerationKind,
-		ProviderNote:    ex.ProviderNote,
+		ID:                 ex.ID,
+		Title:              ex.Title,
+		Brief:              ex.Brief,
+		Constraints:        ex.Constraints,
+		FocusSkills:        ex.FocusSkills,
+		TGOCodes:           ex.TGOCodes,
+		SuccessCriteria:    ex.SuccessCriteria,
+		GenerationKind:     ex.GenerationKind,
+		ProviderNote:       ex.ProviderNote,
+		SourceSubmissionID: ex.SourceSubmissionID,
 	}
 }
 

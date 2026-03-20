@@ -12,7 +12,7 @@ import { Heading, Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
-import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
+import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmission, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
 import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
 import { EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -22,10 +22,45 @@ type WorkspaceState = {
   exercise?: Exercise
   submission?: Submission
   review?: Review
+  sourceSubmission?: Submission
+  sourceReview?: Review
 }
 
 function countWords(value: string) {
   return value.trim() === '' ? 0 : value.trim().split(/\s+/).length
+}
+
+function isTransientError(err: unknown) {
+  if (!(err instanceof Error)) {
+    return false
+  }
+  const message = err.message.toLowerCase()
+  return (
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('network request failed') ||
+    message.includes('timeout') ||
+    message.includes('500') ||
+    message.includes('502') ||
+    message.includes('503') ||
+    message.includes('504')
+  )
+}
+
+async function withRetry<T>(load: () => Promise<T>, attempts = 3, delayMs = 250): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await load()
+    } catch (err) {
+      lastError = err
+      if (attempt === attempts || !isTransientError(err)) {
+        throw err
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, delayMs * attempt))
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Request failed')
 }
 
 function renderMasteryState(tgo: Dashboard['active_tgos'][number]) {
@@ -63,6 +98,7 @@ export function CurrentAssignmentView() {
   const [reviewing, setReviewing] = useState(false)
   const [preparingRevision, setPreparingRevision] = useState(false)
   const [reviewJob, setReviewJob] = useState<ReviewJob | null>(null)
+  const [revisionPanel, setRevisionPanel] = useState<'brief' | 'feedback'>('brief')
 
   useEffect(() => {
     let cancelled = false
@@ -84,36 +120,47 @@ export function CurrentAssignmentView() {
 
         const dashboard = await getDashboard()
         const revisionExerciseID = Number(searchParams.get('revisionExercise') ?? 0)
+        const inRevisionMode = revisionExerciseID > 0
         let exercise: Exercise | undefined
-        if (revisionExerciseID > 0) {
-          exercise = await getExercise(revisionExerciseID)
+        if (inRevisionMode) {
+          exercise = await withRetry(() => getExercise(revisionExerciseID))
         } else {
           const exercises = await getExercises(1)
           exercise = exercises[0]
         }
         let submission: Submission | undefined
         let review: Review | undefined
+        let sourceSubmission: Submission | undefined
+        let sourceReview: Review | undefined
         let pendingJob: ReviewJob | null = null
         if (exercise) {
-          const submissions = await getSubmissions(exercise.id, 1)
+          const submissions = inRevisionMode ? await withRetry(() => getSubmissions(exercise.id, 1)) : await getSubmissions(exercise.id, 1)
           submission = submissions[0]
           if (submission) {
-            const reviews = await getReviews(submission.id, 1)
+            const currentSubmissionID = submission.id
+            const reviews = inRevisionMode ? await withRetry(() => getReviews(currentSubmissionID, 1)) : await getReviews(currentSubmissionID, 1)
             review = reviews[0]
             if (!review) {
               try {
-                pendingJob = await getReviewJob(submission.id)
+                pendingJob = await getReviewJob(currentSubmissionID)
               } catch {}
             }
+          }
+          if (exercise.source_submission_id) {
+            sourceSubmission = inRevisionMode ? await withRetry(() => getSubmission(exercise.source_submission_id!)) : await getSubmission(exercise.source_submission_id)
+            const sourceSubmissionID = sourceSubmission.id
+            const sourceReviews = inRevisionMode ? await withRetry(() => getReviews(sourceSubmissionID, 1)) : await getReviews(sourceSubmissionID, 1)
+            sourceReview = sourceReviews[0]
           }
         }
 
         if (!cancelled) {
-          setWorkspace({ dashboard, exercise, submission, review })
-          setDraft(submission?.content ?? '')
+          setWorkspace({ dashboard, exercise, submission, review, sourceSubmission, sourceReview })
+          setDraft(submission?.content ?? sourceSubmission?.content ?? '')
           setReviewJob(pendingJob)
           setSessionRequired(false)
           setError(null)
+          setRevisionPanel(sourceReview ? 'feedback' : 'brief')
         }
       } catch (err) {
         if (!cancelled) {
@@ -121,7 +168,12 @@ export function CurrentAssignmentView() {
           if (message.toLowerCase().includes('unauthorized')) {
             setSessionRequired(true)
           } else {
-            setError(message)
+            const revisionExerciseID = Number(searchParams.get('revisionExercise') ?? 0)
+            if (revisionExerciseID > 0 && isTransientError(err)) {
+              setError('Could not load the revision workspace on the first attempt. Please try again. The revision brief may already be ready.')
+            } else {
+              setError(message)
+            }
           }
         }
       } finally {
@@ -259,11 +311,12 @@ export function CurrentAssignmentView() {
     return <LoadingState />
   }
 
-  const { dashboard, exercise, review } = workspace
+  const { dashboard, exercise, review, sourceSubmission, sourceReview } = workspace
   const isRevisionBrief = searchParams.get('revisionExercise') !== null
   const reviewPending = reviewJob?.status === 'queued' || reviewJob?.status === 'running'
   const reviewFailed = reviewJob?.status === 'failed'
   const busy = reviewing || preparingRevision || reviewPending
+  const compareSubmissionID = workspace.submission?.id ?? 0
 
   if (!exercise) {
     return (
@@ -363,12 +416,78 @@ export function CurrentAssignmentView() {
             title="Revision brief"
             description="This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active skills and the coaching notes below."
             actions={
-              <Button href={`/compare/${workspace.submission?.id ?? 0}`} outline>
-                <ArrowPathIcon />
-                Open revision compare
-              </Button>
+              review ? (
+                <Button href={`/compare/${compareSubmissionID}`} outline>
+                  <ArrowPathIcon />
+                  Open revision compare
+                </Button>
+              ) : sourceReview ? (
+                <Button href={`/reviews/${sourceReview.id}`} outline>
+                  Open prior review
+                </Button>
+              ) : null
             }
           />
+          {sourceReview ? (
+            <div className="mt-5">
+              <div className="inline-flex rounded-xl border border-stone-200 bg-stone-50 p-1 dark:border-white/10 dark:bg-white/5">
+                <button
+                  type="button"
+                  onClick={() => setRevisionPanel('brief')}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${revisionPanel === 'brief' ? 'bg-white text-zinc-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white'}`}
+                >
+                  Revision brief
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRevisionPanel('feedback')}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${revisionPanel === 'feedback' ? 'bg-white text-zinc-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white'}`}
+                >
+                  Prior feedback
+                </button>
+              </div>
+              {revisionPanel === 'brief' ? (
+                <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Badge color="zinc">Source draft #{sourceSubmission?.draft_number ?? 1}</Badge>
+                    <Badge color="cyan">{exercise.generation_kind}</Badge>
+                  </div>
+                  <Text className="mt-3">
+                    The editor is preloaded with your latest reviewed draft so you can revise directly instead of pasting it back in.
+                  </Text>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Prior coaching summary</div>
+                    <Text className="mt-3">{sourceReview.summary}</Text>
+                  </div>
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-sm font-semibold text-zinc-950 dark:text-white">Strengths to preserve</div>
+                      <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
+                        {sourceReview.strengths.map((item) => (
+                          <li key={item}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-sm font-semibold text-zinc-950 dark:text-white">Revision targets</div>
+                      <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
+                        {sourceReview.weaknesses.map((item) => (
+                          <li key={item}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">Next focus</div>
+                    <Text className="mt-3">{sourceReview.next_focus}</Text>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
         </WorkspaceCard>
       ) : null}
 
@@ -463,7 +582,7 @@ export function CurrentAssignmentView() {
                 <Button href={`/reviews/${review.id}`} outline>
                   Open review
                 </Button>
-                <Button href={`/compare/${workspace.submission?.id ?? 0}`} plain>
+                <Button href={`/compare/${compareSubmissionID}`} plain>
                   Compare drafts
                 </Button>
               </div>
