@@ -15,6 +15,7 @@ import { Text } from '@/components/text'
 import { deleteAISettings, getAISettings, saveAISettings, validateAISettings } from '@/lib/api'
 import type { AIProviderSettings } from '@/lib/types'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
+import { useToast } from './toast-provider'
 import { WorkspaceCard } from './workspace-card'
 
 const providerOptions = [
@@ -164,6 +165,7 @@ function formatLocalTimestamp(value?: string) {
 
 export function AIProviderSettingsView({ required = false, nextPath }: { required?: boolean; nextPath?: string }) {
   const router = useRouter()
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [settings, setSettings] = useState<AIProviderSettings | null>(null)
@@ -175,9 +177,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   const [enabled, setEnabled] = useState(true)
   const [saving, setSaving] = useState(false)
   const [validating, setValidating] = useState(false)
-  const [validationMessage, setValidationMessage] = useState<string | null>(null)
   const status = providerStatus(settings)
-  const issue = classifyProviderIssue(error)
   const validatedAt = formatLocalTimestamp(settings?.validated_at)
   const personalStorageAvailable = settings?.personal_provider_storage_available ?? true
   const selectedProvider = providerMetadata[provider as keyof typeof providerMetadata] ?? providerMetadata.openai
@@ -216,7 +216,6 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
     try {
       setValidating(true)
       setError(null)
-      setValidationMessage(null)
       const result = await validateAISettings({
         provider,
         api_key: apiKey,
@@ -225,9 +224,11 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         review_model_override: reviewModel,
         enabled,
       })
-      setValidationMessage(`Connection looks good for ${providerLabel(result.settings.provider)}.`)
+      toast.success(`Connection looks good for ${providerLabel(result.settings.provider)}.`, 'Provider check')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not validate AI settings')
+      const message = err instanceof Error ? err.message : 'Could not validate AI settings'
+      const details = classifyProviderIssue(message)
+      toast.error(details?.body ?? message, details?.title ?? 'Provider issue')
     } finally {
       setValidating(false)
     }
@@ -238,7 +239,6 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
     try {
       setSaving(true)
       setError(null)
-      setValidationMessage(null)
       const current = await saveAISettings({
         provider,
         api_key: apiKey,
@@ -249,12 +249,14 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
       })
       setSettings(current)
       setAPIKey('')
-      setValidationMessage('AI provider settings saved.')
+      toast.success('AI provider settings saved.')
       if (required && current.ready) {
         router.push(nextPath && nextPath.startsWith('/') ? nextPath : '/')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save AI settings')
+      const message = err instanceof Error ? err.message : 'Could not save AI settings'
+      const details = classifyProviderIssue(message)
+      toast.error(details?.body ?? message, details?.title ?? 'Provider issue')
     } finally {
       setSaving(false)
     }
@@ -264,7 +266,6 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
     try {
       setSaving(true)
       setError(null)
-      setValidationMessage(null)
       const result = await deleteAISettings()
       setSettings(result.settings)
       setProvider('openai')
@@ -273,9 +274,10 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
       setPromptModel('')
       setReviewModel('')
       setEnabled(true)
-      setValidationMessage('Personal provider removed. The app will use the system provider when available.')
+      toast.success('Personal provider removed. The app will use the system provider when available.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not remove AI settings')
+      const message = err instanceof Error ? err.message : 'Could not remove AI settings'
+      toast.error(message, 'Provider issue')
     } finally {
       setSaving(false)
     }
@@ -353,14 +355,6 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         <Callout title="Setup needed to continue">
           This workspace needs an AI provider before assignment and feedback generation can run.
         </Callout>
-      ) : null}
-
-      {issue ? (
-        <Callout title={issue.title} body={issue.body} tone={issue.tone} />
-      ) : null}
-
-      {validationMessage ? (
-        <Callout title="Provider check" body={validationMessage} tone="success" />
       ) : null}
 
       {settings?.last_validation_error ? (

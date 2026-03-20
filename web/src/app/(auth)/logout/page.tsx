@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { EmptyState, LoadingState } from '@/components/status-state'
+import { useToast } from '@/components/toast-provider'
 
 export const dynamic = 'force-dynamic'
 
 export default function LogoutPage() {
+  const toast = useToast()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -31,7 +33,9 @@ export default function LogoutPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not sign out.')
+          const message = err instanceof Error ? err.message : 'Could not sign out.'
+          setError(message)
+          toast.error(message, 'Sign out unavailable')
         }
       }
     }
@@ -40,7 +44,7 @@ export default function LogoutPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [toast])
 
   if (error) {
     return (

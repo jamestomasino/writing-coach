@@ -12,6 +12,7 @@ import { Text } from '@/components/text'
 import { getAdminAIProviderEvents, getSession, listAdmins, listUsers, provisionUser } from '@/lib/api'
 import type { AIProviderEvent, AIProviderEventFilters, AIProviderEventSummary, AuthSession, UserRecord } from '@/lib/types'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
+import { useToast } from './toast-provider'
 import { WorkspaceCard } from './workspace-card'
 
 function formatLocalTimestamp(value: string) {
@@ -30,6 +31,7 @@ function humanizeEventLabel(value: string) {
 }
 
 export function AdminView() {
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<AuthSession | null>(null)
@@ -100,7 +102,9 @@ export function AdminView() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load AI provider activity')
+          const message = err instanceof Error ? err.message : 'Could not load AI provider activity'
+          setError(message)
+          toast.error(message, 'AI activity')
         }
       } finally {
         if (!cancelled) {
@@ -123,8 +127,11 @@ export function AdminView() {
       setUsers(await listUsers())
       setSlug('')
       setName('')
+      toast.success(`Provisioned ${name}.`, 'User created')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not provision user')
+      const message = err instanceof Error ? err.message : 'Could not provision user'
+      setError(message)
+      toast.error(message, 'Provisioning failed')
     } finally {
       setSaving(false)
     }
