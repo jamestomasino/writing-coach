@@ -337,6 +337,7 @@ export function CurrentAssignmentView() {
             rows={18}
             placeholder="Paste your draft here."
             disabled={busy}
+            data-testid="draft-textarea"
           />
         </div>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
@@ -347,7 +348,12 @@ export function CurrentAssignmentView() {
                 : `Latest saved draft: #${workspace.submission.draft_number}`
               : 'No draft submitted yet for this assignment.'}
           </Text>
-          <Button onClick={handleReview} color="dark/zinc" disabled={busy || draft.trim() === ''}>
+          <Button
+            onClick={handleReview}
+            color="dark/zinc"
+            disabled={busy || draft.trim() === ''}
+            data-testid="submit-review-button"
+          >
             <SparklesIcon />
             {reviewing || reviewPending ? 'Review queued…' : 'Submit for review'}
           </Button>

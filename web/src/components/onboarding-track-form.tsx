@@ -69,7 +69,7 @@ export function OnboardingTrackForm({
 }: Props) {
   return (
     <WorkspaceCard>
-      <form className="space-y-8" onSubmit={onSubmit}>
+      <form className="space-y-8" onSubmit={onSubmit} data-testid="track-form">
         <FieldGroup>
           <Field>
             <Label>Primary writing domain</Label>
@@ -194,7 +194,7 @@ export function OnboardingTrackForm({
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit" color="dark/zinc" disabled={saving}>
+          <Button type="submit" color="dark/zinc" disabled={saving} data-testid="save-track-button">
             {saving
               ? 'Preparing recommendations…'
               : mode === 'create'

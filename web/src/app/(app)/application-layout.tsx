@@ -238,7 +238,10 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
               </div>
               {authenticated === true ? (
                 <Dropdown>
-                  <DropdownButton className="flex w-full items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3 text-left text-sm text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white">
+                  <DropdownButton
+                    data-testid="active-track-button"
+                    className="flex w-full items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3 text-left text-sm text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  >
                     <span className="min-w-0">
                       <span className="block text-[11px] font-semibold tracking-[0.18em] text-zinc-500 uppercase dark:text-zinc-400">
                         Active track
@@ -256,6 +259,8 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                     {tracks.map((track) => (
                       <DropdownItem
                         key={track.enrollment_id}
+                        data-testid={`track-option-${track.tree_slug}`}
+                        data-track-slug={track.tree_slug}
                         onClick={() => handleTrackSelect(track.tree_slug)}
                         disabled={switchingTrack !== null}
                       >
@@ -266,7 +271,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                       </DropdownItem>
                     ))}
                     <DropdownDivider />
-                    <DropdownItem href="/onboarding?mode=create">
+                    <DropdownItem href="/onboarding?mode=create" data-testid="new-track-link">
                       <PlusIcon />
                       <DropdownLabel>New track</DropdownLabel>
                     </DropdownItem>

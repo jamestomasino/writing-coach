@@ -172,6 +172,8 @@ export function NewAssignmentView() {
               <button
                 key={tgo.code}
                 type="button"
+                data-testid={`skill-option-${tgo.code}`}
+                data-skill-code={tgo.code}
                 onClick={() => toggle(tgo.code)}
                 disabled={generating}
                 className={`rounded-2xl border p-4 text-left transition ${
@@ -193,7 +195,12 @@ export function NewAssignmentView() {
         </div>
         <div className="mt-5 flex items-center justify-between gap-3">
           <Text>{selected.length} of 3 skills selected.</Text>
-          <Button color="dark/zinc" onClick={generate} disabled={selected.length !== 3 || generating}>
+          <Button
+            color="dark/zinc"
+            onClick={generate}
+            disabled={selected.length !== 3 || generating}
+            data-testid="generate-assignment-button"
+          >
             {generating ? 'Generating…' : 'Generate prompt'}
           </Button>
         </div>
@@ -245,7 +252,12 @@ export function NewAssignmentView() {
                 <Button plain onClick={generate} disabled={generating}>
                   {generating ? 'Refreshing…' : 'Refresh prompt'}
                 </Button>
-                <Button onClick={acceptPreview} color="dark/zinc" disabled={generating || accepting}>
+                <Button
+                  onClick={acceptPreview}
+                  color="dark/zinc"
+                  disabled={generating || accepting}
+                  data-testid="accept-assignment-button"
+                >
                   {accepting ? 'Accepting…' : 'Accept and continue'}
                 </Button>
               </div>

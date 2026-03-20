@@ -141,6 +141,13 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("WRITING_COACH_HTTP_ADDR"); value != "" {
 		cfg.HTTPAddr = value
 	}
+	if value := os.Getenv("WRITING_COACH_DATA_DIR"); value != "" {
+		cfg.DataDir = value
+		cfg.ConfigPath = filepath.Join(cfg.DataDir, "config.json")
+	}
+	if value := os.Getenv("WRITING_COACH_DATABASE_URL"); value != "" {
+		cfg.DatabaseURL = value
+	}
 	if value := os.Getenv("WRITING_COACH_WRITER_NAME"); value != "" {
 		cfg.WriterName = value
 	}
