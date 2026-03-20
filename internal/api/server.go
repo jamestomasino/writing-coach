@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"runtime/debug"
@@ -34,6 +35,7 @@ type Server struct {
 }
 
 const serverShutdownTimeout = 10 * time.Second
+const maxJSONBodyBytes int64 = 1 << 20
 
 func (s *Server) Serve(ctx context.Context) error {
 	s.startBackgroundWorkers(ctx)
@@ -475,8 +477,8 @@ func (s Server) handleUsersCreate(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 		Tree string `json:"tree"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if strings.TrimSpace(payload.Slug) == "" || strings.TrimSpace(payload.Name) == "" {
@@ -540,8 +542,8 @@ func (s Server) handleTreeCreate(w http.ResponseWriter, r *http.Request) {
 		PrioritySkills []string      `json:"priority_skills"`
 		TGOs           []tgoResponse `json:"tgos"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if strings.TrimSpace(payload.Slug) == "" || strings.TrimSpace(payload.Title) == "" || len(payload.TGOs) == 0 {
@@ -610,8 +612,8 @@ func (s Server) handleTreeUpdate(w http.ResponseWriter, r *http.Request) {
 		PrioritySkills []string      `json:"priority_skills"`
 		TGOs           []tgoResponse `json:"tgos"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	slug := r.PathValue("slug")
@@ -786,8 +788,8 @@ func (s Server) handleEnrollmentsCreate(w http.ResponseWriter, r *http.Request) 
 		UserName string `json:"user_name"`
 		TreeSlug string `json:"tree_slug"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if strings.TrimSpace(payload.UserSlug) == "" || strings.TrimSpace(payload.TreeSlug) == "" {
@@ -1149,6 +1151,23 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dest any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dest); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			return fmt.Errorf("request body too large")
+		}
+		return fmt.Errorf("invalid JSON body: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("invalid JSON body: expected a single JSON object")
+	}
+	return nil
 }
 
 func withCORS(next http.Handler) http.Handler {

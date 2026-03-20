@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -119,8 +118,8 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		DifficultyIntensity string   `json:"difficulty_intensity"`
 		WritingGoals        string   `json:"writing_goals"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	profile := domain.OnboardingProfile{

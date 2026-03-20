@@ -753,6 +753,73 @@ func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
 	}
 }
 
+func TestTracksActiveUpdateRejectsUnknownJSONFields(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		testServer.URL+"/api/tracks/active?user=tester",
+		strings.NewReader(`{"tree_slug":"mythic-tragedy-apprenticeship","unexpected":true}`),
+	)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for unknown field, got %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error payload: %v", err)
+	}
+	if !strings.Contains(payload.Error, "unknown field") {
+		t.Fatalf("expected unknown field error, got %q", payload.Error)
+	}
+}
+
+func TestTracksActiveUpdateRejectsOversizedJSONBody(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	oversized := `{"tree_slug":"` + strings.Repeat("a", int(maxJSONBodyBytes)+1) + `"}`
+	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/tracks/active?user=tester", strings.NewReader(oversized))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for oversized body, got %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error payload: %v", err)
+	}
+	if !strings.Contains(payload.Error, "request body too large") {
+		t.Fatalf("expected body too large error, got %q", payload.Error)
+	}
+}
+
 func TestAssignmentTimelineEndpoint(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")

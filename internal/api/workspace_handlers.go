@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -146,8 +145,8 @@ func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 		var payload struct {
 			TGOCodes []string `json:"tgo_codes"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		if err := decodeJSONBody(w, r, &payload); err != nil {
+			writeError(w, http.StatusBadRequest, err)
 			return
 		}
 		if len(payload.TGOCodes) > 0 {
@@ -186,8 +185,8 @@ func (s Server) handlePromptAccept(w http.ResponseWriter, r *http.Request) {
 		GenerationKind  string   `json:"generation_kind"`
 		ProviderNote    string   `json:"provider_note"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	ex := domain.Exercise{
@@ -230,8 +229,8 @@ func (s Server) handlePromptRevise(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		SubmissionID int64 `json:"submission_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if payload.SubmissionID == 0 {
@@ -260,8 +259,8 @@ func (s Server) handleSubmissionCreate(w http.ResponseWriter, r *http.Request) {
 		ParentSubmissionID int64  `json:"parent_submission_id"`
 		Content            string `json:"content"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if payload.ExerciseID == 0 || strings.TrimSpace(payload.Content) == "" {
@@ -384,8 +383,8 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		SubmissionID int64 `json:"submission_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if payload.SubmissionID == 0 {

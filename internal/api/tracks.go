@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -51,8 +50,8 @@ func (s Server) handleTracksActiveUpdate(w http.ResponseWriter, r *http.Request)
 	var payload struct {
 		TreeSlug string `json:"tree_slug"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	treeSlug := strings.TrimSpace(payload.TreeSlug)
