@@ -1,24 +1,37 @@
 import type { SkillScore } from '@/lib/types'
 
 function toneClasses(score: number) {
-  if (score >= 4) {
-    return {
-      filled: 'bg-emerald-500 dark:bg-emerald-300',
-      empty: 'bg-stone-200 dark:bg-white/10',
-      text: 'text-emerald-700 dark:text-emerald-200',
-    }
-  }
-  if (score === 3) {
-    return {
-      filled: 'bg-amber-500 dark:bg-amber-300',
-      empty: 'bg-stone-200 dark:bg-white/10',
-      text: 'text-amber-700 dark:text-amber-200',
-    }
-  }
-  return {
-    filled: 'bg-rose-500 dark:bg-rose-300',
-    empty: 'bg-stone-200 dark:bg-white/10',
-    text: 'text-rose-700 dark:text-rose-200',
+  switch (score) {
+    case 5:
+      return {
+        filled: 'bg-emerald-500 dark:bg-emerald-300',
+        empty: 'bg-stone-200 dark:bg-white/10',
+        text: 'text-emerald-700 dark:text-emerald-200',
+      }
+    case 4:
+      return {
+        filled: 'bg-lime-500 dark:bg-lime-300',
+        empty: 'bg-stone-200 dark:bg-white/10',
+        text: 'text-lime-700 dark:text-lime-200',
+      }
+    case 3:
+      return {
+        filled: 'bg-amber-500 dark:bg-amber-300',
+        empty: 'bg-stone-200 dark:bg-white/10',
+        text: 'text-amber-700 dark:text-amber-200',
+      }
+    case 2:
+      return {
+        filled: 'bg-orange-500 dark:bg-orange-300',
+        empty: 'bg-stone-200 dark:bg-white/10',
+        text: 'text-orange-700 dark:text-orange-200',
+      }
+    default:
+      return {
+        filled: 'bg-rose-500 dark:bg-rose-300',
+        empty: 'bg-stone-200 dark:bg-white/10',
+        text: 'text-rose-700 dark:text-rose-200',
+      }
   }
 }
 
