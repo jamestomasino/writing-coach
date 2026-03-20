@@ -12,14 +12,15 @@ import { Heading, Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
-import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmission, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
-import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
+import { createRevisionAssignment, getAISettings, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmission, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
+import type { AIProviderSettings, Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
 import { MasteryProgress } from './mastery-progress'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 type WorkspaceState = {
   dashboard: Dashboard
+  aiSettings?: AIProviderSettings
   exercise?: Exercise
   submission?: Submission
   review?: Review
@@ -70,6 +71,7 @@ export function CurrentAssignmentView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sessionRequired, setSessionRequired] = useState(false)
+  const [needsAISetup, setNeedsAISetup] = useState(false)
   const [workspace, setWorkspace] = useState<WorkspaceState | null>(null)
   const [draft, setDraft] = useState('')
   const [reviewing, setReviewing] = useState(false)
@@ -94,8 +96,14 @@ export function CurrentAssignmentView() {
           router.replace('/onboarding')
           return
         }
+        if (!session.ai_provider_ready) {
+          if (!cancelled) {
+            setNeedsAISetup(true)
+          }
+          return
+        }
 
-        const dashboard = await getDashboard()
+        const [dashboard, aiSettings] = await Promise.all([getDashboard(), getAISettings()])
         const revisionExerciseID = Number(searchParams.get('revisionExercise') ?? 0)
         const inRevisionMode = revisionExerciseID > 0
         let exercise: Exercise | undefined
@@ -132,10 +140,11 @@ export function CurrentAssignmentView() {
         }
 
         if (!cancelled) {
-          setWorkspace({ dashboard, exercise, submission, review, sourceSubmission, sourceReview })
+          setWorkspace({ dashboard, aiSettings, exercise, submission, review, sourceSubmission, sourceReview })
           setDraft(submission?.content ?? sourceSubmission?.content ?? '')
           setReviewJob(pendingJob)
           setSessionRequired(false)
+          setNeedsAISetup(false)
           setError(null)
           setRevisionPanel(sourceReview ? 'feedback' : 'brief')
         }
@@ -281,6 +290,16 @@ export function CurrentAssignmentView() {
       />
     )
   }
+  if (needsAISetup) {
+    return (
+      <EmptyState
+        title="AI setup required"
+        body="Add an AI provider before generating assignments, feedback, or revision briefs."
+        actionHref="/ai-settings?required=1&next=/"
+        actionLabel="Set up AI provider"
+      />
+    )
+  }
   if (error) {
     return <AppErrorState error={error} title="Workspace unavailable" />
   }
@@ -344,6 +363,18 @@ export function CurrentAssignmentView() {
           </>
         }
       />
+
+      {workspace.aiSettings?.system_fallback && !workspace.aiSettings.has_key ? (
+        <Callout
+          title="Using the shared system provider"
+          body="You can keep working as usual, or connect your own provider key in AI provider settings."
+          actions={
+            <Button href="/ai-settings" outline>
+              AI provider settings
+            </Button>
+          }
+        />
+      ) : null}
 
       {reviewPending ? (
         <TaskProgressState

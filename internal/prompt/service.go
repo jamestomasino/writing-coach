@@ -14,8 +14,9 @@ import (
 type deterministicGenerator struct{}
 
 type Service struct {
-	client   *openai.Client
-	fallback deterministicGenerator
+	client     *openai.Client
+	clientKind string
+	fallback   deterministicGenerator
 }
 
 type Context struct {
@@ -33,9 +34,19 @@ type Context struct {
 
 func NewService(client *openai.Client) Service {
 	return Service{
-		client:   client,
-		fallback: deterministicGenerator{},
+		client:     client,
+		clientKind: "openai",
+		fallback:   deterministicGenerator{},
 	}
+}
+
+func (s Service) WithClient(client *openai.Client, kind string) Service {
+	s.client = client
+	s.clientKind = strings.TrimSpace(kind)
+	if s.clientKind == "" {
+		s.clientKind = "openai"
+	}
+	return s
 }
 
 func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercise {
@@ -51,13 +62,14 @@ func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercis
 			CoachingBrief:     input.CoachingBrief,
 		})
 		if err == nil {
-			exercise.GenerationKind = "openai"
+			exercise.GenerationKind = s.clientKind
+			exercise.ProviderNote = s.clientKind
 			return exercise
 		}
 
 		exercise = s.fallback.NextExercise(ctx, input)
 		exercise.GenerationKind = "deterministic-fallback"
-		exercise.ProviderNote = err.Error()
+		exercise.ProviderNote = strings.TrimSpace(s.clientKind + ": " + err.Error())
 		return exercise
 	}
 
@@ -85,14 +97,15 @@ func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exe
 			CoachingBrief:     input.CoachingBrief,
 		})
 		if err == nil {
-			exercise.GenerationKind = "openai"
+			exercise.GenerationKind = s.clientKind
+			exercise.ProviderNote = s.clientKind
 			exercise.SourceSubmissionID = input.RevisionOf.ID
 			return exercise
 		}
 
 		exercise = s.fallback.RevisionExercise(ctx, input)
 		exercise.GenerationKind = "deterministic-fallback"
-		exercise.ProviderNote = err.Error()
+		exercise.ProviderNote = strings.TrimSpace(s.clientKind + ": " + err.Error())
 		exercise.SourceSubmissionID = input.RevisionOf.ID
 		return exercise
 	}

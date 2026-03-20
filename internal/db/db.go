@@ -559,6 +559,77 @@ func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.Onboar
 	return err
 }
 
+func (s *Store) AIProviderSettingsByUserID(ctx context.Context, userID int64) (domain.AIProviderSettings, error) {
+	var settings domain.AIProviderSettings
+	var enabled int
+	var validatedAt sql.NullTime
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT user_id, provider, api_key_encrypted, api_key_last4, base_url_override, prompt_model_override, review_model_override, enabled, validated_at, last_validation_error, created_at, updated_at
+		FROM user_ai_provider_settings
+		WHERE user_id = ?
+	`, userID).Scan(
+		&settings.UserID,
+		&settings.Provider,
+		&settings.APIKeyEncrypted,
+		&settings.APIKeyLast4,
+		&settings.BaseURLOverride,
+		&settings.PromptModelOverride,
+		&settings.ReviewModelOverride,
+		&enabled,
+		&validatedAt,
+		&settings.LastValidationError,
+		&settings.CreatedAt,
+		&settings.UpdatedAt,
+	)
+	if err != nil {
+		return domain.AIProviderSettings{}, err
+	}
+	settings.Enabled = enabled != 0
+	if validatedAt.Valid {
+		settings.ValidatedAt = validatedAt.Time
+	}
+	return settings, nil
+}
+
+func (s *Store) SaveAIProviderSettings(ctx context.Context, settings domain.AIProviderSettings) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO user_ai_provider_settings (
+			user_id, provider, api_key_encrypted, api_key_last4, base_url_override, prompt_model_override, review_model_override, enabled, validated_at, last_validation_error, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(user_id) DO UPDATE SET
+			provider = excluded.provider,
+			api_key_encrypted = excluded.api_key_encrypted,
+			api_key_last4 = excluded.api_key_last4,
+			base_url_override = excluded.base_url_override,
+			prompt_model_override = excluded.prompt_model_override,
+			review_model_override = excluded.review_model_override,
+			enabled = excluded.enabled,
+			validated_at = excluded.validated_at,
+			last_validation_error = excluded.last_validation_error,
+			updated_at = CURRENT_TIMESTAMP
+	`,
+		settings.UserID,
+		settings.Provider,
+		settings.APIKeyEncrypted,
+		settings.APIKeyLast4,
+		settings.BaseURLOverride,
+		settings.PromptModelOverride,
+		settings.ReviewModelOverride,
+		boolToInt(settings.Enabled),
+		nullTime(settings.ValidatedAt),
+		settings.LastValidationError,
+	)
+	return err
+}
+
+func (s *Store) DeleteAIProviderSettings(ctx context.Context, userID int64) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		DELETE FROM user_ai_provider_settings
+		WHERE user_id = ?
+	`, userID)
+	return err
+}
+
 func (s *Store) ListTrees(ctx context.Context) ([]domain.TGOTree, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT id, slug, title, description, created_at
@@ -650,9 +721,10 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 			tgo_codes_json,
 			success_criteria_json,
 			generation_kind,
+			provider_note,
 			source_submission_id
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	res, err := s.SQL.ExecContext(
@@ -667,6 +739,7 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 		mustJSON(ex.TGOCodes),
 		mustJSON(ex.SuccessCriteria),
 		ex.GenerationKind,
+		ex.ProviderNote,
 		nullableID(ex.SourceSubmissionID),
 	)
 	if err != nil {
@@ -678,7 +751,7 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 
 func (s *Store) GetExercise(ctx context.Context, exerciseID int64) (domain.Exercise, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, COALESCE(source_submission_id, 0), created_at
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), created_at
 		FROM exercises
 		WHERE id = ?
 	`, exerciseID)
@@ -698,7 +771,7 @@ func (s *Store) GetExercise(ctx context.Context, exerciseID int64) (domain.Exerc
 
 func (s *Store) ListExercises(ctx context.Context, userID, treeID int64, limit int) ([]domain.Exercise, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, COALESCE(source_submission_id, 0), created_at
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), created_at
 		FROM exercises
 		WHERE user_id = ? AND tree_id = ?
 		ORDER BY id DESC
@@ -856,6 +929,7 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 			tree_id,
 			submission_id,
 			review_kind,
+			provider_note,
 			summary,
 			strengths_json,
 			weaknesses_json,
@@ -864,12 +938,13 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 			next_focus,
 			metric_word_count
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		review.UserID,
 		review.TreeID,
 		review.SubmissionID,
 		review.ReviewKind,
+		review.ProviderNote,
 		review.Summary,
 		mustJSON(review.Strengths),
 		mustJSON(review.Weaknesses),
@@ -1097,7 +1172,7 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 	var review domain.Review
 	var strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
+		SELECT id, user_id, tree_id, submission_id, review_kind, provider_note, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
 		FROM reviews
 		WHERE submission_id = ?
 		ORDER BY id DESC
@@ -1108,6 +1183,7 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 		&review.TreeID,
 		&review.SubmissionID,
 		&review.ReviewKind,
+		&review.ProviderNote,
 		&review.Summary,
 		&strengthsJSON,
 		&weaknessesJSON,
@@ -1139,7 +1215,7 @@ func (s *Store) GetReview(ctx context.Context, reviewID int64) (domain.Review, e
 	var review domain.Review
 	var strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
+		SELECT id, user_id, tree_id, submission_id, review_kind, provider_note, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
 		FROM reviews
 		WHERE id = ?
 	`, reviewID).Scan(
@@ -1148,6 +1224,7 @@ func (s *Store) GetReview(ctx context.Context, reviewID int64) (domain.Review, e
 		&review.TreeID,
 		&review.SubmissionID,
 		&review.ReviewKind,
+		&review.ProviderNote,
 		&review.Summary,
 		&strengthsJSON,
 		&weaknessesJSON,
@@ -1177,7 +1254,7 @@ func (s *Store) GetReview(ctx context.Context, reviewID int64) (domain.Review, e
 
 func (s *Store) ListReviews(ctx context.Context, userID, treeID, submissionID int64, limit int) ([]domain.Review, error) {
 	query := `
-		SELECT id, user_id, tree_id, submission_id, review_kind, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
+		SELECT id, user_id, tree_id, submission_id, review_kind, provider_note, summary, strengths_json, weaknesses_json, analyzer_findings_json, completed_tgo_checks_json, next_focus, metric_word_count, created_at
 		FROM reviews
 		WHERE user_id = ? AND tree_id = ?
 	`
@@ -1719,7 +1796,7 @@ func (s *Store) History(ctx context.Context, userID, treeID int64) ([]string, er
 
 func (s *Store) HistoryItems(ctx context.Context, userID, treeID int64) ([]domain.Exercise, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, COALESCE(source_submission_id, 0), created_at
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), created_at
 		FROM exercises
 		WHERE user_id = ? AND tree_id = ?
 		ORDER BY id DESC
@@ -1866,6 +1943,7 @@ func scanExercise(scanner interface{ Scan(...any) error }) (domain.Exercise, err
 		&tgoCodesJSON,
 		&successJSON,
 		&exercise.GenerationKind,
+		&exercise.ProviderNote,
 		&exercise.SourceSubmissionID,
 		&exercise.CreatedAt,
 	); err != nil {
@@ -1918,6 +1996,7 @@ func scanReview(scanner interface{ Scan(...any) error }) (domain.Review, error) 
 		&review.TreeID,
 		&review.SubmissionID,
 		&review.ReviewKind,
+		&review.ProviderNote,
 		&review.Summary,
 		&strengthsJSON,
 		&weaknessesJSON,
@@ -1972,6 +2051,20 @@ func nullableID(id int64) any {
 		return nil
 	}
 	return id
+}
+
+func nullTime(value time.Time) any {
+	if value.IsZero() {
+		return nil
+	}
+	return value
+}
+
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }
 
 func collectRecurringJSONStrings(rows *sql.Rows, top int) ([]string, error) {

@@ -23,6 +23,28 @@ type Client struct {
 	httpClient  *http.Client
 }
 
+type ClientOptions struct {
+	APIKey      string
+	BaseURL     string
+	PromptModel string
+	ReviewModel string
+}
+
+type HTTPError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *HTTPError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if strings.TrimSpace(e.Message) != "" {
+		return fmt.Sprintf("openai api: %s", e.Message)
+	}
+	return fmt.Sprintf("openai api: status %d", e.StatusCode)
+}
+
 type ExerciseRequest struct {
 	CurrentFocus      string
 	DifficultyLevel   int
@@ -98,11 +120,20 @@ type annotation struct {
 }
 
 func NewClient(cfg config.Config) *Client {
+	return NewClientWithOptions(ClientOptions{
+		APIKey:      cfg.OpenAIAPIKey,
+		BaseURL:     cfg.OpenAIBaseURL,
+		PromptModel: cfg.PromptModel,
+		ReviewModel: cfg.ReviewModel,
+	})
+}
+
+func NewClientWithOptions(opts ClientOptions) *Client {
 	return &Client{
-		apiKey:      cfg.OpenAIAPIKey,
-		baseURL:     strings.TrimRight(cfg.OpenAIBaseURL, "/"),
-		promptModel: cfg.PromptModel,
-		reviewModel: cfg.ReviewModel,
+		apiKey:      opts.APIKey,
+		baseURL:     strings.TrimRight(opts.BaseURL, "/"),
+		promptModel: opts.PromptModel,
+		reviewModel: opts.ReviewModel,
 		httpClient: &http.Client{
 			Timeout: 90 * time.Second,
 		},
@@ -111,6 +142,33 @@ func NewClient(cfg config.Config) *Client {
 
 func (c *Client) Enabled() bool {
 	return c != nil && c.apiKey != ""
+}
+
+func (c *Client) ValidateCredentials(ctx context.Context) error {
+	if !c.Enabled() {
+		return errors.New("openai client disabled")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/models", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode >= 300 {
+		return parseHTTPError(resp.StatusCode, responseBody)
+	}
+	return nil
 }
 
 func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (domain.Exercise, error) {
@@ -343,11 +401,7 @@ func (c *Client) runStructuredResponse(ctx context.Context, spec requestSpec) ([
 		return nil, err
 	}
 	if resp.StatusCode >= 300 {
-		var failed responsesEnvelope
-		if json.Unmarshal(responseBody, &failed) == nil && failed.Error != nil && failed.Error.Message != "" {
-			return nil, fmt.Errorf("openai api: %s", failed.Error.Message)
-		}
-		return nil, fmt.Errorf("openai api: status %d", resp.StatusCode)
+		return nil, parseHTTPError(resp.StatusCode, responseBody)
 	}
 
 	var envelope responsesEnvelope
@@ -368,6 +422,14 @@ func (c *Client) runStructuredResponse(ctx context.Context, spec requestSpec) ([
 	}
 
 	return []byte(text.String()), nil
+}
+
+func parseHTTPError(statusCode int, responseBody []byte) error {
+	var failed responsesEnvelope
+	if json.Unmarshal(responseBody, &failed) == nil && failed.Error != nil && failed.Error.Message != "" {
+		return &HTTPError{StatusCode: statusCode, Message: failed.Error.Message}
+	}
+	return &HTTPError{StatusCode: statusCode}
 }
 
 func exerciseSystemPrompt() string {

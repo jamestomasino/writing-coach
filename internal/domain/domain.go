@@ -10,6 +10,21 @@ type User struct {
 	CreatedAt      time.Time
 }
 
+type AIProviderSettings struct {
+	UserID              int64
+	Provider            string
+	APIKeyEncrypted     string
+	APIKeyLast4         string
+	BaseURLOverride     string
+	PromptModelOverride string
+	ReviewModelOverride string
+	Enabled             bool
+	ValidatedAt         time.Time
+	LastValidationError string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
 type TGOTree struct {
 	ID          int64
 	Slug        string

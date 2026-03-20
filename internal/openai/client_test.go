@@ -1,6 +1,10 @@
 package openai
 
 import (
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -68,5 +72,62 @@ func TestExerciseSystemPromptRequiresConcretePremise(t *testing.T) {
 	}
 	if !strings.Contains(got, "brief itself must contain the core situation") {
 		t.Fatalf("expected brief/core situation instruction, got %q", got)
+	}
+}
+
+func TestValidateCredentialsUsesModelsEndpoint(t *testing.T) {
+	var authHeader string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader = r.Header.Get("Authorization")
+		if r.URL.Path != "/models" {
+			t.Fatalf("path = %q", r.URL.Path)
+		}
+		if r.Method != http.MethodGet {
+			t.Fatalf("method = %q", r.Method)
+		}
+		_, _ = io.WriteString(w, `{"data":[]}`)
+	}))
+	defer server.Close()
+
+	client := NewClientWithOptions(ClientOptions{
+		APIKey:      "sk-test-1234",
+		BaseURL:     server.URL,
+		PromptModel: "gpt-5-mini",
+		ReviewModel: "gpt-5-mini",
+	})
+	if err := client.ValidateCredentials(context.Background()); err != nil {
+		t.Fatalf("validate credentials: %v", err)
+	}
+	if authHeader != "Bearer sk-test-1234" {
+		t.Fatalf("authorization = %q", authHeader)
+	}
+}
+
+func TestValidateCredentialsReturnsHTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = io.WriteString(w, `{"error":{"message":"invalid api key"}}`)
+	}))
+	defer server.Close()
+
+	client := NewClientWithOptions(ClientOptions{
+		APIKey:      "sk-bad",
+		BaseURL:     server.URL,
+		PromptModel: "gpt-5-mini",
+		ReviewModel: "gpt-5-mini",
+	})
+	err := client.ValidateCredentials(context.Background())
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	httpErr, ok := err.(*HTTPError)
+	if !ok {
+		t.Fatalf("error type = %T", err)
+	}
+	if httpErr.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status = %d", httpErr.StatusCode)
+	}
+	if httpErr.Message != "invalid api key" {
+		t.Fatalf("message = %q", httpErr.Message)
 	}
 }

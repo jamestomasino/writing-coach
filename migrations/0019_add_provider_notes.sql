@@ -1,0 +1,2 @@
+ALTER TABLE exercises ADD COLUMN provider_note TEXT NOT NULL DEFAULT '';
+ALTER TABLE reviews ADD COLUMN provider_note TEXT NOT NULL DEFAULT '';

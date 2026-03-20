@@ -18,8 +18,10 @@ import (
 	"github.com/tomasino/writing-coach/internal/curriculum"
 	"github.com/tomasino/writing-coach/internal/db"
 	"github.com/tomasino/writing-coach/internal/domain"
+	"github.com/tomasino/writing-coach/internal/openai"
 	"github.com/tomasino/writing-coach/internal/prompt"
 	"github.com/tomasino/writing-coach/internal/review"
+	"github.com/tomasino/writing-coach/internal/secrets"
 	"github.com/tomasino/writing-coach/internal/session"
 )
 
@@ -55,6 +57,10 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/ready", s.handleReady)
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
+	mux.HandleFunc("GET /api/ai/settings", s.handleAISettingsGet)
+	mux.HandleFunc("PUT /api/ai/settings", s.handleAISettingsUpsert)
+	mux.HandleFunc("DELETE /api/ai/settings", s.handleAISettingsDelete)
+	mux.HandleFunc("POST /api/ai/settings/validate", s.handleAISettingsValidate)
 	mux.HandleFunc("POST /api/account/reset", s.handleAccountReset)
 	mux.HandleFunc("GET /api/skill-graph", s.handleSkillGraph)
 	mux.HandleFunc("GET /api/onboarding/options", s.handleOnboardingOptions)
@@ -109,19 +115,47 @@ type requestContextResponse struct {
 }
 
 type authSessionResponse struct {
-	Authenticated      bool                    `json:"authenticated"`
-	AuthMode           string                  `json:"auth_mode"`
-	Identity           *authIdentityResponse   `json:"identity,omitempty"`
-	Context            *requestContextResponse `json:"context,omitempty"`
-	OnboardingComplete bool                    `json:"onboarding_complete"`
-	ActiveTreeSlug     string                  `json:"active_tree_slug,omitempty"`
-	IsAdmin            bool                    `json:"is_admin"`
+	Authenticated       bool                    `json:"authenticated"`
+	AuthMode            string                  `json:"auth_mode"`
+	Identity            *authIdentityResponse   `json:"identity,omitempty"`
+	Context             *requestContextResponse `json:"context,omitempty"`
+	OnboardingComplete  bool                    `json:"onboarding_complete"`
+	ActiveTreeSlug      string                  `json:"active_tree_slug,omitempty"`
+	IsAdmin             bool                    `json:"is_admin"`
+	AIProviderReady     bool                    `json:"ai_provider_ready"`
+	AIEffectiveProvider string                  `json:"ai_effective_provider,omitempty"`
+	AISystemFallback    bool                    `json:"ai_system_fallback"`
+	AIHasPersonalKey    bool                    `json:"ai_has_personal_key"`
 }
 
 type authIdentityResponse struct {
 	Subject string `json:"subject"`
 	Email   string `json:"email,omitempty"`
 	Name    string `json:"name,omitempty"`
+}
+
+type aiProviderSettingsResponse struct {
+	Provider            string `json:"provider,omitempty"`
+	BaseURLOverride     string `json:"base_url_override,omitempty"`
+	PromptModelOverride string `json:"prompt_model_override,omitempty"`
+	ReviewModelOverride string `json:"review_model_override,omitempty"`
+	Enabled             bool   `json:"enabled"`
+	HasKey              bool   `json:"has_key"`
+	KeyLast4            string `json:"key_last4,omitempty"`
+	ValidatedAt         string `json:"validated_at,omitempty"`
+	LastValidationError string `json:"last_validation_error,omitempty"`
+	EffectiveProvider   string `json:"effective_provider"`
+	SystemFallback      bool   `json:"system_fallback"`
+	Ready               bool   `json:"ready"`
+}
+
+type aiProviderSettingsPayload struct {
+	Provider            string `json:"provider"`
+	APIKey              string `json:"api_key"`
+	BaseURLOverride     string `json:"base_url_override"`
+	PromptModelOverride string `json:"prompt_model_override"`
+	ReviewModelOverride string `json:"review_model_override"`
+	Enabled             bool   `json:"enabled"`
 }
 
 type userResponse struct {
@@ -387,9 +421,13 @@ func (s Server) handleReady(w http.ResponseWriter, r *http.Request) {
 
 func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 	mode := authModeFromContext(r.Context())
+	fallback := systemFallbackAvailable(s.Config)
 	resp := authSessionResponse{
-		Authenticated: mode != "none",
-		AuthMode:      mode,
+		Authenticated:       mode != "none",
+		AuthMode:            mode,
+		AIProviderReady:     fallback,
+		AIEffectiveProvider: effectiveProviderLabel(false, false),
+		AISystemFallback:    fallback,
 	}
 	if ident, ok := identityFromContext(r.Context()); ok {
 		resp.Identity = &authIdentityResponse{
@@ -415,9 +453,145 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 			if profile, err := s.Store.OnboardingProfileByUserID(r.Context(), user.ID); err == nil {
 				resp.OnboardingComplete = profile.Complete()
 			}
+			if settings, err := s.Store.AIProviderSettingsByUserID(r.Context(), user.ID); err == nil {
+				settingsResponse := s.toAIProviderSettingsResponse(settings, true)
+				resp.AIProviderReady = settingsResponse.Ready
+				resp.AIEffectiveProvider = settingsResponse.EffectiveProvider
+				resp.AISystemFallback = settingsResponse.SystemFallback
+				resp.AIHasPersonalKey = settingsResponse.HasKey
+			}
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s Server) handleAISettingsGet(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	settings, err := s.Store.AIProviderSettingsByUserID(r.Context(), appContext.UserID)
+	if err != nil && !db.IsNotFound(err) {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"settings": s.toAIProviderSettingsResponse(settings, err == nil),
+	})
+}
+
+func (s Server) handleAISettingsUpsert(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	var payload aiProviderSettingsPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	if err := validateAIProviderPayload(payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	existing, _ := s.Store.AIProviderSettingsByUserID(r.Context(), appContext.UserID)
+	rawKey, encryptedKey, keyLast4, err := s.resolveAIProviderKey(r.Context(), existing, normalizeProvider(payload.Provider), strings.TrimSpace(payload.APIKey))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	now := time.Now().UTC()
+	settings := domain.AIProviderSettings{
+		UserID:              appContext.UserID,
+		Provider:            normalizeProvider(payload.Provider),
+		APIKeyLast4:         keyLast4,
+		BaseURLOverride:     strings.TrimSpace(payload.BaseURLOverride),
+		PromptModelOverride: strings.TrimSpace(payload.PromptModelOverride),
+		ReviewModelOverride: strings.TrimSpace(payload.ReviewModelOverride),
+		Enabled:             payload.Enabled,
+	}
+	if err := s.validateAIProviderSettings(r.Context(), settings, rawKey); err != nil {
+		writeError(w, statusForAIProviderValidationError(err), err)
+		return
+	}
+	settings.APIKeyEncrypted = encryptedKey
+	settings.ValidatedAt = now
+	settings.LastValidationError = ""
+	if err := s.Store.SaveAIProviderSettings(r.Context(), settings); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"settings": s.toAIProviderSettingsResponse(settings, true),
+	})
+}
+
+func (s Server) handleAISettingsDelete(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.Store.DeleteAIProviderSettings(r.Context(), appContext.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"deleted": true,
+		"settings": aiProviderSettingsResponse{
+			EffectiveProvider: effectiveProviderLabel(false, false),
+			SystemFallback:    systemFallbackAvailable(s.Config),
+			Ready:             systemFallbackAvailable(s.Config),
+		},
+	})
+}
+
+func (s Server) handleAISettingsValidate(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	var payload aiProviderSettingsPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	if err := validateAIProviderPayload(payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	existing, _ := s.Store.AIProviderSettingsByUserID(r.Context(), appContext.UserID)
+	rawKey, _, keyLast4, err := s.resolveAIProviderKey(r.Context(), existing, normalizeProvider(payload.Provider), strings.TrimSpace(payload.APIKey))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	settings := domain.AIProviderSettings{
+		UserID:              appContext.UserID,
+		Provider:            normalizeProvider(payload.Provider),
+		APIKeyLast4:         keyLast4,
+		BaseURLOverride:     strings.TrimSpace(payload.BaseURLOverride),
+		PromptModelOverride: strings.TrimSpace(payload.PromptModelOverride),
+		ReviewModelOverride: strings.TrimSpace(payload.ReviewModelOverride),
+		Enabled:             payload.Enabled,
+		ValidatedAt:         time.Now().UTC(),
+	}
+	if err := s.validateAIProviderSettings(r.Context(), settings, rawKey); err != nil {
+		writeError(w, statusForAIProviderValidationError(err), err)
+		return
+	}
+	response := s.toAIProviderSettingsResponse(settings, true)
+	response.HasKey = true
+	response.KeyLast4 = settings.APIKeyLast4
+	writeJSON(w, http.StatusOK, map[string]any{
+		"valid":    true,
+		"settings": response,
+	})
 }
 
 func (s Server) handleSkillGraph(w http.ResponseWriter, r *http.Request) {
@@ -1691,8 +1865,13 @@ func (s Server) generateNextExercise(ctx context.Context, appContext session.Con
 		log.Printf("create exercise: active skills lookup failed for enrollment=%d: %v", appContext.EnrollmentID, err)
 		return domain.Exercise{}, err
 	}
+	llmClient, providerKind, err := s.resolveLLMClient(ctx, appContext.UserID)
+	if err != nil {
+		log.Printf("create exercise: provider resolution failed for user=%d: %v", appContext.UserID, err)
+		return domain.Exercise{}, err
+	}
 
-	ex := s.Prompts.NextExercise(ctx, prompt.Context{
+	ex := s.Prompts.WithClient(llmClient, providerKind).NextExercise(ctx, prompt.Context{
 		CurriculumState:   state,
 		ActiveTGOs:        activeTGOs,
 		OnboardingProfile: profile,
@@ -1820,6 +1999,10 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	if err != nil {
 		return domain.Exercise{}, err
 	}
+	llmClient, providerKind, err := s.resolveLLMClient(ctx, appContext.UserID)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
 
 	var cmp *review.Comparison
 	if previous, err := s.Store.PreviousSubmission(ctx, sub); err == nil {
@@ -1829,7 +2012,7 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 		}
 	}
 
-	ex := s.Prompts.RevisionExercise(ctx, prompt.Context{
+	ex := s.Prompts.WithClient(llmClient, providerKind).RevisionExercise(ctx, prompt.Context{
 		CurriculumState:    state,
 		ActiveTGOs:         activeTGOs,
 		RecentTitles:       recentTitles,
@@ -2033,6 +2216,159 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func supportedAIProvider(provider string) bool {
+	switch normalizeProvider(provider) {
+	case "openai", "groq", "xai":
+		return true
+	default:
+		return false
+	}
+}
+
+func normalizeProvider(provider string) string {
+	return strings.ToLower(strings.TrimSpace(provider))
+}
+
+func validateAIProviderPayload(payload aiProviderSettingsPayload) error {
+	if !supportedAIProvider(payload.Provider) {
+		return fmt.Errorf("unsupported provider")
+	}
+	return nil
+}
+
+func (s Server) validateAIProviderSettings(ctx context.Context, settings domain.AIProviderSettings, apiKey string) error {
+	client := openai.NewClientWithOptions(openai.ClientOptions{
+		APIKey:      strings.TrimSpace(apiKey),
+		BaseURL:     firstNonEmpty(settings.BaseURLOverride, defaultBaseURLForProvider(settings.Provider, s.Config)),
+		PromptModel: firstNonEmpty(settings.PromptModelOverride, s.Config.PromptModel),
+		ReviewModel: firstNonEmpty(settings.ReviewModelOverride, s.Config.ReviewModel),
+	})
+	validateCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if err := client.ValidateCredentials(validateCtx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s Server) resolveAIProviderKey(ctx context.Context, existing domain.AIProviderSettings, provider, apiKey string) (string, string, string, error) {
+	_ = ctx
+	trimmedKey := strings.TrimSpace(apiKey)
+	if trimmedKey != "" {
+		encrypted, err := secrets.EncryptString(s.Config.AIKeySecret, trimmedKey)
+		if err != nil {
+			return "", "", "", err
+		}
+		return trimmedKey, encrypted, last4(trimmedKey), nil
+	}
+	if strings.TrimSpace(existing.Provider) == normalizeProvider(provider) && strings.TrimSpace(existing.APIKeyEncrypted) != "" {
+		decrypted, err := secrets.DecryptString(s.Config.AIKeySecret, existing.APIKeyEncrypted)
+		if err != nil {
+			return "", "", "", err
+		}
+		return decrypted, existing.APIKeyEncrypted, existing.APIKeyLast4, nil
+	}
+	return "", "", "", fmt.Errorf("api key is required")
+}
+
+func statusForAIProviderValidationError(err error) int {
+	var httpErr *openai.HTTPError
+	if errors.As(err, &httpErr) {
+		if httpErr.StatusCode == http.StatusUnauthorized || httpErr.StatusCode == http.StatusForbidden {
+			return http.StatusBadRequest
+		}
+		return http.StatusBadGateway
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return http.StatusGatewayTimeout
+	}
+	return http.StatusBadGateway
+}
+
+func last4(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if len(trimmed) <= 4 {
+		return trimmed
+	}
+	return trimmed[len(trimmed)-4:]
+}
+
+func systemFallbackAvailable(cfg config.Config) bool {
+	return strings.TrimSpace(cfg.OpenAIAPIKey) != ""
+}
+
+func defaultBaseURLForProvider(provider string, cfg config.Config) string {
+	switch normalizeProvider(provider) {
+	case "groq":
+		return "https://api.groq.com/openai/v1"
+	case "xai":
+		return "https://api.x.ai/v1"
+	default:
+		if strings.TrimSpace(cfg.OpenAIBaseURL) != "" {
+			return cfg.OpenAIBaseURL
+		}
+		return "https://api.openai.com/v1"
+	}
+}
+
+func effectiveProviderLabel(hasSettings, enabled bool) string {
+	if hasSettings && enabled {
+		return "user"
+	}
+	return "system/openai"
+}
+
+func (s Server) resolveLLMClient(ctx context.Context, userID int64) (*openai.Client, string, error) {
+	settings, err := s.Store.AIProviderSettingsByUserID(ctx, userID)
+	if err != nil && !db.IsNotFound(err) {
+		return nil, "", err
+	}
+	if err == nil && settings.Enabled {
+		decrypted, err := secrets.DecryptString(s.Config.AIKeySecret, settings.APIKeyEncrypted)
+		if err != nil {
+			return nil, "", err
+		}
+		client := openai.NewClientWithOptions(openai.ClientOptions{
+			APIKey:      decrypted,
+			BaseURL:     firstNonEmpty(settings.BaseURLOverride, defaultBaseURLForProvider(settings.Provider, s.Config)),
+			PromptModel: firstNonEmpty(settings.PromptModelOverride, s.Config.PromptModel),
+			ReviewModel: firstNonEmpty(settings.ReviewModelOverride, s.Config.ReviewModel),
+		})
+		return client, "user/" + normalizeProvider(settings.Provider), nil
+	}
+	if systemFallbackAvailable(s.Config) {
+		return openai.NewClient(s.Config), "system/openai", nil
+	}
+	return nil, "", nil
+}
+
+func (s Server) toAIProviderSettingsResponse(settings domain.AIProviderSettings, exists bool) aiProviderSettingsResponse {
+	fallback := systemFallbackAvailable(s.Config)
+	if !exists {
+		return aiProviderSettingsResponse{
+			Enabled:           false,
+			HasKey:            false,
+			EffectiveProvider: effectiveProviderLabel(false, false),
+			SystemFallback:    fallback,
+			Ready:             fallback,
+		}
+	}
+	return aiProviderSettingsResponse{
+		Provider:            settings.Provider,
+		BaseURLOverride:     settings.BaseURLOverride,
+		PromptModelOverride: settings.PromptModelOverride,
+		ReviewModelOverride: settings.ReviewModelOverride,
+		Enabled:             settings.Enabled,
+		HasKey:              strings.TrimSpace(settings.APIKeyEncrypted) != "",
+		KeyLast4:            settings.APIKeyLast4,
+		ValidatedAt:         db.Since(settings.ValidatedAt),
+		LastValidationError: settings.LastValidationError,
+		EffectiveProvider:   effectiveProviderLabel(true, settings.Enabled),
+		SystemFallback:      fallback,
+		Ready:               settings.Enabled || fallback,
+	}
+}
+
 func listLimit(r *http.Request, fallback, max int) int {
 	raw := strings.TrimSpace(r.URL.Query().Get("limit"))
 	if raw == "" {
@@ -2218,8 +2554,12 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	if err != nil {
 		return fmt.Errorf("load tree slug: %w", err)
 	}
+	llmClient, providerKind, err := s.resolveLLMClient(ctx, job.UserID)
+	if err != nil {
+		return fmt.Errorf("resolve provider: %w", err)
+	}
 
-	reviewResult := s.Reviews.ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
+	reviewResult := s.Reviews.WithClient(llmClient, providerKind).ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
 	reviewResult.Review.UserID = job.UserID
 	reviewResult.Review.TreeID = job.TreeID
 	recommendation, err := s.Curriculum.SyncTGOs(ctx, s.Store, treeSlug, job.EnrollmentID, reviewResult.Review)
@@ -2331,7 +2671,7 @@ func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-API-Token, X-Session-Token, X-Writing-Coach-User, X-Writing-Coach-Tree")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return

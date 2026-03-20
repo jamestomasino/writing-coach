@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { Avatar } from '@/components/avatar'
+import { Badge } from '@/components/badge'
 import {
   Dropdown,
   DropdownButton,
@@ -74,7 +75,11 @@ function AccountDropdownMenu({
         <>
           <DropdownItem href="/settings">
             <Cog6ToothIcon />
-            <DropdownLabel>Settings</DropdownLabel>
+            <DropdownLabel>Account settings</DropdownLabel>
+          </DropdownItem>
+          <DropdownItem href="/ai-settings">
+            <Cog6ToothIcon />
+            <DropdownLabel>AI provider</DropdownLabel>
           </DropdownItem>
           {isAdmin ? (
             <DropdownItem href="/admin">
@@ -104,12 +109,52 @@ function AccountDropdownMenu({
   )
 }
 
+function providerStatusMeta({
+  ready,
+  hasPersonalKey,
+  systemFallback,
+}: {
+  ready: boolean
+  hasPersonalKey: boolean
+  systemFallback: boolean
+}) {
+  if (!ready) {
+    return {
+      label: 'AI setup required',
+      detail: 'Add a provider key to generate assignments and reviews.',
+      badgeColor: 'rose' as const,
+    }
+  }
+  if (hasPersonalKey) {
+    return {
+      label: 'Personal AI provider',
+      detail: 'Your own provider key is active for generation.',
+      badgeColor: 'emerald' as const,
+    }
+  }
+  if (systemFallback) {
+    return {
+      label: 'Shared AI provider',
+      detail: 'You are using the shared system provider.',
+      badgeColor: 'amber' as const,
+    }
+  }
+  return {
+    label: 'AI status unavailable',
+    detail: 'Provider status could not be determined.',
+    badgeColor: 'zinc' as const,
+  }
+}
+
 export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [accountName, setAccountName] = useState('Workshop')
   const [accountDetail, setAccountDetail] = useState('Scholastic coaching loop')
+  const [aiProviderReady, setAIProviderReady] = useState(true)
+  const [aiHasPersonalKey, setAIHasPersonalKey] = useState(false)
+  const [aiSystemFallback, setAISystemFallback] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -119,6 +164,9 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setAuthenticated(session.authenticated)
           setIsAdmin(session.is_admin)
+          setAIProviderReady(session.ai_provider_ready)
+          setAIHasPersonalKey(session.ai_has_personal_key)
+          setAISystemFallback(session.ai_system_fallback)
           if (session.authenticated) {
             setAccountName(session.identity?.name?.trim() || session.identity?.email?.trim() || 'Account')
             setAccountDetail(session.identity?.email?.trim() || 'Writing Coach account')
@@ -131,6 +179,9 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setAuthenticated(false)
           setIsAdmin(false)
+          setAIProviderReady(true)
+          setAIHasPersonalKey(false)
+          setAISystemFallback(false)
           setAccountName('Guest')
           setAccountDetail('Sign in for settings and account actions')
         }
@@ -143,6 +194,11 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   }, [])
 
   const accountInitials = initialsForName(accountName)
+  const aiStatus = providerStatusMeta({
+    ready: aiProviderReady,
+    hasPersonalKey: aiHasPersonalKey,
+    systemFallback: aiSystemFallback,
+  })
 
   return (
     <SidebarLayout
@@ -162,14 +218,28 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center gap-3 px-2 py-1">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-950/70 ring-1 ring-white/10 dark:bg-white/5">
-                <Image src="/logo-writing-coach.svg" alt="Writing Coach logo" width={24} height={24} priority />
+            <div className="space-y-3 px-2 py-1">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-950/70 ring-1 ring-white/10 dark:bg-white/5">
+                  <Image src="/logo-writing-coach.svg" alt="Writing Coach logo" width={24} height={24} priority />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-lg/6 font-semibold text-zinc-950 dark:text-white">Writing Coach</div>
+                  <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">Structured practice</div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <div className="text-lg/6 font-semibold text-zinc-950 dark:text-white">Writing Coach</div>
-                <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">Structured practice</div>
-              </div>
+              {authenticated === true ? (
+                <a
+                  href="/ai-settings"
+                  className="block rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3 transition hover:border-stone-300 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/8"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium text-zinc-950 dark:text-white">{aiStatus.label}</div>
+                    <Badge color={aiStatus.badgeColor}>{aiHasPersonalKey ? 'Personal' : aiProviderReady ? 'Shared' : 'Needed'}</Badge>
+                  </div>
+                  <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">{aiStatus.detail}</div>
+                </a>
+              ) : null}
             </div>
           </SidebarHeader>
 
@@ -209,13 +279,21 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                     <ArrowPathIcon />
                     <SidebarLabel>Change track</SidebarLabel>
                   </SidebarItem>
-                  <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
-                    <Squares2X2Icon />
-                    <SidebarLabel>Skill map</SidebarLabel>
-                  </SidebarItem>
-                </SidebarSection>
-              </>
-            ) : null}
+                <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
+                  <Squares2X2Icon />
+                  <SidebarLabel>Skill map</SidebarLabel>
+                </SidebarItem>
+              </SidebarSection>
+
+              <SidebarSection>
+                <SidebarHeading>Settings</SidebarHeading>
+                <SidebarItem href="/ai-settings" current={pathname.startsWith('/ai-settings')}>
+                  <Cog6ToothIcon />
+                  <SidebarLabel>AI provider</SidebarLabel>
+                </SidebarItem>
+              </SidebarSection>
+            </>
+          ) : null}
 
             <SidebarSpacer />
 

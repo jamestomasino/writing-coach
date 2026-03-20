@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/button'
+import { Callout } from '@/components/callout'
 import { CardHeader } from '@/components/card-header'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
 import { Eyebrow } from '@/components/eyebrow'
@@ -13,7 +14,7 @@ import { PageHeader } from '@/components/page-header'
 import { Select } from '@/components/select'
 import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
-import { getOnboarding, getOnboardingOptions, saveOnboarding } from '@/lib/api'
+import { getOnboarding, getOnboardingOptions, getSession, saveOnboarding } from '@/lib/api'
 import type { OnboardingOptions } from '@/lib/types'
 import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -32,6 +33,7 @@ export function OnboardingView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [existingProfile, setExistingProfile] = useState(false)
+  const [needsAISetup, setNeedsAISetup] = useState(false)
   const [options, setOptions] = useState<OnboardingOptions>(emptyOptions)
   const [writingType, setWritingType] = useState('')
   const [assignmentFormat, setAssignmentFormat] = useState('')
@@ -49,10 +51,11 @@ export function OnboardingView() {
     let cancelled = false
     async function load() {
       try {
-        const [onboarding, nextOptions] = await Promise.all([getOnboarding(), getOnboardingOptions()])
+        const [session, onboarding, nextOptions] = await Promise.all([getSession(), getOnboarding(), getOnboardingOptions()])
         if (cancelled) {
           return
         }
+        setNeedsAISetup(!session.ai_provider_ready)
         setOptions(nextOptions)
         if (onboarding.profile) {
           setWritingType(onboarding.profile.writing_type)
@@ -108,6 +111,11 @@ export function OnboardingView() {
         difficulty_intensity: difficultyIntensity,
         writing_goals: writingGoals,
       })
+      const session = await getSession()
+      if (!session.ai_provider_ready) {
+        router.push('/ai-settings?required=1&next=/')
+        return
+      }
       router.push('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save onboarding')
@@ -131,6 +139,13 @@ export function OnboardingView() {
             : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'
         }
       />
+
+      {needsAISetup ? (
+        <Callout
+          title="One more step after this"
+          body="Once your track is saved, you will be asked to add an AI provider before assignments and reviews can run."
+        />
+      ) : null}
 
       <WorkspaceCard>
         <CardHeader eyebrow="How it works" title="How the coaching loop works" />

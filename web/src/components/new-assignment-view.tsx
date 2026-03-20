@@ -20,6 +20,7 @@ export function NewAssignmentView() {
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  const [needsAISetup, setNeedsAISetup] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [preview, setPreview] = useState<Exercise | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -33,6 +34,13 @@ export function NewAssignmentView() {
         if (!session.onboarding_complete) {
           if (!cancelled) {
             setNeedsOnboarding(true)
+            setDashboard(null)
+          }
+          return
+        }
+        if (!session.ai_provider_ready) {
+          if (!cancelled) {
+            setNeedsAISetup(true)
             setDashboard(null)
           }
           return
@@ -131,6 +139,16 @@ export function NewAssignmentView() {
         body="You need an active skill map before you can choose skills for a new assignment."
         actionHref="/onboarding"
         actionLabel="Set starter path"
+      />
+    )
+  }
+  if (needsAISetup) {
+    return (
+      <EmptyState
+        title="AI setup required"
+        body="Add an AI provider before generating a new assignment."
+        actionHref="/ai-settings?required=1&next=/new-assignment"
+        actionLabel="Set up AI provider"
       />
     )
   }

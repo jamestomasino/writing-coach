@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -18,6 +20,7 @@ import (
 	"github.com/tomasino/writing-coach/internal/domain"
 	"github.com/tomasino/writing-coach/internal/prompt"
 	"github.com/tomasino/writing-coach/internal/review"
+	"github.com/tomasino/writing-coach/internal/secrets"
 )
 
 func TestDashboardEndpoint(t *testing.T) {
@@ -970,6 +973,535 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 	}
 }
 
+func TestAISettingsLifecycleEndpoint(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	getResp, err := http.Get(testServer.URL + "/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get ai settings: %v", err)
+	}
+	defer getResp.Body.Close()
+	if getResp.StatusCode != http.StatusOK {
+		t.Fatalf("initial ai settings status: %d", getResp.StatusCode)
+	}
+	var initial struct {
+		Settings struct {
+			Provider          string `json:"provider"`
+			HasKey            bool   `json:"has_key"`
+			EffectiveProvider string `json:"effective_provider"`
+			SystemFallback    bool   `json:"system_fallback"`
+			Ready             bool   `json:"ready"`
+		} `json:"settings"`
+	}
+	if err := json.NewDecoder(getResp.Body).Decode(&initial); err != nil {
+		t.Fatalf("decode initial ai settings: %v", err)
+	}
+	if initial.Settings.Provider != "" || initial.Settings.HasKey {
+		t.Fatalf("unexpected initial settings: %#v", initial.Settings)
+	}
+	if initial.Settings.EffectiveProvider != "system/openai" {
+		t.Fatalf("effective provider = %q", initial.Settings.EffectiveProvider)
+	}
+
+	var authHeader string
+	fakeProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader = r.Header.Get("Authorization")
+		if r.URL.Path != "/models" {
+			t.Fatalf("provider path = %q", r.URL.Path)
+		}
+		_, _ = io.WriteString(w, `{"data":[]}`)
+	}))
+	defer fakeProvider.Close()
+
+	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"prompt_model_override":"gpt-5.4","review_model_override":"gpt-5.4-mini","enabled":true}`, fakeProvider.URL)))
+	if err != nil {
+		t.Fatalf("new validate request: %v", err)
+	}
+	validateReq.Header.Set("Content-Type", "application/json")
+	validateResp, err := http.DefaultClient.Do(validateReq)
+	if err != nil {
+		t.Fatalf("validate ai settings: %v", err)
+	}
+	defer validateResp.Body.Close()
+	if validateResp.StatusCode != http.StatusOK {
+		t.Fatalf("validate ai settings status: %d", validateResp.StatusCode)
+	}
+	var validation struct {
+		Valid    bool `json:"valid"`
+		Settings struct {
+			KeyLast4 string `json:"key_last4"`
+			HasKey   bool   `json:"has_key"`
+		} `json:"settings"`
+	}
+	if err := json.NewDecoder(validateResp.Body).Decode(&validation); err != nil {
+		t.Fatalf("decode validation response: %v", err)
+	}
+	if !validation.Valid || !validation.Settings.HasKey || validation.Settings.KeyLast4 != "1234" {
+		t.Fatalf("validation payload = %#v", validation)
+	}
+	if authHeader != "Bearer sk-test-1234" {
+		t.Fatalf("authorization = %q", authHeader)
+	}
+
+	putReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"prompt_model_override":"gpt-5.4","review_model_override":"gpt-5.4-mini","enabled":true}`, fakeProvider.URL)))
+	if err != nil {
+		t.Fatalf("new ai settings request: %v", err)
+	}
+	putReq.Header.Set("Content-Type", "application/json")
+	putResp, err := http.DefaultClient.Do(putReq)
+	if err != nil {
+		t.Fatalf("save ai settings: %v", err)
+	}
+	defer putResp.Body.Close()
+	if putResp.StatusCode != http.StatusOK {
+		t.Fatalf("save ai settings status: %d", putResp.StatusCode)
+	}
+	var stored struct {
+		Settings struct {
+			Provider            string `json:"provider"`
+			KeyLast4            string `json:"key_last4"`
+			HasKey              bool   `json:"has_key"`
+			PromptModelOverride string `json:"prompt_model_override"`
+			ReviewModelOverride string `json:"review_model_override"`
+			EffectiveProvider   string `json:"effective_provider"`
+		} `json:"settings"`
+	}
+	if err := json.NewDecoder(putResp.Body).Decode(&stored); err != nil {
+		t.Fatalf("decode stored ai settings: %v", err)
+	}
+	if stored.Settings.Provider != "openai" || stored.Settings.KeyLast4 != "1234" || !stored.Settings.HasKey {
+		t.Fatalf("stored settings payload = %#v", stored.Settings)
+	}
+	if stored.Settings.EffectiveProvider != "user" {
+		t.Fatalf("effective provider = %q", stored.Settings.EffectiveProvider)
+	}
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	record, err := harness.Store.AIProviderSettingsByUserID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("stored provider settings lookup: %v", err)
+	}
+	if record.APIKeyEncrypted == "" || record.APIKeyEncrypted == "sk-test-1234" {
+		t.Fatalf("expected encrypted key, got %#v", record)
+	}
+
+	updateReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"","base_url_override":%q,"prompt_model_override":"gpt-5-mini","review_model_override":"gpt-5-mini","enabled":false}`, fakeProvider.URL)))
+	if err != nil {
+		t.Fatalf("new update request: %v", err)
+	}
+	updateReq.Header.Set("Content-Type", "application/json")
+	updateResp, err := http.DefaultClient.Do(updateReq)
+	if err != nil {
+		t.Fatalf("update ai settings: %v", err)
+	}
+	defer updateResp.Body.Close()
+	if updateResp.StatusCode != http.StatusOK {
+		t.Fatalf("update ai settings status: %d", updateResp.StatusCode)
+	}
+	record, err = harness.Store.AIProviderSettingsByUserID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("lookup updated provider settings: %v", err)
+	}
+	if record.Enabled {
+		t.Fatal("expected provider settings to be disabled")
+	}
+	if record.APIKeyEncrypted == "" {
+		t.Fatal("expected saved key to be preserved")
+	}
+	if record.APIKeyLast4 != "1234" {
+		t.Fatalf("key last4 = %q", record.APIKeyLast4)
+	}
+
+	secondUserID, _, _, err := harness.Store.EnsureDefaultUserTree(context.Background(), "other", "Other", "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("ensure other user: %v", err)
+	}
+	if _, err := harness.Store.AIProviderSettingsByUserID(context.Background(), secondUserID); !db.IsNotFound(err) {
+		t.Fatalf("expected other user to have no provider settings, got %v", err)
+	}
+
+	deleteReq, err := http.NewRequest(http.MethodDelete, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", nil)
+	if err != nil {
+		t.Fatalf("new delete request: %v", err)
+	}
+	deleteResp, err := http.DefaultClient.Do(deleteReq)
+	if err != nil {
+		t.Fatalf("delete ai settings: %v", err)
+	}
+	defer deleteResp.Body.Close()
+	if deleteResp.StatusCode != http.StatusOK {
+		t.Fatalf("delete ai settings status: %d", deleteResp.StatusCode)
+	}
+	if _, err := harness.Store.AIProviderSettingsByUserID(context.Background(), user.ID); !db.IsNotFound(err) {
+		t.Fatalf("expected deleted provider settings, got %v", err)
+	}
+}
+
+func TestAISettingsValidateRejectsInvalidCredentials(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	fakeProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = io.WriteString(w, `{"error":{"message":"invalid api key"}}`)
+	}))
+	defer fakeProvider.Close()
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-bad","base_url_override":%q,"enabled":true}`, fakeProvider.URL)))
+	if err != nil {
+		t.Fatalf("new validate request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("validate bad credentials: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode validation error: %v", err)
+	}
+	if !strings.Contains(payload.Error, "invalid api key") {
+		t.Fatalf("unexpected error = %q", payload.Error)
+	}
+}
+
+func TestAISettingsUpdateRequiresNewKeyWhenChangingProvider(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	encrypted, err := secrets.EncryptString("test-ai-key-secret", "sk-openai-1234")
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(context.Background(), domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "openai",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "1234",
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"groq","api_key":"","enabled":true}`))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("update provider without key: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
+	if !strings.Contains(payload.Error, "api key is required") {
+		t.Fatalf("unexpected error = %q", payload.Error)
+	}
+}
+
+func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get auth session: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var initial struct {
+		AIProviderReady     bool   `json:"ai_provider_ready"`
+		AIEffectiveProvider string `json:"ai_effective_provider"`
+		AISystemFallback    bool   `json:"ai_system_fallback"`
+		AIHasPersonalKey    bool   `json:"ai_has_personal_key"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&initial); err != nil {
+		t.Fatalf("decode auth session: %v", err)
+	}
+	if initial.AIProviderReady {
+		t.Fatal("expected ai provider readiness to be false without fallback or personal key")
+	}
+	if initial.AISystemFallback {
+		t.Fatal("expected system fallback to be false")
+	}
+	if initial.AIEffectiveProvider != "system/openai" {
+		t.Fatalf("effective provider = %q", initial.AIEffectiveProvider)
+	}
+	if initial.AIHasPersonalKey {
+		t.Fatal("expected personal key flag to be false")
+	}
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-user-1234")
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(context.Background(), domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "openai",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "1234",
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	resp, err = http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get auth session after provider save: %v", err)
+	}
+	defer resp.Body.Close()
+	var updated struct {
+		AIProviderReady     bool   `json:"ai_provider_ready"`
+		AIEffectiveProvider string `json:"ai_effective_provider"`
+		AIHasPersonalKey    bool   `json:"ai_has_personal_key"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&updated); err != nil {
+		t.Fatalf("decode updated auth session: %v", err)
+	}
+	if !updated.AIProviderReady {
+		t.Fatal("expected ai provider readiness after saving provider")
+	}
+	if updated.AIEffectiveProvider != "user" {
+		t.Fatalf("effective provider = %q", updated.AIEffectiveProvider)
+	}
+	if !updated.AIHasPersonalKey {
+		t.Fatal("expected personal key flag after saving provider")
+	}
+}
+
+func TestAISettingsRejectUnsupportedProvider(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"anthropic","api_key":"sk-test-1234","enabled":true}`))
+	if err != nil {
+		t.Fatalf("new validate request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("validate unsupported provider: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unsupported provider status = %d", resp.StatusCode)
+	}
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode unsupported provider: %v", err)
+	}
+	if !strings.Contains(payload.Error, "unsupported provider") {
+		t.Fatalf("unexpected error = %q", payload.Error)
+	}
+}
+
+func TestPromptNextUsesUserProviderSettings(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	var authHeader string
+	fakeProvider := newFakeOpenAIResponsesServer(t, &authHeader)
+	defer fakeProvider.Close()
+
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	server := newTestServerWithConfig(t, harness.Store, cfg)
+	defer server.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-user-9876")
+	if err != nil {
+		t.Fatalf("encrypt user key: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(context.Background(), domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "xai",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "9876",
+		BaseURLOverride: fakeProvider.URL,
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("prompt next: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("prompt next status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Exercise struct {
+			Title          string `json:"title"`
+			GenerationKind string `json:"generation_kind"`
+			ProviderNote   string `json:"provider_note"`
+		} `json:"exercise"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode prompt payload: %v", err)
+	}
+	if payload.Exercise.Title != "Provider Draft" {
+		t.Fatalf("exercise title = %q", payload.Exercise.Title)
+	}
+	if payload.Exercise.GenerationKind != "user/xai" {
+		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
+	}
+	if payload.Exercise.ProviderNote != "user/xai" {
+		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
+	}
+	if authHeader != "Bearer sk-user-9876" {
+		t.Fatalf("authorization header = %q", authHeader)
+	}
+}
+
+func TestReviewWorkerUsesUserProviderSettings(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	var authHeader string
+	fakeProvider := newFakeOpenAIResponsesServer(t, &authHeader)
+	defer fakeProvider.Close()
+
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	server := Server{
+		Config:     cfg,
+		Store:      harness.Store,
+		Prompts:    prompt.NewService(nil),
+		Reviews:    review.NewService(nil, analyzer.Service{}),
+		Curriculum: curriculum.NewService(),
+	}
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-review-4321")
+	if err != nil {
+		t.Fatalf("encrypt review key: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(ctx, domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "groq",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "4321",
+		BaseURLOverride: fakeProvider.URL,
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Provider Review Exercise",
+		Brief:           "Write a paragraph.",
+		Constraints:     []string{"under 200 words"},
+		FocusSkills:     []string{"causal clarity"},
+		TGOCodes:        []string{"causal-clarity"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "The bell rang and the gate split in the same instant.",
+		WordCount:  11,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	enrollmentID, err := harness.Store.EnrollmentID(ctx, user.ID, tree.ID)
+	if err != nil {
+		t.Fatalf("enrollment id: %v", err)
+	}
+	jobRecord, err := harness.Store.EnqueueReviewJob(ctx, domain.ReviewJob{
+		UserID:       user.ID,
+		TreeID:       tree.ID,
+		EnrollmentID: enrollmentID,
+		SubmissionID: submissionID,
+		MaxAttempts:  3,
+	})
+	if err != nil {
+		t.Fatalf("enqueue review job: %v", err)
+	}
+
+	job, err := harness.Store.ClaimNextReviewJob(ctx)
+	if err != nil {
+		t.Fatalf("claim review job: %v", err)
+	}
+	if job.ID != jobRecord.ID {
+		t.Fatalf("claimed job id = %d", job.ID)
+	}
+	if err := server.processReviewJob(ctx, job); err != nil {
+		t.Fatalf("process review job: %v", err)
+	}
+
+	savedReview, err := harness.Store.LatestReviewForSubmission(ctx, submissionID)
+	if err != nil {
+		t.Fatalf("latest review: %v", err)
+	}
+	if savedReview.ReviewKind != "user/groq" {
+		t.Fatalf("review kind = %q", savedReview.ReviewKind)
+	}
+	if savedReview.ProviderNote != "user/groq" {
+		t.Fatalf("provider note = %q", savedReview.ProviderNote)
+	}
+	if authHeader != "Bearer sk-review-4321" {
+		t.Fatalf("authorization header = %q", authHeader)
+	}
+}
+
 func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
@@ -1737,6 +2269,7 @@ func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *http
 	cfg := config.Default(t.TempDir())
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
+	cfg.AIKeySecret = "test-ai-key-secret"
 	return newTestServerWithConfig(t, harness.Store, cfg)
 }
 
@@ -1789,6 +2322,7 @@ func newTestServerWithStore(t *testing.T, store *db.Store, apiToken, kratosPubli
 	cfg := config.Default(t.TempDir())
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
+	cfg.AIKeySecret = "test-ai-key-secret"
 	return newTestServerWithConfig(t, store, cfg)
 }
 
@@ -1822,6 +2356,42 @@ func mustJSONString(value any) string {
 		panic(err)
 	}
 	return string(data)
+}
+
+func newFakeOpenAIResponsesServer(t *testing.T, authHeader *string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if authHeader != nil {
+			*authHeader = r.Header.Get("Authorization")
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read fake provider body: %v", err)
+		}
+		_ = r.Body.Close()
+
+		var payload string
+		switch {
+		case strings.Contains(string(body), "submission_review"):
+			payload = `{"summary":"Provider review summary","strengths":["Provider strength"],"weaknesses":["Provider weakness"],"next_focus":"causal clarity","skill_scores":[{"skill":"causal clarity","score":4}],"tgo_assessments":[{"code":"causal-clarity","status":"secure","evidence":"Provider evidence"},{"code":"scene-architecture","status":"secure","evidence":"Provider evidence"},{"code":"prose-precision","status":"secure","evidence":"Provider evidence"}],"completed_tgo_checks":[],"annotations":[]}`
+		default:
+			payload = `{"title":"Provider Draft","brief":"Generated through the user provider.","constraints":["Keep the draft focused."],"focus_skills":["causal clarity"],"success_criteria":["Make the chain of events easy to follow."]}`
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": []map[string]any{
+				{
+					"content": []map[string]any{
+						{
+							"type": "output_text",
+							"text": payload,
+						},
+					},
+				},
+			},
+		})
+	}))
 }
 
 func waitForReview(t *testing.T, baseURL string, submissionID int64) int64 {

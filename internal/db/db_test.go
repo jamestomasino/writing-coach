@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/tomasino/writing-coach/internal/domain"
 )
@@ -223,5 +224,91 @@ func TestTGOMasterySignalUsesRollingEvidence(t *testing.T) {
 	}
 	if !signal.Ready {
 		t.Fatalf("signal should be ready: %#v", signal)
+	}
+}
+
+func TestAIProviderSettingsCRUD(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, _, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+
+	validatedAt := time.Date(2026, time.March, 20, 12, 0, 0, 0, time.UTC)
+	settings := domain.AIProviderSettings{
+		UserID:              userID,
+		Provider:            "openai",
+		APIKeyEncrypted:     "enc:test",
+		APIKeyLast4:         "abcd",
+		BaseURLOverride:     "https://api.openai.com/v1",
+		PromptModelOverride: "gpt-5.4",
+		ReviewModelOverride: "gpt-5.4-mini",
+		Enabled:             true,
+		ValidatedAt:         validatedAt,
+		LastValidationError: "",
+	}
+	if err := store.SaveAIProviderSettings(ctx, settings); err != nil {
+		t.Fatalf("save provider settings: %v", err)
+	}
+
+	loaded, err := store.AIProviderSettingsByUserID(ctx, userID)
+	if err != nil {
+		t.Fatalf("load provider settings: %v", err)
+	}
+	if loaded.Provider != "openai" || loaded.APIKeyEncrypted != "enc:test" || loaded.APIKeyLast4 != "abcd" {
+		t.Fatalf("loaded provider settings = %#v", loaded)
+	}
+	if !loaded.Enabled {
+		t.Fatalf("expected enabled settings, got %#v", loaded)
+	}
+	if loaded.ValidatedAt.IsZero() {
+		t.Fatalf("expected validated_at to be set, got %#v", loaded)
+	}
+
+	settings.Provider = "groq"
+	settings.APIKeyEncrypted = "enc:next"
+	settings.APIKeyLast4 = "wxyz"
+	settings.Enabled = false
+	settings.ValidatedAt = time.Time{}
+	settings.LastValidationError = "invalid credentials"
+	if err := store.SaveAIProviderSettings(ctx, settings); err != nil {
+		t.Fatalf("update provider settings: %v", err)
+	}
+
+	updated, err := store.AIProviderSettingsByUserID(ctx, userID)
+	if err != nil {
+		t.Fatalf("reload provider settings: %v", err)
+	}
+	if updated.Provider != "groq" || updated.APIKeyEncrypted != "enc:next" || updated.APIKeyLast4 != "wxyz" {
+		t.Fatalf("updated provider settings = %#v", updated)
+	}
+	if updated.Enabled {
+		t.Fatalf("expected disabled settings, got %#v", updated)
+	}
+	if !updated.ValidatedAt.IsZero() {
+		t.Fatalf("expected validated_at cleared, got %#v", updated)
+	}
+	if updated.LastValidationError != "invalid credentials" {
+		t.Fatalf("last validation error = %q", updated.LastValidationError)
+	}
+
+	if err := store.DeleteAIProviderSettings(ctx, userID); err != nil {
+		t.Fatalf("delete provider settings: %v", err)
+	}
+	if _, err := store.AIProviderSettingsByUserID(ctx, userID); !IsNotFound(err) {
+		t.Fatalf("expected not found after delete, got %v", err)
 	}
 }

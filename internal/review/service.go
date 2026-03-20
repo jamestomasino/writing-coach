@@ -12,9 +12,10 @@ import (
 type deterministicReviewer struct{}
 
 type Service struct {
-	client    *openai.Client
-	analyzers analyzer.Service
-	fallback  deterministicReviewer
+	client     *openai.Client
+	clientKind string
+	analyzers  analyzer.Service
+	fallback   deterministicReviewer
 }
 
 type Result struct {
@@ -25,10 +26,20 @@ type Result struct {
 
 func NewService(client *openai.Client, analyzers analyzer.Service) Service {
 	return Service{
-		client:    client,
-		analyzers: analyzers,
-		fallback:  deterministicReviewer{},
+		client:     client,
+		clientKind: "openai",
+		analyzers:  analyzers,
+		fallback:   deterministicReviewer{},
 	}
+}
+
+func (s Service) WithClient(client *openai.Client, kind string) Service {
+	s.client = client
+	s.clientKind = strings.TrimSpace(kind)
+	if s.clientKind == "" {
+		s.clientKind = "openai"
+	}
+	return s
 }
 
 func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {
@@ -50,14 +61,15 @@ func (s Service) ReviewSubmissionDetailed(ctx context.Context, sub domain.Submis
 			AnalyzerFindings: analyzer.TopFindings(report, 6),
 		})
 		if err == nil {
-			reviewResult.ReviewKind = "openai"
+			reviewResult.ReviewKind = s.clientKind
+			reviewResult.ProviderNote = s.clientKind
 			reviewResult.AnalyzerFindings = analyzer.TopFindings(report, 6)
 			return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 		}
 
 		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs)
 		reviewResult.ReviewKind = "deterministic-fallback"
-		reviewResult.ProviderNote = err.Error()
+		reviewResult.ProviderNote = strings.TrimSpace(s.clientKind + ": " + err.Error())
 		return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 	}
 

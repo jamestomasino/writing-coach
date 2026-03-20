@@ -10,6 +10,10 @@ export type AuthSession = {
   auth_mode: string
   is_admin: boolean
   onboarding_complete: boolean
+  ai_provider_ready: boolean
+  ai_effective_provider?: string
+  ai_system_fallback: boolean
+  ai_has_personal_key: boolean
   active_tree_slug?: string
   identity?: {
     subject: string
@@ -91,6 +95,21 @@ export type Review = {
     comparison?: Comparison
     annotations?: ReviewAnnotation[]
   }
+}
+
+export type AIProviderSettings = {
+  provider?: string
+  base_url_override?: string
+  prompt_model_override?: string
+  review_model_override?: string
+  enabled: boolean
+  has_key: boolean
+  key_last4?: string
+  validated_at?: string
+  last_validation_error?: string
+  effective_provider: string
+  system_fallback: boolean
+  ready: boolean
 }
 
 export type ReviewAnnotation = {

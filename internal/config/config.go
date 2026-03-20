@@ -26,6 +26,7 @@ type Config struct {
 	KratosPublicURL string   `json:"kratos_public_url"`
 	OpenAIAPIKey    string   `json:"-"`
 	OpenAIBaseURL   string   `json:"openai_base_url"`
+	AIKeySecret     string   `json:"-"`
 	PromptModel     string   `json:"prompt_model"`
 	ReviewModel     string   `json:"review_model"`
 	ValeBinary      string   `json:"vale_binary"`
@@ -95,6 +96,9 @@ func Load(projectRoot string) (Config, error) {
 	}
 	if value := os.Getenv("OPENAI_BASE_URL"); value != "" {
 		cfg.OpenAIBaseURL = value
+	}
+	if value := os.Getenv("WRITING_COACH_AI_KEY_SECRET"); value != "" {
+		cfg.AIKeySecret = value
 	}
 	if value := os.Getenv("WRITING_COACH_PROMPT_MODEL"); value != "" {
 		cfg.PromptModel = value
