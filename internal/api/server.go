@@ -29,14 +29,15 @@ import (
 )
 
 type Server struct {
-	Config     config.Config
-	Store      *db.Store
-	Prompts    prompt.Service
-	Reviews    review.Service
-	Curriculum curriculum.Service
+	Config            config.Config
+	Store             *db.Store
+	Prompts           prompt.Service
+	Reviews           review.Service
+	Curriculum        curriculum.Service
+	validationLimiter *aiValidationLimiter
 }
 
-func (s Server) Serve(ctx context.Context) error {
+func (s *Server) Serve(ctx context.Context) error {
 	go s.runReviewWorker(ctx)
 
 	server := &http.Server{
@@ -55,7 +56,10 @@ func (s Server) Serve(ctx context.Context) error {
 	return nil
 }
 
-func (s Server) routes() http.Handler {
+func (s *Server) routes() http.Handler {
+	if s.validationLimiter == nil {
+		s.validationLimiter = newAIValidationLimiter(s.Config.AIValidateLimitPerMinute, s.Config.AIValidateGlobalLimitPerMinute)
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/ready", s.handleReady)
@@ -488,7 +492,7 @@ func (s Server) handleAISettingsGet(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s Server) handleAISettingsUpsert(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleAISettingsUpsert(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -523,6 +527,17 @@ func (s Server) handleAISettingsUpsert(w http.ResponseWriter, r *http.Request) {
 		PromptModelOverride: strings.TrimSpace(payload.PromptModelOverride),
 		ReviewModelOverride: strings.TrimSpace(payload.ReviewModelOverride),
 		Enabled:             payload.Enabled,
+	}
+	if err := s.consumeAIProviderValidationAttempt(appContext.UserID, settings.Provider); err != nil {
+		s.logAIProviderEvent("settings_save_rate_limited", settings.Provider, appContext.UserID, map[string]any{
+			"category": aiProviderErrorCategory(err),
+			"status":   statusForAIProviderValidationError(err),
+		})
+		if retryAfter := retryAfterForAIValidationError(err); retryAfter > 0 {
+			w.Header().Set("Retry-After", strconv.Itoa(int(retryAfter.Round(time.Second)/time.Second)))
+		}
+		writeError(w, statusForAIProviderValidationError(err), userFacingAIProviderError("save", settings.Provider, err))
+		return
 	}
 	if err := s.validateAIProviderSettings(r.Context(), settings, rawKey); err != nil {
 		s.logAIProviderEvent("settings_save_failed", settings.Provider, appContext.UserID, map[string]any{
@@ -565,7 +580,7 @@ func (s Server) handleAISettingsDelete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s Server) handleAISettingsValidate(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleAISettingsValidate(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -599,6 +614,17 @@ func (s Server) handleAISettingsValidate(w http.ResponseWriter, r *http.Request)
 		ReviewModelOverride: strings.TrimSpace(payload.ReviewModelOverride),
 		Enabled:             payload.Enabled,
 		ValidatedAt:         time.Now().UTC(),
+	}
+	if err := s.consumeAIProviderValidationAttempt(appContext.UserID, settings.Provider); err != nil {
+		s.logAIProviderEvent("settings_validate_rate_limited", settings.Provider, appContext.UserID, map[string]any{
+			"category": aiProviderErrorCategory(err),
+			"status":   statusForAIProviderValidationError(err),
+		})
+		if retryAfter := retryAfterForAIValidationError(err); retryAfter > 0 {
+			w.Header().Set("Retry-After", strconv.Itoa(int(retryAfter.Round(time.Second)/time.Second)))
+		}
+		writeError(w, statusForAIProviderValidationError(err), userFacingAIProviderError("validate", settings.Provider, err))
+		return
 	}
 	if err := s.validateAIProviderSettings(r.Context(), settings, rawKey); err != nil {
 		s.logAIProviderEvent("settings_validate_failed", settings.Provider, appContext.UserID, map[string]any{
@@ -2283,6 +2309,10 @@ func (s Server) validateAIProviderSettings(ctx context.Context, settings domain.
 }
 
 func aiProviderErrorCategory(err error) string {
+	var limitErr *aiValidationLimitError
+	if errors.As(err, &limitErr) {
+		return "local_rate_limit"
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "timeout"
 	}
@@ -2320,6 +2350,8 @@ func userFacingAIProviderError(action, provider string, err error) error {
 		return fmt.Errorf("%s rejected this API key. Check that the key is correct and has access to the selected endpoint", label)
 	case "quota":
 		return fmt.Errorf("%s cannot be used right now because the account is out of quota or billing is unavailable", label)
+	case "local_rate_limit":
+		return fmt.Errorf("provider validation is rate-limiting requests right now. Wait a moment and try again")
 	case "rate_limit":
 		return fmt.Errorf("%s is rate-limiting requests right now. Try again in a moment", label)
 	case "timeout":
@@ -2372,6 +2404,10 @@ func (s Server) resolveAIProviderKey(ctx context.Context, existing domain.AIProv
 }
 
 func statusForAIProviderValidationError(err error) int {
+	var limitErr *aiValidationLimitError
+	if errors.As(err, &limitErr) {
+		return http.StatusTooManyRequests
+	}
 	var httpErr *llm.HTTPError
 	if errors.As(err, &httpErr) {
 		if httpErr.StatusCode == http.StatusUnauthorized || httpErr.StatusCode == http.StatusForbidden {
@@ -2383,6 +2419,21 @@ func statusForAIProviderValidationError(err error) int {
 		return http.StatusGatewayTimeout
 	}
 	return http.StatusBadGateway
+}
+
+func retryAfterForAIValidationError(err error) time.Duration {
+	var limitErr *aiValidationLimitError
+	if errors.As(err, &limitErr) {
+		return limitErr.RetryAfter
+	}
+	return 0
+}
+
+func (s *Server) consumeAIProviderValidationAttempt(userID int64, provider string) error {
+	if s.validationLimiter == nil {
+		s.validationLimiter = newAIValidationLimiter(s.Config.AIValidateLimitPerMinute, s.Config.AIValidateGlobalLimitPerMinute)
+	}
+	return s.validationLimiter.Allow(time.Now().UTC(), userID, provider)
 }
 
 func last4(value string) string {

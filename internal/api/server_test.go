@@ -1254,6 +1254,70 @@ func TestAISettingsValidateRejectsInvalidCredentials(t *testing.T) {
 	}
 }
 
+func TestAISettingsValidateRateLimitsRepeatedChecksPerUser(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	cfg.AIValidateLimitPerMinute = 1
+	cfg.AIValidateGlobalLimitPerMinute = 10
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	hits := 0
+	fakeProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"id":"gpt-5-mini"}]}`)
+	}))
+	defer fakeProvider.Close()
+
+	requestBody := fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"enabled":true}`, fakeProvider.URL)
+
+	firstReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	if err != nil {
+		t.Fatalf("new first validate request: %v", err)
+	}
+	firstReq.Header.Set("Content-Type", "application/json")
+	firstResp, err := http.DefaultClient.Do(firstReq)
+	if err != nil {
+		t.Fatalf("first validate request: %v", err)
+	}
+	defer firstResp.Body.Close()
+	if firstResp.StatusCode != http.StatusOK {
+		t.Fatalf("first validate status = %d", firstResp.StatusCode)
+	}
+
+	secondReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	if err != nil {
+		t.Fatalf("new second validate request: %v", err)
+	}
+	secondReq.Header.Set("Content-Type", "application/json")
+	secondResp, err := http.DefaultClient.Do(secondReq)
+	if err != nil {
+		t.Fatalf("second validate request: %v", err)
+	}
+	defer secondResp.Body.Close()
+	if secondResp.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("second validate status = %d", secondResp.StatusCode)
+	}
+	if secondResp.Header.Get("Retry-After") == "" {
+		t.Fatal("expected retry-after header")
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(secondResp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode rate limit error: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(payload.Error), "rate-limiting") {
+		t.Fatalf("unexpected rate limit error = %q", payload.Error)
+	}
+	if hits != 1 {
+		t.Fatalf("provider validation hits = %d", hits)
+	}
+}
+
 func TestAISettingsValidateMapsQuotaError(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
@@ -1285,6 +1349,116 @@ func TestAISettingsValidateMapsQuotaError(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(payload.Error), "out of quota") {
 		t.Fatalf("unexpected error = %q", payload.Error)
+	}
+}
+
+func TestAISettingsValidateRateLimitDoesNotBlockOtherUsers(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	if _, _, _, err := harness.Store.EnsureDefaultUserTree(context.Background(), "second-writer", "Second Writer", "mythic-tragedy-apprenticeship"); err != nil {
+		t.Fatalf("ensure second user tree: %v", err)
+	}
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	cfg.AIValidateLimitPerMinute = 1
+	cfg.AIValidateGlobalLimitPerMinute = 10
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	hits := 0
+	fakeProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"id":"gpt-5-mini"}]}`)
+	}))
+	defer fakeProvider.Close()
+
+	requestBody := fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"enabled":true}`, fakeProvider.URL)
+
+	requestFor := func(userSlug string) *http.Response {
+		t.Helper()
+		req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user="+userSlug+"&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+		if err != nil {
+			t.Fatalf("new validate request for %s: %v", userSlug, err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("validate request for %s: %v", userSlug, err)
+		}
+		return resp
+	}
+
+	firstResp := requestFor("tester")
+	defer firstResp.Body.Close()
+	if firstResp.StatusCode != http.StatusOK {
+		t.Fatalf("first tester validate status = %d", firstResp.StatusCode)
+	}
+
+	repeatResp := requestFor("tester")
+	defer repeatResp.Body.Close()
+	if repeatResp.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("repeat tester validate status = %d", repeatResp.StatusCode)
+	}
+
+	secondUserResp := requestFor("second-writer")
+	defer secondUserResp.Body.Close()
+	if secondUserResp.StatusCode != http.StatusOK {
+		t.Fatalf("second user validate status = %d", secondUserResp.StatusCode)
+	}
+
+	if hits != 2 {
+		t.Fatalf("provider validation hits = %d", hits)
+	}
+}
+
+func TestAISettingsSaveSharesValidationBudget(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	cfg.AIValidateLimitPerMinute = 1
+	cfg.AIValidateGlobalLimitPerMinute = 10
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	hits := 0
+	fakeProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"id":"gpt-5-mini"}]}`)
+	}))
+	defer fakeProvider.Close()
+
+	requestBody := fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"enabled":true}`, fakeProvider.URL)
+
+	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	if err != nil {
+		t.Fatalf("new validate request: %v", err)
+	}
+	validateReq.Header.Set("Content-Type", "application/json")
+	validateResp, err := http.DefaultClient.Do(validateReq)
+	if err != nil {
+		t.Fatalf("validate request: %v", err)
+	}
+	defer validateResp.Body.Close()
+	if validateResp.StatusCode != http.StatusOK {
+		t.Fatalf("validate status = %d", validateResp.StatusCode)
+	}
+
+	saveReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	if err != nil {
+		t.Fatalf("new save request: %v", err)
+	}
+	saveReq.Header.Set("Content-Type", "application/json")
+	saveResp, err := http.DefaultClient.Do(saveReq)
+	if err != nil {
+		t.Fatalf("save request: %v", err)
+	}
+	defer saveResp.Body.Close()
+	if saveResp.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("save status = %d", saveResp.StatusCode)
+	}
+	if hits != 1 {
+		t.Fatalf("provider validation hits = %d", hits)
 	}
 }
 

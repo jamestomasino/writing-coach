@@ -151,6 +151,8 @@ Environment variables:
 - `WRITING_COACH_AI_KEY_SECRET` required if users will save personal provider keys
 - `WRITING_COACH_PROMPT_MODEL`
 - `WRITING_COACH_REVIEW_MODEL`
+- `WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE` per-user cap for AI settings validation checks
+- `WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE` app-wide cap for AI settings validation checks
 - `WRITING_COACH_WRITER_NAME`
 - `WRITING_COACH_DEFAULT_USER_SLUG`
 - `WRITING_COACH_DEFAULT_TREE_SLUG`
@@ -159,6 +161,13 @@ Environment variables:
 - `COACH_PUBLIC_URL`
 - `WEB_PORT_BIND`
 - `KRATOS_SMTP_CONNECTION_URI`
+
+AI provider validation hardening:
+
+- both `Validate connection` and `Save provider` spend from the same validation budget
+- the default per-user cap is `6` validation checks per minute
+- the default app-wide cap is `60` validation checks per minute
+- if a user keeps retrying a bad key, later attempts receive `429 Too Many Requests` without hitting the upstream provider
 
 ## Deterministic Analysis
 

@@ -70,3 +70,20 @@ func TestLoadReadsAPITokenFromEnv(t *testing.T) {
 		t.Fatalf("admin emails = %#v", loaded.AdminEmails)
 	}
 }
+
+func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE", "3")
+	t.Setenv("WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE", "12")
+
+	loaded, err := Load(root)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if loaded.AIValidateLimitPerMinute != 3 {
+		t.Fatalf("per-user validation limit = %d", loaded.AIValidateLimitPerMinute)
+	}
+	if loaded.AIValidateGlobalLimitPerMinute != 12 {
+		t.Fatalf("global validation limit = %d", loaded.AIValidateGlobalLimitPerMinute)
+	}
+}
