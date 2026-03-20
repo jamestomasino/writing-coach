@@ -25,6 +25,44 @@ const providerOptions = [
   { value: 'xai', label: 'xAI' },
 ]
 
+const providerMetadata = {
+  anthropic: {
+    defaultBaseURL: 'https://api.anthropic.com/v1',
+    promptModel: 'claude-sonnet-4-20250514',
+    reviewModel: 'claude-sonnet-4-20250514',
+    apiKeyHint: 'Anthropic API key',
+    note: 'Uses Anthropic’s native Messages API with structured tool output.',
+  },
+  gemini: {
+    defaultBaseURL: 'https://generativelanguage.googleapis.com/v1beta',
+    promptModel: 'gemini-2.5-flash',
+    reviewModel: 'gemini-2.5-flash',
+    apiKeyHint: 'Gemini API key',
+    note: 'Uses Gemini’s native generateContent API with JSON schema output.',
+  },
+  openai: {
+    defaultBaseURL: 'https://api.openai.com/v1',
+    promptModel: 'gpt-5-mini',
+    reviewModel: 'gpt-5-mini',
+    apiKeyHint: 'OpenAI API key',
+    note: 'Uses the OpenAI Responses API directly.',
+  },
+  groq: {
+    defaultBaseURL: 'https://api.groq.com/openai/v1',
+    promptModel: 'gpt-5-mini',
+    reviewModel: 'gpt-5-mini',
+    apiKeyHint: 'Groq API key',
+    note: 'Uses Groq’s OpenAI-compatible endpoint.',
+  },
+  xai: {
+    defaultBaseURL: 'https://api.x.ai/v1',
+    promptModel: 'gpt-5-mini',
+    reviewModel: 'gpt-5-mini',
+    apiKeyHint: 'xAI API key',
+    note: 'Uses xAI’s OpenAI-compatible endpoint.',
+  },
+} as const
+
 function providerLabel(value?: string) {
   return providerOptions.find((item) => item.value === value)?.label ?? value ?? 'System provider'
 }
@@ -132,6 +170,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   const issue = classifyProviderIssue(error)
   const validatedAt = formatLocalTimestamp(settings?.validated_at)
   const personalStorageAvailable = settings?.personal_provider_storage_available ?? true
+  const selectedProvider = providerMetadata[provider as keyof typeof providerMetadata] ?? providerMetadata.openai
 
   useEffect(() => {
     let cancelled = false
@@ -232,6 +271,12 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
     }
   }
 
+  function handleApplyDefaults() {
+    setBaseURL(selectedProvider.defaultBaseURL)
+    setPromptModel(selectedProvider.promptModel)
+    setReviewModel(selectedProvider.reviewModel)
+  }
+
   if (loading) {
     return <LoadingState label="Loading AI provider settings…" />
   }
@@ -325,6 +370,17 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
               description="Supported providers include Anthropic, Gemini, OpenAI, Groq, and xAI. Advanced fields are optional."
             />
 
+            <Callout
+              title={`${providerLabel(provider)} defaults`}
+              body={`${selectedProvider.note} Suggested base URL: ${selectedProvider.defaultBaseURL}. Suggested prompt model: ${selectedProvider.promptModel}. Suggested review model: ${selectedProvider.reviewModel}.`}
+              tone="info"
+              actions={
+                <Button type="button" outline onClick={handleApplyDefaults}>
+                  Use suggested defaults
+                </Button>
+              }
+            />
+
             <FieldGroup>
               <Field>
                 <Label>Provider</Label>
@@ -342,7 +398,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
                   type="password"
                   value={apiKey}
                   onChange={(event) => setAPIKey(event.target.value)}
-                  placeholder={settings?.has_key ? 'Enter a new key to replace the saved one' : 'Paste your provider API key'}
+                  placeholder={settings?.has_key ? `Enter a new key to replace the saved ${selectedProvider.apiKeyHint}` : `Paste your ${selectedProvider.apiKeyHint}`}
                 />
                 <Text className="mt-2 text-sm">
                   {settings?.has_key ? 'Leave this blank to keep using the saved key. Keys are encrypted before they are stored.' : 'Keys are encrypted before they are stored.'}
@@ -353,15 +409,15 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
             <FieldGroup>
               <Field>
                 <Label>Base URL override</Label>
-                <Input value={baseURL} onChange={(event) => setBaseURL(event.target.value)} placeholder="Optional custom endpoint" />
+                <Input value={baseURL} onChange={(event) => setBaseURL(event.target.value)} placeholder={selectedProvider.defaultBaseURL} />
               </Field>
               <Field>
                 <Label>Prompt model override</Label>
-                <Input value={promptModel} onChange={(event) => setPromptModel(event.target.value)} placeholder="Optional prompt model" />
+                <Input value={promptModel} onChange={(event) => setPromptModel(event.target.value)} placeholder={selectedProvider.promptModel} />
               </Field>
               <Field>
                 <Label>Review model override</Label>
-                <Input value={reviewModel} onChange={(event) => setReviewModel(event.target.value)} placeholder="Optional review model" />
+                <Input value={reviewModel} onChange={(event) => setReviewModel(event.target.value)} placeholder={selectedProvider.reviewModel} />
               </Field>
             </FieldGroup>
 
