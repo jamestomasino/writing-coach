@@ -33,7 +33,7 @@ type kratosWhoamiResponse struct {
 	} `json:"identity"`
 }
 
-func withAuth(next http.Handler, apiToken, kratosPublicURL string) http.Handler {
+func withAuth(next http.Handler, apiToken, kratosPublicURL string, allowInsecureAuth bool) http.Handler {
 	client := &http.Client{Timeout: 10 * time.Second}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions || r.URL.Path == "/api/health" || r.URL.Path == "/api/ready" {
@@ -41,7 +41,7 @@ func withAuth(next http.Handler, apiToken, kratosPublicURL string) http.Handler 
 			return
 		}
 
-		if strings.TrimSpace(apiToken) == "" && strings.TrimSpace(kratosPublicURL) == "" {
+		if allowInsecureAuth && strings.TrimSpace(apiToken) == "" && strings.TrimSpace(kratosPublicURL) == "" {
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), authModeContextKey, "none")))
 			return
 		}

@@ -107,7 +107,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/reviews", s.handleReviewCreate)
 	mux.HandleFunc("GET /api/reviews/{id}", s.handleReviewGet)
 	mux.HandleFunc("GET /api/compare", s.handleCompare)
-	return withServerLogging(withRecovery(withCORS(withAuth(mux, s.Config.APIToken, s.Config.KratosPublicURL))))
+	return withServerLogging(withRecovery(withCORS(withAuth(mux, s.Config.APIToken, s.Config.KratosPublicURL, s.Config.AllowInsecureAuth))))
 }
 
 type errorResponse struct {
@@ -941,7 +941,7 @@ func (s Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 			}
 		}
 	case "none":
-		if strings.TrimSpace(s.Config.APIToken) == "" && strings.TrimSpace(s.Config.KratosPublicURL) == "" {
+		if s.Config.AllowInsecureAuth && strings.TrimSpace(s.Config.APIToken) == "" && strings.TrimSpace(s.Config.KratosPublicURL) == "" {
 			return true
 		}
 	}

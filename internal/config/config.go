@@ -23,6 +23,7 @@ type Config struct {
 	DefaultTreeSlug                string   `json:"default_tree_slug"`
 	HTTPAddr                       string   `json:"http_addr"`
 	APIToken                       string   `json:"-"`
+	AllowInsecureAuth              bool     `json:"allow_insecure_auth"`
 	AdminEmails                    []string `json:"admin_emails"`
 	KratosPublicURL                string   `json:"kratos_public_url"`
 	OpenAIAPIKey                   string   `json:"-"`
@@ -152,6 +153,9 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("WRITING_COACH_API_TOKEN"); value != "" {
 		cfg.APIToken = value
 	}
+	if value := os.Getenv("WRITING_COACH_ALLOW_INSECURE_AUTH"); value != "" {
+		cfg.AllowInsecureAuth = parseBool(value, cfg.AllowInsecureAuth)
+	}
 	if value := os.Getenv("WRITING_COACH_ADMIN_EMAILS"); value != "" {
 		cfg.AdminEmails = splitCSV(value)
 	}
@@ -174,6 +178,7 @@ func Save(cfg Config) error {
 		DefaultUserSlug                string   `json:"default_user_slug"`
 		DefaultTreeSlug                string   `json:"default_tree_slug"`
 		HTTPAddr                       string   `json:"http_addr"`
+		AllowInsecureAuth              bool     `json:"allow_insecure_auth"`
 		AdminEmails                    []string `json:"admin_emails"`
 		KratosPublicURL                string   `json:"kratos_public_url"`
 		OpenAIBaseURL                  string   `json:"openai_base_url"`
@@ -191,6 +196,7 @@ func Save(cfg Config) error {
 		DefaultUserSlug:                cfg.DefaultUserSlug,
 		DefaultTreeSlug:                cfg.DefaultTreeSlug,
 		HTTPAddr:                       cfg.HTTPAddr,
+		AllowInsecureAuth:              cfg.AllowInsecureAuth,
 		AdminEmails:                    cfg.AdminEmails,
 		KratosPublicURL:                cfg.KratosPublicURL,
 		OpenAIBaseURL:                  cfg.OpenAIBaseURL,
@@ -225,6 +231,14 @@ func splitCSV(raw string) []string {
 func parsePositiveInt(raw string, fallback int) int {
 	value, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
+}
+
+func parseBool(raw string, fallback bool) bool {
+	value, err := strconv.ParseBool(strings.TrimSpace(raw))
+	if err != nil {
 		return fallback
 	}
 	return value

@@ -1199,6 +1199,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 func TestAISettingsDisablePersonalProviderStorageWithoutSecret(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
 
@@ -1307,6 +1308,7 @@ func TestAISettingsValidateRejectsInvalidCredentials(t *testing.T) {
 func TestAISettingsValidateRateLimitsRepeatedChecksPerUser(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	cfg.AIValidateLimitPerMinute = 1
 	cfg.AIValidateGlobalLimitPerMinute = 10
@@ -1408,6 +1410,7 @@ func TestAISettingsValidateRateLimitDoesNotBlockOtherUsers(t *testing.T) {
 		t.Fatalf("ensure second user tree: %v", err)
 	}
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	cfg.AIValidateLimitPerMinute = 1
 	cfg.AIValidateGlobalLimitPerMinute = 10
@@ -1464,6 +1467,7 @@ func TestAISettingsValidateRateLimitDoesNotBlockOtherUsers(t *testing.T) {
 func TestAISettingsSaveSharesValidationBudget(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	cfg.AIValidateLimitPerMinute = 1
 	cfg.AIValidateGlobalLimitPerMinute = 10
@@ -1563,6 +1567,7 @@ func TestAISettingsUpdateRequiresNewKeyWhenChangingProvider(t *testing.T) {
 func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
@@ -1643,6 +1648,7 @@ func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
 func TestAuthSessionReportsSetupStep(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
@@ -1789,6 +1795,7 @@ func TestPromptNextUsesUserProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := newTestServerWithConfig(t, harness.Store, cfg)
 	defer server.Close()
@@ -1853,6 +1860,7 @@ func TestReviewWorkerUsesUserProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := Server{
 		Config:     cfg,
@@ -1959,6 +1967,7 @@ func TestPromptNextUsesAnthropicProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := newTestServerWithConfig(t, harness.Store, cfg)
 	defer server.Close()
@@ -2022,6 +2031,7 @@ func TestReviewWorkerUsesAnthropicProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := Server{
 		Config:     cfg,
@@ -2116,6 +2126,7 @@ func TestPromptNextUsesGeminiProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := newTestServerWithConfig(t, harness.Store, cfg)
 	defer server.Close()
@@ -2179,6 +2190,7 @@ func TestReviewWorkerUsesGeminiProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := Server{
 		Config:     cfg,
@@ -3392,6 +3404,24 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	}
 }
 
+func TestAuthFailsClosedWithoutConfiguredAuthByDefault(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get dashboard: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected unauthorized without explicit insecure bypass, got %d", resp.StatusCode)
+	}
+}
+
 func TestKratosAdminEmailCanManageTrees(t *testing.T) {
 	kratos := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -3459,6 +3489,7 @@ func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *http
 	cfg := config.Default(t.TempDir())
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
+	cfg.AllowInsecureAuth = apiToken == "" && kratosPublicURL == ""
 	cfg.AIKeySecret = "test-ai-key-secret"
 	return newTestServerWithConfig(t, harness.Store, cfg)
 }
@@ -3512,6 +3543,7 @@ func newTestServerWithStore(t *testing.T, store *db.Store, apiToken, kratosPubli
 	cfg := config.Default(t.TempDir())
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
+	cfg.AllowInsecureAuth = apiToken == "" && kratosPublicURL == ""
 	cfg.AIKeySecret = "test-ai-key-secret"
 	return newTestServerWithConfig(t, store, cfg)
 }
