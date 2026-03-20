@@ -32,6 +32,8 @@ const providerMetadata = {
     reviewModel: 'claude-sonnet-4-20250514',
     apiKeyHint: 'Anthropic API key',
     note: 'Uses Anthropic’s native Messages API with structured tool output.',
+    modelHelp: 'Claude Sonnet is the recommended default here. Swap it only if you know the replacement supports the same structured outputs.',
+    validationHelp: 'Validation checks the Anthropic API with this key and endpoint. Keep the default base URL unless you are routing through a compatible proxy.',
   },
   gemini: {
     defaultBaseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -39,6 +41,8 @@ const providerMetadata = {
     reviewModel: 'gemini-2.5-flash',
     apiKeyHint: 'Gemini API key',
     note: 'Uses Gemini’s native generateContent API with JSON schema output.',
+    modelHelp: 'Gemini 2.5 Flash is the light default. If you switch models, make sure the replacement still handles structured JSON responses well.',
+    validationHelp: 'Validation checks the Gemini API with this key and endpoint. The default base URL is the normal Google Generative Language endpoint.',
   },
   openai: {
     defaultBaseURL: 'https://api.openai.com/v1',
@@ -46,6 +50,8 @@ const providerMetadata = {
     reviewModel: 'gpt-5-mini',
     apiKeyHint: 'OpenAI API key',
     note: 'Uses the OpenAI Responses API directly.',
+    modelHelp: 'GPT-5 Mini is the default for both prompt and review generation. You can override it, but use a model that supports structured responses.',
+    validationHelp: 'Validation checks the OpenAI API with this key and endpoint. Leave the base URL alone unless you are intentionally routing to a compatible gateway.',
   },
   groq: {
     defaultBaseURL: 'https://api.groq.com/openai/v1',
@@ -53,6 +59,8 @@ const providerMetadata = {
     reviewModel: 'gpt-5-mini',
     apiKeyHint: 'Groq API key',
     note: 'Uses Groq’s OpenAI-compatible endpoint.',
+    modelHelp: 'Use a Groq-hosted model that behaves well with OpenAI-style structured responses. Replace the default only if you know the target model is available on your Groq account.',
+    validationHelp: 'Validation checks Groq’s OpenAI-compatible endpoint. If you override the base URL, it needs to speak the same API shape.',
   },
   xai: {
     defaultBaseURL: 'https://api.x.ai/v1',
@@ -60,6 +68,8 @@ const providerMetadata = {
     reviewModel: 'gpt-5-mini',
     apiKeyHint: 'xAI API key',
     note: 'Uses xAI’s OpenAI-compatible endpoint.',
+    modelHelp: 'Use an xAI model that supports the OpenAI-compatible response shape expected by the app. Override the model only if you have a specific supported target in mind.',
+    validationHelp: 'Validation checks xAI’s OpenAI-compatible endpoint. Keep the default base URL unless you are routing through a compatible proxy.',
   },
 } as const
 
@@ -403,6 +413,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
                 <Text className="mt-2 text-sm">
                   {settings?.has_key ? 'Leave this blank to keep using the saved key. Keys are encrypted before they are stored.' : 'Keys are encrypted before they are stored.'}
                 </Text>
+                <Text className="mt-2 text-sm">{selectedProvider.validationHelp}</Text>
               </Field>
             </FieldGroup>
 
@@ -410,6 +421,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
               <Field>
                 <Label>Base URL override</Label>
                 <Input value={baseURL} onChange={(event) => setBaseURL(event.target.value)} placeholder={selectedProvider.defaultBaseURL} />
+                <Text className="mt-2 text-sm">Leave this blank unless you need a proxy or compatible custom endpoint.</Text>
               </Field>
               <Field>
                 <Label>Prompt model override</Label>
@@ -420,6 +432,8 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
                 <Input value={reviewModel} onChange={(event) => setReviewModel(event.target.value)} placeholder={selectedProvider.reviewModel} />
               </Field>
             </FieldGroup>
+
+            <Text className="text-sm">{selectedProvider.modelHelp}</Text>
 
             <CheckboxField>
               <Checkbox checked={enabled} onChange={setEnabled} />
