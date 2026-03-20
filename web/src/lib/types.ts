@@ -14,6 +14,7 @@ export type AuthSession = {
   ai_effective_provider?: string
   ai_system_fallback: boolean
   ai_has_personal_key: boolean
+  ai_personal_provider_storage_available: boolean
   active_tree_slug?: string
   identity?: {
     subject: string
@@ -109,6 +110,7 @@ export type AIProviderSettings = {
   last_validation_error?: string
   effective_provider: string
   system_fallback: boolean
+  personal_provider_storage_available: boolean
   ready: boolean
 }
 

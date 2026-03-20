@@ -28,6 +28,15 @@ function providerLabel(value?: string) {
 }
 
 function providerStatus(settings: AIProviderSettings | null) {
+  if (settings && !settings.personal_provider_storage_available) {
+    return {
+      label: settings.system_fallback ? 'System provider' : 'Storage unavailable',
+      detail: settings.system_fallback
+        ? 'The app can still use the shared provider, but saving personal provider keys is disabled on this server.'
+        : 'Saving personal provider keys is disabled on this server and no shared provider is available.',
+      badgeColor: settings.system_fallback ? ('amber' as const) : ('rose' as const),
+    }
+  }
   if (!settings?.ready) {
     return {
       label: 'Setup required',
@@ -120,6 +129,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   const status = providerStatus(settings)
   const issue = classifyProviderIssue(error)
   const validatedAt = formatLocalTimestamp(settings?.validated_at)
+  const personalStorageAvailable = settings?.personal_provider_storage_available ?? true
 
   useEffect(() => {
     let cancelled = false
@@ -272,6 +282,16 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         </Callout>
       ) : null}
 
+      {!personalStorageAvailable ? (
+        <Callout
+          title="Personal provider storage is unavailable"
+          body={settings?.system_fallback
+            ? 'This server is not configured to store personal provider keys. You can keep using the shared provider, but users cannot save their own keys here until the server sets WRITING_COACH_AI_KEY_SECRET.'
+            : 'This server is not configured to store personal provider keys, and no shared provider fallback is available. An operator needs to set WRITING_COACH_AI_KEY_SECRET before users can save their own keys.'}
+          tone={settings?.system_fallback ? 'warning' : 'danger'}
+        />
+      ) : null}
+
       {required && !settings?.ready ? (
         <Callout title="Setup needed to continue">
           This workspace needs an AI provider before assignment and feedback generation can run.
@@ -294,74 +314,76 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         />
       ) : null}
 
-      <WorkspaceCard>
-        <form className="space-y-8" onSubmit={handleSave}>
-          <CardHeader
-            eyebrow="Connection"
-            title="Personal provider"
-            description="Phase 1 supports OpenAI, Groq, and xAI. Advanced fields are optional."
-          />
+      {personalStorageAvailable ? (
+        <WorkspaceCard>
+          <form className="space-y-8" onSubmit={handleSave}>
+            <CardHeader
+              eyebrow="Connection"
+              title="Personal provider"
+              description="Phase 1 supports OpenAI, Groq, and xAI. Advanced fields are optional."
+            />
 
-          <FieldGroup>
-            <Field>
-              <Label>Provider</Label>
-              <Select value={provider} onChange={(event) => setProvider(event.target.value)}>
-                {providerOptions.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field>
-              <Label>API key</Label>
-              <Input
-                type="password"
-                value={apiKey}
-                onChange={(event) => setAPIKey(event.target.value)}
-                placeholder={settings?.has_key ? 'Enter a new key to replace the saved one' : 'Paste your provider API key'}
-              />
-              <Text className="mt-2 text-sm">
-                {settings?.has_key ? 'Leave this blank to keep using the saved key. Keys are encrypted before they are stored.' : 'Keys are encrypted before they are stored.'}
-              </Text>
-            </Field>
-          </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <Label>Provider</Label>
+                <Select value={provider} onChange={(event) => setProvider(event.target.value)}>
+                  {providerOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field>
+                <Label>API key</Label>
+                <Input
+                  type="password"
+                  value={apiKey}
+                  onChange={(event) => setAPIKey(event.target.value)}
+                  placeholder={settings?.has_key ? 'Enter a new key to replace the saved one' : 'Paste your provider API key'}
+                />
+                <Text className="mt-2 text-sm">
+                  {settings?.has_key ? 'Leave this blank to keep using the saved key. Keys are encrypted before they are stored.' : 'Keys are encrypted before they are stored.'}
+                </Text>
+              </Field>
+            </FieldGroup>
 
-          <FieldGroup>
-            <Field>
-              <Label>Base URL override</Label>
-              <Input value={baseURL} onChange={(event) => setBaseURL(event.target.value)} placeholder="Optional custom endpoint" />
-            </Field>
-            <Field>
-              <Label>Prompt model override</Label>
-              <Input value={promptModel} onChange={(event) => setPromptModel(event.target.value)} placeholder="Optional prompt model" />
-            </Field>
-            <Field>
-              <Label>Review model override</Label>
-              <Input value={reviewModel} onChange={(event) => setReviewModel(event.target.value)} placeholder="Optional review model" />
-            </Field>
-          </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <Label>Base URL override</Label>
+                <Input value={baseURL} onChange={(event) => setBaseURL(event.target.value)} placeholder="Optional custom endpoint" />
+              </Field>
+              <Field>
+                <Label>Prompt model override</Label>
+                <Input value={promptModel} onChange={(event) => setPromptModel(event.target.value)} placeholder="Optional prompt model" />
+              </Field>
+              <Field>
+                <Label>Review model override</Label>
+                <Input value={reviewModel} onChange={(event) => setReviewModel(event.target.value)} placeholder="Optional review model" />
+              </Field>
+            </FieldGroup>
 
-          <CheckboxField>
-            <Checkbox checked={enabled} onChange={setEnabled} />
-            <Label>Use this provider for future generation actions</Label>
-          </CheckboxField>
+            <CheckboxField>
+              <Checkbox checked={enabled} onChange={setEnabled} />
+              <Label>Use this provider for future generation actions</Label>
+            </CheckboxField>
 
-          <div className="flex flex-wrap gap-3">
-            <Button type="button" outline onClick={handleValidate} disabled={validating || (apiKey.trim() === '' && !settings?.has_key)}>
-              {validating ? 'Checking provider…' : 'Validate connection'}
-            </Button>
-            <Button type="submit" color="dark/zinc" disabled={saving || (apiKey.trim() === '' && !settings?.has_key)}>
-              {saving ? 'Saving…' : 'Save provider'}
-            </Button>
-            {settings?.has_key ? (
-              <Button type="button" plain onClick={handleDelete} disabled={saving}>
-                Remove personal provider
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" outline onClick={handleValidate} disabled={validating || (apiKey.trim() === '' && !settings?.has_key)}>
+                {validating ? 'Checking provider…' : 'Validate connection'}
               </Button>
-            ) : null}
-          </div>
-        </form>
-      </WorkspaceCard>
+              <Button type="submit" color="dark/zinc" disabled={saving || (apiKey.trim() === '' && !settings?.has_key)}>
+                {saving ? 'Saving…' : 'Save provider'}
+              </Button>
+              {settings?.has_key ? (
+                <Button type="button" plain onClick={handleDelete} disabled={saving}>
+                  Remove personal provider
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        </WorkspaceCard>
+      ) : null}
     </div>
   )
 }

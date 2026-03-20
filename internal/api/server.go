@@ -115,17 +115,18 @@ type requestContextResponse struct {
 }
 
 type authSessionResponse struct {
-	Authenticated       bool                    `json:"authenticated"`
-	AuthMode            string                  `json:"auth_mode"`
-	Identity            *authIdentityResponse   `json:"identity,omitempty"`
-	Context             *requestContextResponse `json:"context,omitempty"`
-	OnboardingComplete  bool                    `json:"onboarding_complete"`
-	ActiveTreeSlug      string                  `json:"active_tree_slug,omitempty"`
-	IsAdmin             bool                    `json:"is_admin"`
-	AIProviderReady     bool                    `json:"ai_provider_ready"`
-	AIEffectiveProvider string                  `json:"ai_effective_provider,omitempty"`
-	AISystemFallback    bool                    `json:"ai_system_fallback"`
-	AIHasPersonalKey    bool                    `json:"ai_has_personal_key"`
+	Authenticated                      bool                    `json:"authenticated"`
+	AuthMode                           string                  `json:"auth_mode"`
+	Identity                           *authIdentityResponse   `json:"identity,omitempty"`
+	Context                            *requestContextResponse `json:"context,omitempty"`
+	OnboardingComplete                 bool                    `json:"onboarding_complete"`
+	ActiveTreeSlug                     string                  `json:"active_tree_slug,omitempty"`
+	IsAdmin                            bool                    `json:"is_admin"`
+	AIProviderReady                    bool                    `json:"ai_provider_ready"`
+	AIEffectiveProvider                string                  `json:"ai_effective_provider,omitempty"`
+	AISystemFallback                   bool                    `json:"ai_system_fallback"`
+	AIHasPersonalKey                   bool                    `json:"ai_has_personal_key"`
+	AIPersonalProviderStorageAvailable bool                    `json:"ai_personal_provider_storage_available"`
 }
 
 type authIdentityResponse struct {
@@ -135,18 +136,19 @@ type authIdentityResponse struct {
 }
 
 type aiProviderSettingsResponse struct {
-	Provider            string `json:"provider,omitempty"`
-	BaseURLOverride     string `json:"base_url_override,omitempty"`
-	PromptModelOverride string `json:"prompt_model_override,omitempty"`
-	ReviewModelOverride string `json:"review_model_override,omitempty"`
-	Enabled             bool   `json:"enabled"`
-	HasKey              bool   `json:"has_key"`
-	KeyLast4            string `json:"key_last4,omitempty"`
-	ValidatedAt         string `json:"validated_at,omitempty"`
-	LastValidationError string `json:"last_validation_error,omitempty"`
-	EffectiveProvider   string `json:"effective_provider"`
-	SystemFallback      bool   `json:"system_fallback"`
-	Ready               bool   `json:"ready"`
+	Provider                         string `json:"provider,omitempty"`
+	BaseURLOverride                  string `json:"base_url_override,omitempty"`
+	PromptModelOverride              string `json:"prompt_model_override,omitempty"`
+	ReviewModelOverride              string `json:"review_model_override,omitempty"`
+	Enabled                          bool   `json:"enabled"`
+	HasKey                           bool   `json:"has_key"`
+	KeyLast4                         string `json:"key_last4,omitempty"`
+	ValidatedAt                      string `json:"validated_at,omitempty"`
+	LastValidationError              string `json:"last_validation_error,omitempty"`
+	EffectiveProvider                string `json:"effective_provider"`
+	SystemFallback                   bool   `json:"system_fallback"`
+	PersonalProviderStorageAvailable bool   `json:"personal_provider_storage_available"`
+	Ready                            bool   `json:"ready"`
 }
 
 type aiProviderSettingsPayload struct {
@@ -423,11 +425,12 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 	mode := authModeFromContext(r.Context())
 	fallback := systemFallbackAvailable(s.Config)
 	resp := authSessionResponse{
-		Authenticated:       mode != "none",
-		AuthMode:            mode,
-		AIProviderReady:     fallback,
-		AIEffectiveProvider: effectiveProviderLabel(false, false),
-		AISystemFallback:    fallback,
+		Authenticated:                      mode != "none",
+		AuthMode:                           mode,
+		AIProviderReady:                    fallback,
+		AIEffectiveProvider:                effectiveProviderLabel(false, false),
+		AISystemFallback:                   fallback,
+		AIPersonalProviderStorageAvailable: personalProviderStorageAvailable(s.Config),
 	}
 	if ident, ok := identityFromContext(r.Context()); ok {
 		resp.Identity = &authIdentityResponse{
@@ -496,6 +499,10 @@ func (s Server) handleAISettingsUpsert(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := validateAIProviderPayload(payload); err != nil {
 		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	if !personalProviderStorageAvailable(s.Config) {
+		writeError(w, http.StatusServiceUnavailable, fmt.Errorf("personal provider storage is unavailable because WRITING_COACH_AI_KEY_SECRET is not configured"))
 		return
 	}
 	existing, _ := s.Store.AIProviderSettingsByUserID(r.Context(), appContext.UserID)
@@ -568,6 +575,10 @@ func (s Server) handleAISettingsValidate(w http.ResponseWriter, r *http.Request)
 	}
 	if err := validateAIProviderPayload(payload); err != nil {
 		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	if !personalProviderStorageAvailable(s.Config) {
+		writeError(w, http.StatusServiceUnavailable, fmt.Errorf("personal provider storage is unavailable because WRITING_COACH_AI_KEY_SECRET is not configured"))
 		return
 	}
 	existing, _ := s.Store.AIProviderSettingsByUserID(r.Context(), appContext.UserID)
@@ -2388,6 +2399,10 @@ func systemFallbackAvailable(cfg config.Config) bool {
 	return strings.TrimSpace(cfg.OpenAIAPIKey) != ""
 }
 
+func personalProviderStorageAvailable(cfg config.Config) bool {
+	return strings.TrimSpace(cfg.AIKeySecret) != ""
+}
+
 func defaultBaseURLForProvider(provider string, cfg config.Config) string {
 	switch normalizeProvider(provider) {
 	case "groq":
@@ -2439,28 +2454,31 @@ func (s Server) resolveLLMClient(ctx context.Context, userID int64) (*openai.Cli
 
 func (s Server) toAIProviderSettingsResponse(settings domain.AIProviderSettings, exists bool) aiProviderSettingsResponse {
 	fallback := systemFallbackAvailable(s.Config)
+	personalStorage := personalProviderStorageAvailable(s.Config)
 	if !exists {
 		return aiProviderSettingsResponse{
-			Enabled:           false,
-			HasKey:            false,
-			EffectiveProvider: effectiveProviderLabel(false, false),
-			SystemFallback:    fallback,
-			Ready:             fallback,
+			Enabled:                          false,
+			HasKey:                           false,
+			EffectiveProvider:                effectiveProviderLabel(false, false),
+			SystemFallback:                   fallback,
+			PersonalProviderStorageAvailable: personalStorage,
+			Ready:                            fallback,
 		}
 	}
 	return aiProviderSettingsResponse{
-		Provider:            settings.Provider,
-		BaseURLOverride:     settings.BaseURLOverride,
-		PromptModelOverride: settings.PromptModelOverride,
-		ReviewModelOverride: settings.ReviewModelOverride,
-		Enabled:             settings.Enabled,
-		HasKey:              strings.TrimSpace(settings.APIKeyEncrypted) != "",
-		KeyLast4:            settings.APIKeyLast4,
-		ValidatedAt:         db.Since(settings.ValidatedAt),
-		LastValidationError: settings.LastValidationError,
-		EffectiveProvider:   effectiveProviderLabel(true, settings.Enabled),
-		SystemFallback:      fallback,
-		Ready:               settings.Enabled || fallback,
+		Provider:                         settings.Provider,
+		BaseURLOverride:                  settings.BaseURLOverride,
+		PromptModelOverride:              settings.PromptModelOverride,
+		ReviewModelOverride:              settings.ReviewModelOverride,
+		Enabled:                          settings.Enabled,
+		HasKey:                           strings.TrimSpace(settings.APIKeyEncrypted) != "",
+		KeyLast4:                         settings.APIKeyLast4,
+		ValidatedAt:                      db.Since(settings.ValidatedAt),
+		LastValidationError:              settings.LastValidationError,
+		EffectiveProvider:                effectiveProviderLabel(true, settings.Enabled),
+		SystemFallback:                   fallback,
+		PersonalProviderStorageAvailable: personalStorage,
+		Ready:                            settings.Enabled || fallback,
 	}
 }
 

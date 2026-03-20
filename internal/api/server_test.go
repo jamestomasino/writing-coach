@@ -988,11 +988,12 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 	}
 	var initial struct {
 		Settings struct {
-			Provider          string `json:"provider"`
-			HasKey            bool   `json:"has_key"`
-			EffectiveProvider string `json:"effective_provider"`
-			SystemFallback    bool   `json:"system_fallback"`
-			Ready             bool   `json:"ready"`
+			Provider                         string `json:"provider"`
+			HasKey                           bool   `json:"has_key"`
+			EffectiveProvider                string `json:"effective_provider"`
+			SystemFallback                   bool   `json:"system_fallback"`
+			PersonalProviderStorageAvailable bool   `json:"personal_provider_storage_available"`
+			Ready                            bool   `json:"ready"`
 		} `json:"settings"`
 	}
 	if err := json.NewDecoder(getResp.Body).Decode(&initial); err != nil {
@@ -1003,6 +1004,9 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 	}
 	if initial.Settings.EffectiveProvider != "system/openai" {
 		t.Fatalf("effective provider = %q", initial.Settings.EffectiveProvider)
+	}
+	if !initial.Settings.PersonalProviderStorageAvailable {
+		t.Fatal("expected personal provider storage to be available in default test config")
 	}
 
 	var authHeader string
@@ -1139,6 +1143,80 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 	}
 	if _, err := harness.Store.AIProviderSettingsByUserID(context.Background(), user.ID); !db.IsNotFound(err) {
 		t.Fatalf("expected deleted provider settings, got %v", err)
+	}
+}
+
+func TestAISettingsDisablePersonalProviderStorageWithoutSecret(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	getResp, err := http.Get(testServer.URL + "/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get ai settings: %v", err)
+	}
+	defer getResp.Body.Close()
+	if getResp.StatusCode != http.StatusOK {
+		t.Fatalf("get ai settings status: %d", getResp.StatusCode)
+	}
+	var getPayload struct {
+		Settings struct {
+			PersonalProviderStorageAvailable bool `json:"personal_provider_storage_available"`
+			SystemFallback                   bool `json:"system_fallback"`
+		} `json:"settings"`
+	}
+	if err := json.NewDecoder(getResp.Body).Decode(&getPayload); err != nil {
+		t.Fatalf("decode ai settings: %v", err)
+	}
+	if getPayload.Settings.PersonalProviderStorageAvailable {
+		t.Fatal("expected personal provider storage to be unavailable without AI key secret")
+	}
+
+	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"openai","api_key":"sk-test-1234","enabled":true}`))
+	if err != nil {
+		t.Fatalf("new validate request: %v", err)
+	}
+	validateReq.Header.Set("Content-Type", "application/json")
+	validateResp, err := http.DefaultClient.Do(validateReq)
+	if err != nil {
+		t.Fatalf("validate ai settings: %v", err)
+	}
+	defer validateResp.Body.Close()
+	if validateResp.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("validate status = %d", validateResp.StatusCode)
+	}
+
+	putReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"openai","api_key":"sk-test-1234","enabled":true}`))
+	if err != nil {
+		t.Fatalf("new put request: %v", err)
+	}
+	putReq.Header.Set("Content-Type", "application/json")
+	putResp, err := http.DefaultClient.Do(putReq)
+	if err != nil {
+		t.Fatalf("save ai settings: %v", err)
+	}
+	defer putResp.Body.Close()
+	if putResp.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("put status = %d", putResp.StatusCode)
+	}
+
+	sessionResp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get auth session: %v", err)
+	}
+	defer sessionResp.Body.Close()
+	if sessionResp.StatusCode != http.StatusOK {
+		t.Fatalf("auth session status = %d", sessionResp.StatusCode)
+	}
+	var sessionPayload struct {
+		AIPersonalProviderStorageAvailable bool `json:"ai_personal_provider_storage_available"`
+	}
+	if err := json.NewDecoder(sessionResp.Body).Decode(&sessionPayload); err != nil {
+		t.Fatalf("decode auth session: %v", err)
+	}
+	if sessionPayload.AIPersonalProviderStorageAvailable {
+		t.Fatal("expected auth session to report unavailable personal provider storage")
 	}
 }
 
