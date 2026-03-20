@@ -2616,6 +2616,33 @@ func TestTracksListAndActiveSwitchUseTrackScopedProfiles(t *testing.T) {
 		t.Fatalf("decode first onboarding: %v", err)
 	}
 
+	initialTracksResp, err := http.Get(testServer.URL + "/api/tracks?user=tester")
+	if err != nil {
+		t.Fatalf("get initial tracks: %v", err)
+	}
+	defer initialTracksResp.Body.Close()
+	if initialTracksResp.StatusCode != http.StatusOK {
+		t.Fatalf("initial tracks status: %d", initialTracksResp.StatusCode)
+	}
+	var initialTracksBody struct {
+		Tracks []struct {
+			TreeSlug string `json:"tree_slug"`
+			IsActive bool   `json:"is_active"`
+		} `json:"tracks"`
+	}
+	if err := json.NewDecoder(initialTracksResp.Body).Decode(&initialTracksBody); err != nil {
+		t.Fatalf("decode initial tracks: %v", err)
+	}
+	if len(initialTracksBody.Tracks) != 1 {
+		t.Fatalf("expected one track after first onboarding, got %#v", initialTracksBody.Tracks)
+	}
+	if initialTracksBody.Tracks[0].TreeSlug != firstBody.Tree.Slug {
+		t.Fatalf("initial track slug = %q", initialTracksBody.Tracks[0].TreeSlug)
+	}
+	if !initialTracksBody.Tracks[0].IsActive {
+		t.Fatal("expected first generated track to be active")
+	}
+
 	secondPayload := `{
 		"mode":"create",
 		"writing_type":"technical writing",
@@ -2666,7 +2693,7 @@ func TestTracksListAndActiveSwitchUseTrackScopedProfiles(t *testing.T) {
 	if err := json.NewDecoder(tracksResp.Body).Decode(&tracksBody); err != nil {
 		t.Fatalf("decode tracks: %v", err)
 	}
-	if len(tracksBody.Tracks) < 2 {
+	if len(tracksBody.Tracks) != 2 {
 		t.Fatalf("track count = %d", len(tracksBody.Tracks))
 	}
 	foundFirst := false

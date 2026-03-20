@@ -5,9 +5,18 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { createRevisionAssignment, getAssignmentTimeline, getExercise, getReview, getSubmission } from '@/lib/api'
+import {
+  createRevisionAssignment,
+  getAssignmentTimeline,
+  getExercise,
+  getReview,
+  getSession,
+  getSubmission,
+} from '@/lib/api'
+import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import type { Exercise, Review, Submission } from '@/lib/types'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
@@ -15,6 +24,7 @@ import { AppErrorState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function ReviewView({ reviewId }: { reviewId: number }) {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [review, setReview] = useState<Review | null>(null)
@@ -27,6 +37,16 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     let cancelled = false
     async function load() {
       try {
+        const session = await getSession()
+        if (!session.authenticated) {
+          router.replace('/about')
+          return
+        }
+        const nextPath = requiredSetupPath(session, `/reviews/${reviewId}`)
+        if (nextPath) {
+          router.replace(nextPath)
+          return
+        }
         const reviewData = await getReview(reviewId)
         const submissionData = await getSubmission(reviewData.submission_id)
         const exerciseData = await getExercise(submissionData.exercise_id)
@@ -57,7 +77,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     return () => {
       cancelled = true
     }
-  }, [reviewId])
+  }, [reviewId, router])
 
   async function handleRevisionPrompt() {
     if (!submission) {

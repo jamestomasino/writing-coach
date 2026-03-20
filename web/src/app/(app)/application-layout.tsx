@@ -180,7 +180,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [pathname])
 
   const accountInitials = initialsForName(accountName)
   const activeTrack = tracks.find((track) => track.is_active) ?? null

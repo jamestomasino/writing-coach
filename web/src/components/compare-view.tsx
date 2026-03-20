@@ -8,14 +8,17 @@ import { CardHeader } from '@/components/card-header'
 import { Heading, Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { createRevisionAssignment, getComparison, getReviews, getSubmission } from '@/lib/api'
+import { createRevisionAssignment, getComparison, getReviews, getSession, getSubmission } from '@/lib/api'
+import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import type { Comparison, Review, Submission } from '@/lib/types'
+import { useRouter } from 'next/navigation'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [comparison, setComparison] = useState<Comparison | null>(null)
@@ -26,6 +29,16 @@ export function CompareView({ submissionId }: { submissionId: number }) {
     let cancelled = false
     async function load() {
       try {
+        const session = await getSession()
+        if (!session.authenticated) {
+          router.replace('/about')
+          return
+        }
+        const nextPath = requiredSetupPath(session, `/compare/${submissionId}`)
+        if (nextPath) {
+          router.replace(nextPath)
+          return
+        }
         const submissionData = await getSubmission(submissionId)
         const [comparisonData, reviews] = await Promise.all([getComparison(submissionId), getReviews(submissionId, 1)])
         if (!cancelled) {
@@ -47,7 +60,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
     return () => {
       cancelled = true
     }
-  }, [submissionId])
+  }, [router, submissionId])
 
   async function handleRevisionPrompt() {
     if (!submission) {

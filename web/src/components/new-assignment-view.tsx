@@ -61,7 +61,7 @@ export function NewAssignmentView() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router])
 
   const selectable = useMemo(() => {
     if (!dashboard) {

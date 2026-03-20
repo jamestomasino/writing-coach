@@ -116,7 +116,7 @@ export function AdminView() {
     return () => {
       cancelled = true
     }
-  }, [selectedEvent, selectedHours, selectedProvider, session?.is_admin])
+  }, [providerFilters, selectedEvent, selectedHours, selectedProvider, session?.is_admin, toast])
 
   async function handleProvision(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

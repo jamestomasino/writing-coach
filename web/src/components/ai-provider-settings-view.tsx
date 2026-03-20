@@ -243,7 +243,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
     } else if (!(selectedProvider.reviewModels as readonly string[]).includes(reviewModel.trim())) {
       setCustomReviewModel(true)
     }
-  }, [provider])
+  }, [promptModel, provider, reviewModel, selectedProvider.promptModels, selectedProvider.reviewModels])
 
   async function handleValidate() {
     try {

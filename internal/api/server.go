@@ -679,6 +679,13 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 	if mode == "" {
 		mode = "edit"
 	}
+	firstTrackSetup := !s.userHasTrackProfile(r.Context(), appContext.UserID)
+	bootstrapTrackIsEmpty := false
+	if firstTrackSetup {
+		if exercises, err := s.Store.ListExercises(r.Context(), appContext.UserID, appContext.TreeID, 1); err == nil && len(exercises) == 0 {
+			bootstrapTrackIsEmpty = true
+		}
+	}
 	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
 	treeDef := domain.GenerateTreeDefinition(appContext.UserSlug, user.Name, profile)
 	starterCodes := domain.RecommendedStarterCodes(profile)
@@ -722,6 +729,12 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 	if err := s.Store.SetUserActiveTree(r.Context(), appContext.UserID, treeDef.Slug); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
+	}
+	if firstTrackSetup && bootstrapTrackIsEmpty && mode == "edit" && appContext.TreeSlug != treeDef.Slug {
+		if err := s.Store.ArchiveUserTrack(r.Context(), appContext.UserID, appContext.TreeSlug); err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
 	}
 	targetContext = session.Context{
 		UserID:       appContext.UserID,
@@ -2153,6 +2166,19 @@ func (s Server) uniqueGeneratedTreeSlug(ctx context.Context, base string) string
 		}
 		slug = fmt.Sprintf("%s-%d", base, suffix)
 	}
+}
+
+func (s Server) userHasTrackProfile(ctx context.Context, userID int64) bool {
+	tracks, err := s.Store.ListUserTracks(ctx, userID)
+	if err != nil {
+		return false
+	}
+	for _, track := range tracks {
+		if _, err := s.Store.OnboardingProfileByEnrollmentID(ctx, track.EnrollmentID); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func firstNonEmpty(values ...string) string {
