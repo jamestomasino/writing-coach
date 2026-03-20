@@ -6,9 +6,8 @@ import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
-import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
+import type { Tree } from '@/lib/types'
+import { useTrackDashboardData } from '@/lib/use-track-dashboard-data'
 import {
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
@@ -16,8 +15,7 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
 } from '@heroicons/react/16/solid'
-import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { MasteryProgress } from './mastery-progress'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -64,52 +62,10 @@ function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: S
 }
 
 export function ProgressView() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
-  const [tree, setTree] = useState<Tree | null>(null)
-  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, '/progress')
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
-        const [state, onboardingData, treeData] = await Promise.all([
-          getDashboard(),
-          getOnboarding(),
-          session.active_tree_slug ? getTree(session.active_tree_slug) : Promise.resolve(null),
-        ])
-        if (!cancelled) {
-          setDashboard(state)
-          setOnboarding(onboardingData)
-          setTree(treeData)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load progress')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [router])
+  const { sessionLoading, sessionError, loading, error, dashboard, tree, onboarding } = useTrackDashboardData(
+    '/progress',
+    { loadErrorMessage: 'Could not load progress' }
+  )
 
   const completedCodes = useMemo(() => new Set((dashboard?.completed_tgos ?? []).map((tgo) => tgo.code)), [dashboard])
   const activeCodes = useMemo(() => new Set((dashboard?.active_tgos ?? []).map((tgo) => tgo.code)), [dashboard])
@@ -121,11 +77,11 @@ export function ProgressView() {
     [activeCodes, completedCodes, tree]
   )
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading progress board…" />
   }
-  if (error || !dashboard) {
-    return <AppErrorState title="Progress unavailable" error={error ?? 'Could not load progress board.'} />
+  if (sessionError || error || !dashboard) {
+    return <AppErrorState title="Progress unavailable" error={sessionError ?? error ?? 'Could not load progress board.'} />
   }
 
   const activeTGOs = dashboard.active_tgos ?? []

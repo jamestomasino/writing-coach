@@ -5,9 +5,8 @@ import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
-import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
+import type { Dashboard, Tree } from '@/lib/types'
+import { useTrackDashboardData } from '@/lib/use-track-dashboard-data'
 import {
   Background,
   Controls,
@@ -22,8 +21,7 @@ import {
   type NodeProps,
 } from '@xyflow/react'
 import dagre from 'dagre'
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -252,91 +250,31 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
 }
 
 export function TreeView() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [tree, setTree] = useState<Tree | null>(null)
-  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
-  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null)
+  const { sessionLoading, sessionError, loading, error, tree, dashboard } = useTrackDashboardData('/tree', {
+    requireActiveTree: true,
+    loadErrorMessage: 'Could not load skill map',
+  })
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, '/tree')
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
-        const activeTreeSlug = session.active_tree_slug
-        if (!activeTreeSlug) {
-          throw new Error('No active track selected')
-        }
-
-        const [treeData, dashboardData, onboardingData] = await Promise.all([
-          getTree(activeTreeSlug),
-          getDashboard(),
-          getOnboarding(),
-        ])
-
-        if (!cancelled) {
-          setTree(treeData)
-          setDashboard(dashboardData)
-          setOnboarding(onboardingData)
-          setError(null)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load skill map')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [router])
+  const effectiveSelectedCode = selectedCode ?? dashboard?.active_tgos?.[0]?.code ?? tree?.tgos?.[0]?.code ?? null
 
   const graph = useMemo(() => {
     if (!tree || !dashboard) {
       return null
     }
-    return buildGraph(tree, dashboard, selectedCode)
-  }, [dashboard, selectedCode, tree])
+    return buildGraph(tree, dashboard, effectiveSelectedCode)
+  }, [dashboard, effectiveSelectedCode, tree])
 
-  useEffect(() => {
-    if (!tree || !dashboard || selectedCode) {
-      return
-    }
-    const defaultCode = dashboard.active_tgos?.[0]?.code ?? tree.tgos?.[0]?.code ?? null
-    if (defaultCode) {
-      setSelectedCode(defaultCode)
-    }
-  }, [dashboard, selectedCode, tree])
-
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading skill map…" />
   }
-  if (error || !tree || !dashboard || !graph) {
-    return <AppErrorState title="Tree unavailable" error={error ?? 'Could not load the current tree.'} />
+  if (sessionError || error || !tree || !dashboard || !graph) {
+    return <AppErrorState title="Tree unavailable" error={sessionError ?? error ?? 'Could not load the current tree.'} />
   }
 
   const activeCount = dashboard.active_tgos?.length ?? 0
   const completedCount = dashboard.completed_tgos?.length ?? 0
   const unlockedCount = dashboard.upcoming_tgos?.length ?? 0
-  const selected = selectedCode ? (graph.dataByCode.get(selectedCode) ?? null) : null
+  const selected = effectiveSelectedCode ? (graph.dataByCode.get(effectiveSelectedCode) ?? null) : null
 
   return (
     <ReactFlowProvider>

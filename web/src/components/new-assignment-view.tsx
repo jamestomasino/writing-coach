@@ -8,9 +8,9 @@ import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { acceptAssignment, createAssignment, getDashboard, getSession } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
+import { acceptAssignment, createAssignment, getDashboard } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
+import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
@@ -18,6 +18,7 @@ import { WorkspaceCard } from './workspace-card'
 
 export function NewAssignmentView() {
   const router = useRouter()
+  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession('/new-assignment')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
@@ -30,17 +31,10 @@ export function NewAssignmentView() {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (!session) {
+        return
+      }
       try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, '/new-assignment')
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
         setSetupFlow(session.setup_step === 'needs_first_assignment')
         const state = await getDashboard()
         if (!cancelled) {
@@ -61,7 +55,7 @@ export function NewAssignmentView() {
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, session])
 
   const selectable = useMemo(() => {
     if (!dashboard) {
@@ -126,11 +120,11 @@ export function NewAssignmentView() {
     }
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading assignment setup…" />
   }
-  if (error && !dashboard) {
-    return <AppErrorState title="Could not load new assignment flow" error={error} />
+  if ((sessionError || error) && !dashboard) {
+    return <AppErrorState title="Could not load new assignment flow" error={sessionError ?? error ?? 'Could not load new assignment flow'} />
   }
   if (!dashboard) {
     return <LoadingState />

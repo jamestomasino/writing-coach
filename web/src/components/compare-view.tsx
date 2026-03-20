@@ -8,17 +8,16 @@ import { CardHeader } from '@/components/card-header'
 import { Heading, Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { createRevisionAssignment, getComparison, getReviews, getSession, getSubmission } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
+import { createRevisionAssignment, getComparison, getReviews, getSubmission } from '@/lib/api'
 import type { Comparison, Review, Submission } from '@/lib/types'
-import { useRouter } from 'next/navigation'
+import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
-  const router = useRouter()
+  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession(`/compare/${submissionId}`)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [comparison, setComparison] = useState<Comparison | null>(null)
@@ -28,17 +27,10 @@ export function CompareView({ submissionId }: { submissionId: number }) {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (!session) {
+        return
+      }
       try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, `/compare/${submissionId}`)
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
         const submissionData = await getSubmission(submissionId)
         const [comparisonData, reviews] = await Promise.all([getComparison(submissionId), getReviews(submissionId, 1)])
         if (!cancelled) {
@@ -60,7 +52,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
     return () => {
       cancelled = true
     }
-  }, [router, submissionId])
+  }, [session, submissionId])
 
   async function handleRevisionPrompt() {
     if (!submission) {
@@ -74,11 +66,11 @@ export function CompareView({ submissionId }: { submissionId: number }) {
     }
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading comparison…" />
   }
-  if (error || !comparison || !submission) {
-    return <AppErrorState title="Comparison unavailable" error={error ?? 'The requested comparison is not available yet.'} />
+  if (sessionError || error || !comparison || !submission) {
+    return <AppErrorState title="Comparison unavailable" error={sessionError ?? error ?? 'The requested comparison is not available yet.'} />
   }
 
   return (

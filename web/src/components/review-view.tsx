@@ -10,13 +10,11 @@ import {
   getAssignmentTimeline,
   getExercise,
   getReview,
-  getSession,
   getSubmission,
 } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import type { Exercise, Review, Submission } from '@/lib/types'
+import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
@@ -24,7 +22,7 @@ import { AppErrorState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function ReviewView({ reviewId }: { reviewId: number }) {
-  const router = useRouter()
+  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession(`/reviews/${reviewId}`)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [review, setReview] = useState<Review | null>(null)
@@ -36,17 +34,10 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (!session) {
+        return
+      }
       try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, `/reviews/${reviewId}`)
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
         const reviewData = await getReview(reviewId)
         const submissionData = await getSubmission(reviewData.submission_id)
         const exerciseData = await getExercise(submissionData.exercise_id)
@@ -77,7 +68,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     return () => {
       cancelled = true
     }
-  }, [reviewId, router])
+  }, [reviewId, session])
 
   async function handleRevisionPrompt() {
     if (!submission) {
@@ -95,11 +86,11 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     }
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading review…" />
   }
-  if (error || !review || !submission || !exercise) {
-    return <AppErrorState title="Review unavailable" error={error ?? 'The requested review could not be loaded.'} />
+  if (sessionError || error || !review || !submission || !exercise) {
+    return <AppErrorState title="Review unavailable" error={sessionError ?? error ?? 'The requested review could not be loaded.'} />
   }
 
   return (

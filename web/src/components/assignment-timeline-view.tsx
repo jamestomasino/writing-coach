@@ -7,10 +7,9 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
-import { getAssignmentTimeline, getSession } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
+import { getAssignmentTimeline } from '@/lib/api'
 import type { AssignmentTimeline, AssignmentTimelineStep } from '@/lib/types'
-import { useRouter } from 'next/navigation'
+import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
@@ -219,7 +218,7 @@ function StepSection({ step, selected }: { step: AssignmentTimelineStep; selecte
 }
 
 export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
-  const router = useRouter()
+  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession(`/assignments/${exerciseId}`)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [assignment, setAssignment] = useState<AssignmentTimeline | null>(null)
@@ -228,17 +227,10 @@ export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (!session) {
+        return
+      }
       try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, `/assignments/${exerciseId}`)
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
         const data = await getAssignmentTimeline(exerciseId)
         if (cancelled) {
           return
@@ -259,18 +251,18 @@ export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
     return () => {
       cancelled = true
     }
-  }, [exerciseId, router])
+  }, [exerciseId, session])
 
   function handleSelect(stepID: string) {
     setSelectedStepID(stepID)
     document.getElementById(stepID)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading assignment timeline…" />
   }
-  if (error || !assignment) {
-    return <AppErrorState title="Assignment unavailable" error={error ?? 'Could not load the requested assignment.'} />
+  if (sessionError || error || !assignment) {
+    return <AppErrorState title="Assignment unavailable" error={sessionError ?? error ?? 'Could not load the requested assignment.'} />
   }
 
   return (

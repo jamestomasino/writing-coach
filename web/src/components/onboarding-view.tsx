@@ -3,9 +3,9 @@
 import { CardHeader } from '@/components/card-header'
 import { Callout } from '@/components/callout'
 import { PageHeader } from '@/components/page-header'
-import { archiveTrack, getOnboarding, getOnboardingOptions, getSession, listTracks, saveOnboarding } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
+import { archiveTrack, getOnboarding, getOnboardingOptions, listTracks, saveOnboarding } from '@/lib/api'
 import type { OnboardingOptions, OnboardingState, UserTrack } from '@/lib/types'
+import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { usePathname, useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
 import { OnboardingTrackForm } from './onboarding-track-form'
@@ -25,6 +25,7 @@ const emptyOptions: OnboardingOptions = {
 export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) {
   const router = useRouter()
   const pathname = usePathname()
+  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession(pathname)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [existingProfile, setExistingProfile] = useState(false)
@@ -47,20 +48,10 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (!session) {
+        return
+      }
       try {
-        const session = await getSession()
-        if (cancelled) {
-          return
-        }
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, pathname)
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
         setSetupFlow(session.setup_step === 'needs_first_track')
         const [onboarding, nextOptions, trackList] = await Promise.all([
           getOnboarding(),
@@ -100,7 +91,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
     return () => {
       cancelled = true
     }
-  }, [mode, pathname, router])
+  }, [mode, session])
 
   function toggle(list: string[], setList: (items: string[]) => void, value: string) {
     if (list.includes(value)) {
@@ -160,8 +151,11 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
     }
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading onboarding…" />
+  }
+  if (sessionError) {
+    return <EmptyState title="Onboarding issue" body={sessionError} />
   }
 
   const canArchive = mode === 'edit' && existingProfile && tracks.length > 1

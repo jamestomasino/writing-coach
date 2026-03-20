@@ -5,17 +5,16 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { getAssignments, getSession } from '@/lib/api'
-import { requiredSetupPath } from '@/lib/onboarding-funnel'
+import { getAssignments } from '@/lib/api'
 import type { AssignmentSummary } from '@/lib/types'
+import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { ArrowRightIcon } from '@heroicons/react/16/solid'
-import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function PastAssignmentsView() {
-  const router = useRouter()
+  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession('/assignments')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([])
@@ -23,17 +22,10 @@ export function PastAssignmentsView() {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (!session) {
+        return
+      }
       try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          router.replace('/about')
-          return
-        }
-        const nextPath = requiredSetupPath(session, '/assignments')
-        if (nextPath) {
-          router.replace(nextPath)
-          return
-        }
         const items = await getAssignments()
         if (!cancelled) {
           setAssignments(items)
@@ -52,16 +44,16 @@ export function PastAssignmentsView() {
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [session])
 
   const currentAssignment = useMemo(() => assignments.find((item) => item.is_current), [assignments])
   const pastAssignments = useMemo(() => assignments.filter((item) => !item.is_current), [assignments])
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading past assignments…" />
   }
-  if (error) {
-    return <AppErrorState title="Archive unavailable" error={error} />
+  if (sessionError || error) {
+    return <AppErrorState title="Archive unavailable" error={sessionError ?? error ?? 'Archive unavailable'} />
   }
 
   return (
