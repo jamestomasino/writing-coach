@@ -24,6 +24,7 @@ import {
 } from '@/components/sidebar'
 import { SidebarLayout } from '@/components/sidebar-layout'
 import { getSession, listTracks, setActiveTrack } from '@/lib/api'
+import { shouldConfirmTrackSwitch } from '@/lib/track-switch-guard'
 import type { UserTrack } from '@/lib/types'
 import {
   ArrowLeftEndOnRectangleIcon,
@@ -58,6 +59,20 @@ function initialsForName(value: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+function trackStatusLine(track: UserTrack | null) {
+  if (!track) {
+    return 'No active track selected'
+  }
+  if (track.assignment_count === 0) {
+    return 'No assignments yet'
+  }
+  const activity = track.latest_assignment_time ? `Latest ${track.latest_assignment_time}` : ''
+  if (track.current_assignment) {
+    return activity ? `${track.current_assignment} · ${activity}` : track.current_assignment
+  }
+  return activity || `${track.assignment_count} assignment chains`
 }
 
 function AccountDropdownMenu({
@@ -174,7 +189,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
     if (!treeSlug || treeSlug === activeTrack?.tree_slug) {
       return
     }
-    if (window.__writingCoachHasUnsavedDraft) {
+    if (shouldConfirmTrackSwitch(window.__writingCoachHasUnsavedDraft)) {
       const confirmed = window.confirm(
         'You have an unsaved draft in the current track. Switch tracks and discard those unsaved edits?'
       )
@@ -231,6 +246,9 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                       <span className="mt-1 block truncate text-sm font-semibold">
                         {activeTrack?.title ?? 'Select a track'}
                       </span>
+                      <span className="mt-1 block truncate text-xs text-zinc-500 dark:text-zinc-400">
+                        {trackStatusLine(activeTrack)}
+                      </span>
                     </span>
                     <ChevronUpIcon className="size-4 rotate-180 text-zinc-500 dark:text-zinc-400" />
                   </DropdownButton>
@@ -243,7 +261,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                       >
                         <FolderIcon />
                         <DropdownLabel>{track.title}</DropdownLabel>
-                        <DropdownDescription>{track.description}</DropdownDescription>
+                        <DropdownDescription>{trackStatusLine(track)}</DropdownDescription>
                         {track.is_active ? <CheckIcon /> : null}
                       </DropdownItem>
                     ))}

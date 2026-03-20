@@ -20,6 +20,7 @@ import {
   reviewSubmission,
   submitDraft,
 } from '@/lib/api'
+import { hasUnsavedTrackDraft } from '@/lib/track-switch-guard'
 import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -235,7 +236,11 @@ export function CurrentAssignmentView() {
 
   const wordCount = useMemo(() => countWords(draft), [draft])
   const draftBaseline = workspace?.submission?.content ?? workspace?.sourceSubmission?.content ?? ''
-  const hasUnsavedDraft = workspace?.exercise !== undefined && draft !== draftBaseline
+  const hasUnsavedDraft = hasUnsavedTrackDraft({
+    hasExercise: workspace?.exercise !== undefined,
+    draft,
+    baseline: draftBaseline,
+  })
 
   useEffect(() => {
     window.__writingCoachHasUnsavedDraft = hasUnsavedDraft

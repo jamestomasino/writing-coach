@@ -136,7 +136,7 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 	if _, err := s.SQL.ExecContext(ctx, `
 		INSERT INTO user_tree_enrollments (user_id, tree_id)
 		SELECT ?, ?
-		WHERE NOT EXISTS (SELECT 1 FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ?)
+		WHERE NOT EXISTS (SELECT 1 FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ? AND archived_at IS NULL)
 	`, user.ID, tree.ID, user.ID, tree.ID); err != nil {
 		return 0, 0, 0, err
 	}
@@ -821,6 +821,7 @@ func (s *Store) ListEnrollments(ctx context.Context) ([]domain.Enrollment, error
 		FROM user_tree_enrollments e
 		JOIN users u ON u.id = e.user_id
 		JOIN tgo_trees t ON t.id = e.tree_id
+		WHERE e.archived_at IS NULL
 		ORDER BY u.slug ASC, t.slug ASC
 	`)
 	if err != nil {
@@ -845,7 +846,7 @@ func (s *Store) ListEnrollmentsByUserID(ctx context.Context, userID int64) ([]do
 		FROM user_tree_enrollments e
 		JOIN users u ON u.id = e.user_id
 		JOIN tgo_trees t ON t.id = e.tree_id
-		WHERE e.user_id = ?
+		WHERE e.user_id = ? AND e.archived_at IS NULL
 		ORDER BY e.created_at ASC, e.id ASC
 	`, userID)
 	if err != nil {
@@ -871,7 +872,7 @@ func (s *Store) EnrollmentByID(ctx context.Context, enrollmentID int64) (domain.
 		FROM user_tree_enrollments e
 		JOIN users u ON u.id = e.user_id
 		JOIN tgo_trees t ON t.id = e.tree_id
-		WHERE e.id = ?
+		WHERE e.id = ? AND e.archived_at IS NULL
 	`, enrollmentID).Scan(&enrollment.ID, &enrollment.UserID, &enrollment.TreeID, &enrollment.UserSlug, &enrollment.TreeSlug, &enrollment.CreatedAt)
 	return enrollment, err
 }
@@ -879,7 +880,7 @@ func (s *Store) EnrollmentByID(ctx context.Context, enrollmentID int64) (domain.
 func (s *Store) EnrollmentID(ctx context.Context, userID, treeID int64) (int64, error) {
 	var id int64
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT id FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ?
+		SELECT id FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ? AND archived_at IS NULL
 	`, userID, treeID).Scan(&id)
 	return id, err
 }
@@ -891,7 +892,7 @@ func (s *Store) ActiveEnrollmentIDByUserID(ctx context.Context, userID int64) (i
 		FROM user_tree_enrollments e
 		JOIN users u ON u.id = e.user_id
 		JOIN tgo_trees t ON t.id = e.tree_id
-		WHERE e.user_id = ? AND t.slug = u.active_tree_slug
+		WHERE e.user_id = ? AND t.slug = u.active_tree_slug AND e.archived_at IS NULL
 	`, userID).Scan(&enrollmentID)
 	return enrollmentID, err
 }
@@ -902,7 +903,7 @@ func (s *Store) ListUserTracks(ctx context.Context, userID int64) ([]domain.User
 		FROM user_tree_enrollments e
 		JOIN tgo_trees t ON t.id = e.tree_id
 		JOIN users u ON u.id = e.user_id
-		WHERE e.user_id = ?
+		WHERE e.user_id = ? AND e.archived_at IS NULL
 		ORDER BY CASE WHEN u.active_tree_slug = t.slug THEN 0 ELSE 1 END, e.created_at ASC, e.id ASC
 	`, userID)
 	if err != nil {
@@ -921,6 +922,25 @@ func (s *Store) ListUserTracks(ctx context.Context, userID int64) ([]domain.User
 		tracks = append(tracks, track)
 	}
 	return tracks, rows.Err()
+}
+
+func (s *Store) ArchiveUserTrack(ctx context.Context, userID int64, treeSlug string) error {
+	res, err := s.SQL.ExecContext(ctx, `
+		UPDATE user_tree_enrollments
+		SET archived_at = CURRENT_TIMESTAMP
+		WHERE user_id = ? AND tree_id = (SELECT id FROM tgo_trees WHERE slug = ?) AND archived_at IS NULL
+	`, userID, strings.TrimSpace(treeSlug))
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func (s *Store) GetCurriculumState(ctx context.Context, enrollmentID int64) (domain.CurriculumState, error) {

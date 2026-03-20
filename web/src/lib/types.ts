@@ -32,6 +32,9 @@ export type UserTrack = {
   description: string
   is_active: boolean
   created_at: string
+  assignment_count: number
+  current_assignment?: string
+  latest_assignment_time?: string
 }
 
 export type TGO = {

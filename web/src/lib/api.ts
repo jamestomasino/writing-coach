@@ -123,6 +123,14 @@ export async function setActiveTrack(treeSlug: string) {
   return payload.tracks
 }
 
+export async function archiveTrack(treeSlug: string) {
+  const payload = await request<{ tracks: UserTrack[] }>(`/api/tracks/${treeSlug}/archive`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  return payload.tracks
+}
+
 export async function getAISettings() {
   const payload = await request<{ settings: AIProviderSettings }>('/api/ai/settings')
   return payload.settings

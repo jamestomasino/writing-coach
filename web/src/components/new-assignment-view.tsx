@@ -164,7 +164,7 @@ export function NewAssignmentView() {
       <PageHeader
         eyebrow="Assignment setup"
         title="New assignment"
-        intro="Choose exactly three skills for the next review. The assignment prompt itself comes from your track details, while this selection sets what the review will measure most closely."
+        intro="Choose exactly three skills for the next review. The assignment prompt itself comes from the active track details, while this selection sets what the review will measure most closely."
       />
 
       {error ? <EmptyState title="Prompt generation issue" body={error} /> : null}
@@ -223,8 +223,8 @@ export function NewAssignmentView() {
                 <Eyebrow tone="cyan">Assignment generation</Eyebrow>
                 <Subheading>Generating assignment</Subheading>
                 <Text className="mt-2">
-                  Building a new prompt from your track details and current coaching context. This usually takes a few
-                  seconds.
+                  Building a new prompt from the active track details and current coaching context. This usually takes a
+                  few seconds.
                 </Text>
               </div>
             </div>

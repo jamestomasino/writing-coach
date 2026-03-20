@@ -2610,6 +2610,112 @@ func TestTracksListAndActiveSwitchUseTrackScopedProfiles(t *testing.T) {
 	}
 }
 
+func TestArchiveTrackRemovesItAndSwitchesActiveContext(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	firstPayload := `{
+		"mode":"edit",
+		"writing_type":"fiction",
+		"assignment_format":"scene",
+		"target_audience":"fantasy readers",
+		"subject_matter":"mythic conflict",
+		"experience_level":"intermediate",
+		"desired_tone":"grave",
+		"biggest_weaknesses":["scene architecture","word choice"],
+		"desired_outcomes":["publish stronger fiction","develop a distinctive voice"],
+		"difficulty_intensity":"steady",
+		"writing_goals":"I want to write stronger scenes."
+	}`
+	firstResp, err := http.Post(testServer.URL+"/api/onboarding?user=tester", "application/json", strings.NewReader(firstPayload))
+	if err != nil {
+		t.Fatalf("post first onboarding: %v", err)
+	}
+	defer firstResp.Body.Close()
+	if firstResp.StatusCode != http.StatusOK {
+		t.Fatalf("first onboarding status: %d", firstResp.StatusCode)
+	}
+	var firstBody struct {
+		Tree struct {
+			Slug string `json:"slug"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(firstResp.Body).Decode(&firstBody); err != nil {
+		t.Fatalf("decode first onboarding: %v", err)
+	}
+
+	secondPayload := `{
+		"mode":"create",
+		"writing_type":"technical writing",
+		"assignment_format":"how-to guide",
+		"target_audience":"API integrators",
+		"subject_matter":"developer tooling",
+		"experience_level":"advanced",
+		"desired_tone":"clear",
+		"biggest_weaknesses":["sentence economy","paragraph control"],
+		"desired_outcomes":["improve professional communication","write clearer essays"],
+		"difficulty_intensity":"ambitious",
+		"writing_goals":"I want cleaner technical drafts."
+	}`
+	secondResp, err := http.Post(testServer.URL+"/api/onboarding?user=tester", "application/json", strings.NewReader(secondPayload))
+	if err != nil {
+		t.Fatalf("post second onboarding: %v", err)
+	}
+	defer secondResp.Body.Close()
+	if secondResp.StatusCode != http.StatusOK {
+		t.Fatalf("second onboarding status: %d", secondResp.StatusCode)
+	}
+	var secondBody struct {
+		Tree struct {
+			Slug string `json:"slug"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(secondResp.Body).Decode(&secondBody); err != nil {
+		t.Fatalf("decode second onboarding: %v", err)
+	}
+
+	archiveReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/tracks/"+secondBody.Tree.Slug+"/archive?user=tester", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("new archive request: %v", err)
+	}
+	archiveReq.Header.Set("Content-Type", "application/json")
+	archiveResp, err := http.DefaultClient.Do(archiveReq)
+	if err != nil {
+		t.Fatalf("archive track: %v", err)
+	}
+	defer archiveResp.Body.Close()
+	if archiveResp.StatusCode != http.StatusOK {
+		t.Fatalf("archive status: %d", archiveResp.StatusCode)
+	}
+
+	var archiveBody struct {
+		Context struct {
+			TreeSlug string `json:"tree_slug"`
+		} `json:"context"`
+		Tracks []struct {
+			TreeSlug string `json:"tree_slug"`
+		} `json:"tracks"`
+	}
+	if err := json.NewDecoder(archiveResp.Body).Decode(&archiveBody); err != nil {
+		t.Fatalf("decode archive response: %v", err)
+	}
+	if archiveBody.Context.TreeSlug == secondBody.Tree.Slug {
+		t.Fatalf("active tree after archive = %q", archiveBody.Context.TreeSlug)
+	}
+	foundFirst := false
+	for _, track := range archiveBody.Tracks {
+		if track.TreeSlug == firstBody.Tree.Slug {
+			foundFirst = true
+		}
+		if track.TreeSlug == secondBody.Tree.Slug {
+			t.Fatalf("archived track still present in tracks list: %q", track.TreeSlug)
+		}
+	}
+	if !foundFirst {
+		t.Fatalf("expected first generated track to remain after archive: %#v", archiveBody.Tracks)
+	}
+}
+
 func TestTreeGetUsesProfileDisplayForGeneratedTrack(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

@@ -1,19 +1,14 @@
 'use client'
 
-import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
-import { Checkbox, CheckboxField } from '@/components/checkbox'
-import { Field, FieldGroup, Label } from '@/components/fieldset'
-import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
-import { Select } from '@/components/select'
-import { Text } from '@/components/text'
-import { Textarea } from '@/components/textarea'
-import { getOnboarding, getOnboardingOptions, saveOnboarding } from '@/lib/api'
-import type { OnboardingOptions } from '@/lib/types'
+import { archiveTrack, getOnboarding, getOnboardingOptions, listTracks, saveOnboarding } from '@/lib/api'
+import type { OnboardingOptions, OnboardingState, UserTrack } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
+import { OnboardingTrackForm } from './onboarding-track-form'
 import { EmptyState, LoadingState } from './status-state'
+import { TrackManagementCard } from './track-management-card'
 import { WorkspaceCard } from './workspace-card'
 
 const emptyOptions: OnboardingOptions = {
@@ -42,15 +37,24 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
   const [weaknesses, setWeaknesses] = useState<string[]>([])
   const [outcomes, setOutcomes] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [archiving, setArchiving] = useState(false)
+  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null)
+  const [tracks, setTracks] = useState<UserTrack[]>([])
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const [onboarding, nextOptions] = await Promise.all([getOnboarding(), getOnboardingOptions()])
+        const [onboarding, nextOptions, trackList] = await Promise.all([
+          getOnboarding(),
+          getOnboardingOptions(),
+          listTracks(),
+        ])
         if (cancelled) {
           return
         }
+        setOnboardingState(onboarding)
         setOptions(nextOptions)
+        setTracks(trackList)
         if (mode === 'edit' && onboarding.profile) {
           setWritingType(onboarding.profile.writing_type)
           setAssignmentFormat(onboarding.profile.assignment_format)
@@ -114,9 +118,35 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
     }
   }
 
+  async function handleArchive() {
+    const treeSlug = onboardingState?.context?.tree_slug
+    if (!treeSlug) {
+      return
+    }
+    const confirmed = window.confirm(
+      'Archive this track? Its history will be kept, but it will be removed from the active track list.'
+    )
+    if (!confirmed) {
+      return
+    }
+    try {
+      setArchiving(true)
+      setError(null)
+      await archiveTrack(treeSlug)
+      router.push('/')
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not archive track')
+    } finally {
+      setArchiving(false)
+    }
+  }
+
   if (loading) {
     return <LoadingState label="Loading onboarding…" />
   }
+
+  const canArchive = mode === 'edit' && existingProfile && tracks.length > 1
 
   return (
     <div className="space-y-8">
@@ -146,150 +176,35 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
 
       {error ? <EmptyState title="Onboarding issue" body={error} /> : null}
 
-      <WorkspaceCard>
-        <form className="space-y-8" onSubmit={handleSubmit}>
-          <FieldGroup>
-            <Field>
-              <Label>Primary writing domain</Label>
-              <Select value={writingType} onChange={(event) => setWritingType(event.target.value)}>
-                <option value="" disabled>
-                  Choose a writing domain
-                </option>
-                {options.writing_domains.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field>
-              <Label>Common assignment format</Label>
-              <Select value={assignmentFormat} onChange={(event) => setAssignmentFormat(event.target.value)}>
-                <option value="" disabled>
-                  Choose an assignment format
-                </option>
-                {options.assignment_formats.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field>
-              <Label>Experience level</Label>
-              <Select value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value)}>
-                <option value="" disabled>
-                  Choose an experience level
-                </option>
-                {options.experience_levels.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field>
-              <Label>Difficulty and intensity</Label>
-              <Select value={difficultyIntensity} onChange={(event) => setDifficultyIntensity(event.target.value)}>
-                <option value="" disabled>
-                  Choose a pace
-                </option>
-                {options.difficulty_levels.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </FieldGroup>
+      <OnboardingTrackForm
+        mode={mode}
+        options={options}
+        existingProfile={existingProfile}
+        writingType={writingType}
+        assignmentFormat={assignmentFormat}
+        targetAudience={targetAudience}
+        subjectMatter={subjectMatter}
+        experienceLevel={experienceLevel}
+        desiredTone={desiredTone}
+        difficultyIntensity={difficultyIntensity}
+        writingGoals={writingGoals}
+        weaknesses={weaknesses}
+        outcomes={outcomes}
+        saving={saving}
+        onWritingTypeChange={setWritingType}
+        onAssignmentFormatChange={setAssignmentFormat}
+        onTargetAudienceChange={setTargetAudience}
+        onSubjectMatterChange={setSubjectMatter}
+        onExperienceLevelChange={setExperienceLevel}
+        onDesiredToneChange={setDesiredTone}
+        onDifficultyIntensityChange={setDifficultyIntensity}
+        onWritingGoalsChange={setWritingGoals}
+        onWeaknessToggle={(value) => toggle(weaknesses, setWeaknesses, value)}
+        onOutcomeToggle={(value) => toggle(outcomes, setOutcomes, value)}
+        onSubmit={handleSubmit}
+      />
 
-          <FieldGroup>
-            <Field>
-              <Label>Target audience</Label>
-              <Text className="mt-1 text-sm">Who should the writing feel written for?</Text>
-              <Input
-                value={targetAudience}
-                onChange={(event) => setTargetAudience(event.target.value)}
-                placeholder="Startup founders, hiring managers, general readers, fantasy fans…"
-              />
-            </Field>
-            <Field>
-              <Label>Typical subject matter</Label>
-              <Text className="mt-1 text-sm">
-                What kinds of situations, topics, or worlds should assignments draw from?
-              </Text>
-              <Input
-                value={subjectMatter}
-                onChange={(event) => setSubjectMatter(event.target.value)}
-                placeholder="Developer tools, workplace conflict, family pressure, product launches…"
-              />
-            </Field>
-          </FieldGroup>
-
-          <Field>
-            <Label>Tone target</Label>
-            <Text className="mt-1 text-sm">How should the writing feel to a reader?</Text>
-            <Input
-              value={desiredTone}
-              onChange={(event) => setDesiredTone(event.target.value)}
-              placeholder="Weighty and restrained, clear and persuasive, analytical and direct…"
-            />
-          </Field>
-
-          <Field>
-            <Label>Writing goals</Label>
-            <Textarea
-              rows={6}
-              value={writingGoals}
-              onChange={(event) => setWritingGoals(event.target.value)}
-              placeholder="Describe what you want this coaching track to help you become better at."
-            />
-          </Field>
-
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div>
-              <CardHeader eyebrow="Diagnosis" title="Biggest weaknesses" />
-              <div className="mt-4 space-y-3">
-                {options.weaknesses.map((item) => (
-                  <CheckboxField key={item.value}>
-                    <Checkbox
-                      checked={weaknesses.includes(item.value)}
-                      onChange={() => toggle(weaknesses, setWeaknesses, item.value)}
-                    />
-                    <Label>{item.label}</Label>
-                  </CheckboxField>
-                ))}
-              </div>
-            </div>
-            <div>
-              <CardHeader eyebrow="Target state" title="Desired outcomes" />
-              <div className="mt-4 space-y-3">
-                {options.desired_outcomes.map((item) => (
-                  <CheckboxField key={item.value}>
-                    <Checkbox
-                      checked={outcomes.includes(item.value)}
-                      onChange={() => toggle(outcomes, setOutcomes, item.value)}
-                    />
-                    <Label>{item.label}</Label>
-                  </CheckboxField>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button type="submit" color="dark/zinc" disabled={saving}>
-              {saving
-                ? 'Preparing recommendations…'
-                : mode === 'create'
-                  ? 'Create track'
-                  : existingProfile
-                    ? 'Update track'
-                    : 'Create track'}
-            </Button>
-          </div>
-        </form>
-      </WorkspaceCard>
+      {canArchive ? <TrackManagementCard archiving={archiving} onArchive={handleArchive} /> : null}
     </div>
   )
 }

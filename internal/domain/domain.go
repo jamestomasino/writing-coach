@@ -89,6 +89,12 @@ type UserTrack struct {
 	CreatedAt    time.Time
 }
 
+type TrackActivitySummary struct {
+	AssignmentCount      int
+	CurrentAssignment    string
+	LatestAssignmentTime time.Time
+}
+
 type WriterProfile struct {
 	ID              int64
 	Name            string

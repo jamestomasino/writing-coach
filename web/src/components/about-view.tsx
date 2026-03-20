@@ -105,7 +105,7 @@ export function AboutView() {
         <WorkspaceCard className="border-stone-200/80 bg-zinc-950 text-white dark:border-white/10">
           <Subheading className="text-xl/7 text-white sm:text-lg/7">What the coach offers</Subheading>
           <ul className="mt-4 space-y-3 text-sm/6 text-zinc-300">
-            <li>Targeted assignments shaped by your track.</li>
+            <li>Targeted assignments shaped by the active track.</li>
             <li>Reviews tied to a small set of active skills.</li>
             <li>Revision briefs when a draft needs another pass.</li>
             <li>A progress board that shows growth over time.</li>
