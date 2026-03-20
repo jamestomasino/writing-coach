@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { ArrowRightIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
@@ -9,6 +7,8 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getAssignments } from '@/lib/api'
 import type { AssignmentSummary } from '@/lib/types'
+import { ArrowRightIcon } from '@heroicons/react/16/solid'
+import { useEffect, useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -56,7 +56,7 @@ export function PastAssignmentsView() {
       <PageHeader
         eyebrow="Assignments"
         title="Past assignments"
-        intro="Look back at earlier assignments and revisit your drafts, feedback, and revisions."
+        intro="Look back at earlier assignments from the active track and revisit your drafts, feedback, and revisions."
         actions={
           <Button href="/" outline>
             Current assignment
@@ -69,7 +69,7 @@ export function PastAssignmentsView() {
           <CardHeader
             eyebrow="Current chain"
             title={currentAssignment.title}
-            description="Your current assignment is still in the main workspace. You can view its full history here."
+            description="Your active track's current assignment is still in the main workspace. You can view its full history here."
             actions={
               <Button href={`/assignments/${currentAssignment.current_exercise_id}`} plain>
                 View current timeline
@@ -82,7 +82,7 @@ export function PastAssignmentsView() {
       {pastAssignments.length === 0 ? (
         <EmptyState
           title="No past assignments yet"
-          body="Once you move beyond the current assignment chain, older work will appear here for historical browsing."
+          body="Once you move beyond the current assignment chain in this track, older work will appear here for historical browsing."
           actionHref="/"
           actionLabel="Open current assignment"
         />
@@ -110,19 +110,27 @@ export function PastAssignmentsView() {
               </div>
               <div className="mt-5 grid gap-4 sm:grid-cols-4">
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Prompts</div>
+                  <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
+                    Prompts
+                  </div>
                   <Text className="mt-2 text-sm">{assignment.exercise_count}</Text>
                 </div>
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Drafts</div>
+                  <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
+                    Drafts
+                  </div>
                   <Text className="mt-2 text-sm">{assignment.draft_count}</Text>
                 </div>
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Feedback</div>
+                  <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
+                    Feedback
+                  </div>
                   <Text className="mt-2 text-sm">{assignment.review_count}</Text>
                 </div>
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Revisions</div>
+                  <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
+                    Revisions
+                  </div>
                   <Text className="mt-2 text-sm">{assignment.revision_count}</Text>
                 </div>
               </div>

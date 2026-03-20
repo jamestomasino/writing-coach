@@ -285,7 +285,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
                   ? 'Create track'
                   : existingProfile
                     ? 'Update track'
-                    : 'Set starter path'}
+                    : 'Create track'}
             </Button>
           </div>
         </form>

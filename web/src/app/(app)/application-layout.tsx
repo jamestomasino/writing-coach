@@ -174,6 +174,14 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
     if (!treeSlug || treeSlug === activeTrack?.tree_slug) {
       return
     }
+    if (window.__writingCoachHasUnsavedDraft) {
+      const confirmed = window.confirm(
+        'You have an unsaved draft in the current track. Switch tracks and discard those unsaved edits?'
+      )
+      if (!confirmed) {
+        return
+      }
+    }
     try {
       setSwitchingTrack(treeSlug)
       const nextTracks = await setActiveTrack(treeSlug)

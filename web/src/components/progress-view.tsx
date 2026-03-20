@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Badge } from '@/components/badge'
+import { CardHeader } from '@/components/card-header'
+import { Eyebrow } from '@/components/eyebrow'
+import { Subheading } from '@/components/heading'
+import { PageHeader } from '@/components/page-header'
+import { Text } from '@/components/text'
+import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
+import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
 import {
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
@@ -8,14 +15,7 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
 } from '@heroicons/react/16/solid'
-import { Badge } from '@/components/badge'
-import { CardHeader } from '@/components/card-header'
-import { Eyebrow } from '@/components/eyebrow'
-import { Heading, Subheading } from '@/components/heading'
-import { PageHeader } from '@/components/page-header'
-import { Text } from '@/components/text'
-import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
-import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
+import { useEffect, useMemo, useState } from 'react'
 import { MasteryProgress } from './mastery-progress'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -113,7 +113,10 @@ export function ProgressView() {
   const totalSkills = (tree?.tgos ?? []).length || (dashboard?.completed_tgos ?? []).length
   const completedCount = (dashboard?.completed_tgos ?? []).length
   const completionRatio = totalSkills > 0 ? Math.round((completedCount / totalSkills) * 100) : 0
-  const stages = useMemo(() => (tree ? stageCompletion(tree, completedCodes, activeCodes) : []), [activeCodes, completedCodes, tree])
+  const stages = useMemo(
+    () => (tree ? stageCompletion(tree, completedCodes, activeCodes) : []),
+    [activeCodes, completedCodes, tree]
+  )
 
   if (loading) {
     return <LoadingState label="Loading progress board…" />
@@ -121,10 +124,10 @@ export function ProgressView() {
   if (needsOnboarding) {
     return (
       <EmptyState
-        title="Build your starter path first"
-        body="Progress becomes meaningful once your skill map has been created. Start by setting your writing goals and recommended opening skills."
+        title="Create a track first"
+        body="Progress becomes meaningful once a writing track exists. Start by setting your goals and opening skills."
         actionHref="/onboarding"
-        actionLabel="Set starter path"
+        actionLabel="Create track"
       />
     )
   }
@@ -186,7 +189,10 @@ export function ProgressView() {
           />
           <div className="mt-6">
             <div className="h-3 rounded-full bg-stone-200 dark:bg-white/10">
-              <div className="h-3 rounded-full bg-stone-800 dark:bg-stone-200" style={{ width: `${completionRatio}%` }} />
+              <div
+                className="h-3 rounded-full bg-stone-800 dark:bg-stone-200"
+                style={{ width: `${completionRatio}%` }}
+              />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-300">
               <span>{completedCount} completed</span>
@@ -200,13 +206,21 @@ export function ProgressView() {
               {stages.map((stage) => {
                 const stagePercent = stage.total > 0 ? Math.round((stage.completed / stage.total) * 100) : 0
                 return (
-                  <div key={stage.label} className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+                  <div
+                    key={stage.label}
+                    className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
+                  >
                     <div className="flex items-center justify-between gap-4">
                       <Eyebrow>{stage.label}</Eyebrow>
-                      <Badge color="zinc">{stage.completed}/{stage.total}</Badge>
+                      <Badge color="zinc">
+                        {stage.completed}/{stage.total}
+                      </Badge>
                     </div>
                     <div className="mt-3 h-2 rounded-full bg-stone-200 dark:bg-white/10">
-                      <div className="h-2 rounded-full bg-stone-700 dark:bg-stone-200" style={{ width: `${stagePercent}%` }} />
+                      <div
+                        className="h-2 rounded-full bg-stone-700 dark:bg-stone-200"
+                        style={{ width: `${stagePercent}%` }}
+                      />
                     </div>
                     <Text className="mt-3 text-sm">
                       {stage.active > 0 ? `${stage.active} active now.` : 'No active skills in this stage.'}
@@ -228,13 +242,16 @@ export function ProgressView() {
               </div>
               <div className="mt-3 space-y-3">
                 {activeTGOs.map((tgo) => (
-                    <div key={tgo.code} className="rounded-xl border border-blue-200/80 bg-white/70 px-3 py-3 dark:border-blue-400/20 dark:bg-black/10">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
-                        <Badge color="blue">{tgo.stage}</Badge>
-                      </div>
-                      <MasteryProgress tgo={tgo} tone="blue" />
+                  <div
+                    key={tgo.code}
+                    className="rounded-xl border border-blue-200/80 bg-white/70 px-3 py-3 dark:border-blue-400/20 dark:bg-black/10"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
+                      <Badge color="blue">{tgo.stage}</Badge>
                     </div>
+                    <MasteryProgress tgo={tgo} tone="blue" />
+                  </div>
                 ))}
               </div>
             </div>
@@ -244,7 +261,9 @@ export function ProgressView() {
                 Mastered skills
               </div>
               <Text className="mt-2 text-sm">
-                {completedTGOs.length === 0 ? 'No skills have been mastered yet.' : `${completedTGOs.length} skills have been marked mastered.`}
+                {completedTGOs.length === 0
+                  ? 'No skills have been mastered yet.'
+                  : `${completedTGOs.length} skills have been marked mastered.`}
               </Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
@@ -273,7 +292,10 @@ export function ProgressView() {
       <div className="grid gap-8 xl:grid-cols-2">
         <WorkspaceCard>
           <Subheading>Skill signals</Subheading>
-          <Text className="mt-2">These are ranked signals, not absolute scores. They help you see where recent reviews consistently read strongest versus where the coaching load remains heaviest.</Text>
+          <Text className="mt-2">
+            These are ranked signals, not absolute scores. They help you see where recent reviews consistently read
+            strongest versus where the coaching load remains heaviest.
+          </Text>
           <div className="mt-6 space-y-6">
             <div>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-white">
@@ -288,7 +310,10 @@ export function ProgressView() {
                       <span className="text-zinc-500 dark:text-zinc-400">signal</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
-                      <div className="h-2 rounded-full bg-green-600" style={{ width: rankWidth(index, strongestSkills.length) }} />
+                      <div
+                        className="h-2 rounded-full bg-green-600"
+                        style={{ width: rankWidth(index, strongestSkills.length) }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -307,7 +332,10 @@ export function ProgressView() {
                       <span className="text-zinc-500 dark:text-zinc-400">attention</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
-                      <div className="h-2 rounded-full bg-amber-600" style={{ width: rankWidth(index, weakestSkills.length) }} />
+                      <div
+                        className="h-2 rounded-full bg-amber-600"
+                        style={{ width: rankWidth(index, weakestSkills.length) }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -318,12 +346,17 @@ export function ProgressView() {
 
         <WorkspaceCard>
           <Subheading>Recent activity timeline</Subheading>
-          <Text className="mt-2">This compresses the recent coaching loop into a readable sequence so you can see what the system has emphasized lately.</Text>
+          <Text className="mt-2">
+            This compresses the recent coaching loop into a readable sequence so you can see what the system has
+            emphasized lately.
+          </Text>
           <ol className="mt-6 space-y-4">
-            {history.length === 0 ? <li className="text-sm text-zinc-600 dark:text-zinc-300">No recent history yet.</li> : null}
+            {history.length === 0 ? (
+              <li className="text-sm text-zinc-600 dark:text-zinc-300">No recent history yet.</li>
+            ) : null}
             {history.map((item, index) => (
               <li key={`${item.title}-${index}`} className="relative pl-6">
-                <span className="absolute left-0 top-1.5 size-2 rounded-full bg-stone-800 dark:bg-stone-200" />
+                <span className="absolute top-1.5 left-0 size-2 rounded-full bg-stone-800 dark:bg-stone-200" />
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-sm font-medium text-zinc-900 dark:text-white">Assignment: {item.title}</div>
                   <div className="mt-3 flex flex-wrap gap-2">

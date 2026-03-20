@@ -1,23 +1,39 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowPathIcon, ArrowUpTrayIcon, SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
-import { CardHeader } from '@/components/card-header'
 import { Callout } from '@/components/callout'
-import { Eyebrow } from '@/components/eyebrow'
-import { Heading, Subheading } from '@/components/heading'
+import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
-import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmission, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
+import {
+  createRevisionAssignment,
+  getDashboard,
+  getExercise,
+  getExercises,
+  getReviewJob,
+  getReviews,
+  getSession,
+  getSubmission,
+  getSubmissions,
+  reviewSubmission,
+  submitDraft,
+} from '@/lib/api'
 import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
+import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { MasteryProgress } from './mastery-progress'
 import { ProviderProvenance } from './provider-provenance'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
+
+declare global {
+  interface Window {
+    __writingCoachHasUnsavedDraft?: boolean
+  }
+}
 
 type WorkspaceState = {
   dashboard: Dashboard
@@ -119,11 +135,15 @@ export function CurrentAssignmentView() {
         let sourceReview: Review | undefined
         let pendingJob: ReviewJob | null = null
         if (exercise) {
-          const submissions = inRevisionMode ? await withRetry(() => getSubmissions(exercise.id, 1)) : await getSubmissions(exercise.id, 1)
+          const submissions = inRevisionMode
+            ? await withRetry(() => getSubmissions(exercise.id, 1))
+            : await getSubmissions(exercise.id, 1)
           submission = submissions[0]
           if (submission) {
             const currentSubmissionID = submission.id
-            const reviews = inRevisionMode ? await withRetry(() => getReviews(currentSubmissionID, 1)) : await getReviews(currentSubmissionID, 1)
+            const reviews = inRevisionMode
+              ? await withRetry(() => getReviews(currentSubmissionID, 1))
+              : await getReviews(currentSubmissionID, 1)
             review = reviews[0]
             if (!review) {
               try {
@@ -132,9 +152,13 @@ export function CurrentAssignmentView() {
             }
           }
           if (exercise.source_submission_id) {
-            sourceSubmission = inRevisionMode ? await withRetry(() => getSubmission(exercise.source_submission_id!)) : await getSubmission(exercise.source_submission_id)
+            sourceSubmission = inRevisionMode
+              ? await withRetry(() => getSubmission(exercise.source_submission_id!))
+              : await getSubmission(exercise.source_submission_id)
             const sourceSubmissionID = sourceSubmission.id
-            const sourceReviews = inRevisionMode ? await withRetry(() => getReviews(sourceSubmissionID, 1)) : await getReviews(sourceSubmissionID, 1)
+            const sourceReviews = inRevisionMode
+              ? await withRetry(() => getReviews(sourceSubmissionID, 1))
+              : await getReviews(sourceSubmissionID, 1)
             sourceReview = sourceReviews[0]
           }
         }
@@ -156,7 +180,9 @@ export function CurrentAssignmentView() {
           } else {
             const revisionExerciseID = Number(searchParams.get('revisionExercise') ?? 0)
             if (revisionExerciseID > 0 && isTransientError(err)) {
-              setError('Could not load the revision workspace on the first attempt. Please try again. The revision brief may already be ready.')
+              setError(
+                'Could not load the revision workspace on the first attempt. Please try again. The revision brief may already be ready.'
+              )
             } else {
               setError(message)
             }
@@ -208,6 +234,29 @@ export function CurrentAssignmentView() {
   }, [reviewJob, router, workspace?.submission])
 
   const wordCount = useMemo(() => countWords(draft), [draft])
+  const draftBaseline = workspace?.submission?.content ?? workspace?.sourceSubmission?.content ?? ''
+  const hasUnsavedDraft = workspace?.exercise !== undefined && draft !== draftBaseline
+
+  useEffect(() => {
+    window.__writingCoachHasUnsavedDraft = hasUnsavedDraft
+    return () => {
+      window.__writingCoachHasUnsavedDraft = false
+    }
+  }, [hasUnsavedDraft])
+
+  useEffect(() => {
+    if (!hasUnsavedDraft) {
+      return
+    }
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [hasUnsavedDraft])
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -284,7 +333,7 @@ export function CurrentAssignmentView() {
     return (
       <EmptyState
         title="Sign in to continue"
-        body="Authentication runs through the Kratos browser flow. Once you sign in, this page becomes your current assignment workspace."
+        body="Authentication runs through the Kratos browser flow. Once you sign in, this page becomes the current assignment workspace for your active track."
         actionHref="/login"
         actionLabel="Open sign in"
       />
@@ -454,13 +503,16 @@ export function CurrentAssignmentView() {
                     <ProviderProvenance providerNote={exercise.provider_note} compact />
                   </div>
                   <Text className="mt-3">
-                    The editor is preloaded with your latest reviewed draft so you can revise directly instead of pasting it back in.
+                    The editor is preloaded with your latest reviewed draft so you can revise directly instead of
+                    pasting it back in.
                   </Text>
                 </div>
               ) : (
                 <div className="mt-4 space-y-4">
                   <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-                    <div className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Prior coaching summary</div>
+                    <div className="text-sm font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
+                      Prior coaching summary
+                    </div>
                     <Text className="mt-3">{sourceReview.summary}</Text>
                   </div>
                   <div className="grid gap-4 lg:grid-cols-2">
@@ -494,7 +546,11 @@ export function CurrentAssignmentView() {
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
-          <CardHeader eyebrow="Assignment brief" title="Prompt" actions={<Badge color="zinc">{exercise.generation_kind}</Badge>} />
+          <CardHeader
+            eyebrow="Assignment brief"
+            title="Prompt"
+            actions={<Badge color="zinc">{exercise.generation_kind}</Badge>}
+          />
           <div className="mt-4 space-y-5">
             <ProviderProvenance providerNote={exercise.provider_note} />
             <div>
@@ -524,7 +580,10 @@ export function CurrentAssignmentView() {
           />
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.map((tgo) => (
-              <div key={tgo.code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div
+                key={tgo.code}
+                className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
+              >
                 <div className="flex items-center justify-between gap-4">
                   <Strong>{tgo.title}</Strong>
                   <Badge color="cyan">{tgo.stage}</Badge>
@@ -550,15 +609,27 @@ export function CurrentAssignmentView() {
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-stone-50 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5">
               <ArrowUpTrayIcon className="size-4" />
               Upload draft
-              <input type="file" accept=".md,.txt,text/plain,text/markdown" className="hidden" onChange={handleFile} disabled={busy} />
+              <input
+                type="file"
+                accept=".md,.txt,text/plain,text/markdown"
+                className="hidden"
+                onChange={handleFile}
+                disabled={busy}
+              />
             </label>
             <Badge color="zinc">{wordCount} words</Badge>
           </div>
         </div>
         <div className="mt-5">
-          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={18} placeholder="Paste your draft here." disabled={busy} />
+          <Textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            rows={18}
+            placeholder="Paste your draft here."
+            disabled={busy}
+          />
         </div>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <Text>
             {workspace.submission
               ? reviewPending

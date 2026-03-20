@@ -1,18 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { Eyebrow } from '@/components/eyebrow'
-import { Heading, Subheading } from '@/components/heading'
+import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { acceptAssignment, createAssignment, getDashboard, getSession } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
-import { useRouter } from 'next/navigation'
 
 export function NewAssignmentView() {
   const router = useRouter()
@@ -135,10 +135,10 @@ export function NewAssignmentView() {
   if (needsOnboarding) {
     return (
       <EmptyState
-        title="Build your starter path first"
-        body="You need an active skill map before you can choose skills for a new assignment."
+        title="Create a track first"
+        body="You need an active track before you can choose skills for a new assignment."
         actionHref="/onboarding"
-        actionLabel="Set starter path"
+        actionLabel="Create track"
       />
     )
   }
@@ -194,7 +194,9 @@ export function NewAssignmentView() {
                   <span className="font-semibold">{tgo.title}</span>
                   <Badge color={active ? 'amber' : 'zinc'}>{tgo.stage}</Badge>
                 </div>
-                <p className={`mt-2 text-sm ${active ? 'text-stone-200' : 'text-zinc-600 dark:text-zinc-300'}`}>{tgo.description}</p>
+                <p className={`mt-2 text-sm ${active ? 'text-stone-200' : 'text-zinc-600 dark:text-zinc-300'}`}>
+                  {tgo.description}
+                </p>
               </button>
             )
           })}
@@ -220,12 +222,20 @@ export function NewAssignmentView() {
               <div>
                 <Eyebrow tone="cyan">Assignment generation</Eyebrow>
                 <Subheading>Generating assignment</Subheading>
-                <Text className="mt-2">Building a new prompt from your track details and current coaching context. This usually takes a few seconds.</Text>
+                <Text className="mt-2">
+                  Building a new prompt from your track details and current coaching context. This usually takes a few
+                  seconds.
+                </Text>
               </div>
             </div>
-            <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 dark:border-cyan-400/20 dark:bg-black/10 lg:w-80">
+            <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 lg:w-80 dark:border-cyan-400/20 dark:bg-black/10">
               <Eyebrow tone="cyan">Working</Eyebrow>
-              <div className="mt-3 space-y-2" role="status" aria-live="polite" aria-label="Assignment generation in progress">
+              <div
+                className="mt-3 space-y-2"
+                role="status"
+                aria-live="polite"
+                aria-label="Assignment generation in progress"
+              >
                 <div className="h-2 w-full animate-pulse rounded-full bg-cyan-200/80 dark:bg-cyan-200/15" />
                 <div className="h-2 w-5/6 animate-pulse rounded-full bg-cyan-200/70 [animation-delay:120ms] dark:bg-cyan-200/12" />
                 <div className="h-2 w-2/3 animate-pulse rounded-full bg-cyan-200/60 [animation-delay:240ms] dark:bg-cyan-200/10" />
