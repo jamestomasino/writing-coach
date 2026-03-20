@@ -3422,6 +3422,38 @@ func TestAuthFailsClosedWithoutConfiguredAuthByDefault(t *testing.T) {
 	}
 }
 
+func TestAIProviderEventRecorderDrainsQueueOnShutdown(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	recorder := newAIProviderEventRecorder(harness.Store, config.Default(t.TempDir()))
+	ctx, cancel := context.WithCancel(context.Background())
+	recorder.start(ctx)
+
+	recorder.record(domain.AIProviderEvent{
+		UserID:     1,
+		Provider:   "openai",
+		Event:      "settings_validate_succeeded",
+		Category:   "success",
+		StatusCode: 200,
+		CreatedAt:  time.Now().UTC(),
+	})
+	cancel()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		events, err := harness.Store.ListRecentAIProviderEvents(context.Background(), 10, time.Now().Add(-time.Hour), "", "")
+		if err != nil {
+			t.Fatalf("list provider events: %v", err)
+		}
+		for _, event := range events {
+			if event.Event == "settings_validate_succeeded" && event.Provider == "openai" && event.UserID == 1 {
+				return
+			}
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	t.Fatal("expected queued provider event to be flushed during shutdown")
+}
+
 func TestKratosAdminEmailCanManageTrees(t *testing.T) {
 	kratos := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{

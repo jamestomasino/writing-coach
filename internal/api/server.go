@@ -33,6 +33,8 @@ type Server struct {
 	eventRecorder     *aiProviderEventRecorder
 }
 
+const serverShutdownTimeout = 10 * time.Second
+
 func (s *Server) Serve(ctx context.Context) error {
 	s.startBackgroundWorkers(ctx)
 
@@ -43,7 +45,9 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	go func() {
 		<-ctx.Done()
-		_ = server.Shutdown(context.Background())
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeout)
+		defer cancel()
+		_ = server.Shutdown(shutdownCtx)
 	}()
 
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

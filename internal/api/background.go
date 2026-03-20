@@ -18,6 +18,8 @@ type aiProviderEventRecorder struct {
 	once          sync.Once
 }
 
+const aiProviderEventFlushTimeout = 2 * time.Second
+
 func newAIProviderEventRecorder(store *db.Store, cfg config.Config) *aiProviderEventRecorder {
 	return &aiProviderEventRecorder{
 		store:         store,
@@ -54,14 +56,41 @@ func (r *aiProviderEventRecorder) run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			r.drainOnShutdown()
 			return
 		case event := <-r.queue:
-			if err := r.store.SaveAIProviderEvent(ctx, event); err != nil {
-				log.Printf("ai_provider_event_store_failed provider=%s event=%s user=%d err=%v", event.Provider, event.Event, event.UserID, err)
-			}
+			r.persistEvent(ctx, event)
 		case <-ticker.C:
 			r.cleanup(ctx)
 		}
+	}
+}
+
+func (r *aiProviderEventRecorder) drainOnShutdown() {
+	if r == nil {
+		return
+	}
+	flushCtx, cancel := context.WithTimeout(context.Background(), aiProviderEventFlushTimeout)
+	defer cancel()
+
+	for {
+		select {
+		case event := <-r.queue:
+			r.persistEvent(flushCtx, event)
+		default:
+			return
+		case <-flushCtx.Done():
+			return
+		}
+	}
+}
+
+func (r *aiProviderEventRecorder) persistEvent(ctx context.Context, event domain.AIProviderEvent) {
+	if r == nil || r.store == nil {
+		return
+	}
+	if err := r.store.SaveAIProviderEvent(ctx, event); err != nil {
+		log.Printf("ai_provider_event_store_failed provider=%s event=%s user=%d err=%v", event.Provider, event.Event, event.UserID, err)
 	}
 }
 
