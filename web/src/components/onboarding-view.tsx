@@ -1,10 +1,12 @@
 'use client'
 
 import { CardHeader } from '@/components/card-header'
+import { Callout } from '@/components/callout'
 import { PageHeader } from '@/components/page-header'
-import { archiveTrack, getOnboarding, getOnboardingOptions, listTracks, saveOnboarding } from '@/lib/api'
+import { archiveTrack, getOnboarding, getOnboardingOptions, getSession, listTracks, saveOnboarding } from '@/lib/api'
+import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import type { OnboardingOptions, OnboardingState, UserTrack } from '@/lib/types'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
 import { OnboardingTrackForm } from './onboarding-track-form'
 import { EmptyState, LoadingState } from './status-state'
@@ -22,6 +24,7 @@ const emptyOptions: OnboardingOptions = {
 
 export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [existingProfile, setExistingProfile] = useState(false)
@@ -40,10 +43,25 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
   const [archiving, setArchiving] = useState(false)
   const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null)
   const [tracks, setTracks] = useState<UserTrack[]>([])
+  const [setupFlow, setSetupFlow] = useState(false)
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
+        const session = await getSession()
+        if (cancelled) {
+          return
+        }
+        if (!session.authenticated) {
+          router.replace('/about')
+          return
+        }
+        const nextPath = requiredSetupPath(session, pathname)
+        if (nextPath) {
+          router.replace(nextPath)
+          return
+        }
+        setSetupFlow(session.setup_step === 'needs_first_track')
         const [onboarding, nextOptions, trackList] = await Promise.all([
           getOnboarding(),
           getOnboardingOptions(),
@@ -82,7 +100,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
     return () => {
       cancelled = true
     }
-  }, [mode, router])
+  }, [mode, pathname, router])
 
   function toggle(list: string[], setList: (items: string[]) => void, value: string) {
     if (list.includes(value)) {
@@ -110,7 +128,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
         difficulty_intensity: difficultyIntensity,
         writing_goals: writingGoals,
       })
-      router.push('/')
+      router.push(onboardingState?.onboarding_complete ? '/' : '/new-assignment')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save onboarding')
     } finally {
@@ -151,16 +169,33 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Track setup"
+        eyebrow={setupFlow ? 'Step 2 of 3 · Track setup' : 'Track setup'}
         title={mode === 'create' ? 'Create a new track' : existingProfile ? 'Edit track' : 'Set your starting path'}
         intro={
-          mode === 'create'
+          setupFlow
+            ? 'Define the writing context for your first coaching track. This determines the skill map, assignment style, and review emphasis that follow.'
+            : mode === 'create'
             ? 'Create an additional writing track with its own skill map, progress, and assignment history.'
             : existingProfile
               ? 'Update the writing profile that shapes your coaching track. Saving here refreshes the recommended path, active skills, and future assignment focus.'
               : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'
         }
       />
+
+      {setupFlow ? (
+        <Callout
+          tone="active"
+          eyebrow="Onboarding"
+          title="Next, create your first track"
+          body="This is the profile the coach will use to generate assignments, score your writing, and choose which skills matter first."
+        >
+          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <li>Describe the kind of writing you want to practice most often.</li>
+            <li>Pick the audience, tone, and outcomes you want the coach to optimize for.</li>
+            <li>Saving this step takes you straight to Step 3 of 3: your first assignment.</li>
+          </ul>
+        </Callout>
+      ) : null}
 
       <WorkspaceCard>
         <CardHeader eyebrow="How it works" title="How the coaching loop works" />

@@ -20,6 +20,7 @@ import {
   reviewSubmission,
   submitDraft,
 } from '@/lib/api'
+import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import { hasUnsavedTrackDraft } from '@/lib/track-switch-guard'
 import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
@@ -88,7 +89,6 @@ export function CurrentAssignmentView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sessionRequired, setSessionRequired] = useState(false)
-  const [workspaceUnavailable, setWorkspaceUnavailable] = useState(false)
   const [workspace, setWorkspace] = useState<WorkspaceState | null>(null)
   const [draft, setDraft] = useState('')
   const [reviewing, setReviewing] = useState(false)
@@ -109,14 +109,9 @@ export function CurrentAssignmentView() {
           }
           return
         }
-        if (!session.onboarding_complete) {
-          router.replace('/onboarding')
-          return
-        }
-        if (!session.ai_provider_ready) {
-          if (!cancelled) {
-            setWorkspaceUnavailable(true)
-          }
+        const nextPath = requiredSetupPath(session, '/')
+        if (nextPath) {
+          router.replace(nextPath)
           return
         }
 
@@ -169,7 +164,6 @@ export function CurrentAssignmentView() {
           setDraft(submission?.content ?? sourceSubmission?.content ?? '')
           setReviewJob(pendingJob)
           setSessionRequired(false)
-          setWorkspaceUnavailable(false)
           setError(null)
           setRevisionPanel(sourceReview ? 'feedback' : 'brief')
         }
@@ -341,16 +335,6 @@ export function CurrentAssignmentView() {
         body="Authentication runs through the Kratos browser flow. Once you sign in, this page becomes the current assignment workspace for your active track."
         actionHref="/login"
         actionLabel="Open sign in"
-      />
-    )
-  }
-  if (workspaceUnavailable) {
-    return (
-      <EmptyState
-        title="Workspace unavailable"
-        body="This workspace is not ready yet."
-        actionHref="/settings"
-        actionLabel="Open account settings"
       />
     )
   }

@@ -10,6 +10,7 @@ export type AuthSession = {
   auth_mode: string
   is_admin: boolean
   onboarding_complete: boolean
+  setup_step: 'ready' | 'needs_ai_setup' | 'needs_first_track' | 'needs_first_assignment'
   ai_provider_ready: boolean
   ai_effective_provider?: string
   ai_system_fallback: boolean

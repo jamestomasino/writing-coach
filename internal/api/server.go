@@ -127,6 +127,7 @@ type authSessionResponse struct {
 	Identity                           *authIdentityResponse   `json:"identity,omitempty"`
 	Context                            *requestContextResponse `json:"context,omitempty"`
 	OnboardingComplete                 bool                    `json:"onboarding_complete"`
+	SetupStep                          string                  `json:"setup_step"`
 	ActiveTreeSlug                     string                  `json:"active_tree_slug,omitempty"`
 	IsAdmin                            bool                    `json:"is_admin"`
 	AIProviderReady                    bool                    `json:"ai_provider_ready"`
@@ -469,6 +470,7 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 	resp := authSessionResponse{
 		Authenticated:                      mode != "none",
 		AuthMode:                           mode,
+		SetupStep:                          "ready",
 		AIProviderReady:                    fallback,
 		AIEffectiveProvider:                effectiveProviderLabel(false, false),
 		AISystemFallback:                   fallback,
@@ -505,7 +507,17 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 				resp.AISystemFallback = settingsResponse.SystemFallback
 				resp.AIHasPersonalKey = settingsResponse.HasKey
 			}
+			if resp.OnboardingComplete {
+				if exercises, err := s.Store.ListExercises(r.Context(), user.ID, appContext.TreeID, 1); err == nil && len(exercises) == 0 {
+					resp.SetupStep = "needs_first_assignment"
+				}
+			}
 		}
+	}
+	if !resp.AIProviderReady {
+		resp.SetupStep = "needs_ai_setup"
+	} else if !resp.OnboardingComplete {
+		resp.SetupStep = "needs_first_track"
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

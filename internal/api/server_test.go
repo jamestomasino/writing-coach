@@ -1590,6 +1590,120 @@ func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
 	}
 }
 
+func TestAuthSessionReportsSetupStep(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+
+	readSession := func() struct {
+		SetupStep          string `json:"setup_step"`
+		OnboardingComplete bool   `json:"onboarding_complete"`
+		AIProviderReady    bool   `json:"ai_provider_ready"`
+	} {
+		t.Helper()
+		resp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+		if err != nil {
+			t.Fatalf("get auth session: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("auth session status = %d", resp.StatusCode)
+		}
+		var payload struct {
+			SetupStep          string `json:"setup_step"`
+			OnboardingComplete bool   `json:"onboarding_complete"`
+			AIProviderReady    bool   `json:"ai_provider_ready"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode auth session: %v", err)
+		}
+		return payload
+	}
+
+	initial := readSession()
+	if initial.SetupStep != "needs_ai_setup" {
+		t.Fatalf("initial setup_step = %q", initial.SetupStep)
+	}
+
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-user-1234")
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(context.Background(), domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "openai",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "1234",
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	afterAI := readSession()
+	if afterAI.SetupStep != "needs_first_track" {
+		t.Fatalf("setup_step after ai = %q", afterAI.SetupStep)
+	}
+
+	enrollmentID, err := harness.Store.ActiveEnrollmentIDByUserID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("lookup active enrollment: %v", err)
+	}
+	if err := harness.Store.SaveOnboardingProfile(context.Background(), domain.OnboardingProfile{
+		EnrollmentID:        enrollmentID,
+		UserID:              user.ID,
+		WritingType:         "marketing",
+		AssignmentFormat:    "landing page",
+		TargetAudience:      "buyers",
+		SubjectMatter:       "product launch",
+		ExperienceLevel:     "intermediate",
+		DesiredTone:         "clear",
+		BiggestWeaknesses:   []string{"sentence economy"},
+		DesiredOutcomes:     []string{"improve professional communication"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "Write sharper marketing copy.",
+		GeneratedTreeSlug:   "mythic-tragedy-apprenticeship",
+		TemplateKey:         "professional-writing",
+	}); err != nil {
+		t.Fatalf("save onboarding profile: %v", err)
+	}
+
+	afterTrack := readSession()
+	if afterTrack.SetupStep != "needs_first_assignment" {
+		t.Fatalf("setup_step after track = %q", afterTrack.SetupStep)
+	}
+
+	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	if _, err := harness.Store.SaveExercise(context.Background(), domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Assignment One",
+		Brief:           "Write something.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "openai",
+	}); err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+
+	ready := readSession()
+	if ready.SetupStep != "ready" {
+		t.Fatalf("final setup_step = %q", ready.SetupStep)
+	}
+}
+
 func TestAISettingsRejectUnsupportedProvider(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

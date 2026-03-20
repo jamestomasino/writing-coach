@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CurrentAssignmentView } from '@/components/current-assignment-view'
 import { LoadingState } from '@/components/status-state'
 import { getSession } from '@/lib/api'
+import { requiredSetupPath } from '@/lib/onboarding-funnel'
 
 export default function Home() {
   const router = useRouter()
@@ -20,6 +21,11 @@ export default function Home() {
           return
         }
         if (session.authenticated) {
+          const nextPath = requiredSetupPath(session, '/')
+          if (nextPath) {
+            router.replace(nextPath)
+            return
+          }
           setAuthenticated(true)
           return
         }

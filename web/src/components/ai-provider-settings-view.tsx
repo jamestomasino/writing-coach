@@ -368,10 +368,29 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Settings"
+        eyebrow={required ? 'Step 1 of 3 · AI setup' : 'Settings'}
         title="AI provider"
-        intro="Connect your own provider credentials for assignment and review generation. You can keep using the shared system provider while it remains available."
+        intro={
+          required
+            ? 'Connect an AI provider before creating your first track. Assignment generation and review both depend on it.'
+            : 'Connect your own provider credentials for assignment and review generation. You can keep using the shared system provider while it remains available.'
+        }
       />
+
+      {required ? (
+        <Callout
+          tone="active"
+          eyebrow="Onboarding"
+          title="First, connect an AI provider"
+          body="Once this is ready, the app will send you straight to track creation. You only need one working provider to continue."
+        >
+          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <li>Choose a provider and paste a valid API key.</li>
+            <li>Keep the default base URL unless you are using a compatible proxy.</li>
+            <li>Save here to continue to Step 2 of 3: create your first track.</li>
+          </ul>
+        </Callout>
+      ) : null}
 
       <WorkspaceCard>
         <CardHeader eyebrow="Status" title="Current provider status" />
