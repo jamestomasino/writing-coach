@@ -25,16 +25,16 @@ Phase 1 does not force existing users to enter credentials before continuing.
 
 Supported in the initial rollout:
 - Anthropic
+- Gemini
 - OpenAI
 - Groq
 - xAI
 
 Deferred to later phases:
-- Gemini
 - Mistral
 - Cohere
 
-Reason: OpenAI, Groq, xAI, and Anthropic provide the first practical mix of common providers while still keeping the initial adapter surface manageable.
+Reason: Anthropic, Gemini, OpenAI, Groq, and xAI provide a practical first provider set while still keeping the adapter surface manageable.
 
 ## User Experience
 

@@ -19,6 +19,7 @@ import (
 	"github.com/tomasino/writing-coach/internal/curriculum"
 	"github.com/tomasino/writing-coach/internal/db"
 	"github.com/tomasino/writing-coach/internal/domain"
+	"github.com/tomasino/writing-coach/internal/gemini"
 	"github.com/tomasino/writing-coach/internal/llm"
 	"github.com/tomasino/writing-coach/internal/openai"
 	"github.com/tomasino/writing-coach/internal/prompt"
@@ -2253,7 +2254,7 @@ func firstNonEmpty(values ...string) string {
 
 func supportedAIProvider(provider string) bool {
 	switch normalizeProvider(provider) {
-	case "openai", "groq", "xai", "anthropic":
+	case "openai", "groq", "xai", "anthropic", "gemini":
 		return true
 	default:
 		return false
@@ -2404,6 +2405,8 @@ func defaultBaseURLForProvider(provider string, cfg config.Config) string {
 	switch normalizeProvider(provider) {
 	case "anthropic":
 		return "https://api.anthropic.com/v1"
+	case "gemini":
+		return "https://generativelanguage.googleapis.com/v1beta"
 	case "groq":
 		return "https://api.groq.com/openai/v1"
 	case "xai":
@@ -2420,6 +2423,8 @@ func defaultModelForProvider(provider, task string, cfg config.Config) string {
 	switch normalizeProvider(provider) {
 	case "anthropic":
 		return "claude-sonnet-4-20250514"
+	case "gemini":
+		return "gemini-2.5-flash"
 	default:
 		if task == "review" {
 			return cfg.ReviewModel
@@ -2465,6 +2470,13 @@ func (s Server) providerClient(provider, apiKey, baseURL, promptModel, reviewMod
 	switch normalizeProvider(provider) {
 	case "anthropic":
 		return anthropic.NewClientWithOptions(anthropic.ClientOptions{
+			APIKey:      apiKey,
+			BaseURL:     baseURL,
+			PromptModel: promptModel,
+			ReviewModel: reviewModel,
+		})
+	case "gemini":
+		return gemini.NewClientWithOptions(gemini.ClientOptions{
 			APIKey:      apiKey,
 			BaseURL:     baseURL,
 			PromptModel: promptModel,

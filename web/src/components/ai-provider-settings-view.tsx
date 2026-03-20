@@ -19,6 +19,7 @@ import { WorkspaceCard } from './workspace-card'
 
 const providerOptions = [
   { value: 'anthropic', label: 'Anthropic' },
+  { value: 'gemini', label: 'Gemini' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'groq', label: 'Groq' },
   { value: 'xai', label: 'xAI' },
@@ -321,7 +322,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
             <CardHeader
               eyebrow="Connection"
               title="Personal provider"
-              description="Supported providers include Anthropic, OpenAI, Groq, and xAI. Advanced fields are optional."
+              description="Supported providers include Anthropic, Gemini, OpenAI, Groq, and xAI. Advanced fields are optional."
             />
 
             <FieldGroup>

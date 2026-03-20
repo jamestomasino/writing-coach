@@ -10,7 +10,7 @@ The initial implementation targets a narrow but complete loop:
 4. The API reviews the draft with deterministic analysis and model synthesis.
 5. Results are persisted so later prompts can adapt to prior work.
 
-The app now supports per-user AI provider settings in the browser. Users can connect their own `Anthropic`, `OpenAI`, `Groq`, or `xAI` key under `Settings > AI provider`.
+The app now supports per-user AI provider settings in the browser. Users can connect their own `Anthropic`, `Gemini`, `OpenAI`, `Groq`, or `xAI` key under `Settings > AI provider`.
 
 If `OPENAI_API_KEY` is set in the environment, the server also offers a shared OpenAI fallback for users who have not configured a personal provider yet. If neither a personal provider nor the shared fallback is available, generation is blocked until AI setup is completed. If a model call fails during prompt or review generation, the app falls back to deterministic local logic where supported.
 
@@ -191,7 +191,7 @@ The repository currently contains:
 - a Go API server behind the browser client
 - a Next.js web app built from the Catalyst component kit
 - a questionnaire-driven onboarding flow that generates a user-specific TGO tree
-- per-user AI provider settings for Anthropic, OpenAI, Groq, and xAI
+- per-user AI provider settings for Anthropic, Gemini, OpenAI, Groq, and xAI
 - structured review annotations tied to quoted text and TGOs for browser-side markup
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior

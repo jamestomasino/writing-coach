@@ -1420,7 +1420,7 @@ func TestAISettingsRejectUnsupportedProvider(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"gemini","api_key":"sk-test-1234","enabled":true}`))
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"mistral","api_key":"sk-test-1234","enabled":true}`))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -1768,6 +1768,163 @@ func TestReviewWorkerUsesAnthropicProviderSettings(t *testing.T) {
 	}
 	if apiKey != "sk-ant-review" {
 		t.Fatalf("api key header = %q", apiKey)
+	}
+}
+
+func TestPromptNextUsesGeminiProviderSettings(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	var apiKey string
+	fakeProvider := newFakeGeminiServer(t, &apiKey)
+	defer fakeProvider.Close()
+
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	server := newTestServerWithConfig(t, harness.Store, cfg)
+	defer server.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-gem-1234")
+	if err != nil {
+		t.Fatalf("encrypt user key: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(context.Background(), domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "gemini",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "1234",
+		BaseURLOverride: fakeProvider.URL,
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("prompt next: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("prompt next status: %d", resp.StatusCode)
+	}
+	var payload struct {
+		Exercise struct {
+			Title          string `json:"title"`
+			GenerationKind string `json:"generation_kind"`
+			ProviderNote   string `json:"provider_note"`
+		} `json:"exercise"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode payload: %v", err)
+	}
+	if payload.Exercise.Title != "Gemini Draft" {
+		t.Fatalf("title = %q", payload.Exercise.Title)
+	}
+	if payload.Exercise.GenerationKind != "user/gemini" {
+		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
+	}
+	if payload.Exercise.ProviderNote != "user/gemini" {
+		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
+	}
+	if apiKey != "sk-gem-1234" {
+		t.Fatalf("api key query = %q", apiKey)
+	}
+}
+
+func TestReviewWorkerUsesGeminiProviderSettings(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	var apiKey string
+	fakeProvider := newFakeGeminiServer(t, &apiKey)
+	defer fakeProvider.Close()
+
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	server := Server{
+		Config:     cfg,
+		Store:      harness.Store,
+		Prompts:    prompt.NewService(nil),
+		Reviews:    review.NewService(nil, analyzer.Service{}),
+		Curriculum: curriculum.NewService(),
+	}
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-gem-review")
+	if err != nil {
+		t.Fatalf("encrypt review key: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(ctx, domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "gemini",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "view",
+		BaseURLOverride: fakeProvider.URL,
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Gemini Review Exercise",
+		Brief:           "Write a paragraph.",
+		Constraints:     []string{"under 200 words"},
+		FocusSkills:     []string{"causal clarity"},
+		TGOCodes:        []string{"causal-clarity"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "The warning landed too late, and the silence did the rest.",
+		WordCount:  11,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	job, err := harness.Store.EnqueueReviewJob(ctx, domain.ReviewJob{
+		SubmissionID: submissionID,
+		UserID:       user.ID,
+		TreeID:       tree.ID,
+		EnrollmentID: 1,
+		Status:       "queued",
+		MaxAttempts:  3,
+	})
+	if err != nil {
+		t.Fatalf("queue review job: %v", err)
+	}
+	if err := server.processReviewJob(ctx, job); err != nil {
+		t.Fatalf("process review job: %v", err)
+	}
+	savedReview, err := harness.Store.LatestReviewForSubmission(ctx, submissionID)
+	if err != nil {
+		t.Fatalf("load review: %v", err)
+	}
+	if savedReview.ReviewKind != "user/gemini" {
+		t.Fatalf("review kind = %q", savedReview.ReviewKind)
+	}
+	if savedReview.ProviderNote != "user/gemini" {
+		t.Fatalf("provider note = %q", savedReview.ProviderNote)
+	}
+	if apiKey != "sk-gem-review" {
+		t.Fatalf("api key query = %q", apiKey)
 	}
 }
 
@@ -2685,6 +2842,34 @@ func newFakeAnthropicServer(t *testing.T, apiKey *string) *httptest.Server {
 			_, _ = io.WriteString(w, `{"content":[{"type":"tool_use","input":{"title":"Anthropic Draft","brief":"Write the scene from scratch.","constraints":["Keep the focus tight.","Make the turn visible."],"focus_skills":["scene architecture","narrative clarity"],"success_criteria":["The shift is easy to follow.","The ending lands cleanly."]}}]}`)
 			return
 		default:
+			http.NotFound(w, r)
+		}
+	}))
+}
+
+func newFakeGeminiServer(t *testing.T, apiKey *string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if apiKey != nil {
+			*apiKey = r.URL.Query().Get("key")
+		}
+		switch r.URL.Path {
+		case "/models":
+			_, _ = io.WriteString(w, `{"models":[]}`)
+			return
+		default:
+			if strings.HasSuffix(r.URL.Path, ":generateContent") {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					t.Fatalf("read body: %v", err)
+				}
+				if strings.Contains(string(body), "Submission ID:") {
+					_, _ = io.WriteString(w, `{"candidates":[{"content":{"parts":[{"text":"{\"summary\":\"Gemini review summary\",\"strengths\":[\"Clear turn\",\"Concrete pressure\"],\"weaknesses\":[\"Tighten the midsection\",\"Sharpen the closing line\"],\"next_focus\":\"narrative clarity\",\"skill_scores\":[{\"skill\":\"scene architecture\",\"score\":4},{\"skill\":\"narrative clarity\",\"score\":3},{\"skill\":\"prose precision\",\"score\":3}],\"tgo_assessments\":[{\"code\":\"causal-clarity\",\"status\":\"secure\",\"evidence\":\"The draft preserves consequence.\"},{\"code\":\"scene-architecture\",\"status\":\"developing\",\"evidence\":\"The midpoint turn can sharpen.\"},{\"code\":\"prose-precision\",\"status\":\"developing\",\"evidence\":\"Some lines can tighten.\"}],\"completed_tgo_checks\":[],\"annotations\":[{\"quote\":\"the silence did the rest\",\"tgo_code\":\"causal-clarity\",\"category\":\"strength\",\"comment\":\"The effect lands on the page.\",\"severity\":\"info\"}]}"}]}}]}`)
+					return
+				}
+				_, _ = io.WriteString(w, `{"candidates":[{"content":{"parts":[{"text":"{\"title\":\"Gemini Draft\",\"brief\":\"Write the scene from scratch.\",\"constraints\":[\"Keep the focus tight.\",\"Make the turn visible.\"],\"focus_skills\":[\"scene architecture\",\"narrative clarity\"],\"success_criteria\":[\"The shift is easy to follow.\",\"The ending lands cleanly.\"]}"}]}}]}`)
+				return
+			}
 			http.NotFound(w, r)
 		}
 	}))
