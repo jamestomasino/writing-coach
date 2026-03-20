@@ -3088,7 +3088,7 @@ func newTestServerWithConfig(t *testing.T, store *db.Store, cfg config.Config) *
 		Curriculum: curriculum.NewService(),
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	go server.runReviewWorker(ctx)
+	server.startBackgroundWorkers(ctx)
 	testServer := httptest.NewServer(server.routes())
 	t.Cleanup(func() {
 		cancel()
