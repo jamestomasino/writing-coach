@@ -79,6 +79,22 @@ type Enrollment struct {
 	CreatedAt time.Time
 }
 
+type UserTrack struct {
+	EnrollmentID int64
+	TreeID       int64
+	TreeSlug     string
+	Title        string
+	Description  string
+	IsActive     bool
+	CreatedAt    time.Time
+}
+
+type TrackActivitySummary struct {
+	AssignmentCount      int
+	CurrentAssignment    string
+	LatestAssignmentTime time.Time
+}
+
 type WriterProfile struct {
 	ID              int64
 	Name            string

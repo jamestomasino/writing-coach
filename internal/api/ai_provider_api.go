@@ -47,8 +47,8 @@ func (s *Server) handleAISettingsUpsert(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var payload aiProviderSettingsPayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if err := validateAIProviderPayload(payload); err != nil {
@@ -134,8 +134,8 @@ func (s *Server) handleAISettingsValidate(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var payload aiProviderSettingsPayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if err := validateAIProviderPayload(payload); err != nil {

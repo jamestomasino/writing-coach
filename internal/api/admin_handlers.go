@@ -31,8 +31,8 @@ func (s Server) handleAdminsCreate(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Email string `json:"email"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.Store.AddAdminEmail(r.Context(), payload.Email); err != nil {

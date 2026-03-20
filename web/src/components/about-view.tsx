@@ -1,27 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Button } from '@/components/button'
 import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
-import { Text, Strong } from '@/components/text'
+import { Strong, Text } from '@/components/text'
 import { WorkspaceCard } from '@/components/workspace-card'
 import { getSession } from '@/lib/api'
+import { useEffect, useState } from 'react'
 
 type SessionState = {
   checked: boolean
   authenticated: boolean
 }
 
-function AboutCard({
-  eyebrow,
-  title,
-  body,
-}: {
-  eyebrow: string
-  title: string
-  body: string
-}) {
+function AboutCard({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
   return (
     <WorkspaceCard className="border-stone-200/80 bg-white/90 dark:border-white/10 dark:bg-zinc-900">
       <Eyebrow>{eyebrow}</Eyebrow>
@@ -61,19 +53,16 @@ export function AboutView() {
       <section className="overflow-hidden rounded-[2rem] border border-stone-200 bg-linear-to-br from-stone-100 via-white to-sky-50 p-8 shadow-sm ring-1 ring-black/3 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/40 dark:ring-white/10">
         <div className="max-w-3xl">
           <Eyebrow className="tracking-[0.22em]">About Writing Coach</Eyebrow>
-          <Heading className="mt-4 text-4xl/11 sm:text-3xl/10">
-            Practice that builds real writing skill
-          </Heading>
+          <Heading className="mt-4 text-4xl/11 sm:text-3xl/10">Practice that builds real writing skill</Heading>
           <Text className="mt-4 text-lg/8 text-zinc-600 dark:text-zinc-300">
-            Writing Coach is built around a skill tree. Each assignment gives you one clear place to
-            start. Each review checks a small set of craft goals. Over time, the work gets harder in
-            a steady way.
+            Writing Coach is built around a skill tree. Each assignment gives you one clear place to start. Each review
+            checks a small set of craft goals. Over time, the work gets harder in a steady way.
           </Text>
           <div className="mt-6 flex flex-wrap gap-3">
             {session.authenticated ? (
               <>
                 <Button href="/" color="dark/zinc">
-                  Open current assignment
+                  Open active track
                 </Button>
                 <Button href="/progress" outline>
                   View progress board
@@ -99,18 +88,16 @@ export function AboutView() {
           <div className="mt-4 space-y-4">
             <Text>
               The tree breaks writing into small skills. A skill might be <Strong>causal clarity</Strong>,
-              <Strong> scene architecture</Strong>, or <Strong>prose precision</Strong>. You do not try
-              to fix everything at once.
+              <Strong> scene architecture</Strong>, or <Strong>prose precision</Strong>. You do not try to fix
+              everything at once.
             </Text>
             <Text>
-              The coach activates a few skills at a time. Those are your current goals. New
-              assignments are shaped by your track, audience, and subject matter. Reviews then judge
-              the draft against the active skill goals.
+              The coach activates a few skills at a time. Those are your current goals. New assignments are shaped by
+              your track, audience, and subject matter. Reviews then judge the draft against the active skill goals.
             </Text>
             <Text>
-              When a skill is strong again and again, it moves toward mastery. Then the coach can
-              unlock the next part of the tree. That keeps the work focused and keeps progress easy
-              to see.
+              When a skill is strong again and again, it moves toward mastery. Then the coach can unlock the next part
+              of the tree. That keeps the work focused and keeps progress easy to see.
             </Text>
           </div>
         </WorkspaceCard>
@@ -118,7 +105,7 @@ export function AboutView() {
         <WorkspaceCard className="border-stone-200/80 bg-zinc-950 text-white dark:border-white/10">
           <Subheading className="text-xl/7 text-white sm:text-lg/7">What the coach offers</Subheading>
           <ul className="mt-4 space-y-3 text-sm/6 text-zinc-300">
-            <li>Targeted assignments shaped by your track.</li>
+            <li>Targeted assignments shaped by the active track.</li>
             <li>Reviews tied to a small set of active skills.</li>
             <li>Revision briefs when a draft needs another pass.</li>
             <li>A progress board that shows growth over time.</li>
@@ -149,19 +136,19 @@ export function AboutView() {
         <Subheading className="text-xl/7 sm:text-lg/7">What makes this different</Subheading>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Assignment-first, but not assignment-only</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">
+              Assignment-first, but not assignment-only
+            </div>
             <Text className="mt-2">
-              Prompts give you a strong starting point. The real teaching happens in the skill
-              system behind them. The coach remembers what was practiced, what improved, and what
-              still needs work.
+              Prompts give you a strong starting point. The real teaching happens in the skill system behind them. The
+              coach remembers what was practiced, what improved, and what still needs work.
             </Text>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">A review system with memory</div>
             <Text className="mt-2">
-              Each review looks at the active goals for that assignment. Later, you can look back at
-              old assignments and see which skills they trained. That makes your history useful, not
-              just stored.
+              Each review looks at the active goals for that assignment. Later, you can look back at old assignments and
+              see which skills they trained. That makes your history useful, not just stored.
             </Text>
           </div>
         </div>

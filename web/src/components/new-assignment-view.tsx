@@ -1,50 +1,41 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
+import { Callout } from '@/components/callout'
 import { Eyebrow } from '@/components/eyebrow'
-import { Heading, Subheading } from '@/components/heading'
+import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { acceptAssignment, createAssignment, getDashboard, getSession } from '@/lib/api'
+import { acceptAssignment, createAssignment, getDashboard } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
+import { useRequiredAppSession } from '@/lib/use-required-app-session'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
-import { useRouter } from 'next/navigation'
 
 export function NewAssignmentView() {
   const router = useRouter()
+  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession('/new-assignment')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
-  const [needsOnboarding, setNeedsOnboarding] = useState(false)
-  const [workspaceUnavailable, setWorkspaceUnavailable] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [preview, setPreview] = useState<Exercise | null>(null)
   const [generating, setGenerating] = useState(false)
   const [accepting, setAccepting] = useState(false)
+  const [setupFlow, setSetupFlow] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (!session) {
+        return
+      }
       try {
-        const session = await getSession()
-        if (!session.onboarding_complete) {
-          if (!cancelled) {
-            setNeedsOnboarding(true)
-            setDashboard(null)
-          }
-          return
-        }
-        if (!session.ai_provider_ready) {
-          if (!cancelled) {
-            setWorkspaceUnavailable(true)
-            setDashboard(null)
-          }
-          return
-        }
+        setSetupFlow(session.setup_step === 'needs_first_assignment')
         const state = await getDashboard()
         if (!cancelled) {
           setDashboard(state)
@@ -64,7 +55,7 @@ export function NewAssignmentView() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router, session])
 
   const selectable = useMemo(() => {
     if (!dashboard) {
@@ -129,31 +120,11 @@ export function NewAssignmentView() {
     }
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading assignment setup…" />
   }
-  if (needsOnboarding) {
-    return (
-      <EmptyState
-        title="Build your starter path first"
-        body="You need an active skill map before you can choose skills for a new assignment."
-        actionHref="/onboarding"
-        actionLabel="Set starter path"
-      />
-    )
-  }
-  if (workspaceUnavailable) {
-    return (
-      <EmptyState
-        title="Assignment setup unavailable"
-        body="This workspace is not ready yet."
-        actionHref="/settings"
-        actionLabel="Open account settings"
-      />
-    )
-  }
-  if (error && !dashboard) {
-    return <AppErrorState title="Could not load new assignment flow" error={error} />
+  if ((sessionError || error) && !dashboard) {
+    return <AppErrorState title="Could not load new assignment flow" error={sessionError ?? error ?? 'Could not load new assignment flow'} />
   }
   if (!dashboard) {
     return <LoadingState />
@@ -162,10 +133,29 @@ export function NewAssignmentView() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Assignment setup"
+        eyebrow={setupFlow ? 'Step 3 of 3 · First assignment' : 'Assignment setup'}
         title="New assignment"
-        intro="Choose exactly three skills for the next review. The assignment prompt itself comes from your track details, while this selection sets what the review will measure most closely."
+        intro={
+          setupFlow
+            ? 'Choose the three skills you want your first assignment to emphasize. The prompt will come from your new track, and the review will score this selection most closely.'
+            : 'Choose exactly three skills for the next review. The assignment prompt itself comes from the active track details, while this selection sets what the review will measure most closely.'
+        }
       />
+
+      {setupFlow ? (
+        <Callout
+          tone="active"
+          eyebrow="Onboarding"
+          title="Finish by generating your first assignment"
+          body="Pick three skills, generate a prompt, and accept it. Once you do, the full writing workspace becomes your normal home."
+        >
+          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <li>Keep the selection to exactly three skills.</li>
+            <li>Generate the prompt, then refresh it if the first version misses the mark.</li>
+            <li>Accept the prompt to enter the current assignment workspace.</li>
+          </ul>
+        </Callout>
+      ) : null}
 
       {error ? <EmptyState title="Prompt generation issue" body={error} /> : null}
 
@@ -182,6 +172,8 @@ export function NewAssignmentView() {
               <button
                 key={tgo.code}
                 type="button"
+                data-testid={`skill-option-${tgo.code}`}
+                data-skill-code={tgo.code}
                 onClick={() => toggle(tgo.code)}
                 disabled={generating}
                 className={`rounded-2xl border p-4 text-left transition ${
@@ -194,14 +186,21 @@ export function NewAssignmentView() {
                   <span className="font-semibold">{tgo.title}</span>
                   <Badge color={active ? 'amber' : 'zinc'}>{tgo.stage}</Badge>
                 </div>
-                <p className={`mt-2 text-sm ${active ? 'text-stone-200' : 'text-zinc-600 dark:text-zinc-300'}`}>{tgo.description}</p>
+                <p className={`mt-2 text-sm ${active ? 'text-stone-200' : 'text-zinc-600 dark:text-zinc-300'}`}>
+                  {tgo.description}
+                </p>
               </button>
             )
           })}
         </div>
         <div className="mt-5 flex items-center justify-between gap-3">
           <Text>{selected.length} of 3 skills selected.</Text>
-          <Button color="dark/zinc" onClick={generate} disabled={selected.length !== 3 || generating}>
+          <Button
+            color="dark/zinc"
+            onClick={generate}
+            disabled={selected.length !== 3 || generating}
+            data-testid="generate-assignment-button"
+          >
             {generating ? 'Generating…' : 'Generate prompt'}
           </Button>
         </div>
@@ -220,12 +219,20 @@ export function NewAssignmentView() {
               <div>
                 <Eyebrow tone="cyan">Assignment generation</Eyebrow>
                 <Subheading>Generating assignment</Subheading>
-                <Text className="mt-2">Building a new prompt from your track details and current coaching context. This usually takes a few seconds.</Text>
+                <Text className="mt-2">
+                  Building a new prompt from the active track details and current coaching context. This usually takes a
+                  few seconds.
+                </Text>
               </div>
             </div>
-            <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 dark:border-cyan-400/20 dark:bg-black/10 lg:w-80">
+            <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 lg:w-80 dark:border-cyan-400/20 dark:bg-black/10">
               <Eyebrow tone="cyan">Working</Eyebrow>
-              <div className="mt-3 space-y-2" role="status" aria-live="polite" aria-label="Assignment generation in progress">
+              <div
+                className="mt-3 space-y-2"
+                role="status"
+                aria-live="polite"
+                aria-label="Assignment generation in progress"
+              >
                 <div className="h-2 w-full animate-pulse rounded-full bg-cyan-200/80 dark:bg-cyan-200/15" />
                 <div className="h-2 w-5/6 animate-pulse rounded-full bg-cyan-200/70 [animation-delay:120ms] dark:bg-cyan-200/12" />
                 <div className="h-2 w-2/3 animate-pulse rounded-full bg-cyan-200/60 [animation-delay:240ms] dark:bg-cyan-200/10" />
@@ -245,7 +252,12 @@ export function NewAssignmentView() {
                 <Button plain onClick={generate} disabled={generating}>
                   {generating ? 'Refreshing…' : 'Refresh prompt'}
                 </Button>
-                <Button onClick={acceptPreview} color="dark/zinc" disabled={generating || accepting}>
+                <Button
+                  onClick={acceptPreview}
+                  color="dark/zinc"
+                  disabled={generating || accepting}
+                  data-testid="accept-assignment-button"
+                >
                   {accepting ? 'Accepting…' : 'Accept and continue'}
                 </Button>
               </div>

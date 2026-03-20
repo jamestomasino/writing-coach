@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
@@ -25,6 +27,7 @@
     "@types/node": "^24.1.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@playwright/test": "^1.51.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "postcss": "^8",

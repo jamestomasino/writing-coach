@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
@@ -8,64 +7,28 @@ import { CardHeader } from '@/components/card-header'
 import { Heading, Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { createRevisionAssignment, getComparison, getReviews, getSubmission } from '@/lib/api'
-import type { Comparison, Review, Submission } from '@/lib/types'
+import { useCompareWorkspace } from '@/lib/use-compare-workspace'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [comparison, setComparison] = useState<Comparison | null>(null)
-  const [submission, setSubmission] = useState<Submission | null>(null)
-  const [review, setReview] = useState<Review | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const submissionData = await getSubmission(submissionId)
-        const [comparisonData, reviews] = await Promise.all([getComparison(submissionId), getReviews(submissionId, 1)])
-        if (!cancelled) {
-          setComparison(comparisonData)
-          setSubmission(submissionData)
-          setReview(reviews[0] ?? null)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load comparison')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [submissionId])
+  const { sessionLoading, sessionError, loading, error, comparison, submission, review, preparingRevision, prepareRevisionPrompt } =
+    useCompareWorkspace(submissionId)
 
   async function handleRevisionPrompt() {
-    if (!submission) {
-      return
-    }
-    try {
-      const revisionExercise = await createRevisionAssignment(submission.id)
+    const revisionExercise = await prepareRevisionPrompt()
+    if (revisionExercise) {
       window.location.href = `/?revisionExercise=${revisionExercise.id}`
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create revision prompt')
     }
   }
 
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading comparison…" />
   }
-  if (error || !comparison || !submission) {
-    return <AppErrorState title="Comparison unavailable" error={error ?? 'The requested comparison is not available yet.'} />
+  if (sessionError || error || !comparison || !submission) {
+    return <AppErrorState title="Comparison unavailable" error={sessionError ?? error ?? 'The requested comparison is not available yet.'} />
   }
 
   return (
@@ -79,9 +42,9 @@ export function CompareView({ submissionId }: { submissionId: number }) {
             <Button href={`/assignments/${submission.exercise_id}`} plain>
               View timeline
             </Button>
-            <Button onClick={handleRevisionPrompt} color="dark/zinc">
+            <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
               <ArrowPathIcon />
-              Revise again
+              {preparingRevision ? 'Preparing revision brief…' : 'Revise again'}
             </Button>
           </>
         }

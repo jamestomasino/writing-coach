@@ -703,6 +703,123 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 }
 
+func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	otherUserID, otherTreeID, _, err := harness.Store.EnsureDefaultUserTree(ctx, "other-writer", "Other Writer", "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("ensure other user tree: %v", err)
+	}
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          otherUserID,
+		TreeID:          otherTreeID,
+		Title:           "Foreign assignment",
+		Brief:           "Should not be writable by tester.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "openai",
+	})
+	if err != nil {
+		t.Fatalf("save foreign exercise: %v", err)
+	}
+
+	resp, err := http.Post(
+		testServer.URL+"/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship",
+		"application/json",
+		strings.NewReader(`{"exercise_id":`+int64String(exerciseID)+`,"content":"Unauthorized draft."}`),
+	)
+	if err != nil {
+		t.Fatalf("create submission: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 for foreign exercise, got %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error payload: %v", err)
+	}
+	if !strings.Contains(payload.Error, "exercise not found") {
+		t.Fatalf("expected exercise not found error, got %q", payload.Error)
+	}
+}
+
+func TestTracksActiveUpdateRejectsUnknownJSONFields(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		testServer.URL+"/api/tracks/active?user=tester",
+		strings.NewReader(`{"tree_slug":"mythic-tragedy-apprenticeship","unexpected":true}`),
+	)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for unknown field, got %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error payload: %v", err)
+	}
+	if !strings.Contains(payload.Error, "unknown field") {
+		t.Fatalf("expected unknown field error, got %q", payload.Error)
+	}
+}
+
+func TestTracksActiveUpdateRejectsOversizedJSONBody(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	oversized := `{"tree_slug":"` + strings.Repeat("a", int(maxJSONBodyBytes)+1) + `"}`
+	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/tracks/active?user=tester", strings.NewReader(oversized))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for oversized body, got %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error payload: %v", err)
+	}
+	if !strings.Contains(payload.Error, "request body too large") {
+		t.Fatalf("expected body too large error, got %q", payload.Error)
+	}
+}
+
 func TestAssignmentTimelineEndpoint(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
@@ -1149,6 +1266,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 func TestAISettingsDisablePersonalProviderStorageWithoutSecret(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
 
@@ -1257,6 +1375,7 @@ func TestAISettingsValidateRejectsInvalidCredentials(t *testing.T) {
 func TestAISettingsValidateRateLimitsRepeatedChecksPerUser(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	cfg.AIValidateLimitPerMinute = 1
 	cfg.AIValidateGlobalLimitPerMinute = 10
@@ -1358,6 +1477,7 @@ func TestAISettingsValidateRateLimitDoesNotBlockOtherUsers(t *testing.T) {
 		t.Fatalf("ensure second user tree: %v", err)
 	}
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	cfg.AIValidateLimitPerMinute = 1
 	cfg.AIValidateGlobalLimitPerMinute = 10
@@ -1414,6 +1534,7 @@ func TestAISettingsValidateRateLimitDoesNotBlockOtherUsers(t *testing.T) {
 func TestAISettingsSaveSharesValidationBudget(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	cfg.AIValidateLimitPerMinute = 1
 	cfg.AIValidateGlobalLimitPerMinute = 10
@@ -1513,6 +1634,7 @@ func TestAISettingsUpdateRequiresNewKeyWhenChangingProvider(t *testing.T) {
 func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
@@ -1590,6 +1712,121 @@ func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
 	}
 }
 
+func TestAuthSessionReportsSetupStep(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
+	cfg.AIKeySecret = "test-ai-key-secret"
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+
+	readSession := func() struct {
+		SetupStep          string `json:"setup_step"`
+		OnboardingComplete bool   `json:"onboarding_complete"`
+		AIProviderReady    bool   `json:"ai_provider_ready"`
+	} {
+		t.Helper()
+		resp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+		if err != nil {
+			t.Fatalf("get auth session: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("auth session status = %d", resp.StatusCode)
+		}
+		var payload struct {
+			SetupStep          string `json:"setup_step"`
+			OnboardingComplete bool   `json:"onboarding_complete"`
+			AIProviderReady    bool   `json:"ai_provider_ready"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode auth session: %v", err)
+		}
+		return payload
+	}
+
+	initial := readSession()
+	if initial.SetupStep != "needs_ai_setup" {
+		t.Fatalf("initial setup_step = %q", initial.SetupStep)
+	}
+
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-user-1234")
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(context.Background(), domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "openai",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "1234",
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	afterAI := readSession()
+	if afterAI.SetupStep != "needs_first_track" {
+		t.Fatalf("setup_step after ai = %q", afterAI.SetupStep)
+	}
+
+	enrollmentID, err := harness.Store.ActiveEnrollmentIDByUserID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("lookup active enrollment: %v", err)
+	}
+	if err := harness.Store.SaveOnboardingProfile(context.Background(), domain.OnboardingProfile{
+		EnrollmentID:        enrollmentID,
+		UserID:              user.ID,
+		WritingType:         "marketing",
+		AssignmentFormat:    "landing page",
+		TargetAudience:      "buyers",
+		SubjectMatter:       "product launch",
+		ExperienceLevel:     "intermediate",
+		DesiredTone:         "clear",
+		BiggestWeaknesses:   []string{"sentence economy"},
+		DesiredOutcomes:     []string{"improve professional communication"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "Write sharper marketing copy.",
+		GeneratedTreeSlug:   "mythic-tragedy-apprenticeship",
+		TemplateKey:         "professional-writing",
+	}); err != nil {
+		t.Fatalf("save onboarding profile: %v", err)
+	}
+
+	afterTrack := readSession()
+	if afterTrack.SetupStep != "needs_first_assignment" {
+		t.Fatalf("setup_step after track = %q", afterTrack.SetupStep)
+	}
+
+	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	if _, err := harness.Store.SaveExercise(context.Background(), domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Assignment One",
+		Brief:           "Write something.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "openai",
+	}); err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+
+	ready := readSession()
+	if ready.SetupStep != "ready" {
+		t.Fatalf("final setup_step = %q", ready.SetupStep)
+	}
+}
+
 func TestAISettingsRejectUnsupportedProvider(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
@@ -1625,6 +1862,7 @@ func TestPromptNextUsesUserProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := newTestServerWithConfig(t, harness.Store, cfg)
 	defer server.Close()
@@ -1689,6 +1927,7 @@ func TestReviewWorkerUsesUserProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := Server{
 		Config:     cfg,
@@ -1795,6 +2034,7 @@ func TestPromptNextUsesAnthropicProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := newTestServerWithConfig(t, harness.Store, cfg)
 	defer server.Close()
@@ -1858,6 +2098,7 @@ func TestReviewWorkerUsesAnthropicProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := Server{
 		Config:     cfg,
@@ -1952,6 +2193,7 @@ func TestPromptNextUsesGeminiProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := newTestServerWithConfig(t, harness.Store, cfg)
 	defer server.Close()
@@ -2015,6 +2257,7 @@ func TestReviewWorkerUsesGeminiProviderSettings(t *testing.T) {
 	defer fakeProvider.Close()
 
 	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
 	cfg.AIKeySecret = "test-ai-key-secret"
 	server := Server{
 		Config:     cfg,
@@ -2465,6 +2708,281 @@ func TestOnboardingUpdatesExistingProfilePromptSeedFields(t *testing.T) {
 	}
 	if getPayload.Profile.WritingGoals != "I want sharper conversion-focused drafts." {
 		t.Fatalf("writing goals = %q", getPayload.Profile.WritingGoals)
+	}
+}
+
+func TestTracksListAndActiveSwitchUseTrackScopedProfiles(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	firstPayload := `{
+		"mode":"edit",
+		"writing_type":"fiction",
+		"assignment_format":"scene",
+		"target_audience":"fantasy readers",
+		"subject_matter":"mythic conflict",
+		"experience_level":"intermediate",
+		"desired_tone":"grave",
+		"biggest_weaknesses":["scene architecture","word choice"],
+		"desired_outcomes":["publish stronger fiction","develop a distinctive voice"],
+		"difficulty_intensity":"steady",
+		"writing_goals":"I want to write stronger scenes."
+	}`
+	firstResp, err := http.Post(testServer.URL+"/api/onboarding?user=tester", "application/json", strings.NewReader(firstPayload))
+	if err != nil {
+		t.Fatalf("post first onboarding: %v", err)
+	}
+	defer firstResp.Body.Close()
+	if firstResp.StatusCode != http.StatusOK {
+		t.Fatalf("first onboarding status: %d", firstResp.StatusCode)
+	}
+	var firstBody struct {
+		Tree struct {
+			Slug string `json:"slug"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(firstResp.Body).Decode(&firstBody); err != nil {
+		t.Fatalf("decode first onboarding: %v", err)
+	}
+
+	initialTracksResp, err := http.Get(testServer.URL + "/api/tracks?user=tester")
+	if err != nil {
+		t.Fatalf("get initial tracks: %v", err)
+	}
+	defer initialTracksResp.Body.Close()
+	if initialTracksResp.StatusCode != http.StatusOK {
+		t.Fatalf("initial tracks status: %d", initialTracksResp.StatusCode)
+	}
+	var initialTracksBody struct {
+		Tracks []struct {
+			TreeSlug string `json:"tree_slug"`
+			IsActive bool   `json:"is_active"`
+		} `json:"tracks"`
+	}
+	if err := json.NewDecoder(initialTracksResp.Body).Decode(&initialTracksBody); err != nil {
+		t.Fatalf("decode initial tracks: %v", err)
+	}
+	if len(initialTracksBody.Tracks) != 1 {
+		t.Fatalf("expected one track after first onboarding, got %#v", initialTracksBody.Tracks)
+	}
+	if initialTracksBody.Tracks[0].TreeSlug != firstBody.Tree.Slug {
+		t.Fatalf("initial track slug = %q", initialTracksBody.Tracks[0].TreeSlug)
+	}
+	if !initialTracksBody.Tracks[0].IsActive {
+		t.Fatal("expected first generated track to be active")
+	}
+
+	secondPayload := `{
+		"mode":"create",
+		"writing_type":"technical writing",
+		"assignment_format":"how-to guide",
+		"target_audience":"API integrators",
+		"subject_matter":"developer tooling",
+		"experience_level":"advanced",
+		"desired_tone":"clear",
+		"biggest_weaknesses":["sentence economy","paragraph control"],
+		"desired_outcomes":["improve professional communication","write clearer essays"],
+		"difficulty_intensity":"ambitious",
+		"writing_goals":"I want cleaner technical drafts."
+	}`
+	secondResp, err := http.Post(testServer.URL+"/api/onboarding?user=tester", "application/json", strings.NewReader(secondPayload))
+	if err != nil {
+		t.Fatalf("post second onboarding: %v", err)
+	}
+	defer secondResp.Body.Close()
+	if secondResp.StatusCode != http.StatusOK {
+		t.Fatalf("second onboarding status: %d", secondResp.StatusCode)
+	}
+	var secondBody struct {
+		Tree struct {
+			Slug string `json:"slug"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(secondResp.Body).Decode(&secondBody); err != nil {
+		t.Fatalf("decode second onboarding: %v", err)
+	}
+	if secondBody.Tree.Slug == firstBody.Tree.Slug {
+		t.Fatalf("expected unique track slug, got %q", secondBody.Tree.Slug)
+	}
+
+	tracksResp, err := http.Get(testServer.URL + "/api/tracks?user=tester")
+	if err != nil {
+		t.Fatalf("get tracks: %v", err)
+	}
+	defer tracksResp.Body.Close()
+	if tracksResp.StatusCode != http.StatusOK {
+		t.Fatalf("tracks status: %d", tracksResp.StatusCode)
+	}
+	var tracksBody struct {
+		Tracks []struct {
+			TreeSlug string `json:"tree_slug"`
+			IsActive bool   `json:"is_active"`
+		} `json:"tracks"`
+	}
+	if err := json.NewDecoder(tracksResp.Body).Decode(&tracksBody); err != nil {
+		t.Fatalf("decode tracks: %v", err)
+	}
+	if len(tracksBody.Tracks) != 2 {
+		t.Fatalf("track count = %d", len(tracksBody.Tracks))
+	}
+	foundFirst := false
+	foundSecond := false
+	for _, track := range tracksBody.Tracks {
+		if track.TreeSlug == firstBody.Tree.Slug {
+			foundFirst = true
+		}
+		if track.TreeSlug == secondBody.Tree.Slug {
+			foundSecond = true
+		}
+	}
+	if !foundFirst || !foundSecond {
+		t.Fatalf("expected both generated tracks in list, got %#v", tracksBody.Tracks)
+	}
+
+	switchReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/tracks/active?user=tester", strings.NewReader(fmt.Sprintf(`{"tree_slug":%q}`, firstBody.Tree.Slug)))
+	if err != nil {
+		t.Fatalf("new switch request: %v", err)
+	}
+	switchReq.Header.Set("Content-Type", "application/json")
+	switchResp, err := http.DefaultClient.Do(switchReq)
+	if err != nil {
+		t.Fatalf("switch active track: %v", err)
+	}
+	defer switchResp.Body.Close()
+	if switchResp.StatusCode != http.StatusOK {
+		t.Fatalf("switch status: %d", switchResp.StatusCode)
+	}
+
+	getResp, err := http.Get(testServer.URL + "/api/onboarding?user=tester")
+	if err != nil {
+		t.Fatalf("get onboarding after switch: %v", err)
+	}
+	defer getResp.Body.Close()
+	if getResp.StatusCode != http.StatusOK {
+		t.Fatalf("get onboarding after switch status: %d", getResp.StatusCode)
+	}
+	var getBody struct {
+		Context struct {
+			TreeSlug string `json:"tree_slug"`
+		} `json:"context"`
+		Profile struct {
+			AssignmentFormat string `json:"assignment_format"`
+		} `json:"profile"`
+	}
+	if err := json.NewDecoder(getResp.Body).Decode(&getBody); err != nil {
+		t.Fatalf("decode onboarding after switch: %v", err)
+	}
+	if getBody.Context.TreeSlug != firstBody.Tree.Slug {
+		t.Fatalf("active context tree slug = %q", getBody.Context.TreeSlug)
+	}
+	if getBody.Profile.AssignmentFormat != "scene" {
+		t.Fatalf("profile assignment format = %q", getBody.Profile.AssignmentFormat)
+	}
+}
+
+func TestArchiveTrackRemovesItAndSwitchesActiveContext(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	firstPayload := `{
+		"mode":"edit",
+		"writing_type":"fiction",
+		"assignment_format":"scene",
+		"target_audience":"fantasy readers",
+		"subject_matter":"mythic conflict",
+		"experience_level":"intermediate",
+		"desired_tone":"grave",
+		"biggest_weaknesses":["scene architecture","word choice"],
+		"desired_outcomes":["publish stronger fiction","develop a distinctive voice"],
+		"difficulty_intensity":"steady",
+		"writing_goals":"I want to write stronger scenes."
+	}`
+	firstResp, err := http.Post(testServer.URL+"/api/onboarding?user=tester", "application/json", strings.NewReader(firstPayload))
+	if err != nil {
+		t.Fatalf("post first onboarding: %v", err)
+	}
+	defer firstResp.Body.Close()
+	if firstResp.StatusCode != http.StatusOK {
+		t.Fatalf("first onboarding status: %d", firstResp.StatusCode)
+	}
+	var firstBody struct {
+		Tree struct {
+			Slug string `json:"slug"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(firstResp.Body).Decode(&firstBody); err != nil {
+		t.Fatalf("decode first onboarding: %v", err)
+	}
+
+	secondPayload := `{
+		"mode":"create",
+		"writing_type":"technical writing",
+		"assignment_format":"how-to guide",
+		"target_audience":"API integrators",
+		"subject_matter":"developer tooling",
+		"experience_level":"advanced",
+		"desired_tone":"clear",
+		"biggest_weaknesses":["sentence economy","paragraph control"],
+		"desired_outcomes":["improve professional communication","write clearer essays"],
+		"difficulty_intensity":"ambitious",
+		"writing_goals":"I want cleaner technical drafts."
+	}`
+	secondResp, err := http.Post(testServer.URL+"/api/onboarding?user=tester", "application/json", strings.NewReader(secondPayload))
+	if err != nil {
+		t.Fatalf("post second onboarding: %v", err)
+	}
+	defer secondResp.Body.Close()
+	if secondResp.StatusCode != http.StatusOK {
+		t.Fatalf("second onboarding status: %d", secondResp.StatusCode)
+	}
+	var secondBody struct {
+		Tree struct {
+			Slug string `json:"slug"`
+		} `json:"tree"`
+	}
+	if err := json.NewDecoder(secondResp.Body).Decode(&secondBody); err != nil {
+		t.Fatalf("decode second onboarding: %v", err)
+	}
+
+	archiveReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/tracks/"+secondBody.Tree.Slug+"/archive?user=tester", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("new archive request: %v", err)
+	}
+	archiveReq.Header.Set("Content-Type", "application/json")
+	archiveResp, err := http.DefaultClient.Do(archiveReq)
+	if err != nil {
+		t.Fatalf("archive track: %v", err)
+	}
+	defer archiveResp.Body.Close()
+	if archiveResp.StatusCode != http.StatusOK {
+		t.Fatalf("archive status: %d", archiveResp.StatusCode)
+	}
+
+	var archiveBody struct {
+		Context struct {
+			TreeSlug string `json:"tree_slug"`
+		} `json:"context"`
+		Tracks []struct {
+			TreeSlug string `json:"tree_slug"`
+		} `json:"tracks"`
+	}
+	if err := json.NewDecoder(archiveResp.Body).Decode(&archiveBody); err != nil {
+		t.Fatalf("decode archive response: %v", err)
+	}
+	if archiveBody.Context.TreeSlug == secondBody.Tree.Slug {
+		t.Fatalf("active tree after archive = %q", archiveBody.Context.TreeSlug)
+	}
+	foundFirst := false
+	for _, track := range archiveBody.Tracks {
+		if track.TreeSlug == firstBody.Tree.Slug {
+			foundFirst = true
+		}
+		if track.TreeSlug == secondBody.Tree.Slug {
+			t.Fatalf("archived track still present in tracks list: %q", track.TreeSlug)
+		}
+	}
+	if !foundFirst {
+		t.Fatalf("expected first generated track to remain after archive: %#v", archiveBody.Tracks)
 	}
 }
 
@@ -2953,6 +3471,56 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	}
 }
 
+func TestAuthFailsClosedWithoutConfiguredAuthByDefault(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get dashboard: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected unauthorized without explicit insecure bypass, got %d", resp.StatusCode)
+	}
+}
+
+func TestAIProviderEventRecorderDrainsQueueOnShutdown(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	recorder := newAIProviderEventRecorder(harness.Store, config.Default(t.TempDir()))
+	ctx, cancel := context.WithCancel(context.Background())
+	recorder.start(ctx)
+
+	recorder.record(domain.AIProviderEvent{
+		UserID:     1,
+		Provider:   "openai",
+		Event:      "settings_validate_succeeded",
+		Category:   "success",
+		StatusCode: 200,
+		CreatedAt:  time.Now().UTC(),
+	})
+	cancel()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		events, err := harness.Store.ListRecentAIProviderEvents(context.Background(), 10, time.Now().Add(-time.Hour), "", "")
+		if err != nil {
+			t.Fatalf("list provider events: %v", err)
+		}
+		for _, event := range events {
+			if event.Event == "settings_validate_succeeded" && event.Provider == "openai" && event.UserID == 1 {
+				return
+			}
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	t.Fatal("expected queued provider event to be flushed during shutdown")
+}
+
 func TestKratosAdminEmailCanManageTrees(t *testing.T) {
 	kratos := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -3020,6 +3588,7 @@ func newTestServerWithAuth(t *testing.T, apiToken, kratosPublicURL string) *http
 	cfg := config.Default(t.TempDir())
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
+	cfg.AllowInsecureAuth = apiToken == "" && kratosPublicURL == ""
 	cfg.AIKeySecret = "test-ai-key-secret"
 	return newTestServerWithConfig(t, harness.Store, cfg)
 }
@@ -3073,6 +3642,7 @@ func newTestServerWithStore(t *testing.T, store *db.Store, apiToken, kratosPubli
 	cfg := config.Default(t.TempDir())
 	cfg.APIToken = apiToken
 	cfg.KratosPublicURL = kratosPublicURL
+	cfg.AllowInsecureAuth = apiToken == "" && kratosPublicURL == ""
 	cfg.AIKeySecret = "test-ai-key-secret"
 	return newTestServerWithConfig(t, store, cfg)
 }

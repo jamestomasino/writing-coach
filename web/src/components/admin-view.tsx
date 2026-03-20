@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useState } from 'react'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
@@ -9,8 +9,7 @@ import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
 import { Select } from '@/components/select'
 import { Text } from '@/components/text'
-import { getAdminAIProviderEvents, getSession, listAdmins, listUsers, provisionUser } from '@/lib/api'
-import type { AIProviderEvent, AIProviderEventFilters, AIProviderEventSummary, AuthSession, UserRecord } from '@/lib/types'
+import { useAdminWorkspace } from '@/lib/use-admin-workspace'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { useToast } from './toast-provider'
 import { WorkspaceCard } from './workspace-card'
@@ -32,99 +31,33 @@ function humanizeEventLabel(value: string) {
 
 export function AdminView() {
   const toast = useToast()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [session, setSession] = useState<AuthSession | null>(null)
-  const [admins, setAdmins] = useState<string[]>([])
-  const [users, setUsers] = useState<UserRecord[]>([])
-  const [providerSummary, setProviderSummary] = useState<AIProviderEventSummary | null>(null)
-  const [providerEvents, setProviderEvents] = useState<AIProviderEvent[]>([])
-  const [providerFilters, setProviderFilters] = useState<AIProviderEventFilters | null>(null)
-  const [selectedHours, setSelectedHours] = useState('24')
-  const [selectedProvider, setSelectedProvider] = useState('')
-  const [selectedEvent, setSelectedEvent] = useState('')
   const [slug, setSlug] = useState('')
   const [name, setName] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [loadingProviderActivity, setLoadingProviderActivity] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const sessionData = await getSession()
-        if (!cancelled) {
-          setSession(sessionData)
-        }
-        if (!sessionData.is_admin) {
-          return
-        }
-        const [adminData, userData, providerData] = await Promise.all([listAdmins(), listUsers(), getAdminAIProviderEvents()])
-        if (!cancelled) {
-          setAdmins(adminData.admins)
-          setUsers(userData)
-          setProviderSummary(providerData.summary)
-          setProviderEvents(providerData.events)
-          setProviderFilters(providerData.filters)
-          setSelectedHours(String(providerData.filters.hours))
-          setSelectedProvider(providerData.filters.provider ?? '')
-          setSelectedEvent(providerData.filters.event ?? '')
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load admin workspace')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!session?.is_admin || !providerFilters) {
-      return
-    }
-    let cancelled = false
-    async function loadProviderActivity() {
-      try {
-        setLoadingProviderActivity(true)
-        const providerData = await getAdminAIProviderEvents(100, Number(selectedHours) || 24, selectedProvider, selectedEvent)
-        if (!cancelled) {
-          setProviderSummary(providerData.summary)
-          setProviderEvents(providerData.events)
-          setProviderFilters(providerData.filters)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const message = err instanceof Error ? err.message : 'Could not load AI provider activity'
-          setError(message)
-          toast.error(message, 'AI activity')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingProviderActivity(false)
-        }
-      }
-    }
-    void loadProviderActivity()
-    return () => {
-      cancelled = true
-    }
-  }, [selectedEvent, selectedHours, selectedProvider, session?.is_admin])
+  const {
+    loading,
+    error,
+    setError,
+    session,
+    admins,
+    users,
+    providerSummary,
+    providerEvents,
+    providerFilters,
+    selectedHours,
+    setSelectedHours,
+    selectedProvider,
+    setSelectedProvider,
+    selectedEvent,
+    setSelectedEvent,
+    saving,
+    loadingProviderActivity,
+    provision,
+  } = useAdminWorkspace()
 
   async function handleProvision(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     try {
-      setSaving(true)
-      setError(null)
-      await provisionUser({ slug, name })
-      setUsers(await listUsers())
+      await provision({ slug, name })
       setSlug('')
       setName('')
       toast.success(`Provisioned ${name}.`, 'User created')
@@ -132,8 +65,6 @@ export function AdminView() {
       const message = err instanceof Error ? err.message : 'Could not provision user'
       setError(message)
       toast.error(message, 'Provisioning failed')
-    } finally {
-      setSaving(false)
     }
   }
 

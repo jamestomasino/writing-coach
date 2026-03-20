@@ -1,14 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
-import { getAssignmentTimeline } from '@/lib/api'
-import type { AssignmentTimeline, AssignmentTimelineStep } from '@/lib/types'
+import { useAssignmentTimeline } from '@/lib/use-assignment-timeline'
+import type { AssignmentTimelineStep } from '@/lib/types'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
@@ -217,47 +216,14 @@ function StepSection({ step, selected }: { step: AssignmentTimelineStep; selecte
 }
 
 export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [assignment, setAssignment] = useState<AssignmentTimeline | null>(null)
-  const [selectedStepID, setSelectedStepID] = useState('')
+  const { sessionLoading, sessionError, loading, error, assignment, selectedStepID, selectStep } =
+    useAssignmentTimeline(exerciseId)
 
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const data = await getAssignmentTimeline(exerciseId)
-        if (cancelled) {
-          return
-        }
-        setAssignment(data)
-        setSelectedStepID(data.latest_step_id ?? data.steps[0]?.id ?? '')
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load assignment timeline')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [exerciseId])
-
-  function handleSelect(stepID: string) {
-    setSelectedStepID(stepID)
-    document.getElementById(stepID)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading assignment timeline…" />
   }
-  if (error || !assignment) {
-    return <AppErrorState title="Assignment unavailable" error={error ?? 'Could not load the requested assignment.'} />
+  if (sessionError || error || !assignment) {
+    return <AppErrorState title="Assignment unavailable" error={sessionError ?? error ?? 'Could not load the requested assignment.'} />
   }
 
   return (
@@ -285,7 +251,7 @@ export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
           description="Jump to any step in this assignment."
         />
         <div className="mt-5">
-          <TimelineRail steps={assignment.steps} selectedStepID={selectedStepID} onSelect={handleSelect} />
+          <TimelineRail steps={assignment.steps} selectedStepID={selectedStepID} onSelect={selectStep} />
         </div>
       </WorkspaceCard>
 

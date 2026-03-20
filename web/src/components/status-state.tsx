@@ -65,7 +65,13 @@ export function EmptyState({
 
 function classifyErrorMessage(message: string) {
   const normalized = message.toLowerCase()
-  if (normalized.includes('unauthorized') || normalized.includes('sign in required') || normalized.includes('forbidden') || normalized.includes('401') || normalized.includes('403')) {
+  if (
+    normalized.includes('unauthorized') ||
+    normalized.includes('sign in required') ||
+    normalized.includes('forbidden') ||
+    normalized.includes('401') ||
+    normalized.includes('403')
+  ) {
     return {
       title: 'Sign in required',
       body: 'This page is only available inside an authenticated coaching session.',
@@ -80,18 +86,24 @@ function classifyErrorMessage(message: string) {
       title: 'Page unavailable',
       body: 'The page or record you requested could not be found in this account context.',
       actions: [
-        { href: '/', label: 'Current assignment' },
+        { href: '/', label: 'Active track' },
         { href: '/assignments', label: 'Past assignments', outline: true },
         { href: '/about', label: 'About', outline: true },
       ],
     }
   }
-  if (normalized.includes('500') || normalized.includes('502') || normalized.includes('503') || normalized.includes('504') || normalized.includes('internal server error')) {
+  if (
+    normalized.includes('500') ||
+    normalized.includes('502') ||
+    normalized.includes('503') ||
+    normalized.includes('504') ||
+    normalized.includes('internal server error')
+  ) {
     return {
       title: 'Something went wrong',
       body: 'The app hit a server-side problem while trying to load this page.',
       actions: [
-        { href: '/', label: 'Current assignment' },
+        { href: '/', label: 'Active track' },
         { href: '/about', label: 'About', outline: true },
       ],
     }
@@ -100,7 +112,7 @@ function classifyErrorMessage(message: string) {
     title: 'Something went wrong',
     body: message,
     actions: [
-      { href: '/', label: 'Current assignment' },
+      { href: '/', label: 'Active track' },
       { href: '/about', label: 'About', outline: true },
     ],
   }
@@ -127,19 +139,9 @@ export function LoadingState({ label = 'Loading workspace…' }: { label?: strin
   )
 }
 
-export function TaskProgressState({
-  title,
-  body,
-  steps,
-}: {
-  title: string
-  body: string
-  steps: string[]
-}) {
+export function TaskProgressState({ title, body, steps }: { title: string; body: string; steps: string[] }) {
   return (
-    <WorkspaceCard
-      className="border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10"
-    >
+    <WorkspaceCard className="border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-3">
@@ -156,7 +158,7 @@ export function TaskProgressState({
           </Text>
         </div>
         <div
-          className="min-w-0 rounded-2xl border border-amber-300/70 bg-white/70 px-4 py-4 dark:border-amber-400/20 dark:bg-black/10 lg:w-80"
+          className="min-w-0 rounded-2xl border border-amber-300/70 bg-white/70 px-4 py-4 lg:w-80 dark:border-amber-400/20 dark:bg-black/10"
           role="status"
           aria-live="polite"
         >

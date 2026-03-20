@@ -1,7 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import dagre from 'dagre'
+import { Badge } from '@/components/badge'
+import { Eyebrow } from '@/components/eyebrow'
+import { Subheading } from '@/components/heading'
+import { PageHeader } from '@/components/page-header'
+import { Text } from '@/components/text'
+import type { Dashboard, Tree } from '@/lib/types'
+import { useTrackDashboardData } from '@/lib/use-track-dashboard-data'
 import {
   Background,
   Controls,
@@ -15,13 +20,8 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import { Badge } from '@/components/badge'
-import { Eyebrow } from '@/components/eyebrow'
-import { Heading, Subheading } from '@/components/heading'
-import { PageHeader } from '@/components/page-header'
-import { Text } from '@/components/text'
-import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
-import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
+import dagre from 'dagre'
+import { useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -68,19 +68,22 @@ function statusTone(status: TreeNodeStatus) {
   switch (status) {
     case 'active':
       return {
-        shell: 'border-cyan-400/60 bg-cyan-500/12 shadow-[0_0_0_1px_rgba(34,211,238,0.18),0_0_36px_rgba(34,211,238,0.18)]',
+        shell:
+          'border-cyan-400/60 bg-cyan-500/12 shadow-[0_0_0_1px_rgba(34,211,238,0.18),0_0_36px_rgba(34,211,238,0.18)]',
         badge: 'bg-cyan-400/18 text-cyan-100 ring-cyan-300/30',
         accent: '#22d3ee',
       }
     case 'completed':
       return {
-        shell: 'border-emerald-400/55 bg-emerald-500/12 shadow-[0_0_0_1px_rgba(52,211,153,0.18),0_0_34px_rgba(52,211,153,0.16)]',
+        shell:
+          'border-emerald-400/55 bg-emerald-500/12 shadow-[0_0_0_1px_rgba(52,211,153,0.18),0_0_34px_rgba(52,211,153,0.16)]',
         badge: 'bg-emerald-400/18 text-emerald-100 ring-emerald-300/30',
         accent: '#34d399',
       }
     case 'unlocked':
       return {
-        shell: 'border-amber-300/50 bg-amber-500/10 shadow-[0_0_0_1px_rgba(251,191,36,0.14),0_0_32px_rgba(245,158,11,0.14)]',
+        shell:
+          'border-amber-300/50 bg-amber-500/10 shadow-[0_0_0_1px_rgba(251,191,36,0.14),0_0_32px_rgba(245,158,11,0.14)]',
         badge: 'bg-amber-300/18 text-amber-100 ring-amber-200/30',
         accent: '#f59e0b',
       }
@@ -90,7 +93,7 @@ function statusTone(status: TreeNodeStatus) {
         badge: 'bg-white/8 text-zinc-300 ring-white/10',
         accent: '#71717a',
       }
-    }
+  }
 }
 
 function edgeColor(sourceStatus: TreeNodeStatus, targetStatus: TreeNodeStatus) {
@@ -119,15 +122,19 @@ function SkillTreeNode({ data }: NodeProps<Node<GraphNodeData>>) {
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Eyebrow tone="white" className="text-[10px] tracking-[0.24em]">{stageTitle(data.stage)}</Eyebrow>
-          <div className="mt-2 text-sm font-semibold leading-5 text-white">{data.title}</div>
+          <Eyebrow tone="white" className="text-[10px] tracking-[0.24em]">
+            {stageTitle(data.stage)}
+          </Eyebrow>
+          <div className="mt-2 text-sm leading-5 font-semibold text-white">{data.title}</div>
         </div>
-        <div className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ring-1 ${tone.badge}`}>
+        <div
+          className={`rounded-full px-2 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase ring-1 ${tone.badge}`}
+        >
           {statusLabel(data.status)}
         </div>
       </div>
       <Text className="mt-3 line-clamp-3 text-[13px] leading-5 text-zinc-300">{data.description}</Text>
-      <div className="mt-4 flex items-center justify-between gap-4 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
+      <div className="mt-4 flex items-center justify-between gap-4 text-[11px] tracking-[0.16em] text-zinc-400 uppercase">
         <span>{data.prerequisites.length} prereq</span>
         <span>{data.unlocks.length} unlocks</span>
       </div>
@@ -243,96 +250,31 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
 }
 
 export function TreeView() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [tree, setTree] = useState<Tree | null>(null)
-  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
-  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null)
+  const { sessionLoading, sessionError, loading, error, tree, dashboard } = useTrackDashboardData('/tree', {
+    requireActiveTree: true,
+    loadErrorMessage: 'Could not load skill map',
+  })
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      try {
-        const session = await getSession()
-        if (!session.authenticated) {
-          throw new Error('Sign in to inspect your skill map')
-        }
-        if (!session.onboarding_complete || !session.active_tree_slug) {
-          if (!cancelled) {
-            setOnboarding({ onboarding_complete: false })
-          }
-          return
-        }
-
-        const [treeData, dashboardData, onboardingData] = await Promise.all([
-          getTree(session.active_tree_slug),
-          getDashboard(),
-          getOnboarding(),
-        ])
-
-        if (!cancelled) {
-          setTree(treeData)
-          setDashboard(dashboardData)
-          setOnboarding(onboardingData)
-          setError(null)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load skill map')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const effectiveSelectedCode = selectedCode ?? dashboard?.active_tgos?.[0]?.code ?? tree?.tgos?.[0]?.code ?? null
 
   const graph = useMemo(() => {
     if (!tree || !dashboard) {
       return null
     }
-    return buildGraph(tree, dashboard, selectedCode)
-  }, [dashboard, selectedCode, tree])
+    return buildGraph(tree, dashboard, effectiveSelectedCode)
+  }, [dashboard, effectiveSelectedCode, tree])
 
-  useEffect(() => {
-    if (!tree || !dashboard || selectedCode) {
-      return
-    }
-    const defaultCode = dashboard.active_tgos?.[0]?.code ?? tree.tgos?.[0]?.code ?? null
-    if (defaultCode) {
-      setSelectedCode(defaultCode)
-    }
-  }, [dashboard, selectedCode, tree])
-
-  if (loading) {
+  if (sessionLoading || loading) {
     return <LoadingState label="Loading skill map…" />
   }
-  if (!onboarding?.onboarding_complete) {
-    return (
-      <EmptyState
-        title="Build your track first"
-        body="You need to complete the starter path setup before the app can show your skill map."
-        actionHref="/onboarding"
-        actionLabel="Open starter path"
-      />
-    )
-  }
-  if (error || !tree || !dashboard || !graph) {
-    return <AppErrorState title="Tree unavailable" error={error ?? 'Could not load the current tree.'} />
+  if (sessionError || error || !tree || !dashboard || !graph) {
+    return <AppErrorState title="Tree unavailable" error={sessionError ?? error ?? 'Could not load the current tree.'} />
   }
 
   const activeCount = dashboard.active_tgos?.length ?? 0
   const completedCount = dashboard.completed_tgos?.length ?? 0
   const unlockedCount = dashboard.upcoming_tgos?.length ?? 0
-  const selected = selectedCode ? graph.dataByCode.get(selectedCode) ?? null : null
+  const selected = effectiveSelectedCode ? (graph.dataByCode.get(effectiveSelectedCode) ?? null) : null
 
   return (
     <ReactFlowProvider>
@@ -387,15 +329,17 @@ export function TreeView() {
               </ReactFlow>
             </div>
 
-            <aside className="border-t border-white/10 bg-black/24 xl:border-l xl:border-t-0">
+            <aside className="border-t border-white/10 bg-black/24 xl:border-t-0 xl:border-l">
               <div className="p-5">
-                <Eyebrow tone="white" className="tracking-[0.22em]">Selected skill</Eyebrow>
+                <Eyebrow tone="white" className="tracking-[0.22em]">
+                  Selected skill
+                </Eyebrow>
                 {selected ? (
                   <div className="mt-4 space-y-5">
                     <div>
                       <div className="flex items-start justify-between gap-3">
                         <Subheading className="text-white">{selected.title}</Subheading>
-                        <div className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-200">
+                        <div className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-zinc-200 uppercase">
                           {statusLabel(selected.status)}
                         </div>
                       </div>
@@ -404,23 +348,34 @@ export function TreeView() {
 
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Stage</Eyebrow>
+                        <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">
+                          Stage
+                        </Eyebrow>
                         <Text className="mt-2 text-sm text-zinc-100">{stageTitle(selected.stage)}</Text>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Unlocks</Eyebrow>
+                        <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">
+                          Unlocks
+                        </Eyebrow>
                         <Text className="mt-2 text-sm text-zinc-100">{selected.unlocks.length}</Text>
                       </div>
                     </div>
 
                     <div>
-                      <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Requires</Eyebrow>
+                      <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">
+                        Requires
+                      </Eyebrow>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {selected.prerequisites.length === 0 ? (
-                          <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-300">Seed node</div>
+                          <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-300">
+                            Seed node
+                          </div>
                         ) : (
                           selected.prerequisites.map((prerequisite) => (
-                            <div key={prerequisite} className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-200">
+                            <div
+                              key={prerequisite}
+                              className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-200"
+                            >
                               {prerequisite}
                             </div>
                           ))
@@ -429,13 +384,20 @@ export function TreeView() {
                     </div>
 
                     <div>
-                      <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">Unlock pathway</Eyebrow>
+                      <Eyebrow tone="white" className="text-[11px] tracking-[0.16em]">
+                        Unlock pathway
+                      </Eyebrow>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {selected.unlocks.length === 0 ? (
-                          <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-300">Terminal node</div>
+                          <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-300">
+                            Terminal node
+                          </div>
                         ) : (
                           selected.unlocks.map((unlock) => (
-                            <div key={unlock} className="rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1 text-xs text-amber-100">
+                            <div
+                              key={unlock}
+                              className="rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1 text-xs text-amber-100"
+                            >
                               {unlock}
                             </div>
                           ))
@@ -445,7 +407,9 @@ export function TreeView() {
 
                     {selected.mastery_hint ? (
                       <div className="rounded-2xl border border-emerald-300/18 bg-emerald-400/10 p-4">
-                        <Eyebrow tone="emerald" className="text-[11px] tracking-[0.16em] dark:text-emerald-100/80">Mastery marker</Eyebrow>
+                        <Eyebrow tone="emerald" className="text-[11px] tracking-[0.16em] dark:text-emerald-100/80">
+                          Mastery marker
+                        </Eyebrow>
                         <Text className="mt-2 text-sm text-emerald-50">{selected.mastery_hint}</Text>
                       </div>
                     ) : null}

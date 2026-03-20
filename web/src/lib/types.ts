@@ -10,6 +10,7 @@ export type AuthSession = {
   auth_mode: string
   is_admin: boolean
   onboarding_complete: boolean
+  setup_step: 'ready' | 'needs_ai_setup' | 'needs_first_track' | 'needs_first_assignment'
   ai_provider_ready: boolean
   ai_effective_provider?: string
   ai_system_fallback: boolean
@@ -22,6 +23,19 @@ export type AuthSession = {
     name?: string
   }
   context?: RequestContext
+}
+
+export type UserTrack = {
+  enrollment_id: number
+  tree_id: number
+  tree_slug: string
+  title: string
+  description: string
+  is_active: boolean
+  created_at: string
+  assignment_count: number
+  current_assignment?: string
+  latest_assignment_time?: string
 }
 
 export type TGO = {
@@ -281,6 +295,7 @@ export type OnboardingState = {
   profile?: OnboardingProfile
   starter_tgo_codes?: string[]
   recommended_regions?: string[]
+  context?: RequestContext
 }
 
 export type OnboardingOption = {

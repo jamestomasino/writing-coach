@@ -1,11 +1,10 @@
 'use client'
 
-import Image from 'next/image'
-import { useEffect, useState } from 'react'
 import { Avatar } from '@/components/avatar'
 import {
   Dropdown,
   DropdownButton,
+  DropdownDescription,
   DropdownDivider,
   DropdownItem,
   DropdownLabel,
@@ -24,31 +23,35 @@ import {
   SidebarSpacer,
 } from '@/components/sidebar'
 import { SidebarLayout } from '@/components/sidebar-layout'
-import { getSession } from '@/lib/api'
+import { getSession, listTracks, setActiveTrack } from '@/lib/api'
+import { shouldConfirmTrackSwitch } from '@/lib/track-switch-guard'
+import type { UserTrack } from '@/lib/types'
 import {
+  ArrowLeftEndOnRectangleIcon,
   ArrowPathIcon,
   ArrowRightStartOnRectangleIcon,
+  CheckIcon,
   ChevronUpIcon,
   Cog6ToothIcon,
-  ArrowLeftEndOnRectangleIcon,
+  PlusIcon,
   UserPlusIcon,
 } from '@heroicons/react/16/solid'
 import {
   ChartBarSquareIcon,
   ClockIcon,
+  FolderIcon,
   HomeIcon,
   InformationCircleIcon,
   PencilSquareIcon,
   Squares2X2Icon,
   UserGroupIcon,
 } from '@heroicons/react/20/solid'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 function initialsForName(value: string) {
-  const parts = value
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
+  const parts = value.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) {
     return 'WC'
   }
@@ -56,6 +59,20 @@ function initialsForName(value: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+function trackStatusLine(track: UserTrack | null) {
+  if (!track) {
+    return 'No active track selected'
+  }
+  if (track.assignment_count === 0) {
+    return 'No assignments yet'
+  }
+  const activity = track.latest_assignment_time ? `Latest ${track.latest_assignment_time}` : ''
+  if (track.current_assignment) {
+    return activity ? `${track.current_assignment} · ${activity}` : track.current_assignment
+  }
+  return activity || `${track.assignment_count} assignment chains`
 }
 
 function AccountDropdownMenu({
@@ -109,47 +126,87 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [accountName, setAccountName] = useState('Workshop')
   const [accountDetail, setAccountDetail] = useState('Scholastic coaching loop')
+  const [tracks, setTracks] = useState<UserTrack[]>([])
+  const [switchingTrack, setSwitchingTrack] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    void getSession()
-      .then((session) => {
+    async function load() {
+      try {
+        const session = await getSession()
         if (cancelled) {
           return
         }
 
         setAuthenticated(session.authenticated)
         setIsAdmin(session.is_admin)
+        if (session.authenticated) {
+          const nextTracks = await listTracks().catch(() => [])
+          if (!cancelled) {
+            setTracks(nextTracks)
+          }
+        } else {
+          setTracks([])
+        }
 
         const profileName = session.identity?.name?.trim() || session.identity?.email?.trim()
 
         if (profileName) {
           setAccountName(profileName)
-          setAccountDetail(session.is_admin ? 'Administrator account' : session.identity?.email?.trim() || 'Writing practice workspace')
+          setAccountDetail(
+            session.is_admin ? 'Administrator account' : session.identity?.email?.trim() || 'Writing practice workspace'
+          )
           return
         }
 
         const fallbackDetail = session.authenticated ? 'Writing practice workspace' : 'Scholastic coaching loop'
         setAccountName(session.authenticated ? 'Writing Coach' : 'Workshop')
         setAccountDetail(session.is_admin ? 'Administrator account' : fallbackDetail)
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) {
           return
         }
         setAuthenticated(false)
         setIsAdmin(false)
+        setTracks([])
         setAccountName('Workshop')
         setAccountDetail('Scholastic coaching loop')
-      })
+      }
+    }
+
+    void load()
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [pathname])
 
   const accountInitials = initialsForName(accountName)
+  const activeTrack = tracks.find((track) => track.is_active) ?? null
+
+  async function handleTrackSelect(treeSlug: string) {
+    if (!treeSlug || treeSlug === activeTrack?.tree_slug) {
+      return
+    }
+    if (shouldConfirmTrackSwitch(window.__writingCoachHasUnsavedDraft)) {
+      const confirmed = window.confirm(
+        'You have an unsaved draft in the current track. Switch tracks and discard those unsaved edits?'
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+    try {
+      setSwitchingTrack(treeSlug)
+      const nextTracks = await setActiveTrack(treeSlug)
+      setTracks(nextTracks)
+      const currentURL = `${pathname}${window.location.search}`
+      window.location.assign(currentURL)
+    } finally {
+      setSwitchingTrack(null)
+    }
+  }
 
   return (
     <SidebarLayout
@@ -179,6 +236,48 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">Structured practice</div>
                 </div>
               </div>
+              {authenticated === true ? (
+                <Dropdown>
+                  <DropdownButton
+                    data-testid="active-track-button"
+                    className="flex w-full items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3 text-left text-sm text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[11px] font-semibold tracking-[0.18em] text-zinc-500 uppercase dark:text-zinc-400">
+                        Active track
+                      </span>
+                      <span className="mt-1 block truncate text-sm font-semibold">
+                        {activeTrack?.title ?? 'Select a track'}
+                      </span>
+                      <span className="mt-1 block truncate text-xs text-zinc-500 dark:text-zinc-400">
+                        {trackStatusLine(activeTrack)}
+                      </span>
+                    </span>
+                    <ChevronUpIcon className="size-4 rotate-180 text-zinc-500 dark:text-zinc-400" />
+                  </DropdownButton>
+                  <DropdownMenu className="min-w-80" anchor="bottom start">
+                    {tracks.map((track) => (
+                      <DropdownItem
+                        key={track.enrollment_id}
+                        data-testid={`track-option-${track.tree_slug}`}
+                        data-track-slug={track.tree_slug}
+                        onClick={() => handleTrackSelect(track.tree_slug)}
+                        disabled={switchingTrack !== null}
+                      >
+                        <FolderIcon />
+                        <DropdownLabel>{track.title}</DropdownLabel>
+                        <DropdownDescription>{trackStatusLine(track)}</DropdownDescription>
+                        {track.is_active ? <CheckIcon /> : null}
+                      </DropdownItem>
+                    ))}
+                    <DropdownDivider />
+                    <DropdownItem href="/onboarding?mode=create" data-testid="new-track-link">
+                      <PlusIcon />
+                      <DropdownLabel>New track</DropdownLabel>
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
+              ) : null}
             </div>
           </SidebarHeader>
 
@@ -193,6 +292,22 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
             {authenticated === true ? (
               <>
                 <SidebarSection>
+                  <SidebarHeading>Track</SidebarHeading>
+                  <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
+                    <ChartBarSquareIcon />
+                    <SidebarLabel>Track progress</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
+                    <Squares2X2Icon />
+                    <SidebarLabel>Skill map</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/onboarding?mode=edit" current={pathname.startsWith('/onboarding')}>
+                    <ArrowPathIcon />
+                    <SidebarLabel>Edit track</SidebarLabel>
+                  </SidebarItem>
+                </SidebarSection>
+
+                <SidebarSection>
                   <SidebarHeading>Assignments</SidebarHeading>
                   <SidebarItem href="/" current={pathname === '/'}>
                     <HomeIcon />
@@ -202,30 +317,16 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                     <PencilSquareIcon />
                     <SidebarLabel>New assignment</SidebarLabel>
                   </SidebarItem>
-                  <SidebarItem href="/assignments" current={pathname === '/assignments' || pathname.startsWith('/assignments/')}>
+                  <SidebarItem
+                    href="/assignments"
+                    current={pathname === '/assignments' || pathname.startsWith('/assignments/')}
+                  >
                     <ClockIcon />
                     <SidebarLabel>Past assignments</SidebarLabel>
                   </SidebarItem>
                 </SidebarSection>
-
-                <SidebarSection>
-                  <SidebarHeading>Track</SidebarHeading>
-                  <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
-                    <ChartBarSquareIcon />
-                    <SidebarLabel>Track progress</SidebarLabel>
-                  </SidebarItem>
-                  <SidebarItem href="/onboarding" current={pathname.startsWith('/onboarding')}>
-                    <ArrowPathIcon />
-                    <SidebarLabel>Change track</SidebarLabel>
-                  </SidebarItem>
-                <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
-                  <Squares2X2Icon />
-                  <SidebarLabel>Skill map</SidebarLabel>
-                </SidebarItem>
-              </SidebarSection>
-
-            </>
-          ) : null}
+              </>
+            ) : null}
 
             <SidebarSpacer />
 
@@ -250,10 +351,19 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
               <Dropdown>
                 <DropdownButton as={SidebarItem}>
                   <span className="flex min-w-0 items-center gap-3">
-                    <Avatar initials={accountInitials} className="size-10 bg-stone-800 text-white" square alt={accountName} />
+                    <Avatar
+                      initials={accountInitials}
+                      className="size-10 bg-stone-800 text-white"
+                      square
+                      alt={accountName}
+                    />
                     <span className="min-w-0">
-                      <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">{accountName}</span>
-                      <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">{accountDetail}</span>
+                      <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">
+                        {accountName}
+                      </span>
+                      <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">
+                        {accountDetail}
+                      </span>
                     </span>
                   </span>
                   <ChevronUpIcon />
@@ -263,10 +373,19 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
             ) : (
               <SidebarItem href="/login" current={pathname.startsWith('/login')}>
                 <span className="flex min-w-0 items-center gap-3">
-                  <Avatar initials={accountInitials} className="size-10 bg-stone-800 text-white" square alt={accountName} />
+                  <Avatar
+                    initials={accountInitials}
+                    className="size-10 bg-stone-800 text-white"
+                    square
+                    alt={accountName}
+                  />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">{accountName}</span>
-                    <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">{accountDetail}</span>
+                    <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">
+                      {accountName}
+                    </span>
+                    <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">
+                      {accountDetail}
+                    </span>
                   </span>
                 </span>
               </SidebarItem>
