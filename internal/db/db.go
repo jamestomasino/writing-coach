@@ -292,17 +292,39 @@ func (s *Store) SaveAIProviderEvent(ctx context.Context, event domain.AIProvider
 	return err
 }
 
-func (s *Store) ListRecentAIProviderEvents(ctx context.Context, limit int) ([]domain.AIProviderEvent, error) {
+func (s *Store) DeleteAIProviderEventsOlderThan(ctx context.Context, cutoff time.Time) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		DELETE FROM ai_provider_events
+		WHERE created_at < ?
+	`, cutoff.UTC())
+	return err
+}
+
+func (s *Store) ListRecentAIProviderEvents(ctx context.Context, limit int, since time.Time, provider, event string) ([]domain.AIProviderEvent, error) {
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := s.SQL.QueryContext(ctx, `
+	query := `
 		SELECT e.id, e.user_id, COALESCE(u.slug, ''), e.provider, e.event, e.category, e.status_code, e.detail_json, e.created_at
 		FROM ai_provider_events e
 		LEFT JOIN users u ON u.id = e.user_id
+		WHERE e.created_at >= ?
+	`
+	args := []any{since.UTC()}
+	if strings.TrimSpace(provider) != "" {
+		query += ` AND e.provider = ?`
+		args = append(args, strings.TrimSpace(provider))
+	}
+	if strings.TrimSpace(event) != "" {
+		query += ` AND e.event = ?`
+		args = append(args, strings.TrimSpace(event))
+	}
+	query += `
 		ORDER BY e.created_at DESC, e.id DESC
 		LIMIT ?
-	`, limit)
+	`
+	args = append(args, limit)
+	rows, err := s.SQL.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -329,15 +351,27 @@ func (s *Store) ListRecentAIProviderEvents(ctx context.Context, limit int) ([]do
 	return events, rows.Err()
 }
 
-func (s *Store) SummarizeAIProviderEventsSince(ctx context.Context, since time.Time) (domain.AIProviderEventSummary, error) {
+func (s *Store) SummarizeAIProviderEventsSince(ctx context.Context, since time.Time, provider, event string) (domain.AIProviderEventSummary, error) {
 	summary := domain.AIProviderEventSummary{Since: since.UTC()}
 
-	rows, err := s.SQL.QueryContext(ctx, `
+	query := `
 		SELECT provider, event, category, COUNT(*)
 		FROM ai_provider_events
 		WHERE created_at >= ?
+	`
+	args := []any{since.UTC()}
+	if strings.TrimSpace(provider) != "" {
+		query += ` AND provider = ?`
+		args = append(args, strings.TrimSpace(provider))
+	}
+	if strings.TrimSpace(event) != "" {
+		query += ` AND event = ?`
+		args = append(args, strings.TrimSpace(event))
+	}
+	query += `
 		GROUP BY provider, event, category
-	`, since.UTC())
+	`
+	rows, err := s.SQL.QueryContext(ctx, query, args...)
 	if err != nil {
 		return summary, err
 	}

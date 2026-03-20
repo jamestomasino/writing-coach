@@ -32,6 +32,7 @@ type Config struct {
 	ReviewModel                    string   `json:"review_model"`
 	AIValidateLimitPerMinute       int      `json:"ai_validate_limit_per_minute"`
 	AIValidateGlobalLimitPerMinute int      `json:"ai_validate_global_limit_per_minute"`
+	AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
 	ValeBinary                     string   `json:"vale_binary"`
 	LanguageToolURL                string   `json:"languagetool_url"`
 }
@@ -53,6 +54,7 @@ func Default(projectRoot string) Config {
 		ReviewModel:                    "gpt-5-mini",
 		AIValidateLimitPerMinute:       6,
 		AIValidateGlobalLimitPerMinute: 60,
+		AIProviderEventRetentionDays:   30,
 	}
 }
 
@@ -93,6 +95,9 @@ func Load(projectRoot string) (Config, error) {
 	if cfg.AIValidateGlobalLimitPerMinute <= 0 {
 		cfg.AIValidateGlobalLimitPerMinute = 60
 	}
+	if cfg.AIProviderEventRetentionDays <= 0 {
+		cfg.AIProviderEventRetentionDays = 30
+	}
 	if cfg.DefaultUserSlug == "" {
 		cfg.DefaultUserSlug = "default"
 	}
@@ -122,6 +127,9 @@ func Load(projectRoot string) (Config, error) {
 	}
 	if value := os.Getenv("WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE"); value != "" {
 		cfg.AIValidateGlobalLimitPerMinute = parsePositiveInt(value, cfg.AIValidateGlobalLimitPerMinute)
+	}
+	if value := os.Getenv("WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS"); value != "" {
+		cfg.AIProviderEventRetentionDays = parsePositiveInt(value, cfg.AIProviderEventRetentionDays)
 	}
 	if value := os.Getenv("VALE_BINARY"); value != "" {
 		cfg.ValeBinary = value
@@ -173,6 +181,7 @@ func Save(cfg Config) error {
 		ReviewModel                    string   `json:"review_model"`
 		AIValidateLimitPerMinute       int      `json:"ai_validate_limit_per_minute"`
 		AIValidateGlobalLimitPerMinute int      `json:"ai_validate_global_limit_per_minute"`
+		AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
 		ValeBinary                     string   `json:"vale_binary"`
 		LanguageToolURL                string   `json:"languagetool_url"`
 	}{
@@ -189,6 +198,7 @@ func Save(cfg Config) error {
 		ReviewModel:                    cfg.ReviewModel,
 		AIValidateLimitPerMinute:       cfg.AIValidateLimitPerMinute,
 		AIValidateGlobalLimitPerMinute: cfg.AIValidateGlobalLimitPerMinute,
+		AIProviderEventRetentionDays:   cfg.AIProviderEventRetentionDays,
 		ValeBinary:                     cfg.ValeBinary,
 		LanguageToolURL:                cfg.LanguageToolURL,
 	}

@@ -2787,6 +2787,57 @@ func TestAdminAIProviderEventsEndpointReturnsSummary(t *testing.T) {
 	}
 }
 
+func TestAdminAIProviderEventsEndpointFiltersResults(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	now := time.Now().UTC()
+	for _, event := range []domain.AIProviderEvent{
+		{UserID: user.ID, Provider: "openai", Event: "settings_validate_failed", Category: "auth", StatusCode: 400, CreatedAt: now},
+		{UserID: user.ID, Provider: "anthropic", Event: "generation_fallback", Category: "quota", StatusCode: 502, CreatedAt: now},
+	} {
+		if err := harness.Store.SaveAIProviderEvent(context.Background(), event); err != nil {
+			t.Fatalf("save ai provider event: %v", err)
+		}
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/admin/ai-provider-events?limit=10&hours=24&provider=openai&event=settings_validate_failed")
+	if err != nil {
+		t.Fatalf("get filtered admin ai provider events: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("filtered admin ai provider events status = %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Summary struct {
+			Total int `json:"total"`
+		} `json:"summary"`
+		Events []struct {
+			Provider string `json:"provider"`
+			Event    string `json:"event"`
+		} `json:"events"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode filtered admin ai provider events: %v", err)
+	}
+	if payload.Summary.Total != 1 {
+		t.Fatalf("filtered summary total = %d", payload.Summary.Total)
+	}
+	if len(payload.Events) != 1 {
+		t.Fatalf("filtered event count = %d", len(payload.Events))
+	}
+	if payload.Events[0].Provider != "openai" || payload.Events[0].Event != "settings_validate_failed" {
+		t.Fatalf("filtered event = %#v", payload.Events[0])
+	}
+}
+
 func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	user, err := harness.Store.UserBySlug(context.Background(), "tester")

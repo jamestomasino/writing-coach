@@ -195,6 +195,14 @@ type aiProviderEventSummaryResponse struct {
 	CategoryCounts      []aiProviderEventCountResponse `json:"category_counts"`
 }
 
+type aiProviderEventFiltersResponse struct {
+	Hours     int      `json:"hours"`
+	Provider  string   `json:"provider,omitempty"`
+	Event     string   `json:"event,omitempty"`
+	Providers []string `json:"providers,omitempty"`
+	Events    []string `json:"events,omitempty"`
+}
+
 type userResponse struct {
 	ID             int64  `json:"id"`
 	Slug           string `json:"slug"`
@@ -940,6 +948,8 @@ func (s Server) handleAdminAIProviderEvents(w http.ResponseWriter, r *http.Reque
 	}
 	limit := listLimit(r, 100, 250)
 	hours := 24
+	provider := strings.TrimSpace(normalizeProvider(r.URL.Query().Get("provider")))
+	eventFilter := strings.TrimSpace(r.URL.Query().Get("event"))
 	if raw := strings.TrimSpace(r.URL.Query().Get("hours")); raw != "" {
 		value, err := strconv.Atoi(raw)
 		if err != nil || value <= 0 {
@@ -952,12 +962,12 @@ func (s Server) handleAdminAIProviderEvents(w http.ResponseWriter, r *http.Reque
 		hours = value
 	}
 	since := time.Now().UTC().Add(-time.Duration(hours) * time.Hour)
-	events, err := s.Store.ListRecentAIProviderEvents(r.Context(), limit)
+	events, err := s.Store.ListRecentAIProviderEvents(r.Context(), limit, since, provider, eventFilter)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	summary, err := s.Store.SummarizeAIProviderEventsSince(r.Context(), since)
+	summary, err := s.Store.SummarizeAIProviderEventsSince(r.Context(), since, provider, eventFilter)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -965,6 +975,24 @@ func (s Server) handleAdminAIProviderEvents(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, map[string]any{
 		"summary": s.toAIProviderEventSummaryResponse(summary),
 		"events":  s.toAIProviderEventResponses(events),
+		"filters": aiProviderEventFiltersResponse{
+			Hours:     hours,
+			Provider:  provider,
+			Event:     eventFilter,
+			Providers: []string{"anthropic", "gemini", "openai", "groq", "xai"},
+			Events: []string{
+				"settings_validate_failed",
+				"settings_validate_rate_limited",
+				"settings_validate_succeeded",
+				"settings_save_failed",
+				"settings_save_rate_limited",
+				"settings_save_succeeded",
+				"provider_resolved",
+				"provider_missing",
+				"provider_resolve_failed",
+				"generation_fallback",
+			},
+		},
 	})
 }
 
@@ -2471,6 +2499,11 @@ func (s Server) logAIProviderEvent(event, provider string, userID int64, fields 
 			CreatedAt:  time.Now().UTC(),
 		}); err != nil {
 			log.Printf("ai_provider_event_store_failed provider=%s event=%s user=%d err=%v", strings.TrimSpace(provider), strings.TrimSpace(event), userID, err)
+		} else if s.Config.AIProviderEventRetentionDays > 0 {
+			cutoff := time.Now().UTC().Add(-time.Duration(s.Config.AIProviderEventRetentionDays) * 24 * time.Hour)
+			if err := s.Store.DeleteAIProviderEventsOlderThan(context.Background(), cutoff); err != nil {
+				log.Printf("ai_provider_event_retention_failed cutoff=%s err=%v", cutoff.Format(time.RFC3339), err)
+			}
 		}
 	}
 }

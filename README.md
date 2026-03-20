@@ -153,6 +153,7 @@ Environment variables:
 - `WRITING_COACH_REVIEW_MODEL`
 - `WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE` per-user cap for AI settings validation checks
 - `WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE` app-wide cap for AI settings validation checks
+- `WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS` retention window for admin-visible AI provider activity events
 - `WRITING_COACH_WRITER_NAME`
 - `WRITING_COACH_DEFAULT_USER_SLUG`
 - `WRITING_COACH_DEFAULT_TREE_SLUG`
@@ -168,6 +169,7 @@ AI provider validation hardening:
 - the default per-user cap is `6` validation checks per minute
 - the default app-wide cap is `60` validation checks per minute
 - if a user keeps retrying a bad key, later attempts receive `429 Too Many Requests` without hitting the upstream provider
+- provider activity events are retained for `30` days by default and can be filtered in the admin workspace by window, provider, and event type
 
 ## Deterministic Analysis
 

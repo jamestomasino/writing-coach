@@ -7,9 +7,10 @@ import { CardHeader } from '@/components/card-header'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
+import { Select } from '@/components/select'
 import { Text } from '@/components/text'
 import { getAdminAIProviderEvents, getSession, listAdmins, listUsers, provisionUser } from '@/lib/api'
-import type { AIProviderEvent, AIProviderEventSummary, AuthSession, UserRecord } from '@/lib/types'
+import type { AIProviderEvent, AIProviderEventFilters, AIProviderEventSummary, AuthSession, UserRecord } from '@/lib/types'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -36,9 +37,14 @@ export function AdminView() {
   const [users, setUsers] = useState<UserRecord[]>([])
   const [providerSummary, setProviderSummary] = useState<AIProviderEventSummary | null>(null)
   const [providerEvents, setProviderEvents] = useState<AIProviderEvent[]>([])
+  const [providerFilters, setProviderFilters] = useState<AIProviderEventFilters | null>(null)
+  const [selectedHours, setSelectedHours] = useState('24')
+  const [selectedProvider, setSelectedProvider] = useState('')
+  const [selectedEvent, setSelectedEvent] = useState('')
   const [slug, setSlug] = useState('')
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [loadingProviderActivity, setLoadingProviderActivity] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -57,6 +63,10 @@ export function AdminView() {
           setUsers(userData)
           setProviderSummary(providerData.summary)
           setProviderEvents(providerData.events)
+          setProviderFilters(providerData.filters)
+          setSelectedHours(String(providerData.filters.hours))
+          setSelectedProvider(providerData.filters.provider ?? '')
+          setSelectedEvent(providerData.filters.event ?? '')
         }
       } catch (err) {
         if (!cancelled) {
@@ -73,6 +83,36 @@ export function AdminView() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!session?.is_admin || !providerFilters) {
+      return
+    }
+    let cancelled = false
+    async function loadProviderActivity() {
+      try {
+        setLoadingProviderActivity(true)
+        const providerData = await getAdminAIProviderEvents(100, Number(selectedHours) || 24, selectedProvider, selectedEvent)
+        if (!cancelled) {
+          setProviderSummary(providerData.summary)
+          setProviderEvents(providerData.events)
+          setProviderFilters(providerData.filters)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Could not load AI provider activity')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingProviderActivity(false)
+        }
+      }
+    }
+    void loadProviderActivity()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedEvent, selectedHours, selectedProvider, session?.is_admin])
 
   async function handleProvision(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -159,8 +199,43 @@ export function AdminView() {
           title="Provider activity"
           description="Recent validation failures, local throttling, provider resolution, and fallback events."
         />
+        <FieldGroup className="mt-5 md:grid-cols-3">
+          <Field>
+            <Label>Window</Label>
+            <Select value={selectedHours} onChange={(event) => setSelectedHours(event.target.value)}>
+              <option value="1">Last hour</option>
+              <option value="6">Last 6 hours</option>
+              <option value="24">Last 24 hours</option>
+              <option value="72">Last 3 days</option>
+              <option value="168">Last 7 days</option>
+            </Select>
+          </Field>
+          <Field>
+            <Label>Provider</Label>
+            <Select value={selectedProvider} onChange={(event) => setSelectedProvider(event.target.value)}>
+              <option value="">All providers</option>
+              {providerFilters?.providers.map((provider) => (
+                <option key={provider} value={provider}>
+                  {provider}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field>
+            <Label>Event type</Label>
+            <Select value={selectedEvent} onChange={(event) => setSelectedEvent(event.target.value)}>
+              <option value="">All event types</option>
+              {providerFilters?.events.map((eventName) => (
+                <option key={eventName} value={eventName}>
+                  {humanizeEventLabel(eventName)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </FieldGroup>
         {providerSummary ? (
           <>
+            {loadingProviderActivity ? <Text className="mt-4 text-sm">Refreshing provider activity…</Text> : null}
             <div className="mt-5 grid gap-4 md:grid-cols-4">
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
                 <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Events</div>

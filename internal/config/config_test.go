@@ -75,6 +75,7 @@ func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE", "3")
 	t.Setenv("WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE", "12")
+	t.Setenv("WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS", "21")
 
 	loaded, err := Load(root)
 	if err != nil {
@@ -85,5 +86,8 @@ func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
 	}
 	if loaded.AIValidateGlobalLimitPerMinute != 12 {
 		t.Fatalf("global validation limit = %d", loaded.AIValidateGlobalLimitPerMinute)
+	}
+	if loaded.AIProviderEventRetentionDays != 21 {
+		t.Fatalf("provider event retention days = %d", loaded.AIProviderEventRetentionDays)
 	}
 }

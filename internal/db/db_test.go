@@ -312,3 +312,62 @@ func TestAIProviderSettingsCRUD(t *testing.T) {
 		t.Fatalf("expected not found after delete, got %v", err)
 	}
 }
+
+func TestAIProviderEventsFilteringAndRetention(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, _, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+
+	now := time.Now().UTC()
+	for _, event := range []domain.AIProviderEvent{
+		{UserID: userID, Provider: "openai", Event: "settings_validate_failed", Category: "auth", StatusCode: 400, CreatedAt: now},
+		{UserID: userID, Provider: "openai", Event: "settings_validate_rate_limited", Category: "local_rate_limit", StatusCode: 429, CreatedAt: now.Add(-time.Hour)},
+		{UserID: userID, Provider: "anthropic", Event: "generation_fallback", Category: "quota", StatusCode: 502, CreatedAt: now.Add(-48 * time.Hour)},
+	} {
+		if err := store.SaveAIProviderEvent(ctx, event); err != nil {
+			t.Fatalf("save provider event: %v", err)
+		}
+	}
+
+	recent, err := store.ListRecentAIProviderEvents(ctx, 20, now.Add(-24*time.Hour), "openai", "")
+	if err != nil {
+		t.Fatalf("list recent provider events: %v", err)
+	}
+	if len(recent) != 2 {
+		t.Fatalf("recent filtered events = %d", len(recent))
+	}
+
+	summary, err := store.SummarizeAIProviderEventsSince(ctx, now.Add(-24*time.Hour), "openai", "")
+	if err != nil {
+		t.Fatalf("summarize provider events: %v", err)
+	}
+	if summary.Total != 2 {
+		t.Fatalf("summary total = %d", summary.Total)
+	}
+
+	if err := store.DeleteAIProviderEventsOlderThan(ctx, now.Add(-24*time.Hour)); err != nil {
+		t.Fatalf("delete old provider events: %v", err)
+	}
+	allAfterRetention, err := store.ListRecentAIProviderEvents(ctx, 20, now.Add(-7*24*time.Hour), "", "")
+	if err != nil {
+		t.Fatalf("list provider events after retention: %v", err)
+	}
+	if len(allAfterRetention) != 2 {
+		t.Fatalf("provider events after retention = %d", len(allAfterRetention))
+	}
+}

@@ -241,6 +241,14 @@ export type AIProviderEventSummary = {
   category_counts: AIProviderEventCount[]
 }
 
+export type AIProviderEventFilters = {
+  hours: number
+  provider?: string
+  event?: string
+  providers: string[]
+  events: string[]
+}
+
 export type AIProviderEvent = {
   id: number
   user_id: number

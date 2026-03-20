@@ -4,6 +4,7 @@ import type {
   AuthSession,
   AIProviderSettings,
   AIProviderEvent,
+  AIProviderEventFilters,
   AIProviderEventSummary,
   AssignmentTimeline,
   AssignmentSummary,
@@ -291,9 +292,19 @@ export async function provisionUser(input: { slug: string; name: string }) {
   })
 }
 
-export async function getAdminAIProviderEvents(limit = 100, hours = 24) {
-  return request<{ summary: AIProviderEventSummary; events: AIProviderEvent[] }>(
-    `/api/admin/ai-provider-events?limit=${limit}&hours=${hours}`
+export async function getAdminAIProviderEvents(limit = 100, hours = 24, provider = '', event = '') {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    hours: String(hours),
+  })
+  if (provider) {
+    params.set('provider', provider)
+  }
+  if (event) {
+    params.set('event', event)
+  }
+  return request<{ summary: AIProviderEventSummary; events: AIProviderEvent[]; filters: AIProviderEventFilters }>(
+    `/api/admin/ai-provider-events?${params.toString()}`
   )
 }
 
