@@ -4,6 +4,16 @@ This project uses Calendar Versioning (`YYYY.MM.DD`) for release tags.
 
 This changelog starts after the initial launch state. Early development and launch work are intentionally not backfilled here.
 
+Development workflow moving forward:
+
+- build changes on feature branches
+- merge through pull requests
+- squash merge into `main`
+- cut release tags from `main`
+- move release-facing notes from `Unreleased` into the dated release section when tagging
+
+For the full workflow, see [docs/release-process.md](/home/tomasino/writing-coach/docs/release-process.md).
+
 ## Unreleased
 
 - No entries yet.
