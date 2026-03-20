@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { getAssignmentTimeline } from '@/lib/api'
 import type { AssignmentTimeline, AssignmentTimelineStep } from '@/lib/types'
+import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -82,6 +83,9 @@ function ExerciseStepSection({ step }: { step: AssignmentTimelineStep }) {
       />
       <div className="mt-5 grid gap-6 xl:grid-cols-2">
         <div>
+          <ProviderProvenance providerNote={step.exercise.provider_note} />
+        </div>
+        <div>
           <Strong>Constraints</Strong>
           <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
             {step.exercise.constraints.map((item) => (
@@ -146,6 +150,12 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
       />
       <div className="mt-5 grid gap-6 xl:grid-cols-2">
         <div className="space-y-4">
+          <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Provider details</div>
+            <div className="mt-3">
+              <ProviderProvenance providerNote={step.review.provider_note} />
+            </div>
+          </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">Strengths</div>
             <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">

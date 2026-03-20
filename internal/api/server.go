@@ -1732,13 +1732,13 @@ func (s Server) generateNextExercise(ctx context.Context, appContext session.Con
 		log.Printf("create exercise: active skills lookup failed for enrollment=%d: %v", appContext.EnrollmentID, err)
 		return domain.Exercise{}, err
 	}
-	llmClient, providerKind, err := s.resolveLLMClient(ctx, appContext.UserID)
+	runtime, err := s.resolveLLMRuntime(ctx, appContext.UserID)
 	if err != nil {
 		log.Printf("create exercise: provider resolution failed for user=%d: %v", appContext.UserID, err)
 		return domain.Exercise{}, err
 	}
 
-	ex := s.Prompts.WithClient(llmClient, providerKind).NextExercise(ctx, prompt.Context{
+	ex := s.Prompts.WithClient(runtime.Client, runtime.ProviderKind).NextExercise(ctx, prompt.Context{
 		CurriculumState:   state,
 		ActiveTGOs:        activeTGOs,
 		OnboardingProfile: profile,
@@ -1747,8 +1747,11 @@ func (s Server) generateNextExercise(ctx context.Context, appContext session.Con
 		RecurringFindings: recurringFindings,
 		CoachingBrief:     coachingBrief,
 	})
+	if ex.GenerationKind == runtime.ProviderKind {
+		ex.ProviderNote = formatProviderNote(runtime.ProviderKind, runtime.PromptModel)
+	}
 	if ex.GenerationKind == "deterministic-fallback" {
-		s.logAIProviderEvent("generation_fallback", providerKind, appContext.UserID, map[string]any{
+		s.logAIProviderEvent("generation_fallback", runtime.ProviderKind, appContext.UserID, map[string]any{
 			"artifact": "exercise",
 			"reason":   strings.TrimSpace(ex.ProviderNote),
 		})
@@ -1872,7 +1875,7 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	if err != nil {
 		return domain.Exercise{}, err
 	}
-	llmClient, providerKind, err := s.resolveLLMClient(ctx, appContext.UserID)
+	runtime, err := s.resolveLLMRuntime(ctx, appContext.UserID)
 	if err != nil {
 		return domain.Exercise{}, err
 	}
@@ -1885,7 +1888,7 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 		}
 	}
 
-	ex := s.Prompts.WithClient(llmClient, providerKind).RevisionExercise(ctx, prompt.Context{
+	ex := s.Prompts.WithClient(runtime.Client, runtime.ProviderKind).RevisionExercise(ctx, prompt.Context{
 		CurriculumState:    state,
 		ActiveTGOs:         activeTGOs,
 		RecentTitles:       recentTitles,
@@ -1896,8 +1899,11 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 		RevisionReview:     &reviewResult,
 		RevisionComparison: cmp,
 	})
+	if ex.GenerationKind == runtime.ProviderKind {
+		ex.ProviderNote = formatProviderNote(runtime.ProviderKind, runtime.PromptModel)
+	}
 	if ex.GenerationKind == "deterministic-fallback" {
-		s.logAIProviderEvent("generation_fallback", providerKind, appContext.UserID, map[string]any{
+		s.logAIProviderEvent("generation_fallback", runtime.ProviderKind, appContext.UserID, map[string]any{
 			"artifact": "revision_exercise",
 			"reason":   strings.TrimSpace(ex.ProviderNote),
 		})
@@ -2280,14 +2286,17 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	if err != nil {
 		return fmt.Errorf("load tree slug: %w", err)
 	}
-	llmClient, providerKind, err := s.resolveLLMClient(ctx, job.UserID)
+	runtime, err := s.resolveLLMRuntime(ctx, job.UserID)
 	if err != nil {
 		return fmt.Errorf("resolve provider: %w", err)
 	}
 
-	reviewResult := s.Reviews.WithClient(llmClient, providerKind).ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
+	reviewResult := s.Reviews.WithClient(runtime.Client, runtime.ProviderKind).ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
+	if reviewResult.Review.ReviewKind == runtime.ProviderKind {
+		reviewResult.Review.ProviderNote = formatProviderNote(runtime.ProviderKind, runtime.ReviewModel)
+	}
 	if reviewResult.Review.ReviewKind == "deterministic-fallback" {
-		s.logAIProviderEvent("generation_fallback", providerKind, job.UserID, map[string]any{
+		s.logAIProviderEvent("generation_fallback", runtime.ProviderKind, job.UserID, map[string]any{
 			"artifact": "review",
 			"reason":   strings.TrimSpace(reviewResult.Review.ProviderNote),
 		})

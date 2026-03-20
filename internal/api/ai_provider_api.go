@@ -442,27 +442,59 @@ func effectiveProviderLabel(hasSettings, enabled bool) string {
 	return "system/openai"
 }
 
-func (s Server) resolveLLMClient(ctx context.Context, userID int64) (llm.Client, string, error) {
+type llmRuntime struct {
+	Client       llm.Client
+	ProviderKind string
+	PromptModel  string
+	ReviewModel  string
+}
+
+func formatProviderNote(providerKind, model string) string {
+	providerKind = strings.TrimSpace(providerKind)
+	model = strings.TrimSpace(model)
+	if providerKind == "" {
+		return model
+	}
+	if model == "" {
+		return providerKind
+	}
+	return providerKind + " • " + model
+}
+
+func (s Server) resolveLLMRuntime(ctx context.Context, userID int64) (llmRuntime, error) {
 	settings, err := s.Store.AIProviderSettingsByUserID(ctx, userID)
 	if err != nil && !db.IsNotFound(err) {
-		return nil, "", err
+		return llmRuntime{}, err
 	}
 	if err == nil && settings.Enabled {
 		decrypted, err := secrets.DecryptString(s.Config.AIKeySecret, settings.APIKeyEncrypted)
 		if err != nil {
 			s.logAIProviderEvent("provider_resolve_failed", settings.Provider, userID, map[string]any{"category": "decrypt"})
-			return nil, "", err
+			return llmRuntime{}, err
 		}
-		client := s.providerClient(normalizeProvider(settings.Provider), decrypted, settings.BaseURLOverride, settings.PromptModelOverride, settings.ReviewModelOverride)
+		normalized := normalizeProvider(settings.Provider)
+		promptModel := firstNonEmpty(settings.PromptModelOverride, defaultModelForProvider(normalized, "prompt", s.Config))
+		reviewModel := firstNonEmpty(settings.ReviewModelOverride, defaultModelForProvider(normalized, "review", s.Config))
+		client := s.providerClient(normalized, decrypted, settings.BaseURLOverride, settings.PromptModelOverride, settings.ReviewModelOverride)
 		s.logAIProviderEvent("provider_resolved", settings.Provider, userID, map[string]any{"mode": "personal"})
-		return client, "user/" + normalizeProvider(settings.Provider), nil
+		return llmRuntime{
+			Client:       client,
+			ProviderKind: "user/" + normalized,
+			PromptModel:  promptModel,
+			ReviewModel:  reviewModel,
+		}, nil
 	}
 	if systemFallbackAvailable(s.Config) {
 		s.logAIProviderEvent("provider_resolved", "openai", userID, map[string]any{"mode": "system"})
-		return openai.NewClient(s.Config), "system/openai", nil
+		return llmRuntime{
+			Client:       openai.NewClient(s.Config),
+			ProviderKind: "system/openai",
+			PromptModel:  strings.TrimSpace(s.Config.PromptModel),
+			ReviewModel:  strings.TrimSpace(s.Config.ReviewModel),
+		}, nil
 	}
 	s.logAIProviderEvent("provider_missing", "", userID, nil)
-	return nil, "", nil
+	return llmRuntime{}, nil
 }
 
 func (s Server) providerClient(provider, apiKey, baseURL, promptModel, reviewModel string) llm.Client {

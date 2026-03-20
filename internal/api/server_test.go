@@ -1674,7 +1674,7 @@ func TestPromptNextUsesUserProviderSettings(t *testing.T) {
 	if payload.Exercise.GenerationKind != "user/xai" {
 		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
 	}
-	if payload.Exercise.ProviderNote != "user/xai" {
+	if payload.Exercise.ProviderNote != "user/xai • gpt-5-mini" {
 		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
 	}
 	if authHeader != "Bearer sk-user-9876" {
@@ -1780,7 +1780,7 @@ func TestReviewWorkerUsesUserProviderSettings(t *testing.T) {
 	if savedReview.ReviewKind != "user/groq" {
 		t.Fatalf("review kind = %q", savedReview.ReviewKind)
 	}
-	if savedReview.ProviderNote != "user/groq" {
+	if savedReview.ProviderNote != "user/groq • gpt-5-mini" {
 		t.Fatalf("provider note = %q", savedReview.ProviderNote)
 	}
 	if authHeader != "Bearer sk-review-4321" {
@@ -1843,7 +1843,7 @@ func TestPromptNextUsesAnthropicProviderSettings(t *testing.T) {
 	if payload.Exercise.GenerationKind != "user/anthropic" {
 		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
 	}
-	if payload.Exercise.ProviderNote != "user/anthropic" {
+	if payload.Exercise.ProviderNote != "user/anthropic • claude-sonnet-4-20250514" {
 		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
 	}
 	if apiKey != "sk-ant-5555" {
@@ -1937,7 +1937,7 @@ func TestReviewWorkerUsesAnthropicProviderSettings(t *testing.T) {
 	if savedReview.ReviewKind != "user/anthropic" {
 		t.Fatalf("review kind = %q", savedReview.ReviewKind)
 	}
-	if savedReview.ProviderNote != "user/anthropic" {
+	if savedReview.ProviderNote != "user/anthropic • claude-sonnet-4-20250514" {
 		t.Fatalf("provider note = %q", savedReview.ProviderNote)
 	}
 	if apiKey != "sk-ant-review" {
@@ -2000,7 +2000,7 @@ func TestPromptNextUsesGeminiProviderSettings(t *testing.T) {
 	if payload.Exercise.GenerationKind != "user/gemini" {
 		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
 	}
-	if payload.Exercise.ProviderNote != "user/gemini" {
+	if payload.Exercise.ProviderNote != "user/gemini • gemini-2.5-flash" {
 		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
 	}
 	if apiKey != "sk-gem-1234" {
@@ -2094,7 +2094,7 @@ func TestReviewWorkerUsesGeminiProviderSettings(t *testing.T) {
 	if savedReview.ReviewKind != "user/gemini" {
 		t.Fatalf("review kind = %q", savedReview.ReviewKind)
 	}
-	if savedReview.ProviderNote != "user/gemini" {
+	if savedReview.ProviderNote != "user/gemini • gemini-2.5-flash" {
 		t.Fatalf("provider note = %q", savedReview.ProviderNote)
 	}
 	if apiKey != "sk-gem-review" {

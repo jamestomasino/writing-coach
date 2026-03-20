@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { createRevisionAssignment, getAssignmentTimeline, getExercise, getReview, getSubmission } from '@/lib/api'
 import type { Exercise, Review, Submission } from '@/lib/types'
+import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -124,6 +125,14 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <Text>This review is part of your assignment history. To keep working, use the current assignment workspace.</Text>
         </WorkspaceCard>
       ) : null}
+
+      <WorkspaceCard>
+        <CardHeader eyebrow="Generation" title="Provider details" />
+        <div className="mt-4 space-y-4">
+          <ProviderProvenance providerNote={exercise.provider_note} />
+          <ProviderProvenance providerNote={review.provider_note} />
+        </div>
+      </WorkspaceCard>
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>

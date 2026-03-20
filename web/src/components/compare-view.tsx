@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { createRevisionAssignment, getComparison, getReviews, getSubmission } from '@/lib/api'
 import type { Comparison, Review, Submission } from '@/lib/types'
+import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -130,6 +131,9 @@ export function CompareView({ submissionId }: { submissionId: number }) {
         <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
           <WorkspaceCard>
             <CardHeader eyebrow="State" title="Current skill state" />
+            <div className="mt-4">
+              <ProviderProvenance providerNote={review.provider_note} />
+            </div>
             <div className="mt-4 space-y-4">
               {review.tgo_assessments.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-2xl border border-stone-200 p-4 dark:border-white/10">

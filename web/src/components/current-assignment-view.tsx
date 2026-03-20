@@ -15,6 +15,7 @@ import { Textarea } from '@/components/textarea'
 import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmission, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
 import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
 import { MasteryProgress } from './mastery-progress'
+import { ProviderProvenance } from './provider-provenance'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -449,6 +450,9 @@ export function CurrentAssignmentView() {
                     <Badge color="zinc">Source draft #{sourceSubmission?.draft_number ?? 1}</Badge>
                     <Badge color="cyan">{exercise.generation_kind}</Badge>
                   </div>
+                  <div className="mt-3">
+                    <ProviderProvenance providerNote={exercise.provider_note} compact />
+                  </div>
                   <Text className="mt-3">
                     The editor is preloaded with your latest reviewed draft so you can revise directly instead of pasting it back in.
                   </Text>
@@ -492,6 +496,7 @@ export function CurrentAssignmentView() {
         <WorkspaceCard>
           <CardHeader eyebrow="Assignment brief" title="Prompt" actions={<Badge color="zinc">{exercise.generation_kind}</Badge>} />
           <div className="mt-4 space-y-5">
+            <ProviderProvenance providerNote={exercise.provider_note} />
             <div>
               <Strong>Constraints</Strong>
               <ul className="mt-2 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">

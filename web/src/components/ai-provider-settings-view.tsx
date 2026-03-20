@@ -31,6 +31,8 @@ const providerMetadata = {
     defaultBaseURL: 'https://api.anthropic.com/v1',
     promptModel: 'claude-sonnet-4-20250514',
     reviewModel: 'claude-sonnet-4-20250514',
+    promptModels: ['claude-sonnet-4-20250514'],
+    reviewModels: ['claude-sonnet-4-20250514'],
     apiKeyHint: 'Anthropic API key',
     note: 'Uses Anthropic’s native Messages API with structured tool output.',
     modelHelp: 'Claude Sonnet is the recommended default here. Swap it only if you know the replacement supports the same structured outputs.',
@@ -40,6 +42,8 @@ const providerMetadata = {
     defaultBaseURL: 'https://generativelanguage.googleapis.com/v1beta',
     promptModel: 'gemini-2.5-flash',
     reviewModel: 'gemini-2.5-flash',
+    promptModels: ['gemini-2.5-flash', 'gemini-2.5-pro'],
+    reviewModels: ['gemini-2.5-flash', 'gemini-2.5-pro'],
     apiKeyHint: 'Gemini API key',
     note: 'Uses Gemini’s native generateContent API with JSON schema output.',
     modelHelp: 'Gemini 2.5 Flash is the light default. If you switch models, make sure the replacement still handles structured JSON responses well.',
@@ -49,6 +53,8 @@ const providerMetadata = {
     defaultBaseURL: 'https://api.openai.com/v1',
     promptModel: 'gpt-5-mini',
     reviewModel: 'gpt-5-mini',
+    promptModels: ['gpt-5-mini', 'gpt-5'],
+    reviewModels: ['gpt-5-mini', 'gpt-5'],
     apiKeyHint: 'OpenAI API key',
     note: 'Uses the OpenAI Responses API directly.',
     modelHelp: 'GPT-5 Mini is the default for both prompt and review generation. You can override it, but use a model that supports structured responses.',
@@ -58,6 +64,8 @@ const providerMetadata = {
     defaultBaseURL: 'https://api.groq.com/openai/v1',
     promptModel: 'gpt-5-mini',
     reviewModel: 'gpt-5-mini',
+    promptModels: ['gpt-5-mini'],
+    reviewModels: ['gpt-5-mini'],
     apiKeyHint: 'Groq API key',
     note: 'Uses Groq’s OpenAI-compatible endpoint.',
     modelHelp: 'Use a Groq-hosted model that behaves well with OpenAI-style structured responses. Replace the default only if you know the target model is available on your Groq account.',
@@ -67,12 +75,17 @@ const providerMetadata = {
     defaultBaseURL: 'https://api.x.ai/v1',
     promptModel: 'gpt-5-mini',
     reviewModel: 'gpt-5-mini',
+    promptModels: ['gpt-5-mini'],
+    reviewModels: ['gpt-5-mini'],
     apiKeyHint: 'xAI API key',
     note: 'Uses xAI’s OpenAI-compatible endpoint.',
     modelHelp: 'Use an xAI model that supports the OpenAI-compatible response shape expected by the app. Override the model only if you have a specific supported target in mind.',
     validationHelp: 'Validation checks xAI’s OpenAI-compatible endpoint. Keep the default base URL unless you are routing through a compatible proxy.',
   },
 } as const
+
+const DEFAULT_MODEL_OPTION = '__default__'
+const CUSTOM_MODEL_OPTION = '__custom__'
 
 function providerLabel(value?: string) {
   return providerOptions.find((item) => item.value === value)?.label ?? value ?? 'System provider'
@@ -174,6 +187,8 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   const [baseURL, setBaseURL] = useState('')
   const [promptModel, setPromptModel] = useState('')
   const [reviewModel, setReviewModel] = useState('')
+  const [customPromptModel, setCustomPromptModel] = useState(false)
+  const [customReviewModel, setCustomReviewModel] = useState(false)
   const [enabled, setEnabled] = useState(true)
   const [saving, setSaving] = useState(false)
   const [validating, setValidating] = useState(false)
@@ -181,6 +196,10 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   const validatedAt = formatLocalTimestamp(settings?.validated_at)
   const personalStorageAvailable = settings?.personal_provider_storage_available ?? true
   const selectedProvider = providerMetadata[provider as keyof typeof providerMetadata] ?? providerMetadata.openai
+  const promptModelIsPreset = selectedProvider.promptModels.includes(promptModel as never)
+  const reviewModelIsPreset = selectedProvider.reviewModels.includes(reviewModel as never)
+  const promptModelSelectValue = customPromptModel || (promptModel.trim() !== '' && !promptModelIsPreset) ? CUSTOM_MODEL_OPTION : promptModel.trim() === '' ? DEFAULT_MODEL_OPTION : promptModel
+  const reviewModelSelectValue = customReviewModel || (reviewModel.trim() !== '' && !reviewModelIsPreset) ? CUSTOM_MODEL_OPTION : reviewModel.trim() === '' ? DEFAULT_MODEL_OPTION : reviewModel
 
   useEffect(() => {
     let cancelled = false
@@ -211,6 +230,20 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (promptModel.trim() === '') {
+      setCustomPromptModel(false)
+    } else if (!(selectedProvider.promptModels as readonly string[]).includes(promptModel.trim())) {
+      setCustomPromptModel(true)
+    }
+
+    if (reviewModel.trim() === '') {
+      setCustomReviewModel(false)
+    } else if (!(selectedProvider.reviewModels as readonly string[]).includes(reviewModel.trim())) {
+      setCustomReviewModel(true)
+    }
+  }, [provider])
 
   async function handleValidate() {
     try {
@@ -285,8 +318,44 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
 
   function handleApplyDefaults() {
     setBaseURL(selectedProvider.defaultBaseURL)
-    setPromptModel(selectedProvider.promptModel)
-    setReviewModel(selectedProvider.reviewModel)
+    setPromptModel('')
+    setReviewModel('')
+    setCustomPromptModel(false)
+    setCustomReviewModel(false)
+  }
+
+  function handlePromptModelChange(value: string) {
+    if (value === DEFAULT_MODEL_OPTION) {
+      setPromptModel('')
+      setCustomPromptModel(false)
+      return
+    }
+    if (value === CUSTOM_MODEL_OPTION) {
+      setCustomPromptModel(true)
+      if ((selectedProvider.promptModels as readonly string[]).includes(promptModel)) {
+        setPromptModel('')
+      }
+      return
+    }
+    setPromptModel(value)
+    setCustomPromptModel(false)
+  }
+
+  function handleReviewModelChange(value: string) {
+    if (value === DEFAULT_MODEL_OPTION) {
+      setReviewModel('')
+      setCustomReviewModel(false)
+      return
+    }
+    if (value === CUSTOM_MODEL_OPTION) {
+      setCustomReviewModel(true)
+      if ((selectedProvider.reviewModels as readonly string[]).includes(reviewModel)) {
+        setReviewModel('')
+      }
+      return
+    }
+    setReviewModel(value)
+    setCustomReviewModel(false)
   }
 
   if (loading) {
@@ -414,11 +483,37 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
               </Field>
               <Field>
                 <Label>Prompt model override</Label>
-                <Input value={promptModel} onChange={(event) => setPromptModel(event.target.value)} placeholder={selectedProvider.promptModel} />
+                <Select value={promptModelSelectValue} onChange={(event) => handlePromptModelChange(event.target.value)}>
+                  <option value={DEFAULT_MODEL_OPTION}>Use suggested default ({selectedProvider.promptModel})</option>
+                  {selectedProvider.promptModels.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_MODEL_OPTION}>Custom model…</option>
+                </Select>
+                {promptModelSelectValue === CUSTOM_MODEL_OPTION ? (
+                  <div className="mt-2">
+                    <Input value={promptModel} onChange={(event) => setPromptModel(event.target.value)} placeholder={selectedProvider.promptModel} />
+                  </div>
+                ) : null}
               </Field>
               <Field>
                 <Label>Review model override</Label>
-                <Input value={reviewModel} onChange={(event) => setReviewModel(event.target.value)} placeholder={selectedProvider.reviewModel} />
+                <Select value={reviewModelSelectValue} onChange={(event) => handleReviewModelChange(event.target.value)}>
+                  <option value={DEFAULT_MODEL_OPTION}>Use suggested default ({selectedProvider.reviewModel})</option>
+                  {selectedProvider.reviewModels.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_MODEL_OPTION}>Custom model…</option>
+                </Select>
+                {reviewModelSelectValue === CUSTOM_MODEL_OPTION ? (
+                  <div className="mt-2">
+                    <Input value={reviewModel} onChange={(event) => setReviewModel(event.target.value)} placeholder={selectedProvider.reviewModel} />
+                  </div>
+                ) : null}
               </Field>
             </FieldGroup>
 
