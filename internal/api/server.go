@@ -515,9 +515,14 @@ func (s Server) handleAISettingsUpsert(w http.ResponseWriter, r *http.Request) {
 		Enabled:             payload.Enabled,
 	}
 	if err := s.validateAIProviderSettings(r.Context(), settings, rawKey); err != nil {
-		writeError(w, statusForAIProviderValidationError(err), err)
+		s.logAIProviderEvent("settings_save_failed", settings.Provider, appContext.UserID, map[string]any{
+			"category": aiProviderErrorCategory(err),
+			"status":   statusForAIProviderValidationError(err),
+		})
+		writeError(w, statusForAIProviderValidationError(err), userFacingAIProviderError("save", settings.Provider, err))
 		return
 	}
+	s.logAIProviderEvent("settings_save_succeeded", settings.Provider, appContext.UserID, nil)
 	settings.APIKeyEncrypted = encryptedKey
 	settings.ValidatedAt = now
 	settings.LastValidationError = ""
@@ -582,9 +587,14 @@ func (s Server) handleAISettingsValidate(w http.ResponseWriter, r *http.Request)
 		ValidatedAt:         time.Now().UTC(),
 	}
 	if err := s.validateAIProviderSettings(r.Context(), settings, rawKey); err != nil {
-		writeError(w, statusForAIProviderValidationError(err), err)
+		s.logAIProviderEvent("settings_validate_failed", settings.Provider, appContext.UserID, map[string]any{
+			"category": aiProviderErrorCategory(err),
+			"status":   statusForAIProviderValidationError(err),
+		})
+		writeError(w, statusForAIProviderValidationError(err), userFacingAIProviderError("validate", settings.Provider, err))
 		return
 	}
+	s.logAIProviderEvent("settings_validate_succeeded", settings.Provider, appContext.UserID, nil)
 	response := s.toAIProviderSettingsResponse(settings, true)
 	response.HasKey = true
 	response.KeyLast4 = settings.APIKeyLast4
@@ -1880,6 +1890,12 @@ func (s Server) generateNextExercise(ctx context.Context, appContext session.Con
 		RecurringFindings: recurringFindings,
 		CoachingBrief:     coachingBrief,
 	})
+	if ex.GenerationKind == "deterministic-fallback" {
+		s.logAIProviderEvent("generation_fallback", providerKind, appContext.UserID, map[string]any{
+			"artifact": "exercise",
+			"reason":   strings.TrimSpace(ex.ProviderNote),
+		})
+	}
 	if len(activeTGOs) > 0 {
 		ex.FocusSkills = focusSkillsForTGOs(activeTGOs, ex.FocusSkills)
 		ex.TGOCodes = tgoCodesForExercise(activeTGOs)
@@ -2023,6 +2039,12 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 		RevisionReview:     &reviewResult,
 		RevisionComparison: cmp,
 	})
+	if ex.GenerationKind == "deterministic-fallback" {
+		s.logAIProviderEvent("generation_fallback", providerKind, appContext.UserID, map[string]any{
+			"artifact": "revision_exercise",
+			"reason":   strings.TrimSpace(ex.ProviderNote),
+		})
+	}
 	ex.UserID = appContext.UserID
 	ex.TreeID = appContext.TreeID
 	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
@@ -2251,6 +2273,75 @@ func (s Server) validateAIProviderSettings(ctx context.Context, settings domain.
 	return nil
 }
 
+func aiProviderErrorCategory(err error) string {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	var httpErr *openai.HTTPError
+	if errors.As(err, &httpErr) {
+		switch httpErr.StatusCode {
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return "auth"
+		case http.StatusTooManyRequests:
+			message := strings.ToLower(httpErr.Message)
+			if strings.Contains(message, "quota") || strings.Contains(message, "insufficient_quota") || strings.Contains(message, "billing") {
+				return "quota"
+			}
+			return "rate_limit"
+		case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return "upstream"
+		default:
+			return "provider_http"
+		}
+	}
+	var timeoutErr interface{ Timeout() bool }
+	if errors.As(err, &timeoutErr) && timeoutErr.Timeout() {
+		return "timeout"
+	}
+	return "unknown"
+}
+
+func userFacingAIProviderError(action, provider string, err error) error {
+	label := strings.ToUpper(strings.TrimSpace(provider))
+	if label == "" {
+		label = "provider"
+	}
+	switch aiProviderErrorCategory(err) {
+	case "auth":
+		return fmt.Errorf("%s rejected this API key. Check that the key is correct and has access to the selected endpoint", label)
+	case "quota":
+		return fmt.Errorf("%s cannot be used right now because the account is out of quota or billing is unavailable", label)
+	case "rate_limit":
+		return fmt.Errorf("%s is rate-limiting requests right now. Try again in a moment", label)
+	case "timeout":
+		return fmt.Errorf("the %s check timed out. Confirm the endpoint and try again", strings.ToLower(label))
+	case "upstream":
+		return fmt.Errorf("%s is temporarily unavailable. Try again shortly", label)
+	default:
+		if strings.TrimSpace(action) != "" {
+			return fmt.Errorf("could not %s this %s configuration right now", action, label)
+		}
+		return fmt.Errorf("could not use %s right now", label)
+	}
+}
+
+func (s Server) logAIProviderEvent(event, provider string, userID int64, fields map[string]any) {
+	parts := []string{
+		"ai_provider_event=" + strings.TrimSpace(event),
+		"provider=" + firstNonEmpty(strings.TrimSpace(provider), "unknown"),
+		fmt.Sprintf("user=%d", userID),
+	}
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		parts = append(parts, fmt.Sprintf("%s=%v", key, fields[key]))
+	}
+	log.Printf(strings.Join(parts, " "))
+}
+
 func (s Server) resolveAIProviderKey(ctx context.Context, existing domain.AIProviderSettings, provider, apiKey string) (string, string, string, error) {
 	_ = ctx
 	trimmedKey := strings.TrimSpace(apiKey)
@@ -2326,6 +2417,7 @@ func (s Server) resolveLLMClient(ctx context.Context, userID int64) (*openai.Cli
 	if err == nil && settings.Enabled {
 		decrypted, err := secrets.DecryptString(s.Config.AIKeySecret, settings.APIKeyEncrypted)
 		if err != nil {
+			s.logAIProviderEvent("provider_resolve_failed", settings.Provider, userID, map[string]any{"category": "decrypt"})
 			return nil, "", err
 		}
 		client := openai.NewClientWithOptions(openai.ClientOptions{
@@ -2334,11 +2426,14 @@ func (s Server) resolveLLMClient(ctx context.Context, userID int64) (*openai.Cli
 			PromptModel: firstNonEmpty(settings.PromptModelOverride, s.Config.PromptModel),
 			ReviewModel: firstNonEmpty(settings.ReviewModelOverride, s.Config.ReviewModel),
 		})
+		s.logAIProviderEvent("provider_resolved", settings.Provider, userID, map[string]any{"mode": "personal"})
 		return client, "user/" + normalizeProvider(settings.Provider), nil
 	}
 	if systemFallbackAvailable(s.Config) {
+		s.logAIProviderEvent("provider_resolved", "openai", userID, map[string]any{"mode": "system"})
 		return openai.NewClient(s.Config), "system/openai", nil
 	}
+	s.logAIProviderEvent("provider_missing", "", userID, nil)
 	return nil, "", nil
 }
 
@@ -2560,6 +2655,12 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	}
 
 	reviewResult := s.Reviews.WithClient(llmClient, providerKind).ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
+	if reviewResult.Review.ReviewKind == "deterministic-fallback" {
+		s.logAIProviderEvent("generation_fallback", providerKind, job.UserID, map[string]any{
+			"artifact": "review",
+			"reason":   strings.TrimSpace(reviewResult.Review.ProviderNote),
+		})
+	}
 	reviewResult.Review.UserID = job.UserID
 	reviewResult.Review.TreeID = job.TreeID
 	recommendation, err := s.Curriculum.SyncTGOs(ctx, s.Store, treeSlug, job.EnrollmentID, reviewResult.Review)

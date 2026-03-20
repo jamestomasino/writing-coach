@@ -1171,7 +1171,41 @@ func TestAISettingsValidateRejectsInvalidCredentials(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode validation error: %v", err)
 	}
-	if !strings.Contains(payload.Error, "invalid api key") {
+	if !strings.Contains(strings.ToLower(payload.Error), "rejected this api key") {
+		t.Fatalf("unexpected error = %q", payload.Error)
+	}
+}
+
+func TestAISettingsValidateMapsQuotaError(t *testing.T) {
+	testServer := newTestServer(t)
+	defer testServer.Close()
+
+	fakeProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = io.WriteString(w, `{"error":{"message":"insufficient_quota"}}`)
+	}))
+	defer fakeProvider.Close()
+
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-quota","base_url_override":%q,"enabled":true}`, fakeProvider.URL)))
+	if err != nil {
+		t.Fatalf("new validate request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("validate quota error: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode quota error: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(payload.Error), "out of quota") {
 		t.Fatalf("unexpected error = %q", payload.Error)
 	}
 }
