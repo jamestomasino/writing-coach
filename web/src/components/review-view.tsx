@@ -5,84 +5,31 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import {
-  createRevisionAssignment,
-  getAssignmentTimeline,
-  getExercise,
-  getReview,
-  getSubmission,
-} from '@/lib/api'
-import type { Exercise, Review, Submission } from '@/lib/types'
-import { useRequiredAppSession } from '@/lib/use-required-app-session'
+import { useReviewWorkspace } from '@/lib/use-review-workspace'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
-import { useEffect, useState } from 'react'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function ReviewView({ reviewId }: { reviewId: number }) {
-  const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession(`/reviews/${reviewId}`)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [review, setReview] = useState<Review | null>(null)
-  const [submission, setSubmission] = useState<Submission | null>(null)
-  const [exercise, setExercise] = useState<Exercise | null>(null)
-  const [preparingRevision, setPreparingRevision] = useState(false)
-  const [canActOnReview, setCanActOnReview] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      if (!session) {
-        return
-      }
-      try {
-        const reviewData = await getReview(reviewId)
-        const submissionData = await getSubmission(reviewData.submission_id)
-        const exerciseData = await getExercise(submissionData.exercise_id)
-        let reviewIsActionable = false
-        try {
-          const timeline = await getAssignmentTimeline(exerciseData.id)
-          reviewIsActionable = timeline.is_current === true && timeline.latest_step_id === `review-${reviewData.id}`
-        } catch {
-          reviewIsActionable = false
-        }
-        if (!cancelled) {
-          setReview(reviewData)
-          setSubmission(submissionData)
-          setExercise(exerciseData)
-          setCanActOnReview(reviewIsActionable)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load review')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [reviewId, session])
+  const {
+    sessionLoading,
+    sessionError,
+    loading,
+    error,
+    review,
+    submission,
+    exercise,
+    preparingRevision,
+    canActOnReview,
+    prepareRevisionPrompt,
+  } = useReviewWorkspace(reviewId)
 
   async function handleRevisionPrompt() {
-    if (!submission) {
-      return
-    }
-    try {
-      setPreparingRevision(true)
-      setError(null)
-      const revisionExercise = await createRevisionAssignment(submission.id)
+    const revisionExercise = await prepareRevisionPrompt()
+    if (revisionExercise) {
       window.location.href = `/?revisionExercise=${revisionExercise.id}`
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create revision prompt')
-    } finally {
-      setPreparingRevision(false)
     }
   }
 
