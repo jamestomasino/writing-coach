@@ -6,13 +6,13 @@ import (
 
 	"github.com/tomasino/writing-coach/internal/analyzer"
 	"github.com/tomasino/writing-coach/internal/domain"
-	"github.com/tomasino/writing-coach/internal/openai"
+	"github.com/tomasino/writing-coach/internal/llm"
 )
 
 type deterministicReviewer struct{}
 
 type Service struct {
-	client     *openai.Client
+	client     llm.Client
 	clientKind string
 	analyzers  analyzer.Service
 	fallback   deterministicReviewer
@@ -24,7 +24,7 @@ type Result struct {
 	AnalyzerReport analyzer.Report
 }
 
-func NewService(client *openai.Client, analyzers analyzer.Service) Service {
+func NewService(client llm.Client, analyzers analyzer.Service) Service {
 	return Service{
 		client:     client,
 		clientKind: "openai",
@@ -33,7 +33,7 @@ func NewService(client *openai.Client, analyzers analyzer.Service) Service {
 	}
 }
 
-func (s Service) WithClient(client *openai.Client, kind string) Service {
+func (s Service) WithClient(client llm.Client, kind string) Service {
 	s.client = client
 	s.clientKind = strings.TrimSpace(kind)
 	if s.clientKind == "" {
@@ -51,7 +51,7 @@ func (s Service) ReviewSubmissionDetailed(ctx context.Context, sub domain.Submis
 	report := s.analyzers.Analyze(ctx, sub.Content)
 
 	if s.client != nil && s.client.Enabled() {
-		reviewResult, scores, err := s.client.ReviewSubmission(ctx, openai.ReviewRequest{
+		reviewResult, scores, err := s.client.ReviewSubmission(ctx, llm.ReviewRequest{
 			SubmissionID:     sub.ID,
 			Content:          sub.Content,
 			WordCount:        sub.WordCount,

@@ -1420,7 +1420,7 @@ func TestAISettingsRejectUnsupportedProvider(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"anthropic","api_key":"sk-test-1234","enabled":true}`))
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"gemini","api_key":"sk-test-1234","enabled":true}`))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -1611,6 +1611,163 @@ func TestReviewWorkerUsesUserProviderSettings(t *testing.T) {
 	}
 	if authHeader != "Bearer sk-review-4321" {
 		t.Fatalf("authorization header = %q", authHeader)
+	}
+}
+
+func TestPromptNextUsesAnthropicProviderSettings(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	var apiKey string
+	fakeProvider := newFakeAnthropicServer(t, &apiKey)
+	defer fakeProvider.Close()
+
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	server := newTestServerWithConfig(t, harness.Store, cfg)
+	defer server.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-ant-5555")
+	if err != nil {
+		t.Fatalf("encrypt user key: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(context.Background(), domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "anthropic",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "5555",
+		BaseURLOverride: fakeProvider.URL,
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("prompt next: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("prompt next status: %d", resp.StatusCode)
+	}
+	var payload struct {
+		Exercise struct {
+			Title          string `json:"title"`
+			GenerationKind string `json:"generation_kind"`
+			ProviderNote   string `json:"provider_note"`
+		} `json:"exercise"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode payload: %v", err)
+	}
+	if payload.Exercise.Title != "Anthropic Draft" {
+		t.Fatalf("title = %q", payload.Exercise.Title)
+	}
+	if payload.Exercise.GenerationKind != "user/anthropic" {
+		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
+	}
+	if payload.Exercise.ProviderNote != "user/anthropic" {
+		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
+	}
+	if apiKey != "sk-ant-5555" {
+		t.Fatalf("api key header = %q", apiKey)
+	}
+}
+
+func TestReviewWorkerUsesAnthropicProviderSettings(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	var apiKey string
+	fakeProvider := newFakeAnthropicServer(t, &apiKey)
+	defer fakeProvider.Close()
+
+	cfg := config.Default(t.TempDir())
+	cfg.AIKeySecret = "test-ai-key-secret"
+	server := Server{
+		Config:     cfg,
+		Store:      harness.Store,
+		Prompts:    prompt.NewService(nil),
+		Reviews:    review.NewService(nil, analyzer.Service{}),
+		Curriculum: curriculum.NewService(),
+	}
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	encrypted, err := secrets.EncryptString(cfg.AIKeySecret, "sk-ant-review")
+	if err != nil {
+		t.Fatalf("encrypt review key: %v", err)
+	}
+	if err := harness.Store.SaveAIProviderSettings(ctx, domain.AIProviderSettings{
+		UserID:          user.ID,
+		Provider:        "anthropic",
+		APIKeyEncrypted: encrypted,
+		APIKeyLast4:     "view",
+		BaseURLOverride: fakeProvider.URL,
+		Enabled:         true,
+		ValidatedAt:     time.Now().UTC(),
+	}); err != nil {
+		t.Fatalf("save ai provider settings: %v", err)
+	}
+
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Anthropic Review Exercise",
+		Brief:           "Write a paragraph.",
+		Constraints:     []string{"under 200 words"},
+		FocusSkills:     []string{"causal clarity"},
+		TGOCodes:        []string{"causal-clarity"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "The king refused the warning, and the room changed around him.",
+		WordCount:  11,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	job, err := harness.Store.EnqueueReviewJob(ctx, domain.ReviewJob{
+		SubmissionID: submissionID,
+		UserID:       user.ID,
+		TreeID:       tree.ID,
+		EnrollmentID: 1,
+		Status:       "queued",
+		MaxAttempts:  3,
+	})
+	if err != nil {
+		t.Fatalf("queue review job: %v", err)
+	}
+	if err := server.processReviewJob(ctx, job); err != nil {
+		t.Fatalf("process review job: %v", err)
+	}
+	savedReview, err := harness.Store.LatestReviewForSubmission(ctx, submissionID)
+	if err != nil {
+		t.Fatalf("load review: %v", err)
+	}
+	if savedReview.ReviewKind != "user/anthropic" {
+		t.Fatalf("review kind = %q", savedReview.ReviewKind)
+	}
+	if savedReview.ProviderNote != "user/anthropic" {
+		t.Fatalf("provider note = %q", savedReview.ProviderNote)
+	}
+	if apiKey != "sk-ant-review" {
+		t.Fatalf("api key header = %q", apiKey)
 	}
 }
 
@@ -2503,6 +2660,33 @@ func newFakeOpenAIResponsesServer(t *testing.T, authHeader *string) *httptest.Se
 				},
 			},
 		})
+	}))
+}
+
+func newFakeAnthropicServer(t *testing.T, apiKey *string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if apiKey != nil {
+			*apiKey = r.Header.Get("x-api-key")
+		}
+		switch r.URL.Path {
+		case "/models":
+			_, _ = io.WriteString(w, `{"data":[]}`)
+			return
+		case "/messages":
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read body: %v", err)
+			}
+			if strings.Contains(string(body), "submission_review") {
+				_, _ = io.WriteString(w, `{"content":[{"type":"tool_use","input":{"summary":"Anthropic review summary","strengths":["Clear turn","Concrete consequence"],"weaknesses":["Push the beats harder","Tighten the prose"],"next_focus":"narrative clarity","skill_scores":[{"skill":"scene architecture","score":4},{"skill":"narrative clarity","score":3},{"skill":"prose precision","score":3}],"tgo_assessments":[{"code":"causal-clarity","status":"secure","evidence":"Cause and effect remain visible."},{"code":"scene-architecture","status":"developing","evidence":"The middle turn could land harder."},{"code":"prose-precision","status":"developing","evidence":"Some lines can tighten."}],"completed_tgo_checks":[],"annotations":[{"quote":"the room changed around him","tgo_code":"causal-clarity","category":"strength","comment":"The consequence lands on the page.","severity":"info"}]}}]}`)
+				return
+			}
+			_, _ = io.WriteString(w, `{"content":[{"type":"tool_use","input":{"title":"Anthropic Draft","brief":"Write the scene from scratch.","constraints":["Keep the focus tight.","Make the turn visible."],"focus_skills":["scene architecture","narrative clarity"],"success_criteria":["The shift is easy to follow.","The ending lands cleanly."]}}]}`)
+			return
+		default:
+			http.NotFound(w, r)
+		}
 	}))
 }
 

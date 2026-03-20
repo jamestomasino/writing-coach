@@ -7,14 +7,14 @@ import (
 	"unicode"
 
 	"github.com/tomasino/writing-coach/internal/domain"
-	"github.com/tomasino/writing-coach/internal/openai"
+	"github.com/tomasino/writing-coach/internal/llm"
 	"github.com/tomasino/writing-coach/internal/review"
 )
 
 type deterministicGenerator struct{}
 
 type Service struct {
-	client     *openai.Client
+	client     llm.Client
 	clientKind string
 	fallback   deterministicGenerator
 }
@@ -32,7 +32,7 @@ type Context struct {
 	RevisionComparison *review.Comparison
 }
 
-func NewService(client *openai.Client) Service {
+func NewService(client llm.Client) Service {
 	return Service{
 		client:     client,
 		clientKind: "openai",
@@ -40,7 +40,7 @@ func NewService(client *openai.Client) Service {
 	}
 }
 
-func (s Service) WithClient(client *openai.Client, kind string) Service {
+func (s Service) WithClient(client llm.Client, kind string) Service {
 	s.client = client
 	s.clientKind = strings.TrimSpace(kind)
 	if s.clientKind == "" {
@@ -51,7 +51,7 @@ func (s Service) WithClient(client *openai.Client, kind string) Service {
 
 func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercise {
 	if s.client != nil && s.client.Enabled() {
-		exercise, err := s.client.GenerateExercise(ctx, openai.ExerciseRequest{
+		exercise, err := s.client.GenerateExercise(ctx, llm.ExerciseRequest{
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
 			ActiveTGOs:        input.ActiveTGOs,
@@ -83,7 +83,7 @@ func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exe
 		return s.NextExercise(ctx, input)
 	}
 	if s.client != nil && s.client.Enabled() {
-		exercise, err := s.client.GenerateRevisionExercise(ctx, openai.RevisionExerciseRequest{
+		exercise, err := s.client.GenerateRevisionExercise(ctx, llm.RevisionExerciseRequest{
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
 			ActiveTGOs:        input.ActiveTGOs,

@@ -12,23 +12,23 @@ import (
 )
 
 func TestNormalizeReview(t *testing.T) {
-	value := reviewResponse{
+	value := ReviewResponse{
 		Summary:    "  a  summary \n",
 		Strengths:  []string{" one  strength ", ""},
 		Weaknesses: []string{" weak \t point "},
 		NextFocus:  " prose precision ",
-		SkillScores: []skillScore{
+		SkillScores: []SkillScore{
 			{Skill: " prose precision ", Score: 3},
 		},
-		TGOAssessments: []tgoAssessment{
+		TGOAssessments: []TGOAssessment{
 			{Code: " prose-precision ", Status: " secure ", Evidence: " line control "},
 		},
-		CompletedTGOChecks: []tgoAssessment{
+		CompletedTGOChecks: []TGOAssessment{
 			{Code: " sentence-clarity ", Status: " holding ", Evidence: " still stable "},
 		},
 	}
 
-	got := normalizeReview(value)
+	got := NormalizeReview(value)
 	if got.Summary != "a summary" {
 		t.Fatalf("summary = %q", got.Summary)
 	}
@@ -47,7 +47,7 @@ func TestNormalizeReview(t *testing.T) {
 }
 
 func TestMeasurabilityGuidanceUsesHintsNotRawTGOs(t *testing.T) {
-	got := measurabilityGuidance([]domain.TGO{
+	got := MeasurabilityGuidance([]domain.TGO{
 		{Code: "dialogue-intelligence", Description: "Make speech reveal rank, motive, and fracture under restraint."},
 		{Code: "scene-architecture", Description: "Stage turns clearly so ritual and conflict remain legible."},
 		{Code: "symbolic-control", Description: "Let objects carry fate without explaining their meaning."},
@@ -63,7 +63,7 @@ func TestMeasurabilityGuidanceUsesHintsNotRawTGOs(t *testing.T) {
 }
 
 func TestExerciseSystemPromptRequiresConcretePremise(t *testing.T) {
-	got := strings.ToLower(exerciseSystemPrompt())
+	got := strings.ToLower(ExerciseSystemPrompt())
 	if !strings.Contains(got, "concrete premise") {
 		t.Fatalf("expected concrete-premise instruction, got %q", got)
 	}

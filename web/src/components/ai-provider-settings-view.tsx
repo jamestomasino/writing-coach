@@ -18,6 +18,7 @@ import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 const providerOptions = [
+  { value: 'anthropic', label: 'Anthropic' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'groq', label: 'Groq' },
   { value: 'xai', label: 'xAI' },
@@ -320,7 +321,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
             <CardHeader
               eyebrow="Connection"
               title="Personal provider"
-              description="Phase 1 supports OpenAI, Groq, and xAI. Advanced fields are optional."
+              description="Supported providers include Anthropic, OpenAI, Groq, and xAI. Advanced fields are optional."
             />
 
             <FieldGroup>

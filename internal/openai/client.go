@@ -13,6 +13,7 @@ import (
 
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/domain"
+	"github.com/tomasino/writing-coach/internal/llm"
 )
 
 type Client struct {
@@ -30,58 +31,13 @@ type ClientOptions struct {
 	ReviewModel string
 }
 
-type HTTPError struct {
-	StatusCode int
-	Message    string
-}
+type HTTPError = llm.HTTPError
 
-func (e *HTTPError) Error() string {
-	if e == nil {
-		return ""
-	}
-	if strings.TrimSpace(e.Message) != "" {
-		return fmt.Sprintf("openai api: %s", e.Message)
-	}
-	return fmt.Sprintf("openai api: status %d", e.StatusCode)
-}
+type ExerciseRequest = llm.ExerciseRequest
+type RevisionExerciseRequest = llm.RevisionExerciseRequest
+type ReviewRequest = llm.ReviewRequest
 
-type ExerciseRequest struct {
-	CurrentFocus      string
-	DifficultyLevel   int
-	ActiveTGOs        []domain.TGO
-	OnboardingProfile *domain.OnboardingProfile
-	RecentTitles      []string
-	RecentWeaknesses  []string
-	RecurringFindings []string
-	CoachingBrief     string
-}
-
-type RevisionExerciseRequest struct {
-	CurrentFocus      string
-	DifficultyLevel   int
-	ActiveTGOs        []domain.TGO
-	SubmissionID      int64
-	SubmissionContent string
-	Weaknesses        []string
-	AnalyzerFindings  []string
-	ComparisonSummary string
-	RecentWeaknesses  []string
-	RecurringFindings []string
-	CoachingBrief     string
-}
-
-type ReviewRequest struct {
-	SubmissionID     int64
-	Content          string
-	WordCount        int
-	ActiveTGOs       []domain.TGO
-	CompletedTGOs    []domain.TGO
-	AnalysisSummary  string
-	AnalyzerFindings []string
-	CoachingBrief    string
-}
-
-type exerciseResponse struct {
+type ExerciseResponse struct {
 	Title           string   `json:"title"`
 	Brief           string   `json:"brief"`
 	Constraints     []string `json:"constraints"`
@@ -89,29 +45,29 @@ type exerciseResponse struct {
 	SuccessCriteria []string `json:"success_criteria"`
 }
 
-type reviewResponse struct {
+type ReviewResponse struct {
 	Summary            string          `json:"summary"`
 	Strengths          []string        `json:"strengths"`
 	Weaknesses         []string        `json:"weaknesses"`
 	NextFocus          string          `json:"next_focus"`
-	SkillScores        []skillScore    `json:"skill_scores"`
-	TGOAssessments     []tgoAssessment `json:"tgo_assessments"`
-	CompletedTGOChecks []tgoAssessment `json:"completed_tgo_checks"`
-	Annotations        []annotation    `json:"annotations"`
+	SkillScores        []SkillScore    `json:"skill_scores"`
+	TGOAssessments     []TGOAssessment `json:"tgo_assessments"`
+	CompletedTGOChecks []TGOAssessment `json:"completed_tgo_checks"`
+	Annotations        []Annotation    `json:"annotations"`
 }
 
-type skillScore struct {
+type SkillScore struct {
 	Skill string `json:"skill"`
 	Score int    `json:"score"`
 }
 
-type tgoAssessment struct {
+type TGOAssessment struct {
 	Code     string `json:"code"`
 	Status   string `json:"status"`
 	Evidence string `json:"evidence"`
 }
 
-type annotation struct {
+type Annotation struct {
 	Quote    string `json:"quote"`
 	TGOCode  string `json:"tgo_code"`
 	Category string `json:"category"`
@@ -175,30 +131,30 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 	payload, err := c.runStructuredResponse(ctx, requestSpec{
 		Model:       c.promptModel,
 		SchemaName:  "exercise_prompt",
-		Schema:      exerciseSchema(),
-		SystemInput: exerciseSystemPrompt(),
+		Schema:      ExerciseSchema(),
+		SystemInput: ExerciseSystemPrompt(),
 		UserInput: fmt.Sprintf(
 			"Writing track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
-			formatOnboardingProfile(input.OnboardingProfile),
-			measurabilityGuidance(input.ActiveTGOs),
-			emptyDefault(input.CurrentFocus, "none"),
+			FormatOnboardingProfile(input.OnboardingProfile),
+			MeasurabilityGuidance(input.ActiveTGOs),
+			EmptyDefault(input.CurrentFocus, "none"),
 			input.DifficultyLevel,
-			joinOrDefault(input.RecentTitles, "none"),
-			joinOrDefault(input.RecentWeaknesses, "none"),
-			joinOrDefault(input.RecurringFindings, "none"),
-			emptyDefault(input.CoachingBrief, "none"),
+			JoinOrDefault(input.RecentTitles, "none"),
+			JoinOrDefault(input.RecentWeaknesses, "none"),
+			JoinOrDefault(input.RecurringFindings, "none"),
+			EmptyDefault(input.CoachingBrief, "none"),
 		),
 	})
 	if err != nil {
 		return domain.Exercise{}, err
 	}
 
-	var parsed exerciseResponse
+	var parsed ExerciseResponse
 	if err := json.Unmarshal(payload, &parsed); err != nil {
 		return domain.Exercise{}, err
 	}
-	parsed = normalizeExercise(parsed)
-	if err := validateExercise(parsed); err != nil {
+	parsed = NormalizeExercise(parsed)
+	if err := ValidateExercise(parsed); err != nil {
 		return domain.Exercise{}, err
 	}
 
@@ -206,8 +162,8 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		Title:           parsed.Title,
 		Brief:           parsed.Brief,
 		Constraints:     parsed.Constraints,
-		FocusSkills:     coalesceFocusSkills(input.ActiveTGOs, parsed.FocusSkills),
-		TGOCodes:        activeTGOCodes(input.ActiveTGOs),
+		FocusSkills:     CoalesceFocusSkills(input.ActiveTGOs, parsed.FocusSkills),
+		TGOCodes:        ActiveTGOCodes(input.ActiveTGOs),
 		SuccessCriteria: parsed.SuccessCriteria,
 	}, nil
 }
@@ -216,33 +172,33 @@ func (c *Client) GenerateRevisionExercise(ctx context.Context, input RevisionExe
 	payload, err := c.runStructuredResponse(ctx, requestSpec{
 		Model:       c.promptModel,
 		SchemaName:  "revision_prompt",
-		Schema:      exerciseSchema(),
-		SystemInput: revisionSystemPrompt(),
+		Schema:      ExerciseSchema(),
+		SystemInput: RevisionSystemPrompt(),
 		UserInput: fmt.Sprintf(
 			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
-			emptyDefault(input.CurrentFocus, "prose precision"),
+			EmptyDefault(input.CurrentFocus, "prose precision"),
 			input.DifficultyLevel,
-			joinTGOs(input.ActiveTGOs),
+			JoinTGOs(input.ActiveTGOs),
 			input.SubmissionID,
 			input.SubmissionContent,
-			joinOrDefault(input.Weaknesses, "none"),
-			joinOrDefault(input.AnalyzerFindings, "none"),
-			emptyDefault(input.ComparisonSummary, "none"),
-			joinOrDefault(input.RecentWeaknesses, "none"),
-			joinOrDefault(input.RecurringFindings, "none"),
-			emptyDefault(input.CoachingBrief, "none"),
+			JoinOrDefault(input.Weaknesses, "none"),
+			JoinOrDefault(input.AnalyzerFindings, "none"),
+			EmptyDefault(input.ComparisonSummary, "none"),
+			JoinOrDefault(input.RecentWeaknesses, "none"),
+			JoinOrDefault(input.RecurringFindings, "none"),
+			EmptyDefault(input.CoachingBrief, "none"),
 		),
 	})
 	if err != nil {
 		return domain.Exercise{}, err
 	}
 
-	var parsed exerciseResponse
+	var parsed ExerciseResponse
 	if err := json.Unmarshal(payload, &parsed); err != nil {
 		return domain.Exercise{}, err
 	}
-	parsed = normalizeExercise(parsed)
-	if err := validateExercise(parsed); err != nil {
+	parsed = NormalizeExercise(parsed)
+	if err := ValidateExercise(parsed); err != nil {
 		return domain.Exercise{}, err
 	}
 
@@ -259,17 +215,17 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 	payload, err := c.runStructuredResponse(ctx, requestSpec{
 		Model:       c.reviewModel,
 		SchemaName:  "submission_review",
-		Schema:      reviewSchema(),
-		SystemInput: reviewSystemPrompt(),
+		Schema:      ReviewSchema(),
+		SystemInput: ReviewSystemPrompt(),
 		UserInput: fmt.Sprintf(
 			"Submission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nCoaching context: %s\nSubmission:\n%s",
 			input.SubmissionID,
 			input.WordCount,
-			joinTGOs(input.ActiveTGOs),
-			joinTGOs(input.CompletedTGOs),
-			emptyDefault(input.AnalysisSummary, "none"),
-			joinOrDefault(input.AnalyzerFindings, "none"),
-			emptyDefault(input.CoachingBrief, "none"),
+			JoinTGOs(input.ActiveTGOs),
+			JoinTGOs(input.CompletedTGOs),
+			EmptyDefault(input.AnalysisSummary, "none"),
+			JoinOrDefault(input.AnalyzerFindings, "none"),
+			EmptyDefault(input.CoachingBrief, "none"),
 			input.Content,
 		),
 	})
@@ -277,12 +233,12 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		return domain.Review{}, nil, err
 	}
 
-	var parsed reviewResponse
+	var parsed ReviewResponse
 	if err := json.Unmarshal(payload, &parsed); err != nil {
 		return domain.Review{}, nil, err
 	}
-	parsed = normalizeReview(parsed)
-	if err := validateReview(parsed); err != nil {
+	parsed = NormalizeReview(parsed)
+	if err := ValidateReview(parsed); err != nil {
 		return domain.Review{}, nil, err
 	}
 
@@ -300,9 +256,9 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		Summary:            parsed.Summary,
 		Strengths:          parsed.Strengths,
 		Weaknesses:         parsed.Weaknesses,
-		TGOAssessments:     toDomainAssessments(parsed.TGOAssessments),
-		CompletedTGOChecks: toDomainAssessments(parsed.CompletedTGOChecks),
-		Annotations:        toDomainAnnotations(parsed.Annotations),
+		TGOAssessments:     ToDomainAssessments(parsed.TGOAssessments),
+		CompletedTGOChecks: ToDomainAssessments(parsed.CompletedTGOChecks),
+		Annotations:        ToDomainAnnotations(parsed.Annotations),
 		NextFocus:          parsed.NextFocus,
 		MetricWordCount:    input.WordCount,
 	}, scores, nil
@@ -432,7 +388,7 @@ func parseHTTPError(statusCode int, responseBody []byte) error {
 	return &HTTPError{StatusCode: statusCode}
 }
 
-func exerciseSystemPrompt() string {
+func ExerciseSystemPrompt() string {
 	return strings.TrimSpace(`
 You are a professional writing coach generating one brief exercise.
 Return only schema-compliant JSON.
@@ -465,7 +421,7 @@ Choose focus skills only from the supplied taxonomy.
 `)
 }
 
-func revisionSystemPrompt() string {
+func RevisionSystemPrompt() string {
 	return strings.TrimSpace(`
 You are a professional writing coach generating a rewrite brief for the author's next draft.
 Return only schema-compliant JSON.
@@ -482,7 +438,7 @@ Choose focus skills only from the supplied taxonomy.
 `)
 }
 
-func reviewSystemPrompt() string {
+func ReviewSystemPrompt() string {
 	return strings.TrimSpace(`
 You are a professional writing coach reviewing a writing exercise.
 Return only schema-compliant JSON.
@@ -496,7 +452,7 @@ Return up to six short annotations for the UI. Each annotation must cite a short
 `)
 }
 
-func exerciseSchema() map[string]any {
+func ExerciseSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
@@ -504,22 +460,22 @@ func exerciseSchema() map[string]any {
 		"properties": map[string]any{
 			"title":            map[string]any{"type": "string"},
 			"brief":            map[string]any{"type": "string"},
-			"constraints":      stringArraySchema(2, 5),
-			"focus_skills":     enumStringArraySchema(1, 4, domain.SupportedSkills),
-			"success_criteria": stringArraySchema(2, 5),
+			"constraints":      StringArraySchema(2, 5),
+			"focus_skills":     EnumStringArraySchema(1, 4, domain.SupportedSkills),
+			"success_criteria": StringArraySchema(2, 5),
 		},
 	}
 }
 
-func reviewSchema() map[string]any {
+func ReviewSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             []string{"summary", "strengths", "weaknesses", "next_focus", "skill_scores", "tgo_assessments", "completed_tgo_checks", "annotations"},
 		"properties": map[string]any{
 			"summary":    map[string]any{"type": "string"},
-			"strengths":  stringArraySchema(2, 4),
-			"weaknesses": stringArraySchema(2, 4),
+			"strengths":  StringArraySchema(2, 4),
+			"weaknesses": StringArraySchema(2, 4),
 			"next_focus": map[string]any{"type": "string", "enum": domain.SupportedSkills},
 			"skill_scores": map[string]any{
 				"type":     "array",
@@ -586,7 +542,7 @@ func reviewSchema() map[string]any {
 	}
 }
 
-func stringArraySchema(minItems, maxItems int) map[string]any {
+func StringArraySchema(minItems, maxItems int) map[string]any {
 	return map[string]any{
 		"type":     "array",
 		"minItems": minItems,
@@ -597,7 +553,7 @@ func stringArraySchema(minItems, maxItems int) map[string]any {
 	}
 }
 
-func enumStringArraySchema(minItems, maxItems int, values []string) map[string]any {
+func EnumStringArraySchema(minItems, maxItems int, values []string) map[string]any {
 	return map[string]any{
 		"type":     "array",
 		"minItems": minItems,
@@ -609,7 +565,7 @@ func enumStringArraySchema(minItems, maxItems int, values []string) map[string]a
 	}
 }
 
-func validateExercise(value exerciseResponse) error {
+func ValidateExercise(value ExerciseResponse) error {
 	if strings.TrimSpace(value.Title) == "" || strings.TrimSpace(value.Brief) == "" {
 		return errors.New("openai exercise response missing title or brief")
 	}
@@ -619,7 +575,7 @@ func validateExercise(value exerciseResponse) error {
 	return nil
 }
 
-func validateReview(value reviewResponse) error {
+func ValidateReview(value ReviewResponse) error {
 	if strings.TrimSpace(value.Summary) == "" || strings.TrimSpace(value.NextFocus) == "" {
 		return errors.New("openai review response missing summary or next focus")
 	}
@@ -629,7 +585,7 @@ func validateReview(value reviewResponse) error {
 	return nil
 }
 
-func normalizeExercise(value exerciseResponse) exerciseResponse {
+func NormalizeExercise(value ExerciseResponse) ExerciseResponse {
 	value.Title = normalizeString(value.Title)
 	value.Brief = normalizeString(value.Brief)
 	value.Constraints = normalizeStrings(value.Constraints)
@@ -638,7 +594,7 @@ func normalizeExercise(value exerciseResponse) exerciseResponse {
 	return value
 }
 
-func formatOnboardingProfile(profile *domain.OnboardingProfile) string {
+func FormatOnboardingProfile(profile *domain.OnboardingProfile) string {
 	if profile == nil {
 		return "none"
 	}
@@ -649,7 +605,7 @@ func formatOnboardingProfile(profile *domain.OnboardingProfile) string {
 	return strings.Join(lines, "\n")
 }
 
-func coalesceFocusSkills(activeTGOs []domain.TGO, fallback []string) []string {
+func CoalesceFocusSkills(activeTGOs []domain.TGO, fallback []string) []string {
 	if len(activeTGOs) == 0 {
 		return fallback
 	}
@@ -669,7 +625,7 @@ func coalesceFocusSkills(activeTGOs []domain.TGO, fallback []string) []string {
 	return out
 }
 
-func activeTGOCodes(activeTGOs []domain.TGO) []string {
+func ActiveTGOCodes(activeTGOs []domain.TGO) []string {
 	var out []string
 	for _, tgo := range activeTGOs {
 		code := strings.TrimSpace(tgo.Code)
@@ -681,7 +637,7 @@ func activeTGOCodes(activeTGOs []domain.TGO) []string {
 	return out
 }
 
-func measurabilityGuidance(activeTGOs []domain.TGO) string {
+func MeasurabilityGuidance(activeTGOs []domain.TGO) string {
 	if len(activeTGOs) == 0 {
 		return "Keep the assignment concrete enough that craft choices can be reviewed."
 	}
@@ -724,7 +680,7 @@ func measurabilityGuidance(activeTGOs []domain.TGO) string {
 	return strings.Join(hints, " ")
 }
 
-func normalizeReview(value reviewResponse) reviewResponse {
+func NormalizeReview(value ReviewResponse) ReviewResponse {
 	value.Summary = normalizeString(value.Summary)
 	value.Strengths = normalizeStrings(value.Strengths)
 	value.Weaknesses = normalizeStrings(value.Weaknesses)
@@ -766,21 +722,21 @@ func normalizeString(value string) string {
 	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
 }
 
-func emptyDefault(value, fallback string) string {
+func EmptyDefault(value, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback
 	}
 	return value
 }
 
-func joinOrDefault(values []string, fallback string) string {
+func JoinOrDefault(values []string, fallback string) string {
 	if len(values) == 0 {
 		return fallback
 	}
 	return strings.Join(values, ", ")
 }
 
-func joinTGOs(tgos []domain.TGO) string {
+func JoinTGOs(tgos []domain.TGO) string {
 	if len(tgos) == 0 {
 		return "none"
 	}
@@ -791,7 +747,7 @@ func joinTGOs(tgos []domain.TGO) string {
 	return strings.Join(parts, " | ")
 }
 
-func toDomainAssessments(values []tgoAssessment) []domain.TGOAssessment {
+func ToDomainAssessments(values []TGOAssessment) []domain.TGOAssessment {
 	out := make([]domain.TGOAssessment, 0, len(values))
 	for _, value := range values {
 		out = append(out, domain.TGOAssessment{
@@ -803,7 +759,7 @@ func toDomainAssessments(values []tgoAssessment) []domain.TGOAssessment {
 	return out
 }
 
-func toDomainAnnotations(values []annotation) []domain.ReviewAnnotation {
+func ToDomainAnnotations(values []Annotation) []domain.ReviewAnnotation {
 	out := make([]domain.ReviewAnnotation, 0, len(values))
 	for _, value := range values {
 		out = append(out, domain.ReviewAnnotation{

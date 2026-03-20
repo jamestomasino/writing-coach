@@ -14,10 +14,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tomasino/writing-coach/internal/anthropic"
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/curriculum"
 	"github.com/tomasino/writing-coach/internal/db"
 	"github.com/tomasino/writing-coach/internal/domain"
+	"github.com/tomasino/writing-coach/internal/llm"
 	"github.com/tomasino/writing-coach/internal/openai"
 	"github.com/tomasino/writing-coach/internal/prompt"
 	"github.com/tomasino/writing-coach/internal/review"
@@ -2251,7 +2253,7 @@ func firstNonEmpty(values ...string) string {
 
 func supportedAIProvider(provider string) bool {
 	switch normalizeProvider(provider) {
-	case "openai", "groq", "xai":
+	case "openai", "groq", "xai", "anthropic":
 		return true
 	default:
 		return false
@@ -2270,12 +2272,7 @@ func validateAIProviderPayload(payload aiProviderSettingsPayload) error {
 }
 
 func (s Server) validateAIProviderSettings(ctx context.Context, settings domain.AIProviderSettings, apiKey string) error {
-	client := openai.NewClientWithOptions(openai.ClientOptions{
-		APIKey:      strings.TrimSpace(apiKey),
-		BaseURL:     firstNonEmpty(settings.BaseURLOverride, defaultBaseURLForProvider(settings.Provider, s.Config)),
-		PromptModel: firstNonEmpty(settings.PromptModelOverride, s.Config.PromptModel),
-		ReviewModel: firstNonEmpty(settings.ReviewModelOverride, s.Config.ReviewModel),
-	})
+	client := s.providerClient(normalizeProvider(settings.Provider), strings.TrimSpace(apiKey), settings.BaseURLOverride, settings.PromptModelOverride, settings.ReviewModelOverride)
 	validateCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	if err := client.ValidateCredentials(validateCtx); err != nil {
@@ -2288,7 +2285,7 @@ func aiProviderErrorCategory(err error) string {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return "timeout"
 	}
-	var httpErr *openai.HTTPError
+	var httpErr *llm.HTTPError
 	if errors.As(err, &httpErr) {
 		switch httpErr.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
@@ -2374,7 +2371,7 @@ func (s Server) resolveAIProviderKey(ctx context.Context, existing domain.AIProv
 }
 
 func statusForAIProviderValidationError(err error) int {
-	var httpErr *openai.HTTPError
+	var httpErr *llm.HTTPError
 	if errors.As(err, &httpErr) {
 		if httpErr.StatusCode == http.StatusUnauthorized || httpErr.StatusCode == http.StatusForbidden {
 			return http.StatusBadRequest
@@ -2405,6 +2402,8 @@ func personalProviderStorageAvailable(cfg config.Config) bool {
 
 func defaultBaseURLForProvider(provider string, cfg config.Config) string {
 	switch normalizeProvider(provider) {
+	case "anthropic":
+		return "https://api.anthropic.com/v1"
 	case "groq":
 		return "https://api.groq.com/openai/v1"
 	case "xai":
@@ -2417,6 +2416,18 @@ func defaultBaseURLForProvider(provider string, cfg config.Config) string {
 	}
 }
 
+func defaultModelForProvider(provider, task string, cfg config.Config) string {
+	switch normalizeProvider(provider) {
+	case "anthropic":
+		return "claude-sonnet-4-20250514"
+	default:
+		if task == "review" {
+			return cfg.ReviewModel
+		}
+		return cfg.PromptModel
+	}
+}
+
 func effectiveProviderLabel(hasSettings, enabled bool) string {
 	if hasSettings && enabled {
 		return "user"
@@ -2424,7 +2435,7 @@ func effectiveProviderLabel(hasSettings, enabled bool) string {
 	return "system/openai"
 }
 
-func (s Server) resolveLLMClient(ctx context.Context, userID int64) (*openai.Client, string, error) {
+func (s Server) resolveLLMClient(ctx context.Context, userID int64) (llm.Client, string, error) {
 	settings, err := s.Store.AIProviderSettingsByUserID(ctx, userID)
 	if err != nil && !db.IsNotFound(err) {
 		return nil, "", err
@@ -2435,12 +2446,7 @@ func (s Server) resolveLLMClient(ctx context.Context, userID int64) (*openai.Cli
 			s.logAIProviderEvent("provider_resolve_failed", settings.Provider, userID, map[string]any{"category": "decrypt"})
 			return nil, "", err
 		}
-		client := openai.NewClientWithOptions(openai.ClientOptions{
-			APIKey:      decrypted,
-			BaseURL:     firstNonEmpty(settings.BaseURLOverride, defaultBaseURLForProvider(settings.Provider, s.Config)),
-			PromptModel: firstNonEmpty(settings.PromptModelOverride, s.Config.PromptModel),
-			ReviewModel: firstNonEmpty(settings.ReviewModelOverride, s.Config.ReviewModel),
-		})
+		client := s.providerClient(normalizeProvider(settings.Provider), decrypted, settings.BaseURLOverride, settings.PromptModelOverride, settings.ReviewModelOverride)
 		s.logAIProviderEvent("provider_resolved", settings.Provider, userID, map[string]any{"mode": "personal"})
 		return client, "user/" + normalizeProvider(settings.Provider), nil
 	}
@@ -2450,6 +2456,28 @@ func (s Server) resolveLLMClient(ctx context.Context, userID int64) (*openai.Cli
 	}
 	s.logAIProviderEvent("provider_missing", "", userID, nil)
 	return nil, "", nil
+}
+
+func (s Server) providerClient(provider, apiKey, baseURL, promptModel, reviewModel string) llm.Client {
+	baseURL = firstNonEmpty(baseURL, defaultBaseURLForProvider(provider, s.Config))
+	promptModel = firstNonEmpty(promptModel, defaultModelForProvider(provider, "prompt", s.Config))
+	reviewModel = firstNonEmpty(reviewModel, defaultModelForProvider(provider, "review", s.Config))
+	switch normalizeProvider(provider) {
+	case "anthropic":
+		return anthropic.NewClientWithOptions(anthropic.ClientOptions{
+			APIKey:      apiKey,
+			BaseURL:     baseURL,
+			PromptModel: promptModel,
+			ReviewModel: reviewModel,
+		})
+	default:
+		return openai.NewClientWithOptions(openai.ClientOptions{
+			APIKey:      apiKey,
+			BaseURL:     baseURL,
+			PromptModel: promptModel,
+			ReviewModel: reviewModel,
+		})
+	}
 }
 
 func (s Server) toAIProviderSettingsResponse(settings domain.AIProviderSettings, exists bool) aiProviderSettingsResponse {

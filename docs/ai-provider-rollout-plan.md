@@ -24,17 +24,17 @@ Phase 1 does not force existing users to enter credentials before continuing.
 ## Phase 1 Providers
 
 Supported in the initial rollout:
+- Anthropic
 - OpenAI
 - Groq
 - xAI
 
 Deferred to later phases:
-- Anthropic
 - Gemini
 - Mistral
 - Cohere
 
-Reason: OpenAI, Groq, and xAI are the closest to the current backend request flow and will let us establish the provider abstraction with less provider-specific divergence.
+Reason: OpenAI, Groq, xAI, and Anthropic provide the first practical mix of common providers while still keeping the initial adapter surface manageable.
 
 ## User Experience
 
