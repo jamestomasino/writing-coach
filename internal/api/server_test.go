@@ -703,6 +703,56 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 }
 
+func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	otherUserID, otherTreeID, _, err := harness.Store.EnsureDefaultUserTree(ctx, "other-writer", "Other Writer", "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("ensure other user tree: %v", err)
+	}
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          otherUserID,
+		TreeID:          otherTreeID,
+		Title:           "Foreign assignment",
+		Brief:           "Should not be writable by tester.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "openai",
+	})
+	if err != nil {
+		t.Fatalf("save foreign exercise: %v", err)
+	}
+
+	resp, err := http.Post(
+		testServer.URL+"/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship",
+		"application/json",
+		strings.NewReader(`{"exercise_id":`+int64String(exerciseID)+`,"content":"Unauthorized draft."}`),
+	)
+	if err != nil {
+		t.Fatalf("create submission: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 for foreign exercise, got %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode error payload: %v", err)
+	}
+	if !strings.Contains(payload.Error, "exercise not found") {
+		t.Fatalf("expected exercise not found error, got %q", payload.Error)
+	}
+}
+
 func TestAssignmentTimelineEndpoint(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")

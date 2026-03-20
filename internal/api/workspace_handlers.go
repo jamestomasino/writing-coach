@@ -268,11 +268,38 @@ func (s Server) handleSubmissionCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("exercise_id and content are required"))
 		return
 	}
+	exercise, err := s.Store.GetExercise(r.Context(), payload.ExerciseID)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if !belongsToContext(exercise.UserID, exercise.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("exercise not found"))
+		return
+	}
+	draftNumber := 1
+	if payload.ParentSubmissionID != 0 {
+		parent, err := s.Store.GetSubmission(r.Context(), payload.ParentSubmissionID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Errorf("invalid parent submission"))
+			return
+		}
+		if !belongsToContext(parent.UserID, parent.TreeID, appContext) || parent.ExerciseID != exercise.ID {
+			writeError(w, http.StatusBadRequest, fmt.Errorf("invalid parent submission"))
+			return
+		}
+		draftNumber = parent.DraftNumber + 1
+	}
 	sub := domain.Submission{
 		UserID:             appContext.UserID,
 		TreeID:             appContext.TreeID,
-		ExerciseID:         payload.ExerciseID,
+		ExerciseID:         exercise.ID,
 		ParentSubmissionID: payload.ParentSubmissionID,
+		DraftNumber:        draftNumber,
 		Content:            payload.Content,
 		WordCount:          db.CountWords(payload.Content),
 	}
