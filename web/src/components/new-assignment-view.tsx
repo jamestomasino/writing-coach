@@ -20,7 +20,7 @@ export function NewAssignmentView() {
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
-  const [needsAISetup, setNeedsAISetup] = useState(false)
+  const [workspaceUnavailable, setWorkspaceUnavailable] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [preview, setPreview] = useState<Exercise | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -40,7 +40,7 @@ export function NewAssignmentView() {
         }
         if (!session.ai_provider_ready) {
           if (!cancelled) {
-            setNeedsAISetup(true)
+            setWorkspaceUnavailable(true)
             setDashboard(null)
           }
           return
@@ -142,13 +142,13 @@ export function NewAssignmentView() {
       />
     )
   }
-  if (needsAISetup) {
+  if (workspaceUnavailable) {
     return (
       <EmptyState
-        title="AI setup required"
-        body="Add an AI provider before generating a new assignment."
-        actionHref="/ai-settings?required=1&next=/new-assignment"
-        actionLabel="Set up AI provider"
+        title="Assignment setup unavailable"
+        body="This workspace is not ready yet."
+        actionHref="/settings"
+        actionLabel="Open account settings"
       />
     )
   }

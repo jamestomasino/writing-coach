@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
+import { useEffect, useState } from 'react'
 import { Avatar } from '@/components/avatar'
-import { Badge } from '@/components/badge'
 import {
   Dropdown,
   DropdownButton,
@@ -28,7 +28,6 @@ import { getSession } from '@/lib/api'
 import {
   ArrowPathIcon,
   ArrowRightStartOnRectangleIcon,
-  ChevronDownIcon,
   ChevronUpIcon,
   Cog6ToothIcon,
   ArrowLeftEndOnRectangleIcon,
@@ -43,7 +42,6 @@ import {
   Squares2X2Icon,
   UserGroupIcon,
 } from '@heroicons/react/20/solid'
-import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 function initialsForName(value: string) {
@@ -77,10 +75,6 @@ function AccountDropdownMenu({
             <Cog6ToothIcon />
             <DropdownLabel>Account settings</DropdownLabel>
           </DropdownItem>
-          <DropdownItem href="/ai-settings">
-            <Cog6ToothIcon />
-            <DropdownLabel>AI provider</DropdownLabel>
-          </DropdownItem>
           {isAdmin ? (
             <DropdownItem href="/admin">
               <UserGroupIcon />
@@ -109,96 +103,53 @@ function AccountDropdownMenu({
   )
 }
 
-function providerStatusMeta({
-  ready,
-  hasPersonalKey,
-  systemFallback,
-}: {
-  ready: boolean
-  hasPersonalKey: boolean
-  systemFallback: boolean
-}) {
-  if (!ready) {
-    return {
-      label: 'AI setup required',
-      detail: 'Add a provider key to generate assignments and reviews.',
-      badgeColor: 'rose' as const,
-    }
-  }
-  if (hasPersonalKey) {
-    return {
-      label: 'Personal AI provider',
-      detail: 'Your own provider key is active for generation.',
-      badgeColor: 'emerald' as const,
-    }
-  }
-  if (systemFallback) {
-    return {
-      label: 'Shared AI provider',
-      detail: 'You are using the shared system provider.',
-      badgeColor: 'amber' as const,
-    }
-  }
-  return {
-    label: 'AI status unavailable',
-    detail: 'Provider status could not be determined.',
-    badgeColor: 'zinc' as const,
-  }
-}
-
 export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [accountName, setAccountName] = useState('Workshop')
   const [accountDetail, setAccountDetail] = useState('Scholastic coaching loop')
-  const [aiProviderReady, setAIProviderReady] = useState(true)
-  const [aiHasPersonalKey, setAIHasPersonalKey] = useState(false)
-  const [aiSystemFallback, setAISystemFallback] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    async function load() {
-      try {
-        const session = await getSession()
-        if (!cancelled) {
-          setAuthenticated(session.authenticated)
-          setIsAdmin(session.is_admin)
-          setAIProviderReady(session.ai_provider_ready)
-          setAIHasPersonalKey(session.ai_has_personal_key)
-          setAISystemFallback(session.ai_system_fallback)
-          if (session.authenticated) {
-            setAccountName(session.identity?.name?.trim() || session.identity?.email?.trim() || 'Account')
-            setAccountDetail(session.identity?.email?.trim() || 'Writing Coach account')
-          } else {
-            setAccountName('Guest')
-            setAccountDetail('Sign in for settings and account actions')
-          }
+
+    void getSession()
+      .then((session) => {
+        if (cancelled) {
+          return
         }
-      } catch {
-        if (!cancelled) {
-          setAuthenticated(false)
-          setIsAdmin(false)
-          setAIProviderReady(true)
-          setAIHasPersonalKey(false)
-          setAISystemFallback(false)
-          setAccountName('Guest')
-          setAccountDetail('Sign in for settings and account actions')
+
+        setAuthenticated(session.authenticated)
+        setIsAdmin(session.is_admin)
+
+        const profileName = session.identity?.name?.trim() || session.identity?.email?.trim()
+
+        if (profileName) {
+          setAccountName(profileName)
+          setAccountDetail(session.is_admin ? 'Administrator account' : session.identity?.email?.trim() || 'Writing practice workspace')
+          return
         }
-      }
-    }
-    void load()
+
+        const fallbackDetail = session.authenticated ? 'Writing practice workspace' : 'Scholastic coaching loop'
+        setAccountName(session.authenticated ? 'Writing Coach' : 'Workshop')
+        setAccountDetail(session.is_admin ? 'Administrator account' : fallbackDetail)
+      })
+      .catch(() => {
+        if (cancelled) {
+          return
+        }
+        setAuthenticated(false)
+        setIsAdmin(false)
+        setAccountName('Workshop')
+        setAccountDetail('Scholastic coaching loop')
+      })
+
     return () => {
       cancelled = true
     }
   }, [])
 
   const accountInitials = initialsForName(accountName)
-  const aiStatus = providerStatusMeta({
-    ready: aiProviderReady,
-    hasPersonalKey: aiHasPersonalKey,
-    systemFallback: aiSystemFallback,
-  })
 
   return (
     <SidebarLayout
@@ -228,18 +179,6 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">Structured practice</div>
                 </div>
               </div>
-              {authenticated === true ? (
-                <a
-                  href="/ai-settings"
-                  className="block rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3 transition hover:border-stone-300 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/8"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium text-zinc-950 dark:text-white">{aiStatus.label}</div>
-                    <Badge color={aiStatus.badgeColor}>{aiHasPersonalKey ? 'Personal' : aiProviderReady ? 'Shared' : 'Needed'}</Badge>
-                  </div>
-                  <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">{aiStatus.detail}</div>
-                </a>
-              ) : null}
             </div>
           </SidebarHeader>
 
@@ -285,13 +224,6 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 </SidebarItem>
               </SidebarSection>
 
-              <SidebarSection>
-                <SidebarHeading>Settings</SidebarHeading>
-                <SidebarItem href="/ai-settings" current={pathname.startsWith('/ai-settings')}>
-                  <Cog6ToothIcon />
-                  <SidebarLabel>AI provider</SidebarLabel>
-                </SidebarItem>
-              </SidebarSection>
             </>
           ) : null}
 

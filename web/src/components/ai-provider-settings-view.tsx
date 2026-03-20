@@ -83,8 +83,8 @@ function providerStatus(settings: AIProviderSettings | null) {
     return {
       label: settings.system_fallback ? 'System provider' : 'Storage unavailable',
       detail: settings.system_fallback
-        ? 'The app can still use the shared provider, but saving personal provider keys is disabled on this server.'
-        : 'Saving personal provider keys is disabled on this server and no shared provider is available.',
+        ? 'You can keep using the shared provider, but personal provider keys are not available here right now.'
+        : 'Personal provider keys are not available here right now, and no shared provider is available.',
       badgeColor: settings.system_fallback ? ('amber' as const) : ('rose' as const),
     }
   }
@@ -302,11 +302,6 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         eyebrow="Settings"
         title="AI provider"
         intro="Connect your own provider credentials for assignment and review generation. You can keep using the shared system provider while it remains available."
-        actions={
-          <Button href="/" outline>
-            Current assignment
-          </Button>
-        }
       />
 
       <WorkspaceCard>
@@ -345,8 +340,8 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         <Callout
           title="Personal provider storage is unavailable"
           body={settings?.system_fallback
-            ? 'This server is not configured to store personal provider keys. You can keep using the shared provider, but users cannot save their own keys here until the server sets WRITING_COACH_AI_KEY_SECRET.'
-            : 'This server is not configured to store personal provider keys, and no shared provider fallback is available. An operator needs to set WRITING_COACH_AI_KEY_SECRET before users can save their own keys.'}
+            ? 'You can keep using the shared provider, but personal provider keys are not available here right now.'
+            : 'Personal provider keys are not available here right now, and no shared provider fallback is available.'}
           tone={settings?.system_fallback ? 'warning' : 'danger'}
         />
       ) : null}

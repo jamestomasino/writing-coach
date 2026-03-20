@@ -20,11 +20,6 @@ export default function Home() {
           return
         }
         if (session.authenticated) {
-          if (session.onboarding_complete && !session.ai_provider_ready) {
-            setAuthenticated(false)
-            router.replace('/ai-settings?required=1&next=/')
-            return
-          }
           setAuthenticated(true)
           return
         }
