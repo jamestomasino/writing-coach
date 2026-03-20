@@ -56,7 +56,7 @@ export function PastAssignmentsView() {
       <PageHeader
         eyebrow="Assignments"
         title="Past assignments"
-        intro="Browse completed and earlier assignment chains as a historical record of prompts, drafts, feedback, and revisions."
+        intro="Look back at earlier assignments and revisit your drafts, feedback, and revisions."
         actions={
           <Button href="/" outline>
             Current assignment
@@ -69,7 +69,7 @@ export function PastAssignmentsView() {
           <CardHeader
             eyebrow="Current chain"
             title={currentAssignment.title}
-            description="The most recent assignment chain stays in the live workspace, but you can open its full timeline here."
+            description="Your current assignment is still in the main workspace. You can view its full history here."
             actions={
               <Button href={`/assignments/${currentAssignment.current_exercise_id}`} plain>
                 View current timeline

@@ -33,16 +33,6 @@ function railTone(step: AssignmentTimelineStep) {
   return 'zinc'
 }
 
-function workspaceHref(step: AssignmentTimelineStep) {
-  if (!step.exercise) {
-    return undefined
-  }
-  if (step.exercise.source_submission_id) {
-    return `/?revisionExercise=${step.exercise.id}`
-  }
-  return '/'
-}
-
 function TimelineRail({
   steps,
   selectedStepID,
@@ -82,20 +72,12 @@ function ExerciseStepSection({ step }: { step: AssignmentTimelineStep }) {
   if (!step.exercise) {
     return null
   }
-  const href = workspaceHref(step)
   return (
     <WorkspaceCard>
       <CardHeader
         eyebrow={step.label}
         title={step.exercise.title}
         description={step.exercise.brief}
-        actions={
-          href ? (
-            <Button href={href} outline>
-              Open workspace
-            </Button>
-          ) : null
-        }
       />
       <div className="mt-5 grid gap-6 xl:grid-cols-2">
         <div>
@@ -291,7 +273,7 @@ export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
         <CardHeader
           eyebrow="Navigation"
           title="Assignment flow"
-          description="Use this rail to jump between prompt, draft, feedback, and revision steps inside the same assignment chain."
+          description="Jump to any step in this assignment."
         />
         <div className="mt-5">
           <TimelineRail steps={assignment.steps} selectedStepID={selectedStepID} onSelect={handleSelect} />

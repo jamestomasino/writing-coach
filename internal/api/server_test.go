@@ -800,6 +800,19 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 	}, []domain.SkillScore{{SubmissionID: revisionSubmissionID, Skill: "causal clarity", Score: 4}}); err != nil {
 		t.Fatalf("save revision review: %v", err)
 	}
+	if _, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "New Assignment",
+		Brief:           "Start something new.",
+		Constraints:     []string{"under 600 words"},
+		FocusSkills:     []string{"scene architecture"},
+		TGOCodes:        []string{"scene-architecture"},
+		SuccessCriteria: []string{"the scene advances cleanly"},
+		GenerationKind:  "deterministic",
+	}); err != nil {
+		t.Fatalf("save later exercise: %v", err)
+	}
 
 	resp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(revisionExerciseID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
 	if err != nil {
@@ -814,6 +827,7 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 		Assignment struct {
 			RootExerciseID    int64 `json:"root_exercise_id"`
 			CurrentExerciseID int64 `json:"current_exercise_id"`
+			IsCurrent         bool  `json:"is_current"`
 			Steps             []struct {
 				Kind         string `json:"kind"`
 				ExerciseID   int64  `json:"exercise_id"`
@@ -831,6 +845,9 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 	}
 	if payload.Assignment.CurrentExerciseID != revisionExerciseID {
 		t.Fatalf("current exercise id = %d", payload.Assignment.CurrentExerciseID)
+	}
+	if payload.Assignment.IsCurrent {
+		t.Fatal("expected assignment chain to be historical after a newer assignment was created")
 	}
 	if len(payload.Assignment.Steps) != 6 {
 		t.Fatalf("step count = %d", len(payload.Assignment.Steps))

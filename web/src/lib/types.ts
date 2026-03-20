@@ -167,6 +167,7 @@ export type AssignmentTimeline = {
   root_exercise_id: number
   current_exercise_id: number
   title: string
+  is_current?: boolean
   latest_step_id?: string
   steps: AssignmentTimelineStep[]
 }

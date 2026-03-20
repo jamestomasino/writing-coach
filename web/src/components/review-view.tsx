@@ -8,7 +8,7 @@ import { CardHeader } from '@/components/card-header'
 import { Heading, Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { createRevisionAssignment, getExercise, getReview, getSubmission } from '@/lib/api'
+import { createRevisionAssignment, getAssignmentTimeline, getExercise, getReview, getSubmission } from '@/lib/api'
 import type { Exercise, Review, Submission } from '@/lib/types'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -20,6 +20,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [preparingRevision, setPreparingRevision] = useState(false)
+  const [canActOnReview, setCanActOnReview] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -28,10 +29,18 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         const reviewData = await getReview(reviewId)
         const submissionData = await getSubmission(reviewData.submission_id)
         const exerciseData = await getExercise(submissionData.exercise_id)
+        let reviewIsActionable = false
+        try {
+          const timeline = await getAssignmentTimeline(exerciseData.id)
+          reviewIsActionable = timeline.is_current === true && timeline.latest_step_id === `review-${reviewData.id}`
+        } catch {
+          reviewIsActionable = false
+        }
         if (!cancelled) {
           setReview(reviewData)
           setSubmission(submissionData)
           setExercise(exerciseData)
+          setCanActOnReview(reviewIsActionable)
         }
       } catch (err) {
         if (!cancelled) {
@@ -83,12 +92,16 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
             <Button href={`/assignments/${exercise.id}`} plain>
               View timeline
             </Button>
-            <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
-              {preparingRevision ? 'Preparing revision brief…' : 'Revise this draft'}
-            </Button>
-            <Button href="/" outline>
-              Accept and move on
-            </Button>
+            {canActOnReview ? (
+              <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
+                {preparingRevision ? 'Preparing revision brief…' : 'Revise this draft'}
+              </Button>
+            ) : null}
+            {canActOnReview ? (
+              <Button href="/" outline>
+                Accept and move on
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -103,6 +116,12 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
             'Build the next revision assignment around those targets.',
           ]}
         />
+      ) : null}
+
+      {!canActOnReview ? (
+        <WorkspaceCard>
+          <Text>This review is part of your assignment history. To keep working, use the current assignment workspace.</Text>
+        </WorkspaceCard>
       ) : null}
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">

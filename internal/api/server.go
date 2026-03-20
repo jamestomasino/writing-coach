@@ -233,6 +233,7 @@ type assignmentResponse struct {
 	RootExerciseID    int64                    `json:"root_exercise_id"`
 	CurrentExerciseID int64                    `json:"current_exercise_id"`
 	Title             string                   `json:"title"`
+	IsCurrent         bool                     `json:"is_current,omitempty"`
 	LatestStepID      string                   `json:"latest_step_id,omitempty"`
 	Steps             []assignmentStepResponse `json:"steps"`
 }
@@ -2658,6 +2659,13 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 	if title == "" {
 		title = exerciseTitle(current)
 	}
+	latestExercise := exercises[0]
+	for _, exercise := range exercises[1:] {
+		if exercise.CreatedAt.After(latestExercise.CreatedAt) || (exercise.CreatedAt.Equal(latestExercise.CreatedAt) && exercise.ID > latestExercise.ID) {
+			latestExercise = exercise
+		}
+	}
+	currentRootID := rootExerciseID(latestExercise, exerciseByID, submissionByID)
 	latestStepID := ""
 	if len(steps) > 0 {
 		latestStepID = steps[len(steps)-1].ID
@@ -2666,6 +2674,7 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 		RootExerciseID:    rootID,
 		CurrentExerciseID: current.ID,
 		Title:             title,
+		IsCurrent:         rootID == currentRootID,
 		LatestStepID:      latestStepID,
 		Steps:             steps,
 	}, nil
