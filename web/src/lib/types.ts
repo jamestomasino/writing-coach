@@ -171,6 +171,20 @@ export type AssignmentTimeline = {
   steps: AssignmentTimelineStep[]
 }
 
+export type AssignmentSummary = {
+  root_exercise_id: number
+  current_exercise_id: number
+  title: string
+  latest_activity: string
+  latest_step_label: string
+  exercise_count: number
+  draft_count: number
+  review_count: number
+  revision_count: number
+  tgos: string[]
+  is_current?: boolean
+}
+
 export type Tree = {
   id: number
   slug: string

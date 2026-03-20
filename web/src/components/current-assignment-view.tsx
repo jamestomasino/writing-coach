@@ -14,7 +14,7 @@ import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { createRevisionAssignment, getDashboard, getExercise, getExercises, getReviewJob, getReviews, getSession, getSubmission, getSubmissions, reviewSubmission, submitDraft } from '@/lib/api'
 import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
-import { EmptyState, LoadingState, TaskProgressState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 type WorkspaceState = {
@@ -305,7 +305,7 @@ export function CurrentAssignmentView() {
     )
   }
   if (error) {
-    return <EmptyState title="Workspace unavailable" body={error} actionHref="/" actionLabel="Try again" />
+    return <AppErrorState error={error} title="Workspace unavailable" />
   }
   if (!workspace) {
     return <LoadingState />

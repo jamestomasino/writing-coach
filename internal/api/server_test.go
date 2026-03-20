@@ -849,6 +849,110 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 	}
 }
 
+func TestAssignmentsListEndpoint(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+
+	pastExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Past Assignment",
+		Brief:           "Write the omen.",
+		Constraints:     []string{"under 500 words"},
+		FocusSkills:     []string{"causal clarity"},
+		TGOCodes:        []string{"causal-clarity"},
+		SuccessCriteria: []string{"clear cause and effect"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save past exercise: %v", err)
+	}
+	pastSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: pastExerciseID,
+		Content:    "The bell rang and the gate split.",
+		WordCount:  7,
+	})
+	if err != nil {
+		t.Fatalf("save past submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     pastSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "Past review.",
+		Strengths:        []string{"clear event"},
+		Weaknesses:       []string{"thin consequence"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "make consequence vivid",
+		MetricWordCount:  7,
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "causal-clarity", Status: "developing", Evidence: "The cause is present."},
+		},
+	}, nil); err != nil {
+		t.Fatalf("save past review: %v", err)
+	}
+
+	currentExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Current Assignment",
+		Brief:           "Write the aftermath.",
+		Constraints:     []string{"under 500 words"},
+		FocusSkills:     []string{"scene architecture"},
+		TGOCodes:        []string{"scene-architecture"},
+		SuccessCriteria: []string{"scene moves cleanly"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save current exercise: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get assignments list: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("assignments list status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Assignments []struct {
+			RootExerciseID    int64  `json:"root_exercise_id"`
+			CurrentExerciseID int64  `json:"current_exercise_id"`
+			Title             string `json:"title"`
+			IsCurrent         bool   `json:"is_current"`
+			ReviewCount       int    `json:"review_count"`
+		} `json:"assignments"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode assignments list: %v", err)
+	}
+	if len(payload.Assignments) != 2 {
+		t.Fatalf("assignment count = %d", len(payload.Assignments))
+	}
+	if payload.Assignments[0].CurrentExerciseID != currentExerciseID || !payload.Assignments[0].IsCurrent {
+		t.Fatalf("first assignment = %#v", payload.Assignments[0])
+	}
+	if payload.Assignments[1].RootExerciseID != pastExerciseID || payload.Assignments[1].ReviewCount != 1 {
+		t.Fatalf("second assignment = %#v", payload.Assignments[1])
+	}
+}
+
 func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

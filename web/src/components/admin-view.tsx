@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getSession, listAdmins, listUsers, provisionUser } from '@/lib/api'
 import type { AuthSession, UserRecord } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function AdminView() {
@@ -85,7 +85,7 @@ export function AdminView() {
     )
   }
   if (error && users.length === 0) {
-    return <EmptyState title="Admin workspace unavailable" body={error} actionHref="/" actionLabel="Back to assignment" />
+    return <AppErrorState title="Admin workspace unavailable" error={error} />
   }
 
   return (

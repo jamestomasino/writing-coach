@@ -79,6 +79,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/enrollments/{id}/board", s.handleEnrollmentBoard)
 	mux.HandleFunc("GET /api/context", s.handleContext)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
+	mux.HandleFunc("GET /api/assignments", s.handleAssignmentsList)
 	mux.HandleFunc("GET /api/assignments/{id}", s.handleAssignmentGet)
 	mux.HandleFunc("GET /api/exercises", s.handleExercisesList)
 	mux.HandleFunc("GET /api/exercises/{id}", s.handleExerciseGet)
@@ -234,6 +235,20 @@ type assignmentResponse struct {
 	Title             string                   `json:"title"`
 	LatestStepID      string                   `json:"latest_step_id,omitempty"`
 	Steps             []assignmentStepResponse `json:"steps"`
+}
+
+type assignmentListItemResponse struct {
+	RootExerciseID    int64    `json:"root_exercise_id"`
+	CurrentExerciseID int64    `json:"current_exercise_id"`
+	Title             string   `json:"title"`
+	LatestActivity    string   `json:"latest_activity"`
+	LatestStepLabel   string   `json:"latest_step_label"`
+	ExerciseCount     int      `json:"exercise_count"`
+	DraftCount        int      `json:"draft_count"`
+	ReviewCount       int      `json:"review_count"`
+	RevisionCount     int      `json:"revision_count"`
+	TGOs              []string `json:"tgos,omitempty"`
+	IsCurrent         bool     `json:"is_current,omitempty"`
 }
 
 type assignmentStepResponse struct {
@@ -1077,6 +1092,23 @@ func (s Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.writeDashboardPayload(r.Context(), w, appContext, state, activeTGOs, completedTGOs)
+}
+
+func (s Server) handleAssignmentsList(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	assignments, err := s.assignmentSummaries(r.Context(), appContext)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":     requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"assignments": assignments,
+	})
 }
 
 func (s Server) handleAssignmentGet(w http.ResponseWriter, r *http.Request) {
@@ -2639,6 +2671,133 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 	}, nil
 }
 
+func (s Server) assignmentSummaries(ctx context.Context, appContext session.Context) ([]assignmentListItemResponse, error) {
+	exercises, err := s.Store.ListExercises(ctx, appContext.UserID, appContext.TreeID, 500)
+	if err != nil {
+		return nil, err
+	}
+	submissions, err := s.Store.ListSubmissions(ctx, appContext.UserID, appContext.TreeID, 0, 500)
+	if err != nil {
+		return nil, err
+	}
+	reviews, err := s.Store.ListReviews(ctx, appContext.UserID, appContext.TreeID, 0, 500)
+	if err != nil {
+		return nil, err
+	}
+	if len(exercises) == 0 {
+		return nil, nil
+	}
+
+	exerciseByID := make(map[int64]domain.Exercise, len(exercises))
+	for _, exercise := range exercises {
+		exerciseByID[exercise.ID] = exercise
+	}
+	submissionByID := make(map[int64]domain.Submission, len(submissions))
+	for _, submission := range submissions {
+		submissionByID[submission.ID] = submission
+	}
+	reviewBySubmission := make(map[int64]domain.Review, len(reviews))
+	for _, reviewResult := range reviews {
+		if _, exists := reviewBySubmission[reviewResult.SubmissionID]; !exists {
+			reviewBySubmission[reviewResult.SubmissionID] = reviewResult
+		}
+	}
+
+	type chainSummary struct {
+		rootExerciseID    int64
+		currentExerciseID int64
+		title             string
+		latestActivity    time.Time
+		latestStepLabel   string
+		exerciseCount     int
+		draftCount        int
+		reviewCount       int
+		revisionCount     int
+		tgos              []string
+	}
+	chains := map[int64]*chainSummary{}
+	latestExercise := exercises[0]
+	for _, exercise := range exercises {
+		if exercise.CreatedAt.After(latestExercise.CreatedAt) || (exercise.CreatedAt.Equal(latestExercise.CreatedAt) && exercise.ID > latestExercise.ID) {
+			latestExercise = exercise
+		}
+		rootID := rootExerciseID(exercise, exerciseByID, submissionByID)
+		chain := chains[rootID]
+		if chain == nil {
+			chain = &chainSummary{
+				rootExerciseID:  rootID,
+				title:           exerciseTitle(exerciseByID[rootID]),
+				latestActivity:  exercise.CreatedAt,
+				latestStepLabel: stepLabel("exercise", exercise, domain.Submission{}),
+				tgos:            titlesForTGOCodes(exerciseByID[rootID].TGOCodes),
+			}
+			chains[rootID] = chain
+		}
+		chain.exerciseCount++
+		if exercise.SourceSubmissionID != 0 {
+			chain.revisionCount++
+		}
+		if exercise.CreatedAt.After(chain.latestActivity) || (exercise.CreatedAt.Equal(chain.latestActivity) && exercise.ID > chain.currentExerciseID) {
+			chain.latestActivity = exercise.CreatedAt
+			chain.latestStepLabel = stepLabel("exercise", exercise, domain.Submission{})
+		}
+		if exercise.CreatedAt.After(exerciseByID[chain.currentExerciseID].CreatedAt) || chain.currentExerciseID == 0 || (exercise.CreatedAt.Equal(exerciseByID[chain.currentExerciseID].CreatedAt) && exercise.ID > chain.currentExerciseID) {
+			chain.currentExerciseID = exercise.ID
+		}
+	}
+
+	for _, submission := range submissions {
+		exercise, ok := exerciseByID[submission.ExerciseID]
+		if !ok {
+			continue
+		}
+		rootID := rootExerciseID(exercise, exerciseByID, submissionByID)
+		chain := chains[rootID]
+		if chain == nil {
+			continue
+		}
+		chain.draftCount++
+		if submission.CreatedAt.After(chain.latestActivity) {
+			chain.latestActivity = submission.CreatedAt
+			chain.latestStepLabel = stepLabel("submission", exercise, submission)
+		}
+		if reviewResult, ok := reviewBySubmission[submission.ID]; ok {
+			chain.reviewCount++
+			if reviewResult.CreatedAt.After(chain.latestActivity) {
+				chain.latestActivity = reviewResult.CreatedAt
+				chain.latestStepLabel = stepLabel("review", exercise, submission)
+			}
+		}
+	}
+
+	currentRootID := rootExerciseID(latestExercise, exerciseByID, submissionByID)
+	items := make([]assignmentListItemResponse, 0, len(chains))
+	for _, chain := range chains {
+		items = append(items, assignmentListItemResponse{
+			RootExerciseID:    chain.rootExerciseID,
+			CurrentExerciseID: chain.currentExerciseID,
+			Title:             chain.title,
+			LatestActivity:    db.Since(chain.latestActivity),
+			LatestStepLabel:   chain.latestStepLabel,
+			ExerciseCount:     chain.exerciseCount,
+			DraftCount:        chain.draftCount,
+			ReviewCount:       chain.reviewCount,
+			RevisionCount:     chain.revisionCount,
+			TGOs:              chain.tgos,
+			IsCurrent:         chain.rootExerciseID == currentRootID,
+		})
+	}
+	sort.Slice(items, func(i, j int) bool {
+		left := chains[items[i].RootExerciseID]
+		right := chains[items[j].RootExerciseID]
+		if left.latestActivity.Equal(right.latestActivity) {
+			return items[i].RootExerciseID > items[j].RootExerciseID
+		}
+		return left.latestActivity.After(right.latestActivity)
+	})
+	return items, nil
+}
+
 func rootExerciseID(exercise domain.Exercise, exerciseByID map[int64]domain.Exercise, submissionByID map[int64]domain.Submission) int64 {
 	current := exercise
 	seen := map[int64]bool{current.ID: true}
@@ -2663,6 +2822,21 @@ func exerciseTitle(exercise domain.Exercise) string {
 		return "Untitled assignment"
 	}
 	return title
+}
+
+func titlesForTGOCodes(codes []string) []string {
+	out := make([]string, 0, len(codes))
+	for _, code := range codes {
+		if tgo, ok := domain.TGOByCode(code); ok {
+			out = append(out, tgo.Title)
+			continue
+		}
+		value := strings.TrimSpace(code)
+		if value != "" {
+			out = append(out, value)
+		}
+	}
+	return out
 }
 
 func stepLabel(kind string, exercise domain.Exercise, submission domain.Submission) string {

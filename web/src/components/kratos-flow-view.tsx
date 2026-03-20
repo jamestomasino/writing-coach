@@ -6,7 +6,7 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
 import { Eyebrow } from '@/components/eyebrow'
-import { EmptyState, LoadingState } from '@/components/status-state'
+import { AppErrorState, EmptyState, LoadingState } from '@/components/status-state'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
 import { Input } from '@/components/input'
@@ -237,7 +237,7 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
     return <LoadingState label="Loading account flow…" />
   }
   if (error || !flow) {
-    return <EmptyState title="Authentication unavailable" body={error ?? 'Could not load the account flow.'} actionHref="/" actionLabel="Back to home" />
+    return <AppErrorState title="Authentication unavailable" error={error ?? 'Could not load the account flow.'} />
   }
 
   const submitNode = grouped.submit[0]

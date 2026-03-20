@@ -9,8 +9,19 @@ import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { getAssignmentTimeline } from '@/lib/api'
 import type { AssignmentTimeline, AssignmentTimelineStep } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
+
+function formatTimelineTimestamp(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
 
 function railTone(step: AssignmentTimelineStep) {
   if (step.kind === 'review') {
@@ -57,7 +68,7 @@ function TimelineRail({
             >
               <div className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">{step.label}</div>
               <div className="mt-1 text-sm font-semibold">{step.title}</div>
-              <div className="mt-1 text-xs opacity-70">{step.created_at}</div>
+              <div className="mt-1 text-xs opacity-70">{formatTimelineTimestamp(step.created_at)}</div>
             </button>
             {index < steps.length - 1 ? <div className="h-px w-8 bg-stone-300 dark:bg-white/15" /> : null}
           </div>
@@ -117,7 +128,7 @@ function SubmissionStepSection({ step }: { step: AssignmentTimelineStep }) {
       <CardHeader
         eyebrow={step.label}
         title={`${step.submission.word_count} words`}
-        description={`Saved ${step.created_at}.`}
+        description={`Saved ${formatTimelineTimestamp(step.created_at)}.`}
       />
       <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
         <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-zinc-700 dark:text-zinc-200">{step.submission.content}</pre>
@@ -135,7 +146,7 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
       <CardHeader
         eyebrow={step.label}
         title={step.review.summary}
-        description={`Review completed ${step.created_at}.`}
+        description={`Review completed ${formatTimelineTimestamp(step.created_at)}.`}
         actions={
           <div className="flex gap-2">
             <Button href={`/reviews/${step.review.id}`} outline>
@@ -200,14 +211,16 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
 
 function StepSection({ step, selected }: { step: AssignmentTimelineStep; selected: boolean }) {
   return (
-    <section id={step.id} className={`scroll-mt-28 rounded-[2rem] ${selected ? 'ring-2 ring-stone-900/15 dark:ring-white/20' : ''}`}>
+    <section id={step.id} className="scroll-mt-28">
       <div className="mb-3 flex items-center gap-3">
         <Badge color={railTone(step)}>{step.label}</Badge>
-        <Text>{step.created_at}</Text>
+        <Text>{formatTimelineTimestamp(step.created_at)}</Text>
       </div>
-      {step.kind === 'exercise' ? <ExerciseStepSection step={step} /> : null}
-      {step.kind === 'submission' ? <SubmissionStepSection step={step} /> : null}
-      {step.kind === 'review' ? <ReviewStepSection step={step} /> : null}
+      <div className={selected ? 'rounded-[2rem] bg-stone-100/70 p-3 dark:bg-white/5' : ''}>
+        {step.kind === 'exercise' ? <ExerciseStepSection step={step} /> : null}
+        {step.kind === 'submission' ? <SubmissionStepSection step={step} /> : null}
+        {step.kind === 'review' ? <ReviewStepSection step={step} /> : null}
+      </div>
     </section>
   )
 }
@@ -253,7 +266,7 @@ export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
     return <LoadingState label="Loading assignment timeline…" />
   }
   if (error || !assignment) {
-    return <EmptyState title="Assignment unavailable" body={error ?? 'Could not load the requested assignment.'} actionHref="/" actionLabel="Back to assignment" />
+    return <AppErrorState title="Assignment unavailable" error={error ?? 'Could not load the requested assignment.'} />
   }
 
   return (
@@ -261,11 +274,16 @@ export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
       <PageHeader
         eyebrow="Assignment timeline"
         title={assignment.title}
-        intro="This view keeps the full coaching loop in one place: prompt, drafts, feedback, revision briefs, and later passes."
+        intro="Review the full history of this assignment in one place."
         actions={
-          <Button href="/" outline>
-            Current assignment
-          </Button>
+          <>
+            <Button href="/assignments" plain>
+              Past assignments
+            </Button>
+            <Button href="/" outline>
+              Current assignment
+            </Button>
+          </>
         }
       />
 

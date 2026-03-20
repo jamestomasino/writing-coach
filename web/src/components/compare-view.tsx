@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { createRevisionAssignment, getComparison, getReviews, getSubmission } from '@/lib/api'
 import type { Comparison, Review, Submission } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
@@ -63,7 +63,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
     return <LoadingState label="Loading comparison…" />
   }
   if (error || !comparison || !submission) {
-    return <EmptyState title="Comparison unavailable" body={error ?? 'The requested comparison is not available yet.'} actionHref="/" actionLabel="Back to assignment" />
+    return <AppErrorState title="Comparison unavailable" error={error ?? 'The requested comparison is not available yet.'} />
   }
 
   return (

@@ -35,6 +35,7 @@ import {
 } from '@heroicons/react/16/solid'
 import {
   ChartBarSquareIcon,
+  ClockIcon,
   HomeIcon,
   InformationCircleIcon,
   PencilSquareIcon,
@@ -191,6 +192,10 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   <SidebarItem href="/new-assignment" current={pathname.startsWith('/new-assignment')}>
                     <PencilSquareIcon />
                     <SidebarLabel>New assignment</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/assignments" current={pathname === '/assignments' || pathname.startsWith('/assignments/')}>
+                    <ClockIcon />
+                    <SidebarLabel>Past assignments</SidebarLabel>
                   </SidebarItem>
                 </SidebarSection>
 

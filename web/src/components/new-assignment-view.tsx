@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { acceptAssignment, createAssignment, getDashboard, getSession } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 import { useRouter } from 'next/navigation'
 
@@ -135,7 +135,7 @@ export function NewAssignmentView() {
     )
   }
   if (error && !dashboard) {
-    return <EmptyState title="Could not load new assignment flow" body={error} actionHref="/" actionLabel="Back to assignment" />
+    return <AppErrorState title="Could not load new assignment flow" error={error} />
   }
   if (!dashboard) {
     return <LoadingState />

@@ -22,7 +22,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
 import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 type TreeNodeStatus = 'active' | 'completed' | 'unlocked' | 'locked'
@@ -326,7 +326,7 @@ export function TreeView() {
     )
   }
   if (error || !tree || !dashboard || !graph) {
-    return <EmptyState title="Tree unavailable" body={error ?? 'Could not load the current tree.'} actionHref="/" actionLabel="Back to assignment" />
+    return <AppErrorState title="Tree unavailable" error={error ?? 'Could not load the current tree.'} />
   }
 
   const activeCount = dashboard.active_tgos?.length ?? 0

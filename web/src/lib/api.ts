@@ -3,6 +3,7 @@
 import type {
   AuthSession,
   AssignmentTimeline,
+  AssignmentSummary,
   Comparison,
   Dashboard,
   Exercise,
@@ -134,6 +135,11 @@ export async function getExercise(exerciseId: number) {
 export async function getAssignmentTimeline(exerciseId: number) {
   const payload = await request<{ assignment: AssignmentTimeline }>(`/api/assignments/${exerciseId}`)
   return normalizeAssignmentTimeline(payload.assignment)
+}
+
+export async function getAssignments() {
+  const payload = await request<{ assignments: AssignmentSummary[] }>('/api/assignments')
+  return arrayOrEmpty(payload.assignments)
 }
 
 export async function getSubmissions(exerciseId: number, limit = 10) {

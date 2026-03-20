@@ -4,30 +4,119 @@ import { Heading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { WorkspaceCard } from './workspace-card'
 
+type EmptyStateAction = {
+  href: string
+  label: string
+  outline?: boolean
+  plain?: boolean
+}
+
 export function EmptyState({
   title,
   body,
   actionHref,
   actionLabel,
+  actions,
 }: {
   title: string
   body: string
   actionHref?: string
   actionLabel?: string
+  actions?: EmptyStateAction[]
 }) {
+  const resolvedActions = actions ?? (actionHref && actionLabel ? [{ href: actionHref, label: actionLabel }] : [])
+
   return (
     <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-10 text-center dark:border-white/10 dark:bg-white/5">
       <Heading level={2}>{title}</Heading>
       <Text className="mx-auto mt-3 max-w-2xl">{body}</Text>
-      {actionHref && actionLabel ? (
-        <div className="mt-6">
-          <Button href={actionHref} color="dark/zinc">
-            {actionLabel}
-          </Button>
+      {resolvedActions.length > 0 ? (
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {resolvedActions.map((action, index) => {
+            const key = `${action.href}-${action.label}`
+
+            if (action.plain) {
+              return (
+                <Button key={key} href={action.href} plain>
+                  {action.label}
+                </Button>
+              )
+            }
+
+            if (action.outline || index !== 0) {
+              return (
+                <Button key={key} href={action.href} outline>
+                  {action.label}
+                </Button>
+              )
+            }
+
+            return (
+              <Button key={key} href={action.href} color="dark/zinc">
+                {action.label}
+              </Button>
+            )
+          })}
         </div>
       ) : null}
     </div>
   )
+}
+
+function classifyErrorMessage(message: string) {
+  const normalized = message.toLowerCase()
+  if (normalized.includes('unauthorized') || normalized.includes('sign in required') || normalized.includes('forbidden') || normalized.includes('401') || normalized.includes('403')) {
+    return {
+      title: 'Sign in required',
+      body: 'This page is only available inside an authenticated coaching session.',
+      actions: [
+        { href: '/login', label: 'Sign in' },
+        { href: '/about', label: 'Back to home', outline: true },
+      ],
+    }
+  }
+  if (normalized.includes('not found') || normalized.includes('unavailable') || normalized.includes('404')) {
+    return {
+      title: 'Page unavailable',
+      body: 'The page or record you requested could not be found in this account context.',
+      actions: [
+        { href: '/', label: 'Current assignment' },
+        { href: '/assignments', label: 'Past assignments', outline: true },
+        { href: '/about', label: 'About', outline: true },
+      ],
+    }
+  }
+  if (normalized.includes('500') || normalized.includes('502') || normalized.includes('503') || normalized.includes('504') || normalized.includes('internal server error')) {
+    return {
+      title: 'Something went wrong',
+      body: 'The app hit a server-side problem while trying to load this page.',
+      actions: [
+        { href: '/', label: 'Current assignment' },
+        { href: '/about', label: 'About', outline: true },
+      ],
+    }
+  }
+  return {
+    title: 'Something went wrong',
+    body: message,
+    actions: [
+      { href: '/', label: 'Current assignment' },
+      { href: '/about', label: 'About', outline: true },
+    ],
+  }
+}
+
+export function AppErrorState({
+  error,
+  title,
+  body,
+}: {
+  error: string | null | undefined
+  title?: string
+  body?: string
+}) {
+  const details = classifyErrorMessage(error ?? body ?? 'Something went wrong')
+  return <EmptyState title={title ?? details.title} body={body ?? details.body} actions={details.actions} />
 }
 
 export function LoadingState({ label = 'Loading workspace…' }: { label?: string }) {

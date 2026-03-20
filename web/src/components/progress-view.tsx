@@ -16,7 +16,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
 import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
-import { EmptyState, LoadingState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 function rankWidth(index: number, total: number) {
@@ -128,7 +128,7 @@ export function ProgressView() {
     )
   }
   if (error || !dashboard) {
-    return <EmptyState title="Progress unavailable" body={error ?? 'Could not load progress board.'} actionHref="/" actionLabel="Back to assignment" />
+    return <AppErrorState title="Progress unavailable" error={error ?? 'Could not load progress board.'} />
   }
 
   const activeTGOs = dashboard.active_tgos ?? []

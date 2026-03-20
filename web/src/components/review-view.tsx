@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { createRevisionAssignment, getExercise, getReview, getSubmission } from '@/lib/api'
 import type { Exercise, Review, Submission } from '@/lib/types'
-import { EmptyState, LoadingState, TaskProgressState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function ReviewView({ reviewId }: { reviewId: number }) {
@@ -69,7 +69,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     return <LoadingState label="Loading review…" />
   }
   if (error || !review || !submission || !exercise) {
-    return <EmptyState title="Review unavailable" body={error ?? 'The requested review could not be loaded.'} actionHref="/" actionLabel="Back to assignment" />
+    return <AppErrorState title="Review unavailable" error={error ?? 'The requested review could not be loaded.'} />
   }
 
   return (
