@@ -10,7 +10,9 @@ The initial implementation targets a narrow but complete loop:
 4. The API reviews the draft with deterministic analysis and model synthesis.
 5. Results are persisted so later prompts can adapt to prior work.
 
-If `OPENAI_API_KEY` is set in the environment, prompt generation and review generation will use the OpenAI Responses API with structured JSON outputs. If credentials are missing or the API call fails, the app falls back to deterministic local logic.
+The app now supports per-user AI provider settings in the browser. Users can connect their own `OpenAI`, `Groq`, or `xAI` key under `Settings > AI provider`.
+
+If `OPENAI_API_KEY` is set in the environment, the server also offers a shared OpenAI fallback for users who have not configured a personal provider yet. If neither a personal provider nor the shared fallback is available, generation is blocked until AI setup is completed. If a model call fails during prompt or review generation, the app falls back to deterministic local logic where supported.
 
 ## Architecture
 
@@ -84,6 +86,10 @@ Core endpoints:
 - `GET /api/health`
 - `GET /api/ready`
 - `GET /api/auth/session`
+- `GET /api/ai/settings`
+- `PUT /api/ai/settings`
+- `DELETE /api/ai/settings`
+- `POST /api/ai/settings/validate`
 - `GET /api/onboarding`
 - `POST /api/onboarding`
 - `GET /api/admins`
@@ -119,7 +125,7 @@ Ory Kratos integration:
 - the API will validate browser/session authentication through Kratos `GET /sessions/whoami`
 - when Kratos auth is enabled, each authenticated identity maps deterministically to its own internal writer profile
 - this avoids storing password hashes in `writing-coach` itself
-- `GET /api/auth/session` returns the resolved auth mode, Kratos identity, onboarding state, and effective user/tree context for the browser client
+- `GET /api/auth/session` returns the resolved auth mode, Kratos identity, onboarding state, AI readiness, and effective user/tree context for the browser client
 
 Examples:
 
@@ -140,8 +146,9 @@ The app stores non-secret configuration in `.writing-coach/config.json`.
 
 Environment variables:
 
-- `OPENAI_API_KEY`
+- `OPENAI_API_KEY` optional shared OpenAI fallback
 - `OPENAI_BASE_URL`
+- `WRITING_COACH_AI_KEY_SECRET` required if users will save personal provider keys
 - `WRITING_COACH_PROMPT_MODEL`
 - `WRITING_COACH_REVIEW_MODEL`
 - `WRITING_COACH_WRITER_NAME`
@@ -184,6 +191,7 @@ The repository currently contains:
 - a Go API server behind the browser client
 - a Next.js web app built from the Catalyst component kit
 - a questionnaire-driven onboarding flow that generates a user-specific TGO tree
+- per-user AI provider settings for OpenAI, Groq, and xAI
 - structured review annotations tied to quoted text and TGOs for browser-side markup
 - SQLite bootstrap and schema migration support
 - model-backed prompt/review services with deterministic fallback behavior
@@ -216,7 +224,9 @@ Production deployment for `coach.tomasino.org` should:
 
 - copy `.env.example` to `.env`
 - set the Kratos secrets to long random values
+- set `WRITING_COACH_AI_KEY_SECRET` to a long random value and keep it stable
 - set `WRITING_COACH_ADMIN_EMAILS` to the Kratos email addresses allowed to create or edit curricula
+- decide whether `OPENAI_API_KEY` should remain set as a shared system fallback or be left empty to require BYO provider setup
 - keep the single published upstream bound to `127.0.0.1`
 - let host nginx terminate TLS and proxy all traffic to the web container on `WEB_PORT_BIND`
 

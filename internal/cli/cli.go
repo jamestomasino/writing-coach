@@ -79,9 +79,14 @@ func (c CLI) runInit(ctx context.Context) error {
 
 	fmt.Printf("initialized project state in %s\n", c.Config.DataDir)
 	if c.Config.OpenAIAPIKey == "" {
-		fmt.Println("openai: disabled (set OPENAI_API_KEY to enable model-backed prompt and review generation)")
+		fmt.Println("system openai fallback: disabled (set OPENAI_API_KEY to enable a shared provider fallback)")
 	} else {
-		fmt.Printf("openai: enabled (prompt model: %s, review model: %s)\n", c.Config.PromptModel, c.Config.ReviewModel)
+		fmt.Printf("system openai fallback: enabled (prompt model: %s, review model: %s)\n", c.Config.PromptModel, c.Config.ReviewModel)
+	}
+	if c.Config.AIKeySecret == "" {
+		fmt.Println("ai key encryption: disabled (set WRITING_COACH_AI_KEY_SECRET before using personal provider keys)")
+	} else {
+		fmt.Println("ai key encryption: enabled")
 	}
 	if c.Config.ValeBinary == "" {
 		fmt.Println("vale: auto-detect (set VALE_BINARY to override; uses repo .vale.ini when available)")
