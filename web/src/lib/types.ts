@@ -226,6 +226,33 @@ export type UserRecord = {
   created_at: string
 }
 
+export type AIProviderEventCount = {
+  label: string
+  count: number
+}
+
+export type AIProviderEventSummary = {
+  since: string
+  total: number
+  validation_failures: number
+  validation_rate_limit: number
+  fallbacks: number
+  provider_counts: AIProviderEventCount[]
+  category_counts: AIProviderEventCount[]
+}
+
+export type AIProviderEvent = {
+  id: number
+  user_id: number
+  user_slug?: string
+  provider: string
+  event: string
+  category?: string
+  status_code?: number
+  details?: Record<string, unknown>
+  created_at: string
+}
+
 export type OnboardingProfile = {
   writing_type: string
   assignment_format: string

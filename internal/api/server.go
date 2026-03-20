@@ -76,6 +76,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/admins", s.handleAdminsList)
 	mux.HandleFunc("POST /api/admins", s.handleAdminsCreate)
 	mux.HandleFunc("DELETE /api/admins/{email}", s.handleAdminsDelete)
+	mux.HandleFunc("GET /api/admin/ai-provider-events", s.handleAdminAIProviderEvents)
 	mux.HandleFunc("GET /api/users", s.handleUsersList)
 	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
 	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)
@@ -165,6 +166,33 @@ type aiProviderSettingsPayload struct {
 	PromptModelOverride string `json:"prompt_model_override"`
 	ReviewModelOverride string `json:"review_model_override"`
 	Enabled             bool   `json:"enabled"`
+}
+
+type aiProviderEventResponse struct {
+	ID         int64          `json:"id"`
+	UserID     int64          `json:"user_id"`
+	UserSlug   string         `json:"user_slug,omitempty"`
+	Provider   string         `json:"provider"`
+	Event      string         `json:"event"`
+	Category   string         `json:"category,omitempty"`
+	StatusCode int            `json:"status_code,omitempty"`
+	Details    map[string]any `json:"details,omitempty"`
+	CreatedAt  string         `json:"created_at"`
+}
+
+type aiProviderEventCountResponse struct {
+	Label string `json:"label"`
+	Count int    `json:"count"`
+}
+
+type aiProviderEventSummaryResponse struct {
+	Since               string                         `json:"since"`
+	Total               int                            `json:"total"`
+	ValidationFailures  int                            `json:"validation_failures"`
+	ValidationRateLimit int                            `json:"validation_rate_limit"`
+	Fallbacks           int                            `json:"fallbacks"`
+	ProviderCounts      []aiProviderEventCountResponse `json:"provider_counts"`
+	CategoryCounts      []aiProviderEventCountResponse `json:"category_counts"`
 }
 
 type userResponse struct {
@@ -904,6 +932,40 @@ func (s Server) handleAdminsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"deleted": strings.ToLower(strings.TrimSpace(email))})
+}
+
+func (s Server) handleAdminAIProviderEvents(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	limit := listLimit(r, 100, 250)
+	hours := 24
+	if raw := strings.TrimSpace(r.URL.Query().Get("hours")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value <= 0 {
+			writeError(w, http.StatusBadRequest, fmt.Errorf("invalid hours"))
+			return
+		}
+		if value > 24*14 {
+			value = 24 * 14
+		}
+		hours = value
+	}
+	since := time.Now().UTC().Add(-time.Duration(hours) * time.Hour)
+	events, err := s.Store.ListRecentAIProviderEvents(r.Context(), limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	summary, err := s.Store.SummarizeAIProviderEventsSince(r.Context(), since)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"summary": s.toAIProviderEventSummaryResponse(summary),
+		"events":  s.toAIProviderEventResponses(events),
+	})
 }
 
 func (s Server) handleUsersList(w http.ResponseWriter, r *http.Request) {
@@ -2381,6 +2443,36 @@ func (s Server) logAIProviderEvent(event, provider string, userID int64, fields 
 		parts = append(parts, fmt.Sprintf("%s=%v", key, fields[key]))
 	}
 	log.Printf(strings.Join(parts, " "))
+	if s.Store != nil && userID > 0 {
+		detailJSON := ""
+		if len(fields) > 0 {
+			if payload, err := json.Marshal(fields); err == nil {
+				detailJSON = string(payload)
+			}
+		}
+		statusCode := 0
+		if raw, ok := fields["status"]; ok {
+			switch value := raw.(type) {
+			case int:
+				statusCode = value
+			case int64:
+				statusCode = int(value)
+			case float64:
+				statusCode = int(value)
+			}
+		}
+		if err := s.Store.SaveAIProviderEvent(context.Background(), domain.AIProviderEvent{
+			UserID:     userID,
+			Provider:   strings.TrimSpace(provider),
+			Event:      strings.TrimSpace(event),
+			Category:   strings.TrimSpace(fmt.Sprint(fields["category"])),
+			StatusCode: statusCode,
+			DetailJSON: detailJSON,
+			CreatedAt:  time.Now().UTC(),
+		}); err != nil {
+			log.Printf("ai_provider_event_store_failed provider=%s event=%s user=%d err=%v", strings.TrimSpace(provider), strings.TrimSpace(event), userID, err)
+		}
+	}
 }
 
 func (s Server) resolveAIProviderKey(ctx context.Context, existing domain.AIProviderSettings, provider, apiKey string) (string, string, string, error) {
@@ -2571,6 +2663,53 @@ func (s Server) toAIProviderSettingsResponse(settings domain.AIProviderSettings,
 		PersonalProviderStorageAvailable: personalStorage,
 		Ready:                            settings.Enabled || fallback,
 	}
+}
+
+func (s Server) toAIProviderEventResponses(events []domain.AIProviderEvent) []aiProviderEventResponse {
+	items := make([]aiProviderEventResponse, 0, len(events))
+	for _, event := range events {
+		item := aiProviderEventResponse{
+			ID:         event.ID,
+			UserID:     event.UserID,
+			UserSlug:   event.UserSlug,
+			Provider:   event.Provider,
+			Event:      event.Event,
+			Category:   event.Category,
+			StatusCode: event.StatusCode,
+			CreatedAt:  db.Since(event.CreatedAt),
+		}
+		if strings.TrimSpace(event.DetailJSON) != "" {
+			var details map[string]any
+			if err := json.Unmarshal([]byte(event.DetailJSON), &details); err == nil && len(details) > 0 {
+				item.Details = details
+			}
+		}
+		items = append(items, item)
+	}
+	return items
+}
+
+func (s Server) toAIProviderEventSummaryResponse(summary domain.AIProviderEventSummary) aiProviderEventSummaryResponse {
+	return aiProviderEventSummaryResponse{
+		Since:               db.Since(summary.Since),
+		Total:               summary.Total,
+		ValidationFailures:  summary.ValidationFailures,
+		ValidationRateLimit: summary.ValidationRateLimit,
+		Fallbacks:           summary.Fallbacks,
+		ProviderCounts:      toAIProviderEventCountResponses(summary.ProviderCounts),
+		CategoryCounts:      toAIProviderEventCountResponses(summary.CategoryCounts),
+	}
+}
+
+func toAIProviderEventCountResponses(counts []domain.AIProviderEventCount) []aiProviderEventCountResponse {
+	items := make([]aiProviderEventCountResponse, 0, len(counts))
+	for _, count := range counts {
+		items = append(items, aiProviderEventCountResponse{
+			Label: count.Label,
+			Count: count.Count,
+		})
+	}
+	return items
 }
 
 func listLimit(r *http.Request, fallback, max int) int {

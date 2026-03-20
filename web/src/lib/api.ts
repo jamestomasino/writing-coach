@@ -3,6 +3,8 @@
 import type {
   AuthSession,
   AIProviderSettings,
+  AIProviderEvent,
+  AIProviderEventSummary,
   AssignmentTimeline,
   AssignmentSummary,
   Comparison,
@@ -287,6 +289,12 @@ export async function provisionUser(input: { slug: string; name: string }) {
     method: 'POST',
     body: JSON.stringify(input),
   })
+}
+
+export async function getAdminAIProviderEvents(limit = 100, hours = 24) {
+  return request<{ summary: AIProviderEventSummary; events: AIProviderEvent[] }>(
+    `/api/admin/ai-provider-events?limit=${limit}&hours=${hours}`
+  )
 }
 
 export function saveOnboarding(input: {

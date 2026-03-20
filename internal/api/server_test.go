@@ -2687,6 +2687,106 @@ func TestTreeCreateRequiresAdminAuthorization(t *testing.T) {
 	}
 }
 
+func TestAdminAIProviderEventsEndpointReturnsSummary(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	now := time.Now().UTC()
+	events := []domain.AIProviderEvent{
+		{
+			UserID:     user.ID,
+			Provider:   "openai",
+			Event:      "settings_validate_failed",
+			Category:   "auth",
+			StatusCode: http.StatusBadRequest,
+			DetailJSON: `{"status":400}`,
+			CreatedAt:  now,
+		},
+		{
+			UserID:     user.ID,
+			Provider:   "openai",
+			Event:      "settings_validate_rate_limited",
+			Category:   "local_rate_limit",
+			StatusCode: http.StatusTooManyRequests,
+			DetailJSON: `{"status":429}`,
+			CreatedAt:  now.Add(-time.Minute),
+		},
+		{
+			UserID:     user.ID,
+			Provider:   "anthropic",
+			Event:      "generation_fallback",
+			Category:   "quota",
+			StatusCode: http.StatusBadGateway,
+			DetailJSON: `{"kind":"prompt_next"}`,
+			CreatedAt:  now.Add(-2 * time.Minute),
+		},
+	}
+	for _, event := range events {
+		if err := harness.Store.SaveAIProviderEvent(context.Background(), event); err != nil {
+			t.Fatalf("save ai provider event: %v", err)
+		}
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/admin/ai-provider-events?limit=10&hours=24")
+	if err != nil {
+		t.Fatalf("get admin ai provider events: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("admin ai provider events status = %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Summary struct {
+			Total               int `json:"total"`
+			ValidationFailures  int `json:"validation_failures"`
+			ValidationRateLimit int `json:"validation_rate_limit"`
+			Fallbacks           int `json:"fallbacks"`
+			ProviderCounts      []struct {
+				Label string `json:"label"`
+				Count int    `json:"count"`
+			} `json:"provider_counts"`
+		} `json:"summary"`
+		Events []struct {
+			UserSlug string         `json:"user_slug"`
+			Event    string         `json:"event"`
+			Details  map[string]any `json:"details"`
+		} `json:"events"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode admin ai provider events: %v", err)
+	}
+	if payload.Summary.Total != 3 {
+		t.Fatalf("summary total = %d", payload.Summary.Total)
+	}
+	if payload.Summary.ValidationFailures != 1 {
+		t.Fatalf("validation failures = %d", payload.Summary.ValidationFailures)
+	}
+	if payload.Summary.ValidationRateLimit != 1 {
+		t.Fatalf("validation rate limit = %d", payload.Summary.ValidationRateLimit)
+	}
+	if payload.Summary.Fallbacks != 1 {
+		t.Fatalf("fallbacks = %d", payload.Summary.Fallbacks)
+	}
+	if len(payload.Events) != 3 {
+		t.Fatalf("event count = %d", len(payload.Events))
+	}
+	if payload.Events[0].UserSlug != "tester" {
+		t.Fatalf("first event user slug = %q", payload.Events[0].UserSlug)
+	}
+	if payload.Events[0].Event == "" {
+		t.Fatal("expected event label")
+	}
+	if len(payload.Summary.ProviderCounts) == 0 {
+		t.Fatal("expected provider counts")
+	}
+}
+
 func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	user, err := harness.Store.UserBySlug(context.Background(), "tester")

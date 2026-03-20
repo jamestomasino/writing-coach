@@ -25,6 +25,33 @@ type AIProviderSettings struct {
 	UpdatedAt           time.Time
 }
 
+type AIProviderEvent struct {
+	ID         int64
+	UserID     int64
+	UserSlug   string
+	Provider   string
+	Event      string
+	Category   string
+	StatusCode int
+	DetailJSON string
+	CreatedAt  time.Time
+}
+
+type AIProviderEventCount struct {
+	Label string
+	Count int
+}
+
+type AIProviderEventSummary struct {
+	Since               time.Time
+	Total               int
+	ValidationFailures  int
+	ValidationRateLimit int
+	Fallbacks           int
+	ProviderCounts      []AIProviderEventCount
+	CategoryCounts      []AIProviderEventCount
+}
+
 type TGOTree struct {
 	ID          int64
 	Slug        string
