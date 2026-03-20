@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { getAssignmentTimeline } from '@/lib/api'
 import type { AssignmentTimeline, AssignmentTimelineStep } from '@/lib/types'
+import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -170,11 +171,9 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
           {step.review.skill_scores.length ? (
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">Skill scores</div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 space-y-3">
                 {step.review.skill_scores.map((item) => (
-                  <Badge key={item.skill} color={item.score >= 4 ? 'green' : item.score === 3 ? 'amber' : 'rose'}>
-                    {item.skill} {item.score}/5
-                  </Badge>
+                  <SkillScoreMeter key={item.skill} score={item} compact />
                 ))}
               </div>
             </div>

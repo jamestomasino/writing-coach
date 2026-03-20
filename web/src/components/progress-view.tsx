@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
 import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
+import { MasteryProgress } from './mastery-progress'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -227,28 +228,13 @@ export function ProgressView() {
               </div>
               <div className="mt-3 space-y-3">
                 {activeTGOs.map((tgo) => (
-                  <div key={tgo.code} className="rounded-xl border border-blue-200/80 bg-white/70 px-3 py-3 dark:border-blue-400/20 dark:bg-black/10">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
-                      <Badge color="blue">{tgo.stage}</Badge>
-                    </div>
-                    {tgo.progress_mode === 'percent' ? (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between gap-3 text-xs font-medium uppercase tracking-[0.16em] text-blue-800/80 dark:text-blue-200/80">
-                          <span>Mastery progress</span>
-                          <span>{tgo.mastery_percent ?? 0}%</span>
-                        </div>
-                        <div className="mt-2 h-2 rounded-full bg-blue-200/70 dark:bg-blue-200/15">
-                          <div className="h-2 rounded-full bg-blue-800 dark:bg-blue-200" style={{ width: `${tgo.mastery_percent ?? 0}%` }} />
-                        </div>
+                    <div key={tgo.code} className="rounded-xl border border-blue-200/80 bg-white/70 px-3 py-3 dark:border-blue-400/20 dark:bg-black/10">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
+                        <Badge color="blue">{tgo.stage}</Badge>
                       </div>
-                    ) : (
-                      <Text className="mt-2 text-sm">
-                        <span className="font-semibold text-blue-950 dark:text-blue-100">Mastery state:</span>{' '}
-                        {tgo.mastery_stage ?? 'emerging'}
-                      </Text>
-                    )}
-                  </div>
+                      <MasteryProgress tgo={tgo} tone="blue" />
+                    </div>
                 ))}
               </div>
             </div>

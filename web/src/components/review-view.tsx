@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { createRevisionAssignment, getAssignmentTimeline, getExercise, getReview, getSubmission } from '@/lib/api'
 import type { Exercise, Review, Submission } from '@/lib/types'
+import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -176,10 +177,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <div className="mt-4 space-y-3">
             {review.skill_scores.map((item) => (
               <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="font-semibold capitalize text-zinc-950 dark:text-white">{item.skill}</span>
-                  <Badge color={item.score >= 4 ? 'green' : item.score === 3 ? 'amber' : 'rose'}>{item.score}/5</Badge>
-                </div>
+                <SkillScoreMeter score={item} />
               </div>
             ))}
           </div>
