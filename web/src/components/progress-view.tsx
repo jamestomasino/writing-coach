@@ -7,6 +7,7 @@ import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
+import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
 import {
   ArrowTrendingDownIcon,
@@ -15,6 +16,7 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
 } from '@heroicons/react/16/solid'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { MasteryProgress } from './mastery-progress'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
@@ -62,24 +64,25 @@ function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: S
 }
 
 export function ProgressView() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [tree, setTree] = useState<Tree | null>(null)
   const [onboarding, setOnboarding] = useState<OnboardingState | null>(null)
-  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
         const session = await getSession()
-        if (!session.onboarding_complete) {
-          if (!cancelled) {
-            setNeedsOnboarding(true)
-            setDashboard(null)
-            setTree(null)
-          }
+        if (!session.authenticated) {
+          router.replace('/about')
+          return
+        }
+        const nextPath = requiredSetupPath(session, '/progress')
+        if (nextPath) {
+          router.replace(nextPath)
           return
         }
         const [state, onboardingData, treeData] = await Promise.all([
@@ -106,7 +109,7 @@ export function ProgressView() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router])
 
   const completedCodes = useMemo(() => new Set((dashboard?.completed_tgos ?? []).map((tgo) => tgo.code)), [dashboard])
   const activeCodes = useMemo(() => new Set((dashboard?.active_tgos ?? []).map((tgo) => tgo.code)), [dashboard])
@@ -120,16 +123,6 @@ export function ProgressView() {
 
   if (loading) {
     return <LoadingState label="Loading progress board…" />
-  }
-  if (needsOnboarding) {
-    return (
-      <EmptyState
-        title="Create a track first"
-        body="Progress becomes meaningful once a writing track exists. Start by setting your goals and opening skills."
-        actionHref="/onboarding"
-        actionLabel="Create track"
-      />
-    )
   }
   if (error || !dashboard) {
     return <AppErrorState title="Progress unavailable" error={error ?? 'Could not load progress board.'} />

@@ -6,6 +6,7 @@ import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { getDashboard, getOnboarding, getSession, getTree } from '@/lib/api'
+import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import type { Dashboard, OnboardingState, Tree } from '@/lib/types'
 import {
   Background,
@@ -22,6 +23,7 @@ import {
 } from '@xyflow/react'
 import dagre from 'dagre'
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -250,6 +252,7 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
 }
 
 export function TreeView() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tree, setTree] = useState<Tree | null>(null)
@@ -264,17 +267,21 @@ export function TreeView() {
       try {
         const session = await getSession()
         if (!session.authenticated) {
-          throw new Error('Sign in to inspect your skill map')
-        }
-        if (!session.onboarding_complete || !session.active_tree_slug) {
-          if (!cancelled) {
-            setOnboarding({ onboarding_complete: false })
-          }
+          router.replace('/about')
           return
+        }
+        const nextPath = requiredSetupPath(session, '/tree')
+        if (nextPath) {
+          router.replace(nextPath)
+          return
+        }
+        const activeTreeSlug = session.active_tree_slug
+        if (!activeTreeSlug) {
+          throw new Error('No active track selected')
         }
 
         const [treeData, dashboardData, onboardingData] = await Promise.all([
-          getTree(session.active_tree_slug),
+          getTree(activeTreeSlug),
           getDashboard(),
           getOnboarding(),
         ])
@@ -300,7 +307,7 @@ export function TreeView() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router])
 
   const graph = useMemo(() => {
     if (!tree || !dashboard) {
@@ -321,16 +328,6 @@ export function TreeView() {
 
   if (loading) {
     return <LoadingState label="Loading skill map…" />
-  }
-  if (!onboarding?.onboarding_complete) {
-    return (
-      <EmptyState
-        title="Create a track first"
-        body="You need to create a track before the app can show its skill map."
-        actionHref="/onboarding"
-        actionLabel="Create track"
-      />
-    )
   }
   if (error || !tree || !dashboard || !graph) {
     return <AppErrorState title="Tree unavailable" error={error ?? 'Could not load the current tree.'} />
