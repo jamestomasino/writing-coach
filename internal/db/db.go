@@ -654,14 +654,16 @@ func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {
 	return users, rows.Err()
 }
 
-func (s *Store) OnboardingProfileByUserID(ctx context.Context, userID int64) (domain.OnboardingProfile, error) {
+func (s *Store) OnboardingProfileByEnrollmentID(ctx context.Context, enrollmentID int64) (domain.OnboardingProfile, error) {
 	var profile domain.OnboardingProfile
 	var weaknessesJSON, outcomesJSON string
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT user_id, writing_type, assignment_format, target_audience, subject_matter, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json, difficulty_intensity, writing_goals, generated_tree_slug, template_key
-		FROM user_onboarding_profiles
-		WHERE user_id = ?
-	`, userID).Scan(
+		SELECT e.id, e.user_id, p.writing_type, p.assignment_format, p.target_audience, p.subject_matter, p.experience_level, p.desired_tone, p.biggest_weaknesses_json, p.desired_outcomes_json, p.difficulty_intensity, p.writing_goals, p.generated_tree_slug, p.template_key
+		FROM enrollment_onboarding_profiles p
+		JOIN user_tree_enrollments e ON e.id = p.enrollment_id
+		WHERE p.enrollment_id = ?
+	`, enrollmentID).Scan(
+		&profile.EnrollmentID,
 		&profile.UserID,
 		&profile.WritingType,
 		&profile.AssignmentFormat,
@@ -688,13 +690,21 @@ func (s *Store) OnboardingProfileByUserID(ctx context.Context, userID int64) (do
 	return profile, nil
 }
 
+func (s *Store) OnboardingProfileByUserID(ctx context.Context, userID int64) (domain.OnboardingProfile, error) {
+	enrollmentID, err := s.ActiveEnrollmentIDByUserID(ctx, userID)
+	if err != nil {
+		return domain.OnboardingProfile{}, err
+	}
+	return s.OnboardingProfileByEnrollmentID(ctx, enrollmentID)
+}
+
 func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.OnboardingProfile) error {
 	_, err := s.SQL.ExecContext(ctx, `
-		INSERT INTO user_onboarding_profiles (
-			user_id, writing_type, assignment_format, target_audience, subject_matter, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json,
+		INSERT INTO enrollment_onboarding_profiles (
+			enrollment_id, writing_type, assignment_format, target_audience, subject_matter, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json,
 			difficulty_intensity, writing_goals, generated_tree_slug, template_key, updated_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-		ON CONFLICT(user_id) DO UPDATE SET
+		ON CONFLICT(enrollment_id) DO UPDATE SET
 			writing_type = excluded.writing_type,
 			assignment_format = excluded.assignment_format,
 			target_audience = excluded.target_audience,
@@ -708,7 +718,7 @@ func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.Onboar
 			generated_tree_slug = excluded.generated_tree_slug,
 			template_key = excluded.template_key,
 			updated_at = CURRENT_TIMESTAMP
-	`, profile.UserID, profile.WritingType, profile.AssignmentFormat, profile.TargetAudience, profile.SubjectMatter, profile.ExperienceLevel, profile.DesiredTone, mustJSON(profile.BiggestWeaknesses), mustJSON(profile.DesiredOutcomes), profile.DifficultyIntensity, profile.WritingGoals, profile.GeneratedTreeSlug, profile.TemplateKey)
+	`, profile.EnrollmentID, profile.WritingType, profile.AssignmentFormat, profile.TargetAudience, profile.SubjectMatter, profile.ExperienceLevel, profile.DesiredTone, mustJSON(profile.BiggestWeaknesses), mustJSON(profile.DesiredOutcomes), profile.DifficultyIntensity, profile.WritingGoals, profile.GeneratedTreeSlug, profile.TemplateKey)
 	return err
 }
 
@@ -829,6 +839,31 @@ func (s *Store) ListEnrollments(ctx context.Context) ([]domain.Enrollment, error
 	return enrollments, rows.Err()
 }
 
+func (s *Store) ListEnrollmentsByUserID(ctx context.Context, userID int64) ([]domain.Enrollment, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT e.id, e.user_id, e.tree_id, u.slug, t.slug, e.created_at
+		FROM user_tree_enrollments e
+		JOIN users u ON u.id = e.user_id
+		JOIN tgo_trees t ON t.id = e.tree_id
+		WHERE e.user_id = ?
+		ORDER BY e.created_at ASC, e.id ASC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var enrollments []domain.Enrollment
+	for rows.Next() {
+		var enrollment domain.Enrollment
+		if err := rows.Scan(&enrollment.ID, &enrollment.UserID, &enrollment.TreeID, &enrollment.UserSlug, &enrollment.TreeSlug, &enrollment.CreatedAt); err != nil {
+			return nil, err
+		}
+		enrollments = append(enrollments, enrollment)
+	}
+	return enrollments, rows.Err()
+}
+
 func (s *Store) EnrollmentByID(ctx context.Context, enrollmentID int64) (domain.Enrollment, error) {
 	var enrollment domain.Enrollment
 	err := s.SQL.QueryRowContext(ctx, `
@@ -847,6 +882,45 @@ func (s *Store) EnrollmentID(ctx context.Context, userID, treeID int64) (int64, 
 		SELECT id FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ?
 	`, userID, treeID).Scan(&id)
 	return id, err
+}
+
+func (s *Store) ActiveEnrollmentIDByUserID(ctx context.Context, userID int64) (int64, error) {
+	var enrollmentID int64
+	err := s.SQL.QueryRowContext(ctx, `
+		SELECT e.id
+		FROM user_tree_enrollments e
+		JOIN users u ON u.id = e.user_id
+		JOIN tgo_trees t ON t.id = e.tree_id
+		WHERE e.user_id = ? AND t.slug = u.active_tree_slug
+	`, userID).Scan(&enrollmentID)
+	return enrollmentID, err
+}
+
+func (s *Store) ListUserTracks(ctx context.Context, userID int64) ([]domain.UserTrack, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT e.id, t.id, t.slug, t.title, t.description, CASE WHEN u.active_tree_slug = t.slug THEN 1 ELSE 0 END, e.created_at
+		FROM user_tree_enrollments e
+		JOIN tgo_trees t ON t.id = e.tree_id
+		JOIN users u ON u.id = e.user_id
+		WHERE e.user_id = ?
+		ORDER BY CASE WHEN u.active_tree_slug = t.slug THEN 0 ELSE 1 END, e.created_at ASC, e.id ASC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tracks []domain.UserTrack
+	for rows.Next() {
+		var track domain.UserTrack
+		var active int
+		if err := rows.Scan(&track.EnrollmentID, &track.TreeID, &track.TreeSlug, &track.Title, &track.Description, &active, &track.CreatedAt); err != nil {
+			return nil, err
+		}
+		track.IsActive = active == 1
+		tracks = append(tracks, track)
+	}
+	return tracks, rows.Err()
 }
 
 func (s *Store) GetCurriculumState(ctx context.Context, enrollmentID int64) (domain.CurriculumState, error) {
@@ -2008,6 +2082,7 @@ func (s *Store) ResetUserData(ctx context.Context, userID int64) error {
 		`DELETE FROM exercises WHERE user_id = ?`,
 		`DELETE FROM enrollment_completed_tgos WHERE enrollment_id IN (SELECT id FROM user_tree_enrollments WHERE user_id = ?)`,
 		`DELETE FROM enrollment_active_tgos WHERE enrollment_id IN (SELECT id FROM user_tree_enrollments WHERE user_id = ?)`,
+		`DELETE FROM enrollment_onboarding_profiles WHERE enrollment_id IN (SELECT id FROM user_tree_enrollments WHERE user_id = ?)`,
 		`DELETE FROM user_curriculum_state WHERE enrollment_id IN (SELECT id FROM user_tree_enrollments WHERE user_id = ?)`,
 		`DELETE FROM user_tree_enrollments WHERE user_id = ?`,
 		`DELETE FROM user_onboarding_profiles WHERE user_id = ?`,

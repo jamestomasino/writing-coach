@@ -1,13 +1,9 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
-import { Eyebrow } from '@/components/eyebrow'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
-import { Heading, Subheading } from '@/components/heading'
 import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
 import { Select } from '@/components/select'
@@ -15,6 +11,8 @@ import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { getOnboarding, getOnboardingOptions, saveOnboarding } from '@/lib/api'
 import type { OnboardingOptions } from '@/lib/types'
+import { useRouter } from 'next/navigation'
+import { FormEvent, useEffect, useState } from 'react'
 import { EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -27,7 +25,7 @@ const emptyOptions: OnboardingOptions = {
   desired_outcomes: [],
 }
 
-export function OnboardingView() {
+export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +42,6 @@ export function OnboardingView() {
   const [weaknesses, setWeaknesses] = useState<string[]>([])
   const [outcomes, setOutcomes] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -54,7 +51,7 @@ export function OnboardingView() {
           return
         }
         setOptions(nextOptions)
-        if (onboarding.profile) {
+        if (mode === 'edit' && onboarding.profile) {
           setWritingType(onboarding.profile.writing_type)
           setAssignmentFormat(onboarding.profile.assignment_format)
           setTargetAudience(onboarding.profile.target_audience)
@@ -81,7 +78,7 @@ export function OnboardingView() {
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [mode, router])
 
   function toggle(list: string[], setList: (items: string[]) => void, value: string) {
     if (list.includes(value)) {
@@ -97,6 +94,7 @@ export function OnboardingView() {
       setSaving(true)
       setError(null)
       await saveOnboarding({
+        mode,
         writing_type: writingType,
         assignment_format: assignmentFormat,
         target_audience: targetAudience,
@@ -124,11 +122,13 @@ export function OnboardingView() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Track setup"
-        title={existingProfile ? 'Change your track' : 'Set your starting path'}
+        title={mode === 'create' ? 'Create a new track' : existingProfile ? 'Edit track' : 'Set your starting path'}
         intro={
-          existingProfile
-            ? 'Update the writing profile that shapes your coaching track. Saving here refreshes the recommended path, active skills, and future assignment focus.'
-            : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'
+          mode === 'create'
+            ? 'Create an additional writing track with its own skill map, progress, and assignment history.'
+            : existingProfile
+              ? 'Update the writing profile that shapes your coaching track. Saving here refreshes the recommended path, active skills, and future assignment focus.'
+              : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'
         }
       />
 
@@ -137,7 +137,10 @@ export function OnboardingView() {
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
           <p>You can focus on up to three skills at a time.</p>
           <p>Your assignment prompt and review are built around those active skills.</p>
-          <p>When you show strong, consistent control, a skill can become mastered and stay in lighter maintenance checks going forward.</p>
+          <p>
+            When you show strong, consistent control, a skill can become mastered and stay in lighter maintenance checks
+            going forward.
+          </p>
         </div>
       </WorkspaceCard>
 
@@ -212,7 +215,9 @@ export function OnboardingView() {
             </Field>
             <Field>
               <Label>Typical subject matter</Label>
-              <Text className="mt-1 text-sm">What kinds of situations, topics, or worlds should assignments draw from?</Text>
+              <Text className="mt-1 text-sm">
+                What kinds of situations, topics, or worlds should assignments draw from?
+              </Text>
               <Input
                 value={subjectMatter}
                 onChange={(event) => setSubjectMatter(event.target.value)}
@@ -233,7 +238,12 @@ export function OnboardingView() {
 
           <Field>
             <Label>Writing goals</Label>
-            <Textarea rows={6} value={writingGoals} onChange={(event) => setWritingGoals(event.target.value)} placeholder="Describe what you want this coaching track to help you become better at." />
+            <Textarea
+              rows={6}
+              value={writingGoals}
+              onChange={(event) => setWritingGoals(event.target.value)}
+              placeholder="Describe what you want this coaching track to help you become better at."
+            />
           </Field>
 
           <div className="grid gap-8 lg:grid-cols-2">
@@ -242,7 +252,10 @@ export function OnboardingView() {
               <div className="mt-4 space-y-3">
                 {options.weaknesses.map((item) => (
                   <CheckboxField key={item.value}>
-                    <Checkbox checked={weaknesses.includes(item.value)} onChange={() => toggle(weaknesses, setWeaknesses, item.value)} />
+                    <Checkbox
+                      checked={weaknesses.includes(item.value)}
+                      onChange={() => toggle(weaknesses, setWeaknesses, item.value)}
+                    />
                     <Label>{item.label}</Label>
                   </CheckboxField>
                 ))}
@@ -253,7 +266,10 @@ export function OnboardingView() {
               <div className="mt-4 space-y-3">
                 {options.desired_outcomes.map((item) => (
                   <CheckboxField key={item.value}>
-                    <Checkbox checked={outcomes.includes(item.value)} onChange={() => toggle(outcomes, setOutcomes, item.value)} />
+                    <Checkbox
+                      checked={outcomes.includes(item.value)}
+                      onChange={() => toggle(outcomes, setOutcomes, item.value)}
+                    />
                     <Label>{item.label}</Label>
                   </CheckboxField>
                 ))}
@@ -263,7 +279,13 @@ export function OnboardingView() {
 
           <div className="flex justify-end">
             <Button type="submit" color="dark/zinc" disabled={saving}>
-              {saving ? 'Preparing recommendations…' : existingProfile ? 'Update track' : 'Set starter path'}
+              {saving
+                ? 'Preparing recommendations…'
+                : mode === 'create'
+                  ? 'Create track'
+                  : existingProfile
+                    ? 'Update track'
+                    : 'Set starter path'}
             </Button>
           </div>
         </form>

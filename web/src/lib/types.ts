@@ -24,6 +24,16 @@ export type AuthSession = {
   context?: RequestContext
 }
 
+export type UserTrack = {
+  enrollment_id: number
+  tree_id: number
+  tree_slug: string
+  title: string
+  description: string
+  is_active: boolean
+  created_at: string
+}
+
 export type TGO = {
   id: number
   code: string
@@ -281,6 +291,7 @@ export type OnboardingState = {
   profile?: OnboardingProfile
   starter_tgo_codes?: string[]
   recommended_regions?: string[]
+  context?: RequestContext
 }
 
 export type OnboardingOption = {

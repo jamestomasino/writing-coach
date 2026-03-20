@@ -8,6 +8,7 @@ import (
 )
 
 type OnboardingProfile struct {
+	EnrollmentID        int64
 	UserID              int64
 	WritingType         string
 	AssignmentFormat    string

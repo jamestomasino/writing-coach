@@ -1,13 +1,13 @@
 'use client'
 
 import type {
-  AuthSession,
-  AIProviderSettings,
   AIProviderEvent,
   AIProviderEventFilters,
   AIProviderEventSummary,
-  AssignmentTimeline,
+  AIProviderSettings,
   AssignmentSummary,
+  AssignmentTimeline,
+  AuthSession,
   Comparison,
   Dashboard,
   Exercise,
@@ -18,6 +18,7 @@ import type {
   Submission,
   Tree,
   UserRecord,
+  UserTrack,
 } from './types'
 
 type ErrorBody = { error?: string }
@@ -109,6 +110,19 @@ export function getSession() {
   return request<AuthSession>('/api/auth/session')
 }
 
+export async function listTracks() {
+  const payload = await request<{ tracks: UserTrack[] }>('/api/tracks')
+  return payload.tracks
+}
+
+export async function setActiveTrack(treeSlug: string) {
+  const payload = await request<{ tracks: UserTrack[] }>('/api/tracks/active', {
+    method: 'PUT',
+    body: JSON.stringify({ tree_slug: treeSlug }),
+  })
+  return payload.tracks
+}
+
 export async function getAISettings() {
   const payload = await request<{ settings: AIProviderSettings }>('/api/ai/settings')
   return payload.settings
@@ -189,7 +203,9 @@ export async function getAssignments() {
 }
 
 export async function getSubmissions(exerciseId: number, limit = 10) {
-  const payload = await request<{ submissions: Submission[] }>(`/api/submissions?exercise_id=${exerciseId}&limit=${limit}`)
+  const payload = await request<{ submissions: Submission[] }>(
+    `/api/submissions?exercise_id=${exerciseId}&limit=${limit}`
+  )
   return payload.submissions
 }
 
@@ -247,11 +263,7 @@ export async function createRevisionAssignment(submissionId: number) {
   return payload.exercise
 }
 
-export async function submitDraft(input: {
-  exerciseId: number
-  content: string
-  parentSubmissionId?: number
-}) {
+export async function submitDraft(input: { exerciseId: number; content: string; parentSubmissionId?: number }) {
   const payload = await request<{ submission: Submission }>('/api/submissions', {
     method: 'POST',
     body: JSON.stringify({
@@ -309,6 +321,7 @@ export async function getAdminAIProviderEvents(limit = 100, hours = 24, provider
 }
 
 export function saveOnboarding(input: {
+  mode?: 'create' | 'edit'
   writing_type: string
   assignment_format: string
   target_audience: string

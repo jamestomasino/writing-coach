@@ -87,6 +87,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/enrollments", s.handleEnrollmentsList)
 	mux.HandleFunc("POST /api/enrollments", s.handleEnrollmentsCreate)
 	mux.HandleFunc("GET /api/enrollments/{id}/board", s.handleEnrollmentBoard)
+	mux.HandleFunc("GET /api/tracks", s.handleTracksList)
+	mux.HandleFunc("PUT /api/tracks/active", s.handleTracksActiveUpdate)
 	mux.HandleFunc("GET /api/context", s.handleContext)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
 	mux.HandleFunc("GET /api/assignments", s.handleAssignmentsList)
@@ -291,6 +293,16 @@ type enrollmentResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
+type trackResponse struct {
+	EnrollmentID int64  `json:"enrollment_id"`
+	TreeID       int64  `json:"tree_id"`
+	TreeSlug     string `json:"tree_slug"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	IsActive     bool   `json:"is_active"`
+	CreatedAt    string `json:"created_at"`
+}
+
 type curriculumStateResponse struct {
 	ID              int64  `json:"id"`
 	CurrentFocus    string `json:"current_focus"`
@@ -492,7 +504,7 @@ func (s Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 		}
 		if user, err := s.Store.UserBySlug(r.Context(), appContext.UserSlug); err == nil {
 			resp.ActiveTreeSlug = user.ActiveTreeSlug
-			if profile, err := s.Store.OnboardingProfileByUserID(r.Context(), user.ID); err == nil {
+			if profile, err := s.Store.OnboardingProfileByEnrollmentID(r.Context(), appContext.EnrollmentID); err == nil {
 				resp.OnboardingComplete = profile.Complete()
 			}
 			if settings, err := s.Store.AIProviderSettingsByUserID(r.Context(), user.ID); err == nil {
@@ -584,7 +596,7 @@ func (s Server) handleOnboardingGet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	profile, err := s.Store.OnboardingProfileByUserID(r.Context(), appContext.UserID)
+	profile, err := s.Store.OnboardingProfileByEnrollmentID(r.Context(), appContext.EnrollmentID)
 	if err != nil {
 		if db.IsNotFound(err) || errors.Is(err, sql.ErrNoRows) {
 			writeJSON(w, http.StatusOK, onboardingResponse{
@@ -622,6 +634,7 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var payload struct {
+		Mode                string   `json:"mode"`
 		WritingType         string   `json:"writing_type"`
 		AssignmentFormat    string   `json:"assignment_format"`
 		TargetAudience      string   `json:"target_audience"`
@@ -638,7 +651,6 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	profile := domain.OnboardingProfile{
-		UserID:              appContext.UserID,
 		WritingType:         strings.TrimSpace(payload.WritingType),
 		AssignmentFormat:    strings.TrimSpace(payload.AssignmentFormat),
 		TargetAudience:      strings.TrimSpace(payload.TargetAudience),
@@ -660,16 +672,46 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	mode := strings.ToLower(strings.TrimSpace(payload.Mode))
+	if mode == "" {
+		mode = "edit"
+	}
 	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
 	treeDef := domain.GenerateTreeDefinition(appContext.UserSlug, user.Name, profile)
-	profile.GeneratedTreeSlug = treeDef.Slug
 	starterCodes := domain.RecommendedStarterCodes(profile)
 	recommendedRegions := domain.RecommendedRegionSlugs(profile)
+
+	targetContext := appContext
+	switch mode {
+	case "create":
+		treeDef.Slug = s.uniqueGeneratedTreeSlug(r.Context(), treeDef.Slug)
+		profile.GeneratedTreeSlug = treeDef.Slug
+	case "edit":
+		if existing, err := s.Store.OnboardingProfileByEnrollmentID(r.Context(), appContext.EnrollmentID); err == nil && existing.GeneratedTreeSlug == appContext.TreeSlug {
+			treeDef.Slug = appContext.TreeSlug
+			profile.GeneratedTreeSlug = treeDef.Slug
+			profile.EnrollmentID = appContext.EnrollmentID
+			profile.UserID = appContext.UserID
+		} else {
+			treeDef.Slug = s.uniqueGeneratedTreeSlug(r.Context(), treeDef.Slug)
+			profile.GeneratedTreeSlug = treeDef.Slug
+		}
+	default:
+		writeError(w, http.StatusBadRequest, fmt.Errorf("unsupported onboarding mode"))
+		return
+	}
 
 	if err := s.Store.SaveTreeDefinition(r.Context(), treeDef); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	_, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(r.Context(), appContext.UserSlug, user.Name, treeDef.Slug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	profile.EnrollmentID = enrollmentID
+	profile.UserID = appContext.UserID
 	if err := s.Store.SaveOnboardingProfile(r.Context(), profile); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -678,11 +720,12 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	_, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(r.Context(), appContext.UserSlug, user.Name, treeDef.Slug)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
+	targetContext = session.Context{
+		UserID:       appContext.UserID,
+		TreeID:       treeID,
+		EnrollmentID: enrollmentID,
+		UserSlug:     appContext.UserSlug,
+		TreeSlug:     treeDef.Slug,
 	}
 	completed, err := s.Store.CompletedTGOs(r.Context(), enrollmentID)
 	if err != nil {
@@ -719,7 +762,7 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		Tree:               &treeResponse,
 		StarterTGOCodes:    starterCodes,
 		RecommendedRegions: recommendedRegions,
-		Context:            &requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: treeDef.Slug, UserID: appContext.UserID, TreeID: treeID},
+		Context:            &requestContextResponse{UserSlug: targetContext.UserSlug, TreeSlug: targetContext.TreeSlug, UserID: targetContext.UserID, TreeID: targetContext.TreeID},
 	})
 }
 
@@ -1095,6 +1138,77 @@ func (s Server) handleEnrollmentBoard(w http.ResponseWriter, r *http.Request) {
 		EnrollmentID: enrollment.ID,
 		UserSlug:     enrollment.UserSlug,
 		TreeSlug:     enrollment.TreeSlug,
+	})
+}
+
+func (s Server) handleTracksList(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tracks, err := s.Store.ListUserTracks(r.Context(), appContext.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"tracks":  s.toTrackResponses(r.Context(), appContext, tracks),
+	})
+}
+
+func (s Server) handleTracksActiveUpdate(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	var payload struct {
+		TreeSlug string `json:"tree_slug"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON body"))
+		return
+	}
+	treeSlug := strings.TrimSpace(payload.TreeSlug)
+	if treeSlug == "" {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("tree_slug is required"))
+		return
+	}
+	enrollments, err := s.Store.ListEnrollmentsByUserID(r.Context(), appContext.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	allowed := false
+	for _, enrollment := range enrollments {
+		if enrollment.TreeSlug == treeSlug {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("tree %q is not enrolled for this user", treeSlug))
+		return
+	}
+	if err := s.Store.SetUserActiveTree(r.Context(), appContext.UserID, treeSlug); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	nextContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tracks, err := s.Store.ListUserTracks(r.Context(), appContext.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context": requestContextResponse{UserSlug: nextContext.UserSlug, TreeSlug: nextContext.TreeSlug, UserID: nextContext.UserID, TreeID: nextContext.TreeID},
+		"tracks":  s.toTrackResponses(r.Context(), nextContext, tracks),
 	})
 }
 
@@ -1705,8 +1819,8 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) generateNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
-	profile := s.onboardingProfile(ctx, appContext.UserID)
-	coachingBrief := s.coachingBrief(ctx, appContext.UserID)
+	profile := s.onboardingProfile(ctx, appContext.EnrollmentID)
+	coachingBrief := s.coachingBrief(ctx, appContext.EnrollmentID)
 	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
 	if err != nil {
 		log.Printf("create exercise: curriculum state lookup failed for enrollment=%d: %v", appContext.EnrollmentID, err)
@@ -1846,7 +1960,7 @@ func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext sessio
 }
 
 func (s Server) createRevisionExercise(ctx context.Context, appContext session.Context, submissionID int64) (domain.Exercise, error) {
-	coachingBrief := s.coachingBrief(ctx, appContext.UserID)
+	coachingBrief := s.coachingBrief(ctx, appContext.EnrollmentID)
 	sub, err := s.Store.GetSubmission(ctx, submissionID)
 	if err != nil {
 		return domain.Exercise{}, err
@@ -1920,16 +2034,16 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	return ex, nil
 }
 
-func (s Server) coachingBrief(ctx context.Context, userID int64) string {
-	profile := s.onboardingProfile(ctx, userID)
+func (s Server) coachingBrief(ctx context.Context, enrollmentID int64) string {
+	profile := s.onboardingProfile(ctx, enrollmentID)
 	if profile == nil {
 		return ""
 	}
 	return domain.CoachingBrief(*profile)
 }
 
-func (s Server) onboardingProfile(ctx context.Context, userID int64) *domain.OnboardingProfile {
-	profile, err := s.Store.OnboardingProfileByUserID(ctx, userID)
+func (s Server) onboardingProfile(ctx context.Context, enrollmentID int64) *domain.OnboardingProfile {
+	profile, err := s.Store.OnboardingProfileByEnrollmentID(ctx, enrollmentID)
 	if err != nil {
 		return nil
 	}
@@ -2090,6 +2204,23 @@ func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Co
 		UserSlug:     userSlug,
 		TreeSlug:     treeSlug,
 	}, nil
+}
+
+func (s Server) uniqueGeneratedTreeSlug(ctx context.Context, base string) string {
+	base = strings.TrimSpace(base)
+	if base == "" {
+		base = "writer-track"
+	}
+	slug := base
+	for suffix := 2; ; suffix++ {
+		if _, err := s.Store.TreeBySlug(ctx, slug); err != nil {
+			if db.IsNotFound(err) {
+				return slug
+			}
+			return slug
+		}
+		slug = fmt.Sprintf("%s-%d", base, suffix)
+	}
 }
 
 func firstNonEmpty(values ...string) string {
@@ -2529,7 +2660,7 @@ func (s Server) toTreeResponses(ctx context.Context, trees []domain.TGOTree, inc
 }
 
 func (s Server) applyGeneratedTreeProfileDisplay(ctx context.Context, appContext session.Context, tree domain.TGOTree, response treeResponse) treeResponse {
-	profile, err := s.Store.OnboardingProfileByUserID(ctx, appContext.UserID)
+	profile, err := s.Store.OnboardingProfileByEnrollmentID(ctx, appContext.EnrollmentID)
 	if err != nil || profile.GeneratedTreeSlug != tree.Slug {
 		return response
 	}
@@ -2540,6 +2671,27 @@ func (s Server) applyGeneratedTreeProfileDisplay(ctx context.Context, appContext
 	response.Title, response.Description = domain.GeneratedTreeDisplay(user.Name, profile, tree.Title, tree.Description)
 	response.PrioritySkills = nil
 	return response
+}
+
+func (s Server) toTrackResponses(ctx context.Context, appContext session.Context, tracks []domain.UserTrack) []trackResponse {
+	user, _ := s.Store.UserBySlug(ctx, appContext.UserSlug)
+	out := make([]trackResponse, 0, len(tracks))
+	for _, track := range tracks {
+		item := trackResponse{
+			EnrollmentID: track.EnrollmentID,
+			TreeID:       track.TreeID,
+			TreeSlug:     track.TreeSlug,
+			Title:        track.Title,
+			Description:  track.Description,
+			IsActive:     track.IsActive,
+			CreatedAt:    db.Since(track.CreatedAt),
+		}
+		if profile, err := s.Store.OnboardingProfileByEnrollmentID(ctx, track.EnrollmentID); err == nil && profile.GeneratedTreeSlug == track.TreeSlug {
+			item.Title, item.Description = domain.GeneratedTreeDisplay(user.Name, profile, item.Title, item.Description)
+		}
+		out = append(out, item)
+	}
+	return out
 }
 
 func toEnrollmentResponses(enrollments []domain.Enrollment) []enrollmentResponse {
