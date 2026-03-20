@@ -353,6 +353,9 @@ export function CurrentAssignmentView() {
         intro={exercise.brief}
         actions={
           <>
+            <Button href={`/assignments/${exercise.id}`} plain>
+              View timeline
+            </Button>
             <Button href="/new-assignment" outline>
               New assignment
             </Button>
@@ -579,6 +582,9 @@ export function CurrentAssignmentView() {
             description={review.summary}
             actions={
               <div className="flex gap-2">
+                <Button href={`/assignments/${exercise.id}`} plain>
+                  View timeline
+                </Button>
                 <Button href={`/reviews/${review.id}`} outline>
                   Open review
                 </Button>

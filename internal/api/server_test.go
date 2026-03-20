@@ -700,6 +700,155 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 }
 
+func TestAssignmentTimelineEndpoint(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+
+	rootExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Original Assignment",
+		Brief:           "Draft the omen scene.",
+		Constraints:     []string{"under 600 words"},
+		FocusSkills:     []string{"causal clarity"},
+		TGOCodes:        []string{"causal-clarity"},
+		SuccessCriteria: []string{"the sequence is easy to follow"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save root exercise: %v", err)
+	}
+	rootSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: rootExerciseID,
+		Content:    "The priest heard the bell before the gate split.",
+		WordCount:  10,
+	})
+	if err != nil {
+		t.Fatalf("save root submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     rootSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "The draft establishes the omen clearly.",
+		Strengths:        []string{"clear inciting image"},
+		Weaknesses:       []string{"consequences arrive too abstractly"},
+		AnalyzerFindings: []string{"one passive construction"},
+		NextFocus:        "make the consequence concrete",
+		MetricWordCount:  10,
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "causal-clarity", Status: "developing", Evidence: "The omen lands before the consequence clarifies."},
+		},
+	}, []domain.SkillScore{{SubmissionID: rootSubmissionID, Skill: "causal clarity", Score: 3}}); err != nil {
+		t.Fatalf("save root review: %v", err)
+	}
+
+	revisionExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		Title:              "Revision Assignment",
+		Brief:              "Revise the omen scene with sharper consequence.",
+		Constraints:        []string{"preserve the same core event"},
+		FocusSkills:        []string{"causal clarity"},
+		TGOCodes:           []string{"causal-clarity"},
+		SuccessCriteria:    []string{"the consequence becomes concrete"},
+		GenerationKind:     "revision",
+		SourceSubmissionID: rootSubmissionID,
+	})
+	if err != nil {
+		t.Fatalf("save revision exercise: %v", err)
+	}
+	revisionSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		ExerciseID:         revisionExerciseID,
+		ParentSubmissionID: rootSubmissionID,
+		Content:            "The priest heard the bell, then watched the gate split and pin the guard beneath it.",
+		WordCount:          15,
+	})
+	if err != nil {
+		t.Fatalf("save revision submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     revisionSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "The revision makes the consequence visible.",
+		Strengths:        []string{"cause and effect read cleanly"},
+		Weaknesses:       []string{"ending image could resonate longer"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "strengthen the closing image",
+		MetricWordCount:  15,
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "causal-clarity", Status: "mastered", Evidence: "The consequence now lands in-scene."},
+		},
+	}, []domain.SkillScore{{SubmissionID: revisionSubmissionID, Skill: "causal clarity", Score: 4}}); err != nil {
+		t.Fatalf("save revision review: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(revisionExerciseID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get assignment timeline: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("assignment timeline status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Assignment struct {
+			RootExerciseID    int64 `json:"root_exercise_id"`
+			CurrentExerciseID int64 `json:"current_exercise_id"`
+			Steps             []struct {
+				Kind         string `json:"kind"`
+				ExerciseID   int64  `json:"exercise_id"`
+				SubmissionID int64  `json:"submission_id"`
+				ReviewID     int64  `json:"review_id"`
+				Label        string `json:"label"`
+			} `json:"steps"`
+		} `json:"assignment"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode assignment timeline: %v", err)
+	}
+	if payload.Assignment.RootExerciseID != rootExerciseID {
+		t.Fatalf("root exercise id = %d", payload.Assignment.RootExerciseID)
+	}
+	if payload.Assignment.CurrentExerciseID != revisionExerciseID {
+		t.Fatalf("current exercise id = %d", payload.Assignment.CurrentExerciseID)
+	}
+	if len(payload.Assignment.Steps) != 6 {
+		t.Fatalf("step count = %d", len(payload.Assignment.Steps))
+	}
+	if payload.Assignment.Steps[0].Kind != "exercise" || payload.Assignment.Steps[0].ExerciseID != rootExerciseID {
+		t.Fatalf("first step = %#v", payload.Assignment.Steps[0])
+	}
+	if payload.Assignment.Steps[2].Kind != "review" || payload.Assignment.Steps[2].Label != "Feedback 1" {
+		t.Fatalf("third step = %#v", payload.Assignment.Steps[2])
+	}
+	if payload.Assignment.Steps[3].Kind != "exercise" || payload.Assignment.Steps[3].ExerciseID != revisionExerciseID {
+		t.Fatalf("fourth step = %#v", payload.Assignment.Steps[3])
+	}
+	if payload.Assignment.Steps[5].Kind != "review" || payload.Assignment.Steps[5].SubmissionID != revisionSubmissionID {
+		t.Fatalf("last step = %#v", payload.Assignment.Steps[5])
+	}
+}
+
 func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()

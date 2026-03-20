@@ -2,6 +2,7 @@
 
 import type {
   AuthSession,
+  AssignmentTimeline,
   Comparison,
   Dashboard,
   Exercise,
@@ -67,6 +68,16 @@ function normalizeReview(review: Review): Review {
   }
 }
 
+function normalizeAssignmentTimeline(timeline: AssignmentTimeline): AssignmentTimeline {
+  return {
+    ...timeline,
+    steps: arrayOrEmpty(timeline.steps).map((step) => ({
+      ...step,
+      review: step.review ? normalizeReview(step.review) : undefined,
+    })),
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -118,6 +129,11 @@ export async function getExercises(limit = 10) {
 export async function getExercise(exerciseId: number) {
   const payload = await request<{ exercise: Exercise }>(`/api/exercises/${exerciseId}`)
   return payload.exercise
+}
+
+export async function getAssignmentTimeline(exerciseId: number) {
+  const payload = await request<{ assignment: AssignmentTimeline }>(`/api/assignments/${exerciseId}`)
+  return normalizeAssignmentTimeline(payload.assignment)
 }
 
 export async function getSubmissions(exerciseId: number, limit = 10) {

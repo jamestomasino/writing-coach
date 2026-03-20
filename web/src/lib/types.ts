@@ -148,6 +148,29 @@ export type Dashboard = {
   }[]
 }
 
+export type AssignmentTimelineStep = {
+  id: string
+  kind: string
+  title: string
+  label: string
+  created_at: string
+  exercise_id?: number
+  submission_id?: number
+  review_id?: number
+  draft_number?: number
+  exercise?: Exercise
+  submission?: Submission
+  review?: Review
+}
+
+export type AssignmentTimeline = {
+  root_exercise_id: number
+  current_exercise_id: number
+  title: string
+  latest_step_id?: string
+  steps: AssignmentTimelineStep[]
+}
+
 export type Tree = {
   id: number
   slug: string

@@ -80,6 +80,9 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         intro={review.summary}
         actions={
           <>
+            <Button href={`/assignments/${exercise.id}`} plain>
+              View timeline
+            </Button>
             <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
               {preparingRevision ? 'Preparing revision brief…' : 'Revise this draft'}
             </Button>

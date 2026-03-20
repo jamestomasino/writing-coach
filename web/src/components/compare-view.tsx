@@ -73,10 +73,15 @@ export function CompareView({ submissionId }: { submissionId: number }) {
         title="Revision compare"
         intro={comparison.summary}
         actions={
-          <Button onClick={handleRevisionPrompt} color="dark/zinc">
-            <ArrowPathIcon />
-            Revise again
-          </Button>
+          <>
+            <Button href={`/assignments/${submission.exercise_id}`} plain>
+              View timeline
+            </Button>
+            <Button onClick={handleRevisionPrompt} color="dark/zinc">
+              <ArrowPathIcon />
+              Revise again
+            </Button>
+          </>
         }
       />
 

@@ -79,6 +79,7 @@ func (s Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/enrollments/{id}/board", s.handleEnrollmentBoard)
 	mux.HandleFunc("GET /api/context", s.handleContext)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
+	mux.HandleFunc("GET /api/assignments/{id}", s.handleAssignmentGet)
 	mux.HandleFunc("GET /api/exercises", s.handleExercisesList)
 	mux.HandleFunc("GET /api/exercises/{id}", s.handleExerciseGet)
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
@@ -225,6 +226,29 @@ type curriculumStateResponse struct {
 type historyItemResponse struct {
 	Title string   `json:"title"`
 	TGOs  []string `json:"tgos,omitempty"`
+}
+
+type assignmentResponse struct {
+	RootExerciseID    int64                    `json:"root_exercise_id"`
+	CurrentExerciseID int64                    `json:"current_exercise_id"`
+	Title             string                   `json:"title"`
+	LatestStepID      string                   `json:"latest_step_id,omitempty"`
+	Steps             []assignmentStepResponse `json:"steps"`
+}
+
+type assignmentStepResponse struct {
+	ID           string              `json:"id"`
+	Kind         string              `json:"kind"`
+	Title        string              `json:"title"`
+	Label        string              `json:"label"`
+	CreatedAt    string              `json:"created_at"`
+	ExerciseID   int64               `json:"exercise_id,omitempty"`
+	SubmissionID int64               `json:"submission_id,omitempty"`
+	ReviewID     int64               `json:"review_id,omitempty"`
+	DraftNumber  int                 `json:"draft_number,omitempty"`
+	Exercise     *exerciseResponse   `json:"exercise,omitempty"`
+	Submission   *submissionResponse `json:"submission,omitempty"`
+	Review       *reviewResponse     `json:"review,omitempty"`
 }
 
 type tgoResponse struct {
@@ -1053,6 +1077,32 @@ func (s Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.writeDashboardPayload(r.Context(), w, appContext, state, activeTGOs, completedTGOs)
+}
+
+func (s Server) handleAssignmentGet(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid assignment id"))
+		return
+	}
+	assignment, err := s.assignmentTimeline(r.Context(), appContext, id)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context":    requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"assignment": assignment,
+	})
 }
 
 func (s Server) handleExercisesList(w http.ResponseWriter, r *http.Request) {
@@ -2457,6 +2507,186 @@ func toHistoryResponses(exercises []domain.Exercise) []historyItemResponse {
 		items = append(items, item)
 	}
 	return items
+}
+
+func (s Server) assignmentTimeline(ctx context.Context, appContext session.Context, exerciseID int64) (assignmentResponse, error) {
+	current, err := s.Store.GetExercise(ctx, exerciseID)
+	if err != nil {
+		return assignmentResponse{}, err
+	}
+	if !belongsToContext(current.UserID, current.TreeID, appContext) {
+		return assignmentResponse{}, sql.ErrNoRows
+	}
+
+	exercises, err := s.Store.ListExercises(ctx, appContext.UserID, appContext.TreeID, 500)
+	if err != nil {
+		return assignmentResponse{}, err
+	}
+	submissions, err := s.Store.ListSubmissions(ctx, appContext.UserID, appContext.TreeID, 0, 500)
+	if err != nil {
+		return assignmentResponse{}, err
+	}
+	reviews, err := s.Store.ListReviews(ctx, appContext.UserID, appContext.TreeID, 0, 500)
+	if err != nil {
+		return assignmentResponse{}, err
+	}
+
+	exerciseByID := make(map[int64]domain.Exercise, len(exercises))
+	for _, exercise := range exercises {
+		exerciseByID[exercise.ID] = exercise
+	}
+	submissionByID := make(map[int64]domain.Submission, len(submissions))
+	submissionsByExercise := make(map[int64][]domain.Submission)
+	for _, submission := range submissions {
+		submissionByID[submission.ID] = submission
+		submissionsByExercise[submission.ExerciseID] = append(submissionsByExercise[submission.ExerciseID], submission)
+	}
+	reviewBySubmission := make(map[int64]domain.Review, len(reviews))
+	for _, reviewResult := range reviews {
+		if _, exists := reviewBySubmission[reviewResult.SubmissionID]; !exists {
+			reviewBySubmission[reviewResult.SubmissionID] = reviewResult
+		}
+	}
+
+	rootID := rootExerciseID(current, exerciseByID, submissionByID)
+	chain := make([]domain.Exercise, 0, len(exercises))
+	for _, exercise := range exercises {
+		if rootExerciseID(exercise, exerciseByID, submissionByID) == rootID {
+			chain = append(chain, exercise)
+		}
+	}
+	sort.Slice(chain, func(i, j int) bool {
+		if chain[i].CreatedAt.Equal(chain[j].CreatedAt) {
+			return chain[i].ID < chain[j].ID
+		}
+		return chain[i].CreatedAt.Before(chain[j].CreatedAt)
+	})
+
+	steps := make([]assignmentStepResponse, 0, len(chain)*3)
+	for _, exercise := range chain {
+		exerciseCopy := exercise
+		steps = append(steps, assignmentStepResponse{
+			ID:         fmt.Sprintf("exercise-%d", exercise.ID),
+			Kind:       "exercise",
+			Title:      exerciseTitle(exercise),
+			Label:      stepLabel("exercise", exercise, domain.Submission{}),
+			CreatedAt:  db.Since(exercise.CreatedAt),
+			ExerciseID: exercise.ID,
+			Exercise:   ptrExerciseResponse(toExerciseResponse(exerciseCopy)),
+		})
+
+		exerciseSubmissions := append([]domain.Submission(nil), submissionsByExercise[exercise.ID]...)
+		sort.Slice(exerciseSubmissions, func(i, j int) bool {
+			if exerciseSubmissions[i].DraftNumber == exerciseSubmissions[j].DraftNumber {
+				return exerciseSubmissions[i].ID < exerciseSubmissions[j].ID
+			}
+			return exerciseSubmissions[i].DraftNumber < exerciseSubmissions[j].DraftNumber
+		})
+		for _, submission := range exerciseSubmissions {
+			submissionCopy := submission
+			steps = append(steps, assignmentStepResponse{
+				ID:           fmt.Sprintf("submission-%d", submission.ID),
+				Kind:         "submission",
+				Title:        fmt.Sprintf("Draft %d", submission.DraftNumber),
+				Label:        stepLabel("submission", exercise, submission),
+				CreatedAt:    db.Since(submission.CreatedAt),
+				ExerciseID:   exercise.ID,
+				SubmissionID: submission.ID,
+				DraftNumber:  submission.DraftNumber,
+				Submission:   ptrSubmissionResponse(toSubmissionResponse(submissionCopy)),
+			})
+
+			reviewResult, ok := reviewBySubmission[submission.ID]
+			if !ok {
+				continue
+			}
+			reviewResponse := toReviewResponse(reviewResult)
+			if artifacts, err := s.Store.GetReviewArtifacts(ctx, reviewResult.ID); err == nil {
+				reviewResponse.Artifacts = decodeReviewArtifacts(artifacts)
+				if len(reviewResponse.Annotations) == 0 {
+					reviewResponse.Annotations = append(reviewResponse.Annotations, reviewResponse.Artifacts.Annotations...)
+				}
+			}
+			steps = append(steps, assignmentStepResponse{
+				ID:           fmt.Sprintf("review-%d", reviewResult.ID),
+				Kind:         "review",
+				Title:        fmt.Sprintf("Feedback %d", submission.DraftNumber),
+				Label:        stepLabel("review", exercise, submission),
+				CreatedAt:    db.Since(reviewResult.CreatedAt),
+				ExerciseID:   exercise.ID,
+				SubmissionID: submission.ID,
+				ReviewID:     reviewResult.ID,
+				DraftNumber:  submission.DraftNumber,
+				Review:       &reviewResponse,
+			})
+		}
+	}
+
+	title := exerciseTitle(exerciseByID[rootID])
+	if title == "" {
+		title = exerciseTitle(current)
+	}
+	latestStepID := ""
+	if len(steps) > 0 {
+		latestStepID = steps[len(steps)-1].ID
+	}
+	return assignmentResponse{
+		RootExerciseID:    rootID,
+		CurrentExerciseID: current.ID,
+		Title:             title,
+		LatestStepID:      latestStepID,
+		Steps:             steps,
+	}, nil
+}
+
+func rootExerciseID(exercise domain.Exercise, exerciseByID map[int64]domain.Exercise, submissionByID map[int64]domain.Submission) int64 {
+	current := exercise
+	seen := map[int64]bool{current.ID: true}
+	for current.SourceSubmissionID != 0 {
+		submission, ok := submissionByID[current.SourceSubmissionID]
+		if !ok {
+			break
+		}
+		parent, ok := exerciseByID[submission.ExerciseID]
+		if !ok || seen[parent.ID] {
+			break
+		}
+		current = parent
+		seen[current.ID] = true
+	}
+	return current.ID
+}
+
+func exerciseTitle(exercise domain.Exercise) string {
+	title := strings.TrimSpace(exercise.Title)
+	if title == "" {
+		return "Untitled assignment"
+	}
+	return title
+}
+
+func stepLabel(kind string, exercise domain.Exercise, submission domain.Submission) string {
+	switch kind {
+	case "exercise":
+		if exercise.SourceSubmissionID != 0 {
+			return "Revision brief"
+		}
+		return "Prompt"
+	case "submission":
+		return fmt.Sprintf("Draft %d", submission.DraftNumber)
+	case "review":
+		return fmt.Sprintf("Feedback %d", submission.DraftNumber)
+	default:
+		return ""
+	}
+}
+
+func ptrExerciseResponse(value exerciseResponse) *exerciseResponse {
+	return &value
+}
+
+func ptrSubmissionResponse(value submissionResponse) *submissionResponse {
+	return &value
 }
 
 func focusSkillsForTGOs(tgos []domain.TGO, fallback []string) []string {
