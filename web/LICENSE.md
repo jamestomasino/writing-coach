@@ -1,5 +1,9 @@
 # Tailwind Plus License
 
+This file preserves the Tailwind Plus license terms that apply to Tailwind Plus materials and derivatives used in the `writing-coach` web UI.
+
+For a repository-wide summary of mixed licensing, see [NOTICE.md](/home/tomasino/writing-coach/NOTICE.md).
+
 ## Personal License
 
 Tailwind Labs Inc. grants you an on-going, non-exclusive license to use the Components and Templates.

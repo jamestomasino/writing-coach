@@ -1,101 +1,212 @@
 # Writing Coach
 
-`writing-coach` is a Docker-deployed writing coaching system with a Go API backend and a Next.js web client. It generates exercises, reviews submissions, and adapts future practice based on accumulated feedback.
+`writing-coach` is a Docker-deployed writing practice app with:
 
-The initial implementation targets a narrow but complete loop:
+- a Go API backend
+- a Next.js web client
+- Ory Kratos for authentication
+- SQLite persistence
+- deterministic analysis plus LLM-backed prompt and review generation
 
-1. Compose brings up the API, auth, analyzer, and persistence stack.
-2. The API generates the next exercise prompt.
-3. The web client submits a story draft.
-4. The API reviews the draft with deterministic analysis and model synthesis.
-5. Results are persisted so later prompts can adapt to prior work.
+The app is built around a closed feedback loop:
 
-The app now supports per-user AI provider settings in the browser. Users can connect their own `Anthropic`, `Gemini`, `OpenAI`, `Groq`, or `xAI` key under `Settings > AI provider`.
+1. set a writing track through onboarding
+2. generate an assignment
+3. submit a draft
+4. receive feedback and scores
+5. revise or move on
+6. adapt future assignments based on accumulated history
 
-If `OPENAI_API_KEY` is set in the environment, the server also offers a shared OpenAI fallback for users who have not configured a personal provider yet. If neither a personal provider nor the shared fallback is available, generation is blocked until AI setup is completed. If a model call fails during prompt or review generation, the app falls back to deterministic local logic where supported.
+## What It Does
 
-## Architecture
+- keeps exactly 3 active `TGOs` in focus at a time
+- generates prompts and revision briefs
+- reviews drafts against active skills
+- preserves assignment history across prompt, draft, feedback, revision, and later passes
+- supports per-user AI provider settings
+- falls back to deterministic local logic where supported if a model call fails
 
-High-level architecture and implementation phases live in [docs/architecture.md](/home/tomasino/writing-coach/docs/architecture.md).
-The planned web stack, Tailwind Plus kit mapping, and screen strategy live in [docs/web-foundation-plan.md](/home/tomasino/writing-coach/docs/web-foundation-plan.md).
+Supported personal AI providers:
 
-## Runtime Model
+- Anthropic
+- Gemini
+- OpenAI
+- Groq
+- xAI
 
-The supported deployment path is:
+## Deployment Model
+
+The intended deployment is a single Docker Compose stack behind host `nginx`:
 
 - host `nginx` terminates TLS
-- host `nginx` reverse-proxies localhost-bound Docker ports
-- the app, Kratos, LanguageTool, and storage stay on the internal Docker network
+- host `nginx` reverse-proxies a localhost-bound web port
+- the web app, API, Kratos, LanguageTool, and storage stay on the internal Docker network
 
-The Go binary still starts via `writing-coach serve` inside the app container, but the CLI workflow is no longer treated as a primary user interface.
+This repository contains mixed-license materials. The web UI includes Tailwind Plus-derived code. See:
 
-## TGO Model
+- [LICENSE](/home/tomasino/writing-coach/LICENSE)
+- [NOTICE.md](/home/tomasino/writing-coach/NOTICE.md)
+- [docs/licensing.md](/home/tomasino/writing-coach/docs/licensing.md)
+- [web/LICENSE.md](/home/tomasino/writing-coach/web/LICENSE.md)
 
-The curriculum now runs on exactly 3 active `TGOs` (Topical Guide Objectives) at a time.
+## Quick Start
 
-- Every assignment is shaped around those 3 active TGOs.
-- Reviews assess those same 3 TGOs first.
-- A TGO moves to the completed list only after stable mastery.
-- When one is completed, a new unlocked TGO replaces it.
-- Completed TGOs remain part of the coaching context so regressions can still be noticed.
+```bash
+cp .env.example .env
+$EDITOR .env
+docker compose up -d --build
+```
 
-The current track begins with:
+Then open the public URL you configured in `COACH_PUBLIC_URL`.
 
-- `causal-clarity`
-- `scene-architecture`
-- `prose-precision`
+Default localhost binding from `.env.example`:
 
-Later TGOs unlock through prerequisites rather than a rigid straight line, so the advancement path can branch while still staying structured.
+- `127.0.0.1:11234:3000`
 
-## Multi-User And Tree Model
+The web container proxies `/api` and `/.ory/kratos/public` internally, so host `nginx` only needs one upstream:
 
-The app is no longer conceptually single-author. The stable coaching unit is now:
+```nginx
+server {
+    listen 80;
+    server_name coach.example.com;
 
-- a `user`
-- a `TGO tree`
-- that user's enrollment and progress through that tree
+    location / {
+        proxy_pass http://127.0.0.1:11234;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
-This means you can keep your current advanced mythic-tragedy track while later adding a separate youth writing foundations tree for your son, or a different tree for essays, reports, or genre-specific fiction.
+## Required Setup
 
-Current implementation status:
+At minimum, set these in `.env` before production use:
 
-- user and tree records are persisted
-- active and completed TGOs are enrollment-scoped
-- exercises, submissions, and reviews are user- and tree-scoped
-- curriculum state is enrollment-scoped
+- `COACH_PUBLIC_URL`
+- `KRATOS_COOKIE_SECRET`
+- `KRATOS_CIPHER_SECRET`
+- `KRATOS_UI_COOKIE_SECRET`
+- `KRATOS_UI_CSRF_SECRET`
+- `WRITING_COACH_ADMIN_EMAILS`
 
-The default config still points at one user and one tree, but the API already accepts alternate `user` and `tree` slugs per request.
+If users will save their own provider keys, also set:
 
-## JSON API
+- `WRITING_COACH_AI_KEY_SECRET`
 
-Core endpoints:
+Generate secrets with:
 
-- `GET /api/users`
-- `POST /api/users`
-- `GET /api/users/{slug}`
-- `GET /api/trees`
-- `POST /api/trees`
-- `GET /api/trees/{slug}`
-- `GET /api/trees/{slug}/versions`
-- `GET /api/trees/{slug}/versions/{version}`
-- `GET /api/trees/{slug}/diff?from=<n>&to=<n>`
-- `POST /api/trees/{slug}/versions/{version}/restore`
-- `GET /api/enrollments`
-- `POST /api/enrollments`
-- `GET /api/enrollments/{id}/board`
+```bash
+openssl rand -base64 48
+```
+
+Keep `WRITING_COACH_AI_KEY_SECRET` stable after deployment. Changing it later will make previously saved user keys unreadable.
+
+## AI Provider Modes
+
+The app supports two operating modes:
+
+### 1. Shared fallback enabled
+
+Set:
+
+```env
+OPENAI_API_KEY=...
+WRITING_COACH_AI_KEY_SECRET=...
+```
+
+Behavior:
+
+- the app can use a shared system OpenAI key
+- users can optionally save their own provider keys
+- existing users can keep working without immediate setup
+
+### 2. Bring-your-own-provider only
+
+Set:
+
+```env
+OPENAI_API_KEY=
+WRITING_COACH_AI_KEY_SECRET=...
+```
+
+Behavior:
+
+- there is no shared system fallback
+- users must save their own provider key to run model-backed generation
+
+If `WRITING_COACH_AI_KEY_SECRET` is missing, personal provider storage is unavailable.
+
+## Important Environment Variables
+
+- `OPENAI_API_KEY`
+  Optional shared OpenAI fallback.
+- `OPENAI_BASE_URL`
+  Optional custom base URL for the shared OpenAI-compatible provider.
+- `WRITING_COACH_AI_KEY_SECRET`
+  Required for storing users’ personal provider keys.
+- `WRITING_COACH_PROMPT_MODEL`
+  Default shared prompt model.
+- `WRITING_COACH_REVIEW_MODEL`
+  Default shared review model.
+- `WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE`
+  Per-user cap for provider validation attempts.
+- `WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE`
+  App-wide cap for provider validation attempts.
+- `WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS`
+  Retention window for admin-visible provider activity events.
+- `WRITING_COACH_WRITER_NAME`
+- `WRITING_COACH_DEFAULT_USER_SLUG`
+- `WRITING_COACH_DEFAULT_TREE_SLUG`
+- `WRITING_COACH_API_TOKEN`
+- `WRITING_COACH_ADMIN_EMAILS`
+- `COACH_PUBLIC_URL`
+- `WEB_PORT_BIND`
+- `KRATOS_SMTP_CONNECTION_URI`
+
+## Production Notes
+
+- keep the published upstream bound to localhost
+- let host `nginx` terminate TLS
+- keep Compose volumes persistent
+- replace all default Kratos secrets
+- decide whether `OPENAI_API_KEY` stays as a transition fallback or is removed
+
+State is stored in Docker volumes:
+
+- `writing-coach-data` for app data and SQLite
+- `kratos-data` for Kratos identity storage
+
+## AI Validation Hardening
+
+- `Validate connection` and `Save provider` use the same validation budget
+- the default per-user cap is `6` checks per minute
+- the default global cap is `60` checks per minute
+- repeated bad-key retries eventually return `429` without hitting the upstream provider
+- provider activity events are retained for `30` days by default
+- admin users can inspect provider activity in the admin workspace
+
+## Deterministic Analysis
+
+Every review runs built-in heuristic analysis. In the Compose deployment, the stack also includes:
+
+- Vale bundled into the app image
+- LanguageTool as an internal Docker service
+
+These findings feed the review pipeline and are saved as review artifacts for later reporting and UI use.
+
+If an external analyzer is unavailable, the app continues with heuristic analysis only.
+
+The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach).
+
+## API Overview
+
+Core browser-facing and app endpoints include:
+
 - `GET /api/health`
 - `GET /api/ready`
 - `GET /api/auth/session`
-- `GET /api/ai/settings`
-- `PUT /api/ai/settings`
-- `DELETE /api/ai/settings`
-- `POST /api/ai/settings/validate`
-- `GET /api/onboarding`
-- `POST /api/onboarding`
-- `GET /api/admins`
-- `POST /api/admins`
-- `DELETE /api/admins/{email}`
-- `GET /api/context`
 - `GET /api/dashboard`
 - `GET /api/exercises`
 - `GET /api/exercises/{id}`
@@ -108,6 +219,12 @@ Core endpoints:
 - `POST /api/reviews`
 - `GET /api/reviews/{id}`
 - `GET /api/compare?submission_id=<id>[&against=<id>]`
+- `GET /api/ai/settings`
+- `PUT /api/ai/settings`
+- `DELETE /api/ai/settings`
+- `POST /api/ai/settings/validate`
+
+There are also admin, tree, user, onboarding, and enrollment endpoints.
 
 Optional per-request context:
 
@@ -117,170 +234,37 @@ Optional per-request context:
 Optional API auth:
 
 - set `WRITING_COACH_API_TOKEN`
-- send either `Authorization: Bearer <token>` or `X-API-Token: <token>`
-- `GET /api/health` remains public for container health checks
+- send `Authorization: Bearer <token>` or `X-API-Token: <token>`
 
-Ory Kratos integration:
+## Architecture Notes
 
-- the API will validate browser/session authentication through Kratos `GET /sessions/whoami`
-- when Kratos auth is enabled, each authenticated identity maps deterministically to its own internal writer profile
-- this avoids storing password hashes in `writing-coach` itself
-- `GET /api/auth/session` returns the resolved auth mode, Kratos identity, onboarding state, AI readiness, and effective user/tree context for the browser client
+Useful docs:
 
-Examples:
-
-```bash
-curl http://localhost:11234/api/dashboard
-curl -X POST http://localhost:11234/api/prompts/next
-curl -X POST http://localhost:11234/api/submissions \
-  -H 'Content-Type: application/json' \
-  -d '{"exercise_id":1,"content":"A draft goes here."}'
-curl -X POST http://localhost:11234/api/reviews \
-  -H 'Content-Type: application/json' \
-  -d '{"submission_id":1}'
-```
-
-## Configuration
-
-The app stores non-secret configuration in `.writing-coach/config.json`.
-
-Environment variables:
-
-- `OPENAI_API_KEY` optional shared OpenAI fallback
-- `OPENAI_BASE_URL`
-- `WRITING_COACH_AI_KEY_SECRET` required if users will save personal provider keys
-- `WRITING_COACH_PROMPT_MODEL`
-- `WRITING_COACH_REVIEW_MODEL`
-- `WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE` per-user cap for AI settings validation checks
-- `WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE` app-wide cap for AI settings validation checks
-- `WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS` retention window for admin-visible AI provider activity events
-- `WRITING_COACH_WRITER_NAME`
-- `WRITING_COACH_DEFAULT_USER_SLUG`
-- `WRITING_COACH_DEFAULT_TREE_SLUG`
-- `WRITING_COACH_API_TOKEN`
-- `WRITING_COACH_ADMIN_EMAILS`
-- `COACH_PUBLIC_URL`
-- `WEB_PORT_BIND`
-- `KRATOS_SMTP_CONNECTION_URI`
-
-AI provider validation hardening:
-
-- both `Validate connection` and `Save provider` spend from the same validation budget
-- the default per-user cap is `6` validation checks per minute
-- the default app-wide cap is `60` validation checks per minute
-- if a user keeps retrying a bad key, later attempts receive `429 Too Many Requests` without hitting the upstream provider
-- provider activity events are retained for `30` days by default and can be filtered in the admin workspace by window, provider, and event type
-
-## Deterministic Analysis
-
-Every review now runs a built-in heuristic analyzer. In the supported Compose deployment, the stack also includes:
-
-- Vale bundled into the app image
-- LanguageTool running as an internal Docker service
-
-These findings are passed into the review pipeline and persisted as review artifacts for later reporting and UI use. If an external analyzer is unavailable, the app continues with heuristic analysis only.
-
-For production email delivery, set `KRATOS_SMTP_CONNECTION_URI` to your Mailgun SMTP URI. Example:
-
-```env
-KRATOS_SMTP_CONNECTION_URI=smtp://postmaster@mg.example.com:MAILGUN_SMTP_PASSWORD@smtp.mailgun.org:587/?skip_ssl_verify=false
-```
-
-The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach) and focus on:
-
-- stock fantasy cliches
-- over-explicit symbolic explanation
-- filter verbs and hedging
-- abstract emotional load-bearing words
-- direct emotion labels and weak modifiers
+- [docs/architecture.md](/home/tomasino/writing-coach/docs/architecture.md)
+- [docs/ai-provider-rollout-plan.md](/home/tomasino/writing-coach/docs/ai-provider-rollout-plan.md)
+- [docs/licensing.md](/home/tomasino/writing-coach/docs/licensing.md)
+- [docs/web-foundation-plan.md](/home/tomasino/writing-coach/docs/web-foundation-plan.md)
+- [docs/web-app-plan.md](/home/tomasino/writing-coach/docs/web-app-plan.md)
+- [docs/tree-library.md](/home/tomasino/writing-coach/docs/tree-library.md)
 
 ## Current Status
 
-The repository currently contains:
+The repository currently includes:
 
-- a documented architecture plan
-- a Go API server behind the browser client
-- a Next.js web app built from the Catalyst component kit
-- a questionnaire-driven onboarding flow that generates a user-specific TGO tree
-- per-user AI provider settings for Anthropic, Gemini, OpenAI, Groq, and xAI
-- structured review annotations tied to quoted text and TGOs for browser-side markup
-- SQLite bootstrap and schema migration support
-- model-backed prompt/review services with deterministic fallback behavior
-- persisted review artifacts for analyzer output, recommendation state, and revision comparisons
-- DB-backed tree definitions so new curricula can be created over the API instead of only in code
+- a Go API server
+- a Next.js web app
+- questionnaire-driven onboarding
+- assignment timeline and archive browsing
+- per-user AI provider settings
+- admin-visible AI provider activity reporting
+- structured review annotations and comparison artifacts
+- SQLite migrations and bootstrap support
+- DB-backed trees and enrollment-scoped progress
 
-## Deployment
-
-Start the full contained stack with Docker Compose:
-
-```bash
-cp .env.example .env
-$EDITOR .env
-docker compose up -d --build
-```
-
-That stack includes:
-
-- `writing-coach-web` Next.js frontend
-- `writing-coach` API
-- `Vale` bundled into the app image
-- `LanguageTool` as a dedicated Java container
-- `Ory Kratos` for account management and password handling
-- `Ory Kratos` for account management and password handling
-- `Mailslurper` for local verification/recovery email testing
-
-Everything required to run the stack now lives inside `docker-compose.yml` and `.env`. No host-side LanguageTool, Vale, database, or auth service is required. The app stores its SQLite/config state under `/app/.writing-coach` in the `writing-coach-data` volume, and Kratos stores its identity SQLite DB in the `kratos-data` volume.
-
-Production deployment for `coach.tomasino.org` should:
-
-- copy `.env.example` to `.env`
-- set the Kratos secrets to long random values
-- set `WRITING_COACH_AI_KEY_SECRET` to a long random value and keep it stable
-- set `WRITING_COACH_ADMIN_EMAILS` to the Kratos email addresses allowed to create or edit curricula
-- decide whether `OPENAI_API_KEY` should remain set as a shared system fallback or be left empty to require BYO provider setup
-- keep the single published upstream bound to `127.0.0.1`
-- let host nginx terminate TLS and proxy all traffic to the web container on `WEB_PORT_BIND`
-
-The main browser-facing setting is:
-
-- `COACH_PUBLIC_URL`
-
-Kratos browser URLs default from `COACH_PUBLIC_URL` and do not normally need to be set explicitly.
-
-Deployment examples live at:
+## Deployment References
 
 - [deploy/docker-compose.example.yml](/home/tomasino/writing-coach/deploy/docker-compose.example.yml)
 - [deploy/nginx.example.conf](/home/tomasino/writing-coach/deploy/nginx.example.conf)
-
-Kratos configuration lives at:
-
 - [deploy/kratos/kratos.yml.tmpl](/home/tomasino/writing-coach/deploy/kratos/kratos.yml.tmpl)
 - [deploy/kratos/render-config.sh](/home/tomasino/writing-coach/deploy/kratos/render-config.sh)
 - [deploy/kratos/identity.schema.json](/home/tomasino/writing-coach/deploy/kratos/identity.schema.json)
-
-Default localhost binding from `.env.example`:
-
-- `11234` writing-coach web entrypoint
-
-The web container proxies `/api` and `/.ory/kratos/public` internally over the Docker network, so host nginx only needs a single upstream:
-
-```nginx
-server {
-    listen 80;
-    server_name coach.tomasino.org;
-
-    location / {
-        proxy_pass http://127.0.0.1:11234;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Next Milestones
-
-- replace the stopgap admin provisioning screen with a true invite flow
-- replace admin-side user provisioning with a true invite flow
-- add richer tree and curriculum browsing screens in the web app
