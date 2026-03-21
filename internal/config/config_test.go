@@ -14,6 +14,7 @@ func TestSaveAndLoadConfig(t *testing.T) {
 	cfg.ReviewModel = "test-review"
 	cfg.ValeBinary = "/tmp/vale"
 	cfg.LanguageToolURL = "http://localhost:8081"
+	cfg.NLPAnalyzerURL = "http://localhost:8020"
 
 	if err := Save(cfg); err != nil {
 		t.Fatalf("save config: %v", err)
@@ -30,7 +31,7 @@ func TestSaveAndLoadConfig(t *testing.T) {
 	if loaded.PromptModel != "test-prompt" || loaded.ReviewModel != "test-review" {
 		t.Fatalf("unexpected models: %+v", loaded)
 	}
-	if loaded.ValeBinary != "/tmp/vale" || loaded.LanguageToolURL != "http://localhost:8081" {
+	if loaded.ValeBinary != "/tmp/vale" || loaded.LanguageToolURL != "http://localhost:8081" || loaded.NLPAnalyzerURL != "http://localhost:8020" {
 		t.Fatalf("unexpected analyzer config: %+v", loaded)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".writing-coach", "config.json")); err != nil {

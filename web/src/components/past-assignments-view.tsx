@@ -5,8 +5,8 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { getAssignments } from '@/lib/api'
-import type { AssignmentSummary } from '@/lib/types'
+import { getAssignments, getDashboard } from '@/lib/api'
+import type { AssignmentSummary, Dashboard, TGO } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { ArrowRightIcon } from '@heroicons/react/16/solid'
 import { useEffect, useMemo, useState } from 'react'
@@ -14,11 +14,33 @@ import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 import { formatLocalDateTime } from '@/lib/datetime'
 
+function badgeColorForMasteryStage(stage?: string): React.ComponentProps<typeof Badge>['color'] {
+  switch ((stage ?? '').trim().toLowerCase()) {
+    case 'mastery evidence':
+      return 'green'
+    case 'strong control':
+      return 'cyan'
+    case 'developing':
+      return 'amber'
+    default:
+      return 'zinc'
+  }
+}
+
+function badgeColorForTGO(title: string, byTitle: Map<string, TGO>): React.ComponentProps<typeof Badge>['color'] {
+  const tgo = byTitle.get(title.trim().toLowerCase())
+  if (!tgo) {
+    return 'zinc'
+  }
+  return badgeColorForMasteryStage(tgo.mastery_stage)
+}
+
 export function PastAssignmentsView() {
   const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession('/assignments')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([])
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -27,9 +49,10 @@ export function PastAssignmentsView() {
         return
       }
       try {
-        const items = await getAssignments()
+        const [items, dashboardState] = await Promise.all([getAssignments(), getDashboard()])
         if (!cancelled) {
           setAssignments(items)
+          setDashboard(dashboardState)
         }
       } catch (err) {
         if (!cancelled) {
@@ -49,6 +72,21 @@ export function PastAssignmentsView() {
 
   const currentAssignment = useMemo(() => assignments.find((item) => item.is_current), [assignments])
   const pastAssignments = useMemo(() => assignments.filter((item) => !item.is_current), [assignments])
+  const tgoByTitle = useMemo(() => {
+    const entries = new Map<string, TGO>()
+    for (const tgo of dashboard?.completed_tgos ?? []) {
+      entries.set(tgo.title.trim().toLowerCase(), tgo)
+    }
+    for (const tgo of dashboard?.upcoming_tgos ?? []) {
+      if (!entries.has(tgo.title.trim().toLowerCase())) {
+        entries.set(tgo.title.trim().toLowerCase(), tgo)
+      }
+    }
+    for (const tgo of dashboard?.active_tgos ?? []) {
+      entries.set(tgo.title.trim().toLowerCase(), tgo)
+    }
+    return entries
+  }, [dashboard])
 
   if (sessionLoading || loading) {
     return <LoadingState label="Loading past assignments…" />
@@ -63,17 +101,12 @@ export function PastAssignmentsView() {
         eyebrow="Assignments"
         title="Past assignments"
         intro="Look back at earlier assignments from the active track and revisit your drafts, feedback, and revisions."
-        actions={
-          <Button href="/" outline>
-            Current assignment
-          </Button>
-        }
       />
 
       {currentAssignment ? (
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Current chain"
+            eyebrow="Current assignment"
             title={currentAssignment.title}
             description="Your current assignment is still active. You can open its full history here."
             actions={
@@ -97,7 +130,6 @@ export function PastAssignmentsView() {
           {pastAssignments.map((assignment) => (
             <WorkspaceCard key={assignment.root_exercise_id}>
               <CardHeader
-                eyebrow={assignment.latest_step_label}
                 title={assignment.title}
                 description={`Latest activity ${formatLocalDateTime(assignment.latest_activity) ?? assignment.latest_activity}.`}
                 actions={
@@ -109,7 +141,7 @@ export function PastAssignmentsView() {
               />
               <div className="mt-5 flex flex-wrap gap-2">
                 {assignment.tgos.map((tgo) => (
-                  <Badge key={tgo} color="zinc">
+                  <Badge key={tgo} color={badgeColorForTGO(tgo, tgoByTitle)}>
                     {tgo}
                   </Badge>
                 ))}

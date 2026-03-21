@@ -98,6 +98,11 @@ func (c CLI) runInit(ctx context.Context) error {
 	} else {
 		fmt.Printf("languagetool: enabled (%s)\n", c.Config.LanguageToolURL)
 	}
+	if c.Config.NLPAnalyzerURL == "" {
+		fmt.Println("nlp analyzer: disabled (set WRITING_COACH_NLP_ANALYZER_URL to enable spaCy/TextDescriptives checks)")
+	} else {
+		fmt.Printf("nlp analyzer: enabled (%s)\n", c.Config.NLPAnalyzerURL)
+	}
 	return nil
 }
 

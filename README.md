@@ -156,6 +156,8 @@ If `WRITING_COACH_AI_KEY_SECRET` is missing, personal provider storage is unavai
   App-wide cap for provider validation attempts.
 - `WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS`
   Retention window for admin-visible provider activity events.
+- `WRITING_COACH_NLP_ANALYZER_URL`
+  Optional internal spaCy/TextDescriptives analyzer service URL.
 - `WRITING_COACH_WRITER_NAME`
 - `WRITING_COACH_DEFAULT_USER_SLUG`
 - `WRITING_COACH_DEFAULT_TREE_SLUG`
@@ -193,10 +195,11 @@ Every review runs built-in heuristic analysis. In the Compose deployment, the st
 
 - Vale bundled into the app image
 - LanguageTool as an internal Docker service
+- spaCy plus TextDescriptives as an internal Docker service
 
 These findings feed the review pipeline and are saved as review artifacts for later reporting and UI use.
 
-If an external analyzer is unavailable, the app continues with heuristic analysis only.
+If an external analyzer is unavailable, the app continues with the remaining analyzers.
 
 The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach).
 

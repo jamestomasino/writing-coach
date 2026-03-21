@@ -150,6 +150,7 @@ Current secure deployment direction:
 - `Ory Kratos` handles password hashing, recovery, verification, and sessions
 - the API validates authenticated sessions through Kratos `whoami`
 - `LanguageTool` runs as a separate Java service in Docker
+- `spaCy` plus `TextDescriptives` run as a separate Python service in Docker
 - `Vale` is bundled into the app image for deterministic prose linting
 - all deploy-time settings are driven from `.env` and consumed by `docker-compose.yml`
 - the intended production topology is `host nginx -> localhost-bound web upstream -> internal Docker services` on `coach.tomasino.org`
@@ -201,12 +202,14 @@ Add open source analyzers:
 
 - Vale for style and custom prose rules
 - LanguageTool for grammar and style suggestions
+- spaCy plus TextDescriptives for syntactic and readability analysis
 
 Implementation status:
 
 - built-in heuristic analyzer is active
 - Vale integration is available via CLI invocation when configured
 - LanguageTool integration is available via local HTTP server when configured
+- spaCy/TextDescriptives integration is available via local HTTP server when configured
 - repo-local Vale rules encode project-specific style guidance for mythic tragic fantasy
 
 ### Phase 4

@@ -153,6 +153,55 @@ export function AboutView() {
           </div>
         </div>
       </WorkspaceCard>
+
+      <WorkspaceCard className="border-stone-200/80 bg-linear-to-br from-stone-50 via-white to-sky-50 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/30">
+        <Eyebrow>How It Works</Eyebrow>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">A guided review, not just a chatbot reply</Subheading>
+        <div className="mt-4 max-w-3xl space-y-4">
+          <Text>
+            Writing Coach does not hand your draft to a model and hope for the best. It starts with a set of
+            rule-based checks that look for concrete things like grammar trouble, style problems, sentence strain, and
+            repeated patterns. Tools such as <Strong>LanguageTool</Strong>, <Strong>Vale</Strong>, and the app&apos;s
+            own sentence-analysis checks help build that first layer.
+          </Text>
+          <Text>
+            After that, the coach looks at your <Strong>active skills</Strong>. Those are the few craft goals your
+            assignment is meant to train right now. Instead of trying to judge everything at once, the review asks
+            whether this draft got clearer in the specific skills you were working on.
+          </Text>
+          <Text>
+            When a language model is enabled, it comes in after those checks. The model helps write the assignment
+            brief, shape the coaching language, and turn the raw signals into feedback that reads more like a human
+            teacher. It is working with structure and evidence from the system, not starting from a blank guess.
+          </Text>
+          <Text>
+            Over time, the app compares reviews, tracks which skills are improving, watches for old weaknesses coming
+            back, and decides what to practice next. That is how it aims to build steady skill, not just generate one
+            clever comment on one draft.
+          </Text>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">1. Check the draft</div>
+            <Text className="mt-2">
+              Deterministic tools scan for concrete issues the system can measure reliably.
+            </Text>
+          </div>
+          <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">2. Match the current skills</div>
+            <Text className="mt-2">
+              The coach cross-references those signals with the few skills that matter for your current assignment.
+            </Text>
+          </div>
+          <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">3. Shape the next step</div>
+            <Text className="mt-2">
+              The review, revision brief, and next assignment are built from that evidence so practice stays focused.
+            </Text>
+          </div>
+        </div>
+      </WorkspaceCard>
     </div>
   )
 }

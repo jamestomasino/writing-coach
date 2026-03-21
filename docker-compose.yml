@@ -26,6 +26,8 @@ services:
     depends_on:
       languagetool:
         condition: service_healthy
+      nlp-analyzer:
+        condition: service_healthy
       kratos:
         condition: service_started
     environment:
@@ -35,6 +37,7 @@ services:
       WRITING_COACH_DEFAULT_TREE_SLUG: "${WRITING_COACH_DEFAULT_TREE_SLUG:-global-writing-skill-graph}"
       WRITING_COACH_KRATOS_PUBLIC_URL: "http://kratos:4433"
       LANGUAGETOOL_URL: "http://languagetool:8010"
+      WRITING_COACH_NLP_ANALYZER_URL: "http://nlp-analyzer:8020"
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
       OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
       WRITING_COACH_AI_KEY_SECRET: "${WRITING_COACH_AI_KEY_SECRET:-}"
@@ -52,6 +55,19 @@ services:
       dockerfile: docker/languagetool/Dockerfile
     container_name: writing-coach-languagetool
     restart: unless-stopped
+
+  nlp-analyzer:
+    build:
+      context: .
+      dockerfile: docker/nlp-analyzer/Dockerfile
+    container_name: writing-coach-nlp-analyzer
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=2)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   kratos-migrate:
     image: oryd/kratos:v25.4.0

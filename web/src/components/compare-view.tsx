@@ -10,7 +10,7 @@ import { Text } from '@/components/text'
 import { useCompareWorkspace } from '@/lib/use-compare-workspace'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
-import { AppErrorState, EmptyState, LoadingState } from './status-state'
+import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
@@ -51,6 +51,18 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           </>
         }
       />
+
+      {preparingRevision ? (
+        <TaskProgressState
+          title="Revision brief in progress"
+          body="Turning this comparison into the next revision brief."
+          steps={[
+            'Load the latest revision history.',
+            'Pull forward the weaknesses that still matter most.',
+            'Build a new focused revision assignment.',
+          ]}
+        />
+      ) : null}
 
       {!canActOnComparison ? (
         <WorkspaceCard>

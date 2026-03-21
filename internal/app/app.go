@@ -81,6 +81,7 @@ func New(ctx context.Context) (*App, error) {
 			WorkingDir: projectRoot,
 		},
 		analyzer.LanguageTool{BaseURL: cfg.LanguageToolURL},
+		analyzer.NLP{BaseURL: cfg.NLPAnalyzerURL},
 	)
 	appContext, err := session.Resolve(ctx, store, cfg)
 	if err != nil {

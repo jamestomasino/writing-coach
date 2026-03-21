@@ -141,32 +141,40 @@ export function LoadingState({ label = 'Loading workspace…' }: { label?: strin
 
 export function TaskProgressState({ title, body, steps }: { title: string; body: string; steps: string[] }) {
   return (
-    <WorkspaceCard className="border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-2xl">
-          <div className="flex items-center gap-3">
-            <span
-              className="inline-flex size-3 animate-pulse rounded-full bg-amber-500 dark:bg-amber-300"
-              aria-hidden="true"
-            />
-            <Heading level={2} className="text-base/6">
+    <WorkspaceCard className="border-cyan-200 bg-cyan-50 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-4">
+          <div
+            className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-cyan-300 bg-white/80 dark:border-cyan-400/20 dark:bg-black/10"
+            aria-hidden="true"
+          >
+            <span className="size-5 animate-spin rounded-full border-2 border-cyan-700/25 border-t-cyan-700 dark:border-cyan-200/25 dark:border-t-cyan-200" />
+          </div>
+          <div className="max-w-2xl">
+            <Eyebrow tone="cyan">Working</Eyebrow>
+            <Heading level={2} className="mt-1 text-base/6">
               {title}
             </Heading>
+            <Text className="mt-2" aria-live="polite">
+              {body}
+            </Text>
           </div>
-          <Text className="mt-2" aria-live="polite">
-            {body}
-          </Text>
         </div>
         <div
-          className="min-w-0 rounded-2xl border border-amber-300/70 bg-white/70 px-4 py-4 lg:w-80 dark:border-amber-400/20 dark:bg-black/10"
+          className="min-w-0 rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 lg:w-80 dark:border-cyan-400/20 dark:bg-black/10"
           role="status"
           aria-live="polite"
         >
-          <Eyebrow tone="amber">Progress</Eyebrow>
-          <ol className="mt-3 space-y-3">
+          <Eyebrow tone="cyan">Progress</Eyebrow>
+          <div className="mt-3 space-y-2" aria-hidden="true">
+            <div className="h-2 w-full animate-pulse rounded-full bg-cyan-200/80 dark:bg-cyan-200/15" />
+            <div className="h-2 w-5/6 animate-pulse rounded-full bg-cyan-200/70 [animation-delay:120ms] dark:bg-cyan-200/12" />
+            <div className="h-2 w-2/3 animate-pulse rounded-full bg-cyan-200/60 [animation-delay:240ms] dark:bg-cyan-200/10" />
+          </div>
+          <ol className="mt-4 space-y-3">
             {steps.map((step, index) => (
-              <li key={step} className="flex items-start gap-3 text-sm text-amber-950 dark:text-amber-50">
-                <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-amber-400 bg-amber-100 text-xs font-semibold dark:border-amber-300/30 dark:bg-amber-300/10">
+              <li key={step} className="flex items-start gap-3 text-sm text-cyan-950 dark:text-cyan-50">
+                <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-cyan-400 bg-cyan-100 text-xs font-semibold dark:border-cyan-300/30 dark:bg-cyan-300/10">
                   {index + 1}
                 </span>
                 <span>{step}</span>

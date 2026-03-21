@@ -36,6 +36,7 @@ type Config struct {
 	AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
 	ValeBinary                     string   `json:"vale_binary"`
 	LanguageToolURL                string   `json:"languagetool_url"`
+	NLPAnalyzerURL                 string   `json:"nlp_analyzer_url"`
 }
 
 func Default(projectRoot string) Config {
@@ -138,6 +139,9 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("LANGUAGETOOL_URL"); value != "" {
 		cfg.LanguageToolURL = value
 	}
+	if value := os.Getenv("WRITING_COACH_NLP_ANALYZER_URL"); value != "" {
+		cfg.NLPAnalyzerURL = value
+	}
 	if value := os.Getenv("WRITING_COACH_HTTP_ADDR"); value != "" {
 		cfg.HTTPAddr = value
 	}
@@ -196,6 +200,7 @@ func Save(cfg Config) error {
 		AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
 		ValeBinary                     string   `json:"vale_binary"`
 		LanguageToolURL                string   `json:"languagetool_url"`
+		NLPAnalyzerURL                 string   `json:"nlp_analyzer_url"`
 	}{
 		DataDir:                        cfg.DataDir,
 		DatabaseURL:                    cfg.DatabaseURL,
@@ -214,6 +219,7 @@ func Save(cfg Config) error {
 		AIProviderEventRetentionDays:   cfg.AIProviderEventRetentionDays,
 		ValeBinary:                     cfg.ValeBinary,
 		LanguageToolURL:                cfg.LanguageToolURL,
+		NLPAnalyzerURL:                 cfg.NLPAnalyzerURL,
 	}
 
 	bytes, err := json.MarshalIndent(payload, "", "  ")

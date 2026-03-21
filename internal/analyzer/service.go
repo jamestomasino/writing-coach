@@ -58,6 +58,12 @@ func Summary(report Report) string {
 	if value, ok := report.Metrics["languagetool_matches"]; ok {
 		parts = append(parts, "languagetool_matches="+itoa(value))
 	}
+	if value, ok := report.Metrics["nlp_long_sentences"]; ok {
+		parts = append(parts, "nlp_long_sentences="+itoa(value))
+	}
+	if value, ok := report.Metrics["nlp_passive_sentences"]; ok {
+		parts = append(parts, "nlp_passive_sentences="+itoa(value))
+	}
 	return strings.Join(parts, ", ")
 }
 
