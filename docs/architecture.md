@@ -1,124 +1,84 @@
-# Architecture Plan
-
-## Goal
-
-Build a local-first writing coach that supports repeated fiction exercises, stores all outputs and reviews, and adapts the next exercise based on what the writer most needs to practice.
-
-The target style is epic tragedy in a mythopoeic mode with fantasy influences, while preserving the intellectual and emotional rigor associated with Frank Herbert and Ursula K. Le Guin.
+# Architecture
 
 ## Product Shape
 
-The current implementation is a Go application with SQLite persistence exposed through:
+`writing-coach` is a Go application with a Next.js web client. The web app is the only published browser entrypoint. It proxies API and Kratos browser traffic internally across the Docker network.
 
-- a JSON API
-- a Next.js web interface running as the single published browser entrypoint
+The product loop is:
 
-The web layer remains an adapter over the same prompt, review, curriculum, and persistence services rather than a separate system.
+1. choose or generate a practice path
+2. generate an assignment
+3. submit a draft
+4. review the draft against the current active skills
+5. revise or move on
+6. use that history to shape the next assignment
 
-## Core Engines
+The current product is no longer fiction-only. It supports multiple writing domains through built-in and generated skill trees, while still preserving the same assignment and review loop.
 
-### Prompt Engine
+## Core Systems
 
-Produces the next exercise from:
+### Practice paths and skills
 
-- per-user curriculum state
-- active TGOs for the enrolled tree
-- recent exercises and reviews
-- current training pressure
-
-It should balance:
-
-- one new challenge at a time
-- reinforcement of one weak skill
-- variety in prompt form
-- continuity with the writer's stated aesthetic goals
-
-### Review Engine
-
-Combines deterministic analysis with model-based critique.
-
-Deterministic analysis should cover:
-
-- grammar and spelling
-- sentence-length variance
-- word count and paragraph shape
-- repetition and overused constructions
-- dialogue vs narration balance
-
-Model-based review should eventually cover:
-
-- thematic depth
-- tragic inevitability
-- mythic tone
-- symbolic control
-- clarity vs ornamentation
-- specific next-step advice
-
-Current working rule:
-
-- deterministic analyzers run first and always produce the base report
-- active TGOs narrow which findings matter most for the assignment
-- model-backed review, when enabled, receives analyzer summaries and selected findings instead of acting as the only reviewer
-- deterministic fallback remains available for prompts, reviews, and revision briefs
-
-### Learning Engine
-
-Updates the enrollment-scoped curriculum state after every submission and review.
-
-The learning engine should track:
-
-- skill strengths
-- recurring weaknesses
-- current difficulty level
-- recent prompt patterns to avoid repetition
-- the next exercise strategy
-
-## TGO Curriculum
-
-The coaching model is built around `Topical Guide Objectives (TGOs)`.
+The coaching model is built around `Topical Guide Objectives (TGOs)`, surfaced to users as skills.
 
 Rules:
 
+- each enrollment progresses through one active tree at a time
 - exactly 3 TGOs are active at any given time
-- every assignment must declare those 3 TGOs explicitly
-- review prioritizes those 3 TGOs over general craft commentary
-- stable mastery moves a TGO to the completed list
-- a newly unlocked TGO replaces the completed one
+- assignments and reviews are scoped to those 3 active skills
+- completed skills remain visible for maintenance and regression checks
+- unlocking is prerequisite-based rather than strictly linear
 
-Advancement is structured but not strictly linear. TGOs carry prerequisites so later genre-specific work only unlocks after enough command of the core storytelling foundations.
+The app ships with a built-in tree catalog and also supports generated personalized trees created from onboarding answers.
 
-The architecture now treats a `TGO tree` as the reusable pedagogical unit. Each user progresses through a chosen tree independently.
+### Assignment generation
 
-This enables:
+Assignment generation combines:
 
-- one advanced mythic-tragedy tree for your own fiction work
-- a youth foundations tree for your son
-- later trees for essays, scene craft, fantasy foundations, or other writing goals
+- enrollment-scoped curriculum state
+- active TGOs
+- onboarding profile
+- recurring weaknesses and analyzer findings
+- optional model-backed generation
 
-Tree definitions are now persisted in the database so new curricula can be created over the API and enrolled without another code release. Tree saves also create version snapshots so curriculum edits remain auditable.
+If an LLM is available, it generates assignments and revision briefs under a structured schema. If not, the app falls back to deterministic generation.
 
-Users can now also complete an onboarding questionnaire that generates a personal tree definition from their writing type, experience, tone goals, weaknesses, outcomes, and desired training intensity. The generated tree becomes that user's active track.
+### Review generation
 
-## Persistence Model
+Reviews are layered:
 
-SQLite is the system of record. The schema should support direct reporting and preserve enough history to re-evaluate earlier work if rubrics change.
+1. deterministic analyzers inspect the submission
+2. active TGOs narrow which findings matter most
+3. an optional model-backed reviewer turns that context into coaching language
+4. deterministic fallback remains available when no model is enabled
 
-Primary tables:
+The deterministic analyzer stack currently includes:
 
-- `users`
-- `tgo_trees`
-- `tree_tgos`
-- `user_tree_enrollments`
-- `user_curriculum_state`
-- `enrollment_active_tgos`
-- `enrollment_completed_tgos`
-- `exercises`
-- `submissions`
-- `reviews`
-- `skill_dimensions`
-- `submission_skill_scores`
-- `curriculum_state`
-- `events`
+- built-in heuristics
+- Vale
+- LanguageTool
+- spaCy plus TextDescriptives
+
+Vale, heuristics, the NLP sidecar, and deterministic fallback review language are domain-aware. The coaching pipeline is also now writing-language-aware, though English is the only shipped coaching language today.
+
+### Curriculum updates
+
+The curriculum service updates enrollment-scoped progress after each review. It tracks:
+
+- active and completed TGOs
+- recurring weaknesses
+- recurring analyzer findings
+- review history
+- next-focus recommendations
+
+### Localization and writing language
+
+The app separates:
+
+- UI locale
+- writing language
+
+That distinction matters because a user might browse the UI in one language while practicing writing in another. UI localization is prepared through `next-intl`. Coaching language support is prepared separately through onboarding profile data, analyzer gating, and explicit LLM request fields.
 
 ## Package Boundaries
 
@@ -134,116 +94,73 @@ internal/domain/
 internal/prompt/
 internal/review/
 migrations/
+web/
+docker/
 ```
 
-### Boundary Rules
+Boundary rules:
 
-- `internal/domain` holds durable business types.
-- `internal/db` owns persistence and migrations.
-- `internal/prompt`, `internal/review`, and `internal/curriculum` expose narrow service interfaces.
-- `internal/app` wires concrete implementations.
-- `internal/api` exposes JSON endpoints for a browser-based UI or remote deployment.
-- `internal/cli` handles command parsing and user-facing output.
+- `internal/domain` holds durable business types and tree/profile logic
+- `internal/db` owns persistence, queries, and migrations
+- `internal/prompt`, `internal/review`, and `internal/curriculum` provide the main coaching services
+- `internal/app` wires concrete runtime dependencies
+- `internal/api` exposes JSON endpoints for the web app and admin flows
+- `internal/cli` exposes local/operator commands
+- `web/` contains the Next.js client
+- `docker/` contains sidecar services such as LanguageTool and the NLP analyzer
+
+## Persistence Model
+
+SQLite is the system of record.
+
+Key persisted entities include:
+
+- users and authenticated sessions through Kratos integration
+- tree definitions and tree versions
+- user tree enrollments
+- active and completed TGOs per enrollment
+- onboarding profiles
+- exercises
+- submissions
+- reviews
+- review artifacts
+- skill scores
+- review jobs
+- AI provider settings and activity events
+
+The schema is designed to keep assignment, review, and curriculum history inspectable over time rather than only storing current state.
 
 ## Deployment Posture
 
-The API runs behind the web container in Docker. Host nginx proxies to the web service only; the web service then proxies API and Kratos browser routes across the internal Docker network.
+The intended deployment is Docker Compose behind host `nginx`.
 
-An optional API token gate still protects API-only access patterns. For real user accounts, Ory Kratos remains the identity system rather than storing passwords in the app itself.
+Current production posture:
 
-Current secure deployment direction:
+- host `nginx` terminates TLS
+- the published web upstream stays bound to localhost
+- the web app proxies API and Kratos browser routes internally
+- Ory Kratos handles identity, recovery, verification, and sessions
+- SQLite is stored on a persistent volume
+- LanguageTool runs as a sidecar service
+- spaCy plus TextDescriptives run as a sidecar service
+- Vale is bundled into the app image
 
-- `writing-coach` keeps application data only
-- `Ory Kratos` handles password hashing, recovery, verification, and sessions
-- the API validates authenticated sessions through Kratos `whoami`
-- `LanguageTool` runs as a separate Java service in Docker
-- `spaCy` plus `TextDescriptives` run as a separate Python service in Docker
-- `Vale` is bundled into the app image for deterministic prose linting
-- all deploy-time settings are driven from `.env` and consumed by `docker-compose.yml`
-- the intended production topology is `host nginx -> localhost-bound web upstream -> internal Docker services` on `coach.tomasino.org`
-- UI locale and writing language are modeled separately so future contributors can add coaching support for non-English writing without coupling it to interface language
+The intended topology is:
 
-## Interfaces
+`host nginx -> localhost-bound web upstream -> internal Docker services`
 
-The service layer should converge on interfaces shaped like:
+## Current Implementation Notes
 
-```go
-type PromptGenerator interface {
-    NextExercise(ctx context.Context, state CurriculumState) (Exercise, error)
-}
+- the web app includes onboarding, current assignment, review, comparison, progress, archive, timeline, AI settings, admin, about, and auth flows
+- review and revision generation run through background jobs and queue-state polling where needed
+- assignment archive pages treat old assignments as historical records rather than active workflow stages
+- admin currently focuses on account access and AI provider activity, not user provisioning
+- personal AI provider settings are stored encrypted at rest when configured
 
-type Reviewer interface {
-    ReviewSubmission(ctx context.Context, sub Submission, ctxData ReviewContext) (Review, error)
-}
+## Design Direction
 
-type SkillUpdater interface {
-    Update(ctx context.Context, sub Submission, review Review) (CurriculumState, error)
-}
-```
+The app is structured to keep three properties stable:
 
-## Implementation Phases
-
-### Phase 1
-
-Deliver one complete local loop:
-
-- initialize config and database
-- generate a prompt
-- accept a submission
-- generate a deterministic review
-- update curriculum state
-
-### Phase 2
-
-Integrate OpenAI with structured JSON outputs for prompt generation and review synthesis.
-
-Implementation notes:
-
-- call the Responses API directly from Go over `net/http`
-- require schema-conformant JSON for both exercises and reviews
-- preserve deterministic local services as the fallback path
-- keep provider choice transparent in CLI output and stored exercise/review metadata
-
-### Phase 3
-
-Add open source analyzers:
-
-- Vale for style and custom prose rules
-- LanguageTool for grammar and style suggestions
-- spaCy plus TextDescriptives for syntactic and readability analysis
-
-Implementation status:
-
-- built-in heuristic analyzer is active
-- Vale integration is available via CLI invocation when configured
-- LanguageTool integration is available via local HTTP server when configured
-- spaCy/TextDescriptives integration is available via local HTTP server when configured
-- repo-local Vale rules encode project-specific style guidance for mythic tragic fantasy
-
-### Phase 4
-
-Expand reporting, tree management, and deployment hardening while keeping the API stable for the first browser UI layer.
-
-Current browser-facing additions in this phase direction:
-
-- assignment archive browsing that treats older assignments as historical records rather than active workflow stages
-- queue-state loaders for review and revision generation that preserve the existing background polling and redirect flow
-- explanatory About-page copy that describes deterministic analysis, skill targeting, and model use in non-technical language
-
-## Initial Technical Decisions
-
-- Use the Go standard library for the CLI and HTTP API instead of heavier frameworks.
-- Use `modernc.org/sqlite` for a pure-Go SQLite driver.
-- Keep placeholder prompt/review logic deterministic until the OpenAI layer is added.
-- Store raw and normalized review artifacts separately once model integration begins.
-- Keep deployment simple: one API process, SQLite on disk, Docker packaging, nginx reverse proxy in front.
-
-## Phase 1 Deliverable
-
-At the end of the first implementation slice, the repo should be able to:
-
-1. create local state with `init`
-2. generate and store an exercise with `prompt next`
-3. store a draft with `submit`
-4. review the draft with `review`
-5. show progress and recent work with `history`
+- analyzer-first review rather than model-only review
+- skill-scoped coaching rather than generic feedback
+- contributor-extensible paths for new trees, locales, and future coaching languages

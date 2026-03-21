@@ -18,6 +18,7 @@ The app currently ships one coaching language:
 That means:
 
 - onboarding stores a `writing_language`
+- the onboarding UI exposes that choice even though English is the only shipped option today
 - LLM requests receive that language explicitly
 - deterministic analyzers run only when that language is supported
 - unsupported languages fail closed with warnings instead of silently applying English rules
@@ -50,6 +51,7 @@ Current behavior:
 - `Vale` only runs when a supported language pack exists
 - the spaCy/TextDescriptives sidecar only runs when the current writing language is supported
 - heuristic analysis also fails closed for unsupported languages
+- deterministic fallback review language also admits unsupported-language limits instead of pretending full coverage
 
 ### LLM requests
 
@@ -80,6 +82,8 @@ Add:
 Add the option in:
 
 - [onboarding.go](/home/tomasino/writing-coach/internal/domain/onboarding.go)
+
+If you want the language to be selectable in the browser UI, also confirm the onboarding form copy still explains the support level clearly.
 
 ### 3. Decide deterministic support analyzer by analyzer
 
@@ -131,6 +135,7 @@ LLM prompts already receive `writing_language`, but contributors should test:
 - revision brief generation in the target language
 - review generation in the target language
 - annotation quote handling
+- behavior when no model is configured, so deterministic fallback messaging stays honest
 
 ## Contributor Rules
 

@@ -1,49 +1,46 @@
 # Release Process
 
-This project uses a branch-and-PR workflow with squash merges and Calendar Versioning.
+This project uses Calendar Versioning and keeps release notes in `CHANGELOG.md`.
 
-## Branching
+## Current Convention
 
-- Create new work on a feature branch off `main`.
-- Use one branch per feature, fix, or focused documentation change.
-- Keep branch names descriptive, for example:
-  - `feature/assignment-archive`
-  - `fix/review-history-actions`
-  - `docs/release-process`
+- `main` is the release line
+- release tags use CalVer
+- unreleased notes live under `## Unreleased` in `CHANGELOG.md`
 
-## Pull Requests
+Current tag examples:
 
-- Open a pull request into `main`.
-- Keep the PR scope coherent and reviewable.
-- Update user-facing docs when behavior, setup, deployment, or workflow changes.
-- Update `CHANGELOG.md` for changes that should appear in release history.
-  - Add entries under `## Unreleased`.
-  - Do not backfill older release history unless explicitly needed.
-
-## Merge Strategy
-
-- Merge approved PRs with **squash merge**.
-- The squash commit should clearly describe the shipped change.
-- `main` should remain the release-ready branch.
+- `2026.03.21`
+- `2026.03.20`
 
 ## Versioning
 
-This project uses Calendar Versioning:
+CalVer format:
 
-- format: `YYYY.MM.DD`
-- example: `2026.03.20`
+- `YYYY.MM.DD`
+
+Example:
+
+- `2026.03.21`
 
 Tags are release markers, not branch names.
 
+## Changelog Rules
+
+- update `CHANGELOG.md` for user-facing or release-facing changes
+- add new work under `## Unreleased`
+- keep entries concise and grouped by outcome
+- do not backfill old release sections unless there is a specific reason
+
 ## Release Steps
 
-When preparing a release from `main`:
+When preparing a release:
 
-1. Make sure intended changes are already merged through PRs.
-2. Review `CHANGELOG.md` and finalize the `## Unreleased` section.
-3. Create a new dated release section in `CHANGELOG.md`.
+1. Make sure `main` contains the intended shipped state.
+2. Finalize the `## Unreleased` section in `CHANGELOG.md`.
+3. Move those notes into a dated release section.
 4. Commit the changelog update if needed.
-5. Create an annotated tag using the CalVer date.
+5. Create an annotated tag for the release date.
 6. Push `main`.
 7. Push the new tag.
 
@@ -52,22 +49,11 @@ Example:
 ```bash
 git checkout main
 git pull --ff-only
-git tag -a 2026.03.20 -m "2026.03.20"
+git tag -a 2026.03.21 -m "2026.03.21"
 git push
-git push origin 2026.03.20
+git push origin 2026.03.21
 ```
 
-## Changelog Rules
+## Working Practice
 
-- `CHANGELOG.md` tracks release-facing changes moving forward.
-- Keep entries concise and user-meaningful.
-- Group related work together instead of listing every internal patch.
-- Leave unreleased work under `## Unreleased` until the next tag is cut.
-
-## Practical Defaults
-
-- Build features in feature branches.
-- Review through PRs.
-- Squash merge to `main`.
-- Tag releases from `main`.
-- Record release-facing changes in `CHANGELOG.md`.
+Feature branches and PRs are preferred when they help keep work reviewable, but the release process itself depends on the state of `main`, the changelog, and the CalVer tag.

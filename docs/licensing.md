@@ -24,13 +24,23 @@ These areas are primarily application-specific implementation and are intended t
 - [docs/](/home/tomasino/writing-coach/docs)
 - [styles/](/home/tomasino/writing-coach/styles)
 
-## Read This Conservatively
+That includes the Go backend, migrations, analyzer integration, deterministic style rules, and the project documentation in this repository.
 
-Some files in the web app contain both:
+## Mixed Areas
+
+Some files in the web app combine:
 
 - application-specific logic
-- Tailwind Plus-derived structure or styling
+- Tailwind Plus-derived layout or styling structure
 
-So for reuse outside this project, treat the web UI conservatively and consult the Tailwind Plus license first.
+Treat those files conservatively. If reuse outside this project matters, review both the root license materials and the Tailwind Plus terms before assuming they can be redistributed independently.
 
-For a top-level summary, see [NOTICE.md](/home/tomasino/writing-coach/NOTICE.md).
+## Read This Conservatively
+
+This file is only a practical map, not legal advice.
+
+For top-level license and notice text, see:
+
+- [LICENSE](/home/tomasino/writing-coach/LICENSE)
+- [NOTICE.md](/home/tomasino/writing-coach/NOTICE.md)
+- [web/LICENSE.md](/home/tomasino/writing-coach/web/LICENSE.md)

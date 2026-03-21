@@ -1,72 +1,119 @@
-# Sample Tree Library
+# Tree Library
 
-The application now ships with a deeper reference catalog of writing curricula. These are meant to do two jobs:
+This project ships with a built-in catalog of writing-skill trees. These trees do two jobs:
 
-1. act as immediately usable built-in tracks
-2. serve as source material for future in-app tree generation and authoring
+1. provide immediately usable practice paths
+2. provide source material and templates for generated personalized trees
 
-The runtime model is now shifting toward a single global skill graph. These reference trees remain important, but they now function primarily as authored regions inside that larger graph.
+Users can also create generated practice paths from onboarding answers. Those generated trees are persisted like any other tree and enrolled like any other path.
 
-## Current reference trees
+## Built-in Trees
+
+Current catalog:
 
 - `mythic-tragedy-apprenticeship`
-  - advanced mythopoeic tragic fiction
-  - 55 TGOs
+  - advanced mythic tragic fiction
   - emphasis: tragic inevitability, symbolic control, mythic tone, scene architecture
 
 - `story-craft-track`
-  - general fiction/storytelling progression
-  - 52 TGOs
+  - general fiction and story craft
   - emphasis: scene construction, character pressure, worldbuilding economy, revision flow
 
+- `fantasy-fiction-track`
+  - fantasy fiction
+  - emphasis: scene control, image freshness, world pressure, character stakes
+
+- `science-fiction-track`
+  - science fiction
+  - emphasis: speculative clarity, consequence, world pressure, narrative control
+
+- `romance-fiction-track`
+  - romance fiction
+  - emphasis: emotional tension, scene escalation, relational clarity, payoff control
+
+- `literary-fiction-track`
+  - literary fiction
+  - emphasis: scene precision, image control, emotional compression, voice
+
+- `mystery-thriller-track`
+  - mystery and thriller writing
+  - emphasis: suspense control, clue handling, scene pressure, pacing
+
 - `youth-writing-foundations`
-  - younger writers and early foundations
-  - 52 TGOs
-  - emphasis: word choice, sentence clarity, paragraph control, story sequencing, revision habits
+  - early writing foundations
+  - emphasis: word choice, sentence clarity, paragraph control, sequencing, revision habits
 
 - `thought-leadership-track`
   - essays, analysis, and public-facing idea writing
-  - 52 TGOs
   - emphasis: claim clarity, insight density, evidence integration, authority and voice
 
 - `professional-writing-track`
   - workplace writing, memos, updates, proposals, and internal communication
-  - 52 TGOs
   - emphasis: objective clarity, structural signposting, tone calibration, actionability, scannability
 
+- `marketing-writing-track`
+  - marketing copy and campaign writing
+  - emphasis: value clarity, audience alignment, message force, conversion readiness
+
+- `content-marketing-track`
+  - editorial and content marketing
+  - emphasis: reader value, structure, authority, retention, useful specificity
+
+- `journalism-reporting-track`
+  - journalism and reporting
+  - emphasis: factual clarity, source handling, structure, attribution, narrative control
+
+- `educational-writing-track`
+  - educational and explanatory writing
+  - emphasis: concept sequencing, clarity, scaffolding, example quality, instructional flow
+
+- `grant-writing-track`
+  - grant and proposal writing
+  - emphasis: need framing, evidence, feasibility, structure, persuasion
+
 - `academic-essay-track`
-  - analytical essays, research papers, and close reading
-  - 52 TGOs
+  - analytical essays and research writing
   - emphasis: thesis clarity, evidence handling, analysis depth, source integration, revision
 
 - `technical-writing-track`
   - documentation, references, tutorials, and support content
-  - 52 TGOs
   - emphasis: user goal alignment, step clarity, scannability, accuracy, example quality
 
 - `persuasive-writing-track`
-  - argument, advocacy, opinion, and rhetorical persuasion
-  - 52 TGOs
+  - argument, advocacy, and opinion writing
   - emphasis: claim clarity, audience alignment, reasoning quality, objection handling, rhetorical force
 
 - `memoir-personal-narrative-track`
   - memoir, personal essays, and reflective narrative
-  - 52 TGOs
   - emphasis: scene grounding, voice presence, reflection depth, emotional compression, memory handling
 
-## Design constraints
+## Shared Constraints
 
-- Each tree keeps exactly 3 seed TGOs.
-- Each tree now has 50+ TGOs.
-- TGO codes are globally unique across the built-in catalog.
-- Prerequisites stay inside the tree they belong to.
-- The current catalog is deliberately broad enough to support future generated hybrids and branch selection.
+Across the built-in catalog:
 
-## Intended next use
+- each tree starts from exactly 3 recommended starter TGOs
+- TGO codes are globally unique
+- prerequisites stay explicit and tree-aware
+- trees are broad enough to support generated hybrids and onboarding-based selection
+- tree definitions are persisted and versioned for auditability
 
-These trees are the baseline library for:
+## How Trees Are Used
 
-- onboarding-driven starter recommendations into the global graph
-- future generated personalized graph routes
-- eventual in-app tree authoring
-- admin-side curriculum editing and branching
+Built-in trees currently power:
+
+- direct enrollment in known practice paths
+- onboarding-driven recommendations
+- generated personalized practice paths
+- reporting and progress views
+- archive and assignment history grouped by enrolled path
+
+## Current Direction
+
+The tree system is meant to stay reusable and extensible.
+
+That means new trees should:
+
+- map cleanly to a writing domain or training goal
+- preserve the 3-active-skill coaching model
+- expose a coherent progression rather than a loose tag collection
+- be safe to analyze deterministically and review against over time
