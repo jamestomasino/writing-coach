@@ -20,6 +20,10 @@ func (n NLP) Name() string {
 }
 
 func (n NLP) Analyze(ctx context.Context, text string) (Report, error) {
+	return n.AnalyzeWithContext(ctx, text, ContextOptions{})
+}
+
+func (n NLP) AnalyzeWithContext(ctx context.Context, text string, options ContextOptions) (Report, error) {
 	if n.BaseURL == "" {
 		return Report{Warnings: []string{"nlp analyzer not configured"}}, nil
 	}
@@ -30,8 +34,20 @@ func (n NLP) Analyze(ctx context.Context, text string) (Report, error) {
 	}
 
 	body, err := json.Marshal(struct {
-		Text string `json:"text"`
-	}{Text: text})
+		Text             string `json:"text"`
+		TreeSlug         string `json:"tree_slug,omitempty"`
+		WritingType      string `json:"writing_type,omitempty"`
+		AssignmentFormat string `json:"assignment_format,omitempty"`
+		TemplateKey      string `json:"template_key,omitempty"`
+		Domain           string `json:"domain,omitempty"`
+	}{
+		Text:             text,
+		TreeSlug:         strings.TrimSpace(options.TreeSlug),
+		WritingType:      strings.TrimSpace(options.WritingType),
+		AssignmentFormat: strings.TrimSpace(options.AssignmentFormat),
+		TemplateKey:      strings.TrimSpace(options.TemplateKey),
+		Domain:           DomainForContext(options),
+	})
 	if err != nil {
 		return Report{}, err
 	}

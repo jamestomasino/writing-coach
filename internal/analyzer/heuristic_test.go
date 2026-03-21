@@ -19,3 +19,21 @@ func TestHeuristicAnalyzerFindsSignals(t *testing.T) {
 		t.Fatal("expected findings")
 	}
 }
+
+func TestHeuristicAnalyzerUsesContextualMessages(t *testing.T) {
+	text := strings.Repeat("Install it carefully and quickly. ", 50)
+	report, err := (Heuristic{}).AnalyzeWithContext(context.Background(), text, ContextOptions{
+		WritingType:      "technical writing",
+		AssignmentFormat: "how-to guide",
+	})
+	if err != nil {
+		t.Fatalf("analyze: %v", err)
+	}
+	joined := make([]string, 0, len(report.Findings))
+	for _, finding := range report.Findings {
+		joined = append(joined, finding.Message)
+	}
+	if !strings.Contains(strings.Join(joined, " "), "instructions") {
+		t.Fatalf("expected technical-writing message, got %#v", report.Findings)
+	}
+}

@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,5 +46,34 @@ func TestNLPAnalyzerWithoutURLWarnsInsteadOfFailing(t *testing.T) {
 	}
 	if len(report.Warnings) != 1 {
 		t.Fatalf("warnings = %#v", report.Warnings)
+	}
+}
+
+func TestNLPAnalyzerSendsContext(t *testing.T) {
+	var payload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"metrics":{},"findings":[]}`))
+	}))
+	defer server.Close()
+
+	_, err := (NLP{BaseURL: server.URL}).AnalyzeWithContext(context.Background(), "text", ContextOptions{
+		WritingType:      "technical writing",
+		AssignmentFormat: "how-to guide",
+		TemplateKey:      "technical-writing",
+		TreeSlug:         "technical-writing-track",
+	})
+	if err != nil {
+		t.Fatalf("analyze: %v", err)
+	}
+	if payload["domain"] != DomainTechnical {
+		t.Fatalf("expected technical domain, got %#v", payload["domain"])
+	}
+	if payload["writing_type"] != "technical writing" {
+		t.Fatalf("expected writing type, got %#v", payload["writing_type"])
 	}
 }

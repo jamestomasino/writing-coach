@@ -80,41 +80,33 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 			return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 		}
 
-		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs)
+		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs, options.AnalyzerContext)
 		reviewResult.ReviewKind = "deterministic-fallback"
 		reviewResult.ProviderNote = strings.TrimSpace(s.clientKind + ": " + err.Error())
 		return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 	}
 
-	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs)
+	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs, options.AnalyzerContext)
 	reviewResult.ReviewKind = "deterministic"
 	return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 }
 
-func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO, completedTGOs []domain.TGO) (domain.Review, []domain.SkillScore) {
+func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options analyzer.ContextOptions) (domain.Review, []domain.SkillScore) {
 	wordCount := sub.WordCount
 	sentences := report.Metrics["sentence_count"]
 	avgSentenceLength := 0
 	if sentences > 0 {
 		avgSentenceLength = report.Metrics["avg_sentence_length"]
 	}
+	domainName := analyzer.DomainForContext(options)
 
-	summary := "The draft shows a workable frame, but the next exercise should push harder on control, clarity, and follow-through."
-	strengths := []string{
-		"The submission sustains a clear attempt at a focused mode.",
-		"The scene length is appropriate for a focused exercise.",
-	}
-	weaknesses := []string{
-		"Key turns can be made more concrete and easier to follow.",
-		"Sentence rhythm likely needs stronger variation to avoid flattening the scene.",
-	}
-	nextFocus := "emotional compression"
+	summary, strengths, weaknesses, nextFocus := deterministicReviewLanguage(domainName)
 
 	if avgSentenceLength > 24 {
-		nextFocus = "narrative clarity"
+		nextFocus = clarityFocus(domainName)
 	}
-	if wordCount < 500 {
-		nextFocus = "scene architecture"
+	if wordCount < recommendedMinimumWords(domainName) {
+		nextFocus = developmentFocus(domainName)
 	}
 	weaknesses = append(weaknesses, analyzer.TopFindings(report, 3)...)
 
@@ -128,7 +120,7 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 		AnalyzerFindings:   analyzer.TopFindings(report, 6),
 		TGOAssessments:     deterministicAssessments(activeTGOs, report),
 		CompletedTGOChecks: deterministicCompletedChecks(completedTGOs, report),
-		Annotations:        deterministicAnnotations(sub.Content, activeTGOs, completedTGOs, report),
+		Annotations:        deterministicAnnotations(sub.Content, activeTGOs, completedTGOs, report, domainName),
 		NextFocus:          nextFocus,
 		MetricWordCount:    wordCount,
 	}, scores
@@ -259,13 +251,13 @@ func deterministicCompletedChecks(completedTGOs []domain.TGO, report analyzer.Re
 	return out
 }
 
-func deterministicAnnotations(content string, activeTGOs []domain.TGO, completedTGOs []domain.TGO, report analyzer.Report) []domain.ReviewAnnotation {
+func deterministicAnnotations(content string, activeTGOs []domain.TGO, completedTGOs []domain.TGO, report analyzer.Report, domainName string) []domain.ReviewAnnotation {
 	sentences := splitSentences(content)
 	if len(sentences) == 0 {
 		return nil
 	}
 	activeTGOs = ensureReviewTGOs(activeTGOs)
-	finding := "Tighten the sentence so the dramatic movement is easier to follow."
+	finding := defaultAnnotationComment(domainName)
 	if findings := analyzer.TopFindings(report, 1); len(findings) > 0 {
 		finding = findings[0]
 	}
@@ -288,11 +280,165 @@ func deterministicAnnotations(content string, activeTGOs []domain.TGO, completed
 			Quote:    shortQuote(sentences[len(annotations)]),
 			TGOCode:  completedTGOs[0].Code,
 			Category: "revision",
-			Comment:  "This line is part of the lighter completed-skill maintenance pass. Keep the previously established control visible here.",
+			Comment:  maintenanceComment(domainName),
 			Severity: "low",
 		})
 	}
 	return annotations
+}
+
+func deterministicReviewLanguage(domainName string) (string, []string, []string, string) {
+	switch domainName {
+	case analyzer.DomainTechnical:
+		return "The draft has a workable instructional frame, but the next pass should strengthen scanability, explicit sequencing, and user follow-through.",
+			[]string{
+				"The submission is clearly trying to teach one focused task.",
+				"The draft has enough structure to support a more explicit next revision.",
+			},
+			[]string{
+				"Some steps or outcomes can be made more explicit so the reader does not have to infer the process.",
+				"Sentence control and chunking likely need work so the guidance is easier to scan under pressure.",
+			},
+			"step clarity"
+	case analyzer.DomainAcademic:
+		return "The draft has a workable argumentative frame, but the next pass should strengthen claim control, evidence flow, and reasoning clarity.",
+			[]string{
+				"The submission is making a focused attempt at a clear argument.",
+				"The draft has enough material to support a more disciplined revision pass.",
+			},
+			[]string{
+				"Some claims and transitions can be made more explicit so the reasoning is easier to track.",
+				"Sentence control likely needs tightening so the argument carries more cleanly.",
+			},
+			"claim development"
+	case analyzer.DomainProfessional:
+		return "The draft has a workable professional frame, but the next pass should sharpen ownership, clarity, and next-step control.",
+			[]string{
+				"The submission is aiming at a clear practical purpose.",
+				"The core message is established well enough to support a more focused revision pass.",
+			},
+			[]string{
+				"The ask, responsibility, or rationale can be made easier to grasp on first read.",
+				"The message likely needs firmer sentence control so key actions stand out.",
+			},
+			"request clarity"
+	case analyzer.DomainMarketing:
+		return "The draft has a workable persuasive frame, but the next pass should sharpen the value proposition, specificity, and conversion path.",
+			[]string{
+				"The submission is making a focused attempt at a clear persuasive message.",
+				"The piece has enough shape to support a more targeted revision pass.",
+			},
+			[]string{
+				"The value proposition can be made more concrete and faster to understand.",
+				"Sentence rhythm and emphasis likely need tightening so the copy lands more decisively.",
+			},
+			"value clarity"
+	case analyzer.DomainThoughtLeadership:
+		return "The draft has a workable idea-driven frame, but the next pass should strengthen claim progression, structure, and payoff.",
+			[]string{
+				"The submission is trying to advance a focused central idea.",
+				"The draft has enough material to support a more deliberate revision pass.",
+			},
+			[]string{
+				"The key claims and turns can be made more concrete and easier to follow.",
+				"The piece likely needs stronger rhythm and connective structure to carry the idea progression.",
+			},
+			"argument flow"
+	default:
+		return "The draft shows a workable frame, but the next exercise should push harder on control, clarity, and follow-through.",
+			[]string{
+				"The submission sustains a clear attempt at a focused mode.",
+				"The draft length is appropriate for a focused exercise.",
+			},
+			[]string{
+				"Key turns can be made more concrete and easier to follow.",
+				"Sentence rhythm likely needs stronger variation to avoid flattening the draft.",
+			},
+			"emotional compression"
+	}
+}
+
+func clarityFocus(domainName string) string {
+	switch domainName {
+	case analyzer.DomainTechnical:
+		return "instruction clarity"
+	case analyzer.DomainAcademic:
+		return "argument clarity"
+	case analyzer.DomainProfessional:
+		return "message clarity"
+	case analyzer.DomainMarketing:
+		return "message clarity"
+	case analyzer.DomainThoughtLeadership:
+		return "idea clarity"
+	default:
+		return "narrative clarity"
+	}
+}
+
+func developmentFocus(domainName string) string {
+	switch domainName {
+	case analyzer.DomainTechnical:
+		return "coverage depth"
+	case analyzer.DomainAcademic:
+		return "claim development"
+	case analyzer.DomainProfessional:
+		return "completeness"
+	case analyzer.DomainMarketing:
+		return "offer support"
+	case analyzer.DomainThoughtLeadership:
+		return "idea development"
+	default:
+		return "scene architecture"
+	}
+}
+
+func recommendedMinimumWords(domainName string) int {
+	switch domainName {
+	case analyzer.DomainMarketing:
+		return 160
+	case analyzer.DomainProfessional:
+		return 220
+	case analyzer.DomainTechnical:
+		return 260
+	case analyzer.DomainAcademic, analyzer.DomainThoughtLeadership:
+		return 320
+	default:
+		return 500
+	}
+}
+
+func defaultAnnotationComment(domainName string) string {
+	switch domainName {
+	case analyzer.DomainTechnical:
+		return "Tighten the sentence so the instruction and expected outcome are easier to follow."
+	case analyzer.DomainAcademic:
+		return "Tighten the sentence so the claim and reasoning are easier to follow."
+	case analyzer.DomainProfessional:
+		return "Tighten the sentence so the request, ownership, or next step is easier to follow."
+	case analyzer.DomainMarketing:
+		return "Tighten the sentence so the value and next action are easier to follow."
+	case analyzer.DomainThoughtLeadership:
+		return "Tighten the sentence so the central idea moves forward more clearly."
+	default:
+		return "Tighten the sentence so the movement is easier to follow."
+	}
+}
+
+func maintenanceComment(domainName string) string {
+	switch domainName {
+	case analyzer.DomainTechnical:
+		return "This line is part of the lighter maintenance pass. Keep the previously established clarity and step control visible here."
+	case analyzer.DomainAcademic:
+		return "This line is part of the lighter maintenance pass. Keep the previously established argument control visible here."
+	case analyzer.DomainProfessional:
+		return "This line is part of the lighter maintenance pass. Keep the previously established clarity and action control visible here."
+	case analyzer.DomainMarketing:
+		return "This line is part of the lighter maintenance pass. Keep the previously established message clarity visible here."
+	case analyzer.DomainThoughtLeadership:
+		return "This line is part of the lighter maintenance pass. Keep the previously established idea control visible here."
+	default:
+		return "This line is part of the lighter completed-skill maintenance pass. Keep the previously established control visible here."
+	}
 }
 
 func splitSentences(content string) []string {

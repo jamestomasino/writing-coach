@@ -140,51 +140,22 @@ func (v Vale) dynamicConfig(options ContextOptions) (string, bool) {
 }
 
 func valeStylesForContext(options ContextOptions) []string {
-	templateKey := strings.ToLower(strings.TrimSpace(options.TemplateKey))
-	writingType := strings.ToLower(strings.TrimSpace(options.WritingType))
-	assignmentFormat := strings.ToLower(strings.TrimSpace(options.AssignmentFormat))
-	treeSlug := strings.ToLower(strings.TrimSpace(options.TreeSlug))
-
-	addFiction := func(styles []string) []string {
-		return append(styles, "WritingCoachFiction")
-	}
-
 	var styles []string
-	switch {
-	case containsAny([]string{templateKey, treeSlug}, "fantasy-fiction", "mythic-tragedy"):
-		styles = addFiction(styles)
-		styles = append(styles, "WritingCoachFantasy")
-	case containsAny([]string{templateKey, treeSlug}, "science-fiction", "romance-fiction", "literary-fiction", "mystery-thriller", "story-craft", "memoir-personal-narrative", "youth-foundations"):
-		styles = addFiction(styles)
-	case containsAny([]string{templateKey, treeSlug}, "technical-writing", "educational-writing"):
+	switch DomainForContext(options) {
+	case DomainFantasy:
+		styles = append(styles, "WritingCoachFiction", "WritingCoachFantasy")
+	case DomainFiction:
+		styles = append(styles, "WritingCoachFiction")
+	case DomainTechnical:
 		styles = append(styles, "WritingCoachTechnical")
-	case containsAny([]string{templateKey, treeSlug}, "academic-essay"):
+	case DomainAcademic:
 		styles = append(styles, "WritingCoachAcademic")
-	case containsAny([]string{templateKey, treeSlug}, "professional-writing", "grant-writing"):
+	case DomainProfessional:
 		styles = append(styles, "WritingCoachProfessional")
-	case containsAny([]string{templateKey, treeSlug}, "thought-leadership", "journalism-reporting", "persuasive-writing"):
+	case DomainThoughtLeadership:
 		styles = append(styles, "WritingCoachThoughtLeadership")
-	case containsAny([]string{templateKey, treeSlug}, "marketing-writing", "content-marketing"):
+	case DomainMarketing:
 		styles = append(styles, "WritingCoachMarketing")
-	default:
-		combined := strings.Join([]string{writingType, assignmentFormat, treeSlug}, " ")
-		switch {
-		case strings.Contains(combined, "fantasy"):
-			styles = addFiction(styles)
-			styles = append(styles, "WritingCoachFantasy")
-		case strings.Contains(combined, "fiction") || strings.Contains(combined, "scene") || strings.Contains(combined, "short story") || strings.Contains(combined, "memoir"):
-			styles = addFiction(styles)
-		case strings.Contains(combined, "technical") || strings.Contains(combined, "documentation") || strings.Contains(combined, "how-to") || strings.Contains(combined, "guide") || strings.Contains(combined, "educational"):
-			styles = append(styles, "WritingCoachTechnical")
-		case strings.Contains(combined, "academic") || strings.Contains(combined, "essay") || strings.Contains(combined, "research"):
-			styles = append(styles, "WritingCoachAcademic")
-		case strings.Contains(combined, "marketing") || strings.Contains(combined, "landing page") || strings.Contains(combined, "product announcement"):
-			styles = append(styles, "WritingCoachMarketing")
-		case strings.Contains(combined, "thought leadership") || strings.Contains(combined, "journalism") || strings.Contains(combined, "reporting") || strings.Contains(combined, "persuasive"):
-			styles = append(styles, "WritingCoachThoughtLeadership")
-		case strings.Contains(combined, "professional") || strings.Contains(combined, "memo") || strings.Contains(combined, "email") || strings.Contains(combined, "grant"):
-			styles = append(styles, "WritingCoachProfessional")
-		}
 	}
 	return styles
 }
