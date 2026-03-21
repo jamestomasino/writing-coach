@@ -327,11 +327,7 @@ func generatedTreeSlug(userSlug string) string {
 }
 
 func generatedTreeTitle(userName string, profile OnboardingProfile, fallback string) string {
-	name := strings.TrimSpace(userName)
-	if name == "" {
-		name = "Writer"
-	}
-	return fmt.Sprintf("%s's %s", name, generatedTrackLabel(profile, fallback))
+	return generatedTrackLabel(profile, fallback)
 }
 
 func generatedTreeDescription(profile OnboardingProfile, fallback string) string {

@@ -71,7 +71,7 @@ func TestGeneratedTreeDisplayUsesProfileLanguageInsteadOfTemplateBranding(t *tes
 	if strings.Contains(title, "Mythic Fiction Track") {
 		t.Fatalf("expected title to use profile language, got %q", title)
 	}
-	if title != "James Tomasino's Fiction Track" {
+	if title != "Fiction Track" {
 		t.Fatalf("unexpected title %q", title)
 	}
 	if strings.Contains(description, "Advanced mythopoeic tragic fiction track.") {

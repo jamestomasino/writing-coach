@@ -3187,7 +3187,7 @@ func TestTreeGetUsesProfileDisplayForGeneratedTrack(t *testing.T) {
 	if err := json.NewDecoder(treeResp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode tree payload: %v", err)
 	}
-	if payload.Tree.Title != "Tester's Fiction Track" {
+	if payload.Tree.Title != "Fiction Track" {
 		t.Fatalf("tree title = %q", payload.Tree.Title)
 	}
 	if strings.Contains(payload.Tree.Description, "Advanced mythopoeic tragic fiction track.") {
