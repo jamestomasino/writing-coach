@@ -1346,6 +1346,130 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 	}
 }
 
+func TestAssignmentsListCountsInitialDraftsSeparatelyFromRevisions(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+
+	rootExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Revision Chain",
+		Brief:           "Write something.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save root exercise: %v", err)
+	}
+	firstSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: rootExerciseID,
+		Content:    "First draft.",
+		WordCount:  2,
+	})
+	if err != nil {
+		t.Fatalf("save first submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     firstSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "First review.",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"tighten"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "prose precision",
+		MetricWordCount:  2,
+	}, nil); err != nil {
+		t.Fatalf("save first review: %v", err)
+	}
+
+	revisionExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		Title:              "Revision Prompt",
+		Brief:              "Revise it.",
+		Constraints:        []string{"one"},
+		FocusSkills:        []string{"prose precision"},
+		TGOCodes:           []string{"prose-precision"},
+		SuccessCriteria:    []string{"clearer result"},
+		GenerationKind:     "deterministic",
+		SourceSubmissionID: firstSubmissionID,
+	})
+	if err != nil {
+		t.Fatalf("save revision exercise: %v", err)
+	}
+	secondSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		ExerciseID:         revisionExerciseID,
+		ParentSubmissionID: firstSubmissionID,
+		DraftNumber:        2,
+		Content:            "Second draft.",
+		WordCount:          2,
+	})
+	if err != nil {
+		t.Fatalf("save second submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     secondSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "Second review.",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"tighten"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "prose precision",
+		MetricWordCount:  2,
+	}, nil); err != nil {
+		t.Fatalf("save second review: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get assignments list: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("assignments list status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Assignments []struct {
+			Title         string `json:"title"`
+			DraftCount    int    `json:"draft_count"`
+			ReviewCount   int    `json:"review_count"`
+			RevisionCount int    `json:"revision_count"`
+		} `json:"assignments"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode assignments list: %v", err)
+	}
+	if len(payload.Assignments) != 1 {
+		t.Fatalf("assignment count = %d", len(payload.Assignments))
+	}
+	if payload.Assignments[0].DraftCount != 1 || payload.Assignments[0].RevisionCount != 1 || payload.Assignments[0].ReviewCount != 2 {
+		t.Fatalf("assignment counts = %#v", payload.Assignments[0])
+	}
+}
+
 func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
