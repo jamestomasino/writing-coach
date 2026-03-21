@@ -1,6 +1,7 @@
 'use client'
 
 import { Avatar } from '@/components/avatar'
+import { LocaleSwitcherMenuItems } from '@/components/locale-switcher'
 import {
   Dropdown,
   DropdownButton,
@@ -103,6 +104,7 @@ function AccountDropdownMenu({
               <DropdownLabel>{t('admin')}</DropdownLabel>
             </DropdownItem>
           ) : null}
+          <LocaleSwitcherMenuItems />
           <DropdownDivider />
           <DropdownItem href="/logout">
             <ArrowRightStartOnRectangleIcon />
@@ -329,10 +331,10 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
             <SidebarSpacer />
 
             <SidebarSection>
-              <SidebarItem href="/about" current={pathname.startsWith('/about')}>
-                <InformationCircleIcon />
-                <SidebarLabel>About</SidebarLabel>
-              </SidebarItem>
+            <SidebarItem href="/about" current={pathname.startsWith('/about')}>
+              <InformationCircleIcon />
+              <SidebarLabel>{t('about')}</SidebarLabel>
+            </SidebarItem>
               {authenticated === false ? (
                 <>
                   <SidebarItem href="/login">

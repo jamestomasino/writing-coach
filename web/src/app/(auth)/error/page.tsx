@@ -1,18 +1,29 @@
 import { EmptyState } from '@/components/status-state'
-import { localeMessages } from '@/i18n/config'
+import { cookies, headers } from 'next/headers'
+import { getLocaleMessages, localeCookieName, resolveLocale } from '@/i18n/config'
 import { Text } from '@/components/text'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: localeMessages.en.authErrorPage.metadataTitle,
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies()
+  const headerStore = await headers()
+  const locale = resolveLocale(cookieStore.get(localeCookieName)?.value, headerStore.get('accept-language'))
+  const messages = await getLocaleMessages(locale)
+  return {
+    title: messages.authErrorPage.metadataTitle,
+  }
 }
 
-export default function ErrorPage({
+export default async function ErrorPage({
   searchParams,
 }: {
   searchParams: { id?: string }
 }) {
-  const t = localeMessages.en.authErrorPage
+  const cookieStore = await cookies()
+  const headerStore = await headers()
+  const locale = resolveLocale(cookieStore.get(localeCookieName)?.value, headerStore.get('accept-language'))
+  const messages = await getLocaleMessages(locale)
+  const t = messages.authErrorPage
   return (
     <div className="grid w-full max-w-lg grid-cols-1 gap-8">
       <EmptyState

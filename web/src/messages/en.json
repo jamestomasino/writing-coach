@@ -216,7 +216,10 @@
     "assignmentsHeading": "Assignments",
     "currentAssignment": "Current assignment",
     "newAssignment": "New assignment",
-    "pastAssignments": "Past assignments"
+    "pastAssignments": "Past assignments",
+    "about": "About",
+    "language": "Language",
+    "currentLanguage": "current"
   },
   "reviewView": {
     "loading": "Loading review…",
