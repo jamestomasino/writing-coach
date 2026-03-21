@@ -48,6 +48,7 @@ import {
   UserGroupIcon,
 } from '@heroicons/react/20/solid'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -62,29 +63,31 @@ function initialsForName(value: string) {
     .join('')
 }
 
-function trackStatusLine(track: UserTrack | null) {
+function trackStatusLine(track: UserTrack | null, t: ReturnType<typeof useTranslations>) {
   if (!track) {
-    return 'No active practice path selected'
+    return t('noActivePracticePath')
   }
   if (track.assignment_count === 0) {
-    return 'No assignments yet'
+    return t('noAssignmentsYet')
   }
   const latestAssignmentTime = formatLocalDateTime(track.latest_assignment_time)
-  const activity = latestAssignmentTime ? `Latest ${latestAssignmentTime}` : ''
+  const activity = latestAssignmentTime ? t('latest', { time: latestAssignmentTime }) : ''
   if (track.current_assignment) {
     return activity ? `${track.current_assignment} · ${activity}` : track.current_assignment
   }
-  return activity || `${track.assignment_count} assignments`
+  return activity || t('assignmentsCount', { count: track.assignment_count })
 }
 
 function AccountDropdownMenu({
   anchor,
   isAdmin,
   authenticated,
+  t,
 }: {
   anchor: 'top start' | 'bottom end'
   isAdmin: boolean
   authenticated: boolean | null
+  t: ReturnType<typeof useTranslations>
 }) {
   return (
     <DropdownMenu className="min-w-64" anchor={anchor}>
@@ -92,29 +95,29 @@ function AccountDropdownMenu({
         <>
           <DropdownItem href="/settings">
             <Cog6ToothIcon />
-            <DropdownLabel>Account settings</DropdownLabel>
+            <DropdownLabel>{t('accountSettings')}</DropdownLabel>
           </DropdownItem>
           {isAdmin ? (
             <DropdownItem href="/admin">
               <UserGroupIcon />
-              <DropdownLabel>Admin</DropdownLabel>
+              <DropdownLabel>{t('admin')}</DropdownLabel>
             </DropdownItem>
           ) : null}
           <DropdownDivider />
           <DropdownItem href="/logout">
             <ArrowRightStartOnRectangleIcon />
-            <DropdownLabel>Sign out</DropdownLabel>
+            <DropdownLabel>{t('signOut')}</DropdownLabel>
           </DropdownItem>
         </>
       ) : (
         <>
           <DropdownItem href="/login">
             <ArrowLeftEndOnRectangleIcon />
-            <DropdownLabel>Sign in</DropdownLabel>
+            <DropdownLabel>{t('signIn')}</DropdownLabel>
           </DropdownItem>
           <DropdownItem href="/register">
             <UserPlusIcon />
-            <DropdownLabel>Register</DropdownLabel>
+            <DropdownLabel>{t('register')}</DropdownLabel>
           </DropdownItem>
         </>
       )}
@@ -123,6 +126,7 @@ function AccountDropdownMenu({
 }
 
 export function ApplicationLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('applicationLayout')
   const pathname = usePathname()
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -157,14 +161,14 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
         if (profileName) {
           setAccountName(profileName)
           setAccountDetail(
-            session.is_admin ? 'Administrator account' : session.identity?.email?.trim() || 'Writing practice workspace'
+            session.is_admin ? t('administratorAccount') : session.identity?.email?.trim() || t('writingPracticeWorkspace')
           )
           return
         }
 
-        const fallbackDetail = session.authenticated ? 'Writing practice workspace' : 'Writing practice'
+        const fallbackDetail = session.authenticated ? t('writingPracticeWorkspace') : t('writingPractice')
         setAccountName(session.authenticated ? 'Writing Coach' : 'Workshop')
-        setAccountDetail(session.is_admin ? 'Administrator account' : fallbackDetail)
+        setAccountDetail(session.is_admin ? t('administratorAccount') : fallbackDetail)
       } catch {
         if (cancelled) {
           return
@@ -173,7 +177,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
         setIsAdmin(false)
         setTracks([])
         setAccountName('Workshop')
-        setAccountDetail('Writing practice')
+        setAccountDetail(t('writingPractice'))
       }
     }
 
@@ -182,7 +186,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [pathname])
+  }, [pathname, t])
 
   const accountInitials = initialsForName(accountName)
   const activeTrack = tracks.find((track) => track.is_active) ?? null
@@ -193,7 +197,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
     }
     if (shouldConfirmTrackSwitch(window.__writingCoachHasUnsavedDraft)) {
       const confirmed = window.confirm(
-        'You have an unsaved draft in the current practice path. Switch practice paths and discard those unsaved edits?'
+        t('switchConfirm')
       )
       if (!confirmed) {
         return
@@ -220,7 +224,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
               <DropdownButton as={NavbarItem}>
                 <Avatar initials={accountInitials} square className="bg-stone-800 text-white" />
               </DropdownButton>
-              <AccountDropdownMenu anchor="bottom end" authenticated={authenticated} isAdmin={isAdmin} />
+              <AccountDropdownMenu anchor="bottom end" authenticated={authenticated} isAdmin={isAdmin} t={t} />
             </Dropdown>
           </NavbarSection>
         </Navbar>
@@ -235,7 +239,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="min-w-0">
                   <div className="text-lg/6 font-semibold text-zinc-950 dark:text-white">Writing Coach</div>
-                  <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">Structured practice</div>
+                  <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">{t('structuredPractice')}</div>
                 </div>
               </div>
               {authenticated === true ? (
@@ -246,13 +250,13 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   >
                     <span className="min-w-0">
                       <span className="block text-[11px] font-semibold tracking-[0.18em] text-zinc-500 uppercase dark:text-zinc-400">
-                        Practice path
+                        {t('practicePath')}
                       </span>
                       <span className="mt-1 block truncate text-sm font-semibold">
-                        {activeTrack?.title ?? 'Select a practice path'}
+                        {activeTrack?.title ?? t('selectPracticePath')}
                       </span>
                       <span className="mt-1 block truncate text-xs text-zinc-500 dark:text-zinc-400">
-                        {trackStatusLine(activeTrack)}
+                        {trackStatusLine(activeTrack, t)}
                       </span>
                     </span>
                     <ChevronUpIcon className="size-4 rotate-180 text-zinc-500 dark:text-zinc-400" />
@@ -268,14 +272,14 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                       >
                         <FolderIcon />
                         <DropdownLabel>{track.title}</DropdownLabel>
-                        <DropdownDescription>{trackStatusLine(track)}</DropdownDescription>
+                        <DropdownDescription>{trackStatusLine(track, t)}</DropdownDescription>
                         {track.is_active ? <CheckIcon /> : null}
                       </DropdownItem>
                     ))}
                     <DropdownDivider />
                     <DropdownItem href="/onboarding?mode=create" data-testid="new-track-link">
                       <PlusIcon />
-                      <DropdownLabel>New practice path</DropdownLabel>
+                      <DropdownLabel>{t('newPracticePath')}</DropdownLabel>
                     </DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
@@ -289,34 +293,34 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 <SidebarSection>
                   <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
                     <ChartBarSquareIcon />
-                    <SidebarLabel>Practice path progress</SidebarLabel>
+                    <SidebarLabel>{t('practicePathProgress')}</SidebarLabel>
                   </SidebarItem>
                   <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
                     <Squares2X2Icon />
-                    <SidebarLabel>Skill map</SidebarLabel>
+                    <SidebarLabel>{t('skillMap')}</SidebarLabel>
                   </SidebarItem>
                   <SidebarItem href="/onboarding?mode=edit" current={pathname.startsWith('/onboarding')}>
                     <ArrowPathIcon />
-                    <SidebarLabel>Edit practice path</SidebarLabel>
+                    <SidebarLabel>{t('editPracticePath')}</SidebarLabel>
                   </SidebarItem>
                 </SidebarSection>
 
                 <SidebarSection>
-                  <SidebarHeading>Assignments</SidebarHeading>
+                  <SidebarHeading>{t('assignmentsHeading')}</SidebarHeading>
                   <SidebarItem href="/" current={pathname === '/'}>
                     <HomeIcon />
-                    <SidebarLabel>Current assignment</SidebarLabel>
+                    <SidebarLabel>{t('currentAssignment')}</SidebarLabel>
                   </SidebarItem>
                   <SidebarItem href="/new-assignment" current={pathname.startsWith('/new-assignment')}>
                     <PencilSquareIcon />
-                    <SidebarLabel>New assignment</SidebarLabel>
+                    <SidebarLabel>{t('newAssignment')}</SidebarLabel>
                   </SidebarItem>
                   <SidebarItem
                     href="/assignments"
                     current={pathname === '/assignments' || pathname.startsWith('/assignments/')}
                   >
                     <ClockIcon />
-                    <SidebarLabel>Past assignments</SidebarLabel>
+                    <SidebarLabel>{t('pastAssignments')}</SidebarLabel>
                   </SidebarItem>
                 </SidebarSection>
               </>
@@ -333,11 +337,11 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 <>
                   <SidebarItem href="/login">
                     <ArrowLeftEndOnRectangleIcon />
-                    <SidebarLabel>Sign in</SidebarLabel>
+                    <SidebarLabel>{t('signIn')}</SidebarLabel>
                   </SidebarItem>
                   <SidebarItem href="/register">
                     <UserPlusIcon />
-                    <SidebarLabel>Register</SidebarLabel>
+                    <SidebarLabel>{t('register')}</SidebarLabel>
                   </SidebarItem>
                 </>
               ) : null}
@@ -366,7 +370,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   </span>
                   <ChevronUpIcon />
                 </DropdownButton>
-                <AccountDropdownMenu anchor="top start" authenticated={authenticated} isAdmin={isAdmin} />
+                <AccountDropdownMenu anchor="top start" authenticated={authenticated} isAdmin={isAdmin} t={t} />
               </Dropdown>
             ) : (
               <SidebarItem href="/login" current={pathname.startsWith('/login')}>

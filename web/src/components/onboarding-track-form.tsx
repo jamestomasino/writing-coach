@@ -9,6 +9,7 @@ import { Select } from '@/components/select'
 import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import type { OnboardingOptions } from '@/lib/types'
+import { useTranslations } from 'next-intl'
 import type { FormEvent } from 'react'
 import { WorkspaceCard } from './workspace-card'
 
@@ -67,15 +68,16 @@ export function OnboardingTrackForm({
   onOutcomeToggle,
   onSubmit,
 }: Props) {
+  const t = useTranslations('onboardingTrackForm')
   return (
     <WorkspaceCard>
       <form className="space-y-8" onSubmit={onSubmit} data-testid="track-form">
         <FieldGroup>
           <Field>
-            <Label>What kind of writing is this for?</Label>
+            <Label>{t('writingTypeLabel')}</Label>
             <Select value={writingType} onChange={(event) => onWritingTypeChange(event.target.value)}>
               <option value="" disabled>
-                Choose a writing type
+                {t('writingTypePlaceholder')}
               </option>
               {options.writing_domains.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -85,10 +87,10 @@ export function OnboardingTrackForm({
             </Select>
           </Field>
           <Field>
-            <Label>What kind of assignments do you want?</Label>
+            <Label>{t('assignmentFormatLabel')}</Label>
             <Select value={assignmentFormat} onChange={(event) => onAssignmentFormatChange(event.target.value)}>
               <option value="" disabled>
-                Choose an assignment format
+                {t('assignmentFormatPlaceholder')}
               </option>
               {options.assignment_formats.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -98,10 +100,10 @@ export function OnboardingTrackForm({
             </Select>
           </Field>
           <Field>
-            <Label>Experience level</Label>
+            <Label>{t('experienceLevelLabel')}</Label>
             <Select value={experienceLevel} onChange={(event) => onExperienceLevelChange(event.target.value)}>
               <option value="" disabled>
-                Choose an experience level
+                {t('experienceLevelPlaceholder')}
               </option>
               {options.experience_levels.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -111,10 +113,10 @@ export function OnboardingTrackForm({
             </Select>
           </Field>
           <Field>
-            <Label>How hard should this push you?</Label>
+            <Label>{t('difficultyLabel')}</Label>
             <Select value={difficultyIntensity} onChange={(event) => onDifficultyIntensityChange(event.target.value)}>
               <option value="" disabled>
-                Choose a pace
+                {t('difficultyPlaceholder')}
               </option>
               {options.difficulty_levels.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -127,50 +129,48 @@ export function OnboardingTrackForm({
 
         <FieldGroup>
           <Field>
-            <Label>Who are you writing for?</Label>
-            <Text className="mt-1 text-sm">Name the audience you most want this practice path to serve.</Text>
+            <Label>{t('targetAudienceLabel')}</Label>
+            <Text className="mt-1 text-sm">{t('targetAudienceHelp')}</Text>
             <Input
               value={targetAudience}
               onChange={(event) => onTargetAudienceChange(event.target.value)}
-              placeholder="Startup founders, hiring managers, general readers, fantasy fans…"
+              placeholder={t('targetAudiencePlaceholder')}
             />
           </Field>
           <Field>
-            <Label>What topics or situations should this draw from?</Label>
-            <Text className="mt-1 text-sm">
-              Give the coach the material you want it to pull assignments from.
-            </Text>
+            <Label>{t('subjectMatterLabel')}</Label>
+            <Text className="mt-1 text-sm">{t('subjectMatterHelp')}</Text>
             <Input
               value={subjectMatter}
               onChange={(event) => onSubjectMatterChange(event.target.value)}
-              placeholder="Developer tools, workplace conflict, family pressure, product launches…"
+              placeholder={t('subjectMatterPlaceholder')}
             />
           </Field>
         </FieldGroup>
 
         <Field>
-          <Label>What tone are you aiming for?</Label>
-          <Text className="mt-1 text-sm">How should the writing feel to a reader?</Text>
+          <Label>{t('toneLabel')}</Label>
+          <Text className="mt-1 text-sm">{t('toneHelp')}</Text>
           <Input
             value={desiredTone}
             onChange={(event) => onDesiredToneChange(event.target.value)}
-            placeholder="Weighty and restrained, clear and persuasive, analytical and direct…"
+            placeholder={t('tonePlaceholder')}
           />
         </Field>
 
         <Field>
-          <Label>What do you want to get better at?</Label>
+          <Label>{t('goalsLabel')}</Label>
           <Textarea
             rows={6}
             value={writingGoals}
             onChange={(event) => onWritingGoalsChange(event.target.value)}
-            placeholder="Describe what you want this practice path to help you do better."
+            placeholder={t('goalsPlaceholder')}
           />
         </Field>
 
         <div className="grid gap-8 lg:grid-cols-2">
           <div>
-            <CardHeader eyebrow="Right now" title="What feels hardest?" />
+            <CardHeader eyebrow={t('rightNowEyebrow')} title={t('rightNowTitle')} />
             <div className="mt-4 space-y-3">
               {options.weaknesses.map((item) => (
                 <CheckboxField key={item.value}>
@@ -181,7 +181,7 @@ export function OnboardingTrackForm({
             </div>
           </div>
           <div>
-            <CardHeader eyebrow="Goal" title="What do you want this path to build?" />
+            <CardHeader eyebrow={t('goalEyebrow')} title={t('goalTitle')} />
             <div className="mt-4 space-y-3">
               {options.desired_outcomes.map((item) => (
                 <CheckboxField key={item.value}>
@@ -196,12 +196,12 @@ export function OnboardingTrackForm({
         <div className="flex justify-end">
           <Button type="submit" color="dark/zinc" disabled={saving} data-testid="save-track-button">
             {saving
-              ? 'Preparing recommendations…'
+              ? t('saving')
               : mode === 'create'
-                ? 'Create practice path'
+                ? t('create')
                 : existingProfile
-                  ? 'Save changes'
-                  : 'Create practice path'}
+                  ? t('save')
+                  : t('create')}
           </Button>
         </div>
       </form>

@@ -1,7 +1,10 @@
+'use client'
+
 import { Button } from '@/components/button'
 import { Eyebrow } from '@/components/eyebrow'
 import { Heading } from '@/components/heading'
 import { Text } from '@/components/text'
+import { useTranslations } from 'next-intl'
 import { WorkspaceCard } from './workspace-card'
 
 type EmptyStateAction = {
@@ -10,6 +13,8 @@ type EmptyStateAction = {
   outline?: boolean
   plain?: boolean
 }
+
+type StatusTranslations = ReturnType<typeof useTranslations>
 
 export function EmptyState({
   title,
@@ -63,7 +68,10 @@ export function EmptyState({
   )
 }
 
-function classifyErrorMessage(message: string) {
+function classifyErrorMessage(
+  message: string,
+  t: StatusTranslations
+) {
   const normalized = message.toLowerCase()
   if (
     normalized.includes('unauthorized') ||
@@ -73,22 +81,22 @@ function classifyErrorMessage(message: string) {
     normalized.includes('403')
   ) {
     return {
-      title: 'Sign in required',
-      body: 'Sign in to open this page.',
+      title: t('signInRequiredTitle'),
+      body: t('signInRequiredBody'),
       actions: [
-        { href: '/login', label: 'Sign in' },
-        { href: '/about', label: 'Back to home', outline: true },
+        { href: '/login', label: t('signIn') },
+        { href: '/about', label: t('backToHome'), outline: true },
       ],
     }
   }
   if (normalized.includes('not found') || normalized.includes('unavailable') || normalized.includes('404')) {
     return {
-      title: 'Page unavailable',
-      body: 'The page or record you requested could not be found in this practice path.',
+      title: t('pageUnavailableTitle'),
+      body: t('pageUnavailableBody'),
       actions: [
-        { href: '/', label: 'Current assignment' },
-        { href: '/assignments', label: 'Past assignments', outline: true },
-        { href: '/about', label: 'About', outline: true },
+        { href: '/', label: t('currentAssignment') },
+        { href: '/assignments', label: t('pastAssignments'), outline: true },
+        { href: '/about', label: t('about'), outline: true },
       ],
     }
   }
@@ -100,20 +108,20 @@ function classifyErrorMessage(message: string) {
     normalized.includes('internal server error')
   ) {
     return {
-      title: 'Something went wrong',
-      body: 'A server error came back while loading this page.',
+      title: t('somethingWentWrongTitle'),
+      body: t('serverErrorBody'),
       actions: [
-        { href: '/', label: 'Current assignment' },
-        { href: '/about', label: 'About', outline: true },
+        { href: '/', label: t('currentAssignment') },
+        { href: '/about', label: t('about'), outline: true },
       ],
     }
   }
   return {
-    title: 'Something went wrong',
+    title: t('somethingWentWrongTitle'),
     body: message,
     actions: [
-      { href: '/', label: 'Current assignment' },
-      { href: '/about', label: 'About', outline: true },
+      { href: '/', label: t('currentAssignment') },
+      { href: '/about', label: t('about'), outline: true },
     ],
   }
 }
@@ -127,19 +135,22 @@ export function AppErrorState({
   title?: string
   body?: string
 }) {
-  const details = classifyErrorMessage(error ?? body ?? 'Something went wrong')
+  const t = useTranslations('statusState')
+  const details = classifyErrorMessage(error ?? body ?? t('somethingWentWrongTitle'), t)
   return <EmptyState title={title ?? details.title} body={body ?? details.body} actions={details.actions} />
 }
 
 export function LoadingState({ label = 'Loading workspace…' }: { label?: string }) {
+  const t = useTranslations('statusState')
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-zinc-500 shadow-sm dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
-      {label}
+      {label || t('loadingWorkspace')}
     </div>
   )
 }
 
 export function TaskProgressState({ title, body, steps }: { title: string; body: string; steps: string[] }) {
+  const t = useTranslations('statusState')
   return (
     <WorkspaceCard className="border-cyan-200 bg-cyan-50 dark:border-cyan-500/20 dark:bg-cyan-500/10">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -151,7 +162,7 @@ export function TaskProgressState({ title, body, steps }: { title: string; body:
             <span className="size-5 animate-spin rounded-full border-2 border-cyan-700/25 border-t-cyan-700 dark:border-cyan-200/25 dark:border-t-cyan-200" />
           </div>
           <div className="max-w-2xl">
-            <Eyebrow tone="cyan">Working</Eyebrow>
+            <Eyebrow tone="cyan">{t('working')}</Eyebrow>
             <Heading level={2} className="mt-1 text-base/6">
               {title}
             </Heading>
@@ -165,7 +176,7 @@ export function TaskProgressState({ title, body, steps }: { title: string; body:
           role="status"
           aria-live="polite"
         >
-          <Eyebrow tone="cyan">Progress</Eyebrow>
+          <Eyebrow tone="cyan">{t('progress')}</Eyebrow>
           <div className="mt-3 space-y-2" aria-hidden="true">
             <div className="h-2 w-full animate-pulse rounded-full bg-cyan-200/80 dark:bg-cyan-200/15" />
             <div className="h-2 w-5/6 animate-pulse rounded-full bg-cyan-200/70 [animation-delay:120ms] dark:bg-cyan-200/12" />

@@ -7,12 +7,14 @@ import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { useReviewWorkspace } from '@/lib/use-review-workspace'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
+import { useTranslations } from 'next-intl'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function ReviewView({ reviewId }: { reviewId: number }) {
+  const t = useTranslations('reviewView')
   const {
     sessionLoading,
     sessionError,
@@ -43,16 +45,16 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
   }
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading review…" />
+    return <LoadingState label={t('loading')} />
   }
   if (sessionError || error || !review || !submission || !exercise) {
-    return <AppErrorState title="Review unavailable" error={sessionError ?? error ?? 'The requested review could not be loaded.'} />
+    return <AppErrorState title={t('unavailableTitle')} error={sessionError ?? error ?? t('unavailableBody')} />
   }
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Feedback"
+        eyebrow={t('eyebrow')}
         title={exercise.title}
         intro={review.summary}
         actions={
@@ -62,12 +64,12 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
             </Button>
             {canActOnReview ? (
               <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
-                {preparingRevision ? 'Preparing revision brief…' : 'Create revision brief'}
+                {preparingRevision ? t('preparingRevisionBrief') : t('createRevisionBrief')}
               </Button>
             ) : null}
             {canActOnReview ? (
               <Button onClick={handleAcceptAndMoveOn} outline disabled={closingAssignment}>
-                {closingAssignment ? 'Finishing assignment…' : 'Finish and move on'}
+                {closingAssignment ? t('finishingAssignment') : t('finishAndMoveOn')}
               </Button>
             ) : null}
           </>
@@ -76,26 +78,20 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
 
       {preparingRevision ? (
         <TaskProgressState
-          title="Revision brief in progress"
-          body="Building a revision brief from this feedback."
-          steps={[
-            'Load the reviewed draft and feedback notes.',
-            'Pick the most urgent revision targets.',
-            'Build the next revision assignment around those targets.',
-          ]}
+          title={t('revisionProgressTitle')}
+          body={t('revisionProgressBody')}
+          steps={[t('revisionStep1'), t('revisionStep2'), t('revisionStep3')]}
         />
       ) : null}
 
       {!canActOnReview ? (
         <WorkspaceCard>
-          <Text>
-            This feedback belongs to an older assignment. You can read it here, but you cannot keep revising this assignment chain.
-          </Text>
+          <Text>{t('olderAssignmentBody')}</Text>
         </WorkspaceCard>
       ) : null}
 
       <WorkspaceCard>
-        <CardHeader eyebrow="AI details" title="How this was created" />
+        <CardHeader eyebrow={t('aiDetailsEyebrow')} title={t('aiDetailsTitle')} />
         <div className="mt-4 space-y-4">
           <ProviderProvenance providerNote={exercise.provider_note} />
           <ProviderProvenance providerNote={review.provider_note} />
@@ -104,7 +100,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
 
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
-          <CardHeader eyebrow="Current skills" title="How this draft did on the current skills" />
+          <CardHeader eyebrow={t('currentSkillsEyebrow')} title={t('currentSkillsTitle')} />
           <div className="mt-4 space-y-4">
             {review.tgo_assessments.map((assessment) => (
               <div key={assessment.tgo_code} className="rounded-2xl border border-stone-200 p-4 dark:border-white/10">
@@ -129,12 +125,12 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         <WorkspaceCard>
           <CardHeader
             eyebrow="Older skills"
-            title="Older skills to keep steady"
-            description="Quick checks on skills you have already learned."
+            title={t('olderSkillsTitle')}
+            description={t('olderSkillsDescription')}
           />
           <div className="mt-4 space-y-3">
             {review.completed_tgo_checks.length === 0 ? (
-              <Text>No older mastered skills slipped on this pass.</Text>
+              <Text>{t('noOlderSkillsSlipped')}</Text>
             ) : (
               review.completed_tgo_checks.map((assessment) => (
                 <div
@@ -159,8 +155,8 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         <WorkspaceCard>
           <CardHeader
             eyebrow="Ratings"
-            title="Skill ratings"
-            description="How this draft scored on the skills tracked in this review."
+            title={t('ratingsTitle')}
+            description={t('ratingsDescription')}
           />
           <div className="mt-4 space-y-3">
             {review.skill_scores.map((item) => (
@@ -174,7 +170,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           </div>
         </WorkspaceCard>
         <WorkspaceCard>
-          <CardHeader eyebrow="What worked" title="Keep doing this" />
+          <CardHeader eyebrow={t('workedEyebrow')} title={t('workedTitle')} />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
             {review.strengths.map((item) => (
               <li key={item}>• {item}</li>
@@ -182,7 +178,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           </ul>
         </WorkspaceCard>
         <WorkspaceCard>
-          <CardHeader eyebrow="What to improve" title="Work on this next" />
+          <CardHeader eyebrow={t('improveEyebrow')} title={t('improveTitle')} />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
             {review.weaknesses.map((item) => (
               <li key={item}>• {item}</li>
@@ -195,21 +191,21 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         <WorkspaceCard>
           <CardHeader
             eyebrow="Revision"
-            title="What changed across drafts"
+            title={t('revisionTitle')}
             description={review.artifacts.comparison.summary}
             actions={
               <Button href={`/compare/${submission.id}`} outline>
                 <ArrowPathIcon />
-                Open full compare
+                {t('openFullCompare')}
               </Button>
             }
           />
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">What improved</div>
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('whatImproved')}</div>
               <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
                 {review.artifacts.comparison.addressed_weaknesses.length === 0 ? (
-                  <li>No earlier weaknesses were clearly resolved yet.</li>
+                  <li>{t('noResolvedWeaknesses')}</li>
                 ) : null}
                 {review.artifacts.comparison.addressed_weaknesses.map((item) => (
                   <li key={item}>• {item}</li>
@@ -217,10 +213,10 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
               </ul>
             </div>
             <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">What still needs work</div>
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('whatStillNeedsWork')}</div>
               <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
                 {review.artifacts.comparison.persisting_weaknesses.length === 0 ? (
-                  <li>No prior weaknesses are carrying forward.</li>
+                  <li>{t('noPersistingWeaknesses')}</li>
                 ) : null}
                 {review.artifacts.comparison.persisting_weaknesses.map((item) => (
                   <li key={item}>• {item}</li>
@@ -233,13 +229,13 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
 
         <WorkspaceCard>
           <CardHeader
-          eyebrow="Line notes"
-          title="Quoted lines with coaching notes"
-          description="Specific lines from the draft with notes on what to revise."
+          eyebrow={t('lineNotesEyebrow')}
+          title={t('lineNotesTitle')}
+          description={t('lineNotesDescription')}
         />
         <div className="mt-4 space-y-4">
           {review.annotations.length === 0 ? (
-            <Text>No line-level annotations were returned for this review.</Text>
+            <Text>{t('noLineNotes')}</Text>
           ) : (
             review.annotations.map((item, index) => (
               <div
@@ -262,7 +258,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           )}
         </div>
         <div className="mt-6">
-          <CardHeader eyebrow="Signals" title="Draft signals" />
+          <CardHeader eyebrow={t('signalsEyebrow')} title={t('signalsTitle')} />
           <div className="mt-3 space-y-3">
             {review.analyzer_findings.map((item) => (
               <div

@@ -11,12 +11,14 @@ import { Text } from '@/components/text'
 import { acceptAssignment, createAssignment, getDashboard } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function NewAssignmentView() {
+  const t = useTranslations('newAssignmentView')
   const router = useRouter()
   const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession('/new-assignment')
   const [loading, setLoading] = useState(true)
@@ -43,7 +45,7 @@ export function NewAssignmentView() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load skill selection')
+          setError(err instanceof Error ? err.message : t('loadError'))
         }
       } finally {
         if (!cancelled) {
@@ -55,7 +57,7 @@ export function NewAssignmentView() {
     return () => {
       cancelled = true
     }
-  }, [router, session])
+  }, [router, session, t])
 
   const selectable = useMemo(() => {
     if (!dashboard) {
@@ -98,7 +100,7 @@ export function NewAssignmentView() {
       const exercise = await createAssignment(selected)
       setPreview(exercise)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not generate assignment')
+      setError(err instanceof Error ? err.message : t('generateError'))
     } finally {
       setGenerating(false)
     }
@@ -114,17 +116,17 @@ export function NewAssignmentView() {
       await acceptAssignment(preview)
       router.push('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not accept assignment')
+      setError(err instanceof Error ? err.message : t('acceptError'))
     } finally {
       setAccepting(false)
     }
   }
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading assignment setup…" />
+    return <LoadingState label={t('loading')} />
   }
   if ((sessionError || error) && !dashboard) {
-    return <AppErrorState title="Could not load new assignment flow" error={sessionError ?? error ?? 'Could not load new assignment flow'} />
+    return <AppErrorState title={t('flowErrorTitle')} error={sessionError ?? error ?? t('flowErrorTitle')} />
   }
   if (!dashboard) {
     return <LoadingState />
@@ -133,37 +135,37 @@ export function NewAssignmentView() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow={setupFlow ? 'Step 3 of 3 · First assignment' : 'Assignment setup'}
-        title="New assignment"
+        eyebrow={setupFlow ? t('setupStepEyebrow') : t('setupEyebrow')}
+        title={t('title')}
         intro={
           setupFlow
-            ? 'Choose the three skills you want your first assignment to build.'
-            : 'Choose the three skills you want this assignment to build.'
+            ? t('setupIntro')
+            : t('intro')
         }
       />
 
       {setupFlow ? (
         <Callout
           tone="active"
-          eyebrow="Onboarding"
-          title="Finish by generating your first assignment"
-          body="Pick three skills, generate an assignment, and use it. Once you do, the full writing workspace becomes your normal home."
+          eyebrow={t('calloutEyebrow')}
+          title={t('calloutTitle')}
+          body={t('calloutBody')}
         >
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <li>Keep the selection to exactly three skills.</li>
-            <li>Generate the assignment, then try another if the first version misses the mark.</li>
-            <li>Use the assignment to enter the current assignment workspace.</li>
+            <li>{t('calloutBullet1')}</li>
+            <li>{t('calloutBullet2')}</li>
+            <li>{t('calloutBullet3')}</li>
           </ul>
         </Callout>
       ) : null}
 
-      {error ? <EmptyState title="Assignment issue" body={error} /> : null}
+      {error ? <EmptyState title={t('issueTitle')} body={error} /> : null}
 
       <WorkspaceCard>
         <CardHeader
-          eyebrow="Assignment focus"
-          title="Choose 3 skills for this assignment"
-          description="Pick the three skills you want this assignment to focus on."
+          eyebrow={t('focusEyebrow')}
+          title={t('focusTitle')}
+          description={t('focusDescription')}
         />
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {selectable.map((tgo) => {
@@ -194,14 +196,14 @@ export function NewAssignmentView() {
           })}
         </div>
         <div className="mt-5 flex items-center justify-between gap-3">
-          <Text>{selected.length} of 3 skills selected.</Text>
+          <Text>{t('selectedCount', { count: selected.length })}</Text>
           <Button
             color="dark/zinc"
             onClick={generate}
             disabled={selected.length !== 3 || generating}
             data-testid="generate-assignment-button"
           >
-            {generating ? 'Generating…' : 'Generate prompt'}
+            {generating ? t('generating') : t('generate')}
           </Button>
         </div>
       </WorkspaceCard>
@@ -217,11 +219,9 @@ export function NewAssignmentView() {
                 <span className="size-5 animate-spin rounded-full border-2 border-cyan-700/25 border-t-cyan-700 dark:border-cyan-200/25 dark:border-t-cyan-200" />
               </div>
               <div>
-                <Eyebrow tone="cyan">Assignment generation</Eyebrow>
-                <Subheading>Generating assignment</Subheading>
-                <Text className="mt-2">
-                  Creating a new assignment for this practice path. This usually takes a few seconds.
-                </Text>
+                <Eyebrow tone="cyan">{t('generationEyebrow')}</Eyebrow>
+                <Subheading>{t('generationTitle')}</Subheading>
+                <Text className="mt-2">{t('generationBody')}</Text>
               </div>
             </div>
             <div className="rounded-2xl border border-cyan-300/70 bg-white/70 px-4 py-4 lg:w-80 dark:border-cyan-400/20 dark:bg-black/10">
@@ -230,7 +230,7 @@ export function NewAssignmentView() {
                 className="mt-3 space-y-2"
                 role="status"
                 aria-live="polite"
-                aria-label="Assignment generation in progress"
+                aria-label={t('progressLabel')}
               >
                 <div className="h-2 w-full animate-pulse rounded-full bg-cyan-200/80 dark:bg-cyan-200/15" />
                 <div className="h-2 w-5/6 animate-pulse rounded-full bg-cyan-200/70 [animation-delay:120ms] dark:bg-cyan-200/12" />
@@ -244,12 +244,12 @@ export function NewAssignmentView() {
       {preview ? (
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Draft assignment"
+            eyebrow={t('draftEyebrow')}
             title={preview.title}
             actions={
               <div className="flex gap-2">
                 <Button plain onClick={generate} disabled={generating}>
-                  {generating ? 'Trying another…' : 'Try another'}
+                  {generating ? t('tryingAnother') : t('tryAnother')}
                 </Button>
                 <Button
                   onClick={acceptPreview}
@@ -257,7 +257,7 @@ export function NewAssignmentView() {
                   disabled={generating || accepting}
                   data-testid="accept-assignment-button"
                 >
-                  {accepting ? 'Opening…' : 'Use this assignment'}
+                  {accepting ? t('opening') : t('useAssignment')}
                 </Button>
               </div>
             }
@@ -265,7 +265,7 @@ export function NewAssignmentView() {
           <Text className="mt-3">{preview.brief}</Text>
           <div className="mt-5 grid gap-6 lg:grid-cols-2">
             <div>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">Constraints</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{t('constraints')}</p>
               <ul className="mt-2 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
                 {preview.constraints.map((item) => (
                   <li key={item}>• {item}</li>
@@ -273,7 +273,7 @@ export function NewAssignmentView() {
               </ul>
             </div>
             <div>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">Success criteria</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{t('successCriteria')}</p>
               <ul className="mt-2 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
                 {preview.success_criteria.map((item) => (
                   <li key={item}>• {item}</li>

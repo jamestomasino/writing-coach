@@ -8,12 +8,14 @@ import { Heading, Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { useCompareWorkspace } from '@/lib/use-compare-workspace'
+import { useTranslations } from 'next-intl'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
+  const t = useTranslations('compareView')
   const { sessionLoading, sessionError, loading, error, comparison, submission, review, preparingRevision, canActOnComparison, prepareRevisionPrompt } =
     useCompareWorkspace(submissionId)
 
@@ -25,17 +27,17 @@ export function CompareView({ submissionId }: { submissionId: number }) {
   }
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading comparison…" />
+    return <LoadingState label={t('loading')} />
   }
   if (sessionError || error || !comparison || !submission) {
-    return <AppErrorState title="Comparison unavailable" error={sessionError ?? error ?? 'The requested comparison is not available yet.'} />
+    return <AppErrorState title={t('unavailableTitle')} error={sessionError ?? error ?? t('unavailableBody')} />
   }
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Compare drafts"
-        title="What changed in revision"
+        eyebrow={t('eyebrow')}
+        title={t('title')}
         intro={comparison.summary}
         actions={
           <>
@@ -45,7 +47,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
             {canActOnComparison ? (
               <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
                 <ArrowPathIcon />
-                {preparingRevision ? 'Preparing revision brief…' : 'Revise again'}
+                {preparingRevision ? t('preparingRevisionBrief') : t('reviseAgain')}
               </Button>
             ) : null}
           </>
@@ -54,29 +56,25 @@ export function CompareView({ submissionId }: { submissionId: number }) {
 
       {preparingRevision ? (
         <TaskProgressState
-          title="Revision brief in progress"
-          body="Building the next revision brief from this comparison."
-          steps={[
-            'Load the latest revision history.',
-            'Pull forward what still matters most.',
-            'Build the next revision assignment.',
-          ]}
+          title={t('revisionProgressTitle')}
+          body={t('revisionProgressBody')}
+          steps={[t('revisionStep1'), t('revisionStep2'), t('revisionStep3')]}
         />
       ) : null}
 
       {!canActOnComparison ? (
         <WorkspaceCard>
-          <Text>This comparison belongs to an older assignment. You can read it here, but the next step is to start a new assignment.</Text>
+          <Text>{t('olderAssignmentBody')}</Text>
         </WorkspaceCard>
       ) : null}
 
       <div className="grid gap-8 lg:grid-cols-3">
         <WorkspaceCard>
-          <CardHeader eyebrow="Current draft" title="Draft" />
-          <Text className="mt-2">Revision draft #{submission.draft_number}</Text>
+          <CardHeader eyebrow={t('currentDraftEyebrow')} title={t('draftTitle')} />
+          <Text className="mt-2">{t('revisionDraft', { draftNumber: submission.draft_number })}</Text>
         </WorkspaceCard>
         <WorkspaceCard>
-          <CardHeader eyebrow="Length change" title="Word change" />
+          <CardHeader eyebrow={t('lengthChangeEyebrow')} title={t('lengthChangeTitle')} />
           <div className="mt-3">
             <Badge color={comparison.word_delta >= 0 ? 'green' : 'amber'}>
               {comparison.word_delta >= 0 ? `+${comparison.word_delta}` : comparison.word_delta}
@@ -84,25 +82,25 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           </div>
         </WorkspaceCard>
         <WorkspaceCard>
-          <CardHeader eyebrow="Still unresolved" title="Needs more work" />
-          <Text className="mt-2">{comparison.persisting_weaknesses.length} earlier issues are still carrying forward.</Text>
+          <CardHeader eyebrow={t('stillUnresolvedEyebrow')} title={t('stillUnresolvedTitle')} />
+          <Text className="mt-2">{t('persistingIssues', { count: comparison.persisting_weaknesses.length })}</Text>
         </WorkspaceCard>
       </div>
 
       <div className="grid gap-8 xl:grid-cols-2">
         <WorkspaceCard>
-          <CardHeader eyebrow="Improved" title="What got better" />
+          <CardHeader eyebrow={t('improvedEyebrow')} title={t('improvedTitle')} />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-            {comparison.addressed_weaknesses.length === 0 ? <li>No weaknesses were marked resolved yet.</li> : null}
+            {comparison.addressed_weaknesses.length === 0 ? <li>{t('noResolved')}</li> : null}
             {comparison.addressed_weaknesses.map((item) => (
               <li key={item}>• {item}</li>
             ))}
           </ul>
         </WorkspaceCard>
         <WorkspaceCard>
-          <CardHeader eyebrow="Still active" title="What still needs work" />
+          <CardHeader eyebrow={t('stillActiveEyebrow')} title={t('stillActiveTitle')} />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-            {comparison.persisting_weaknesses.length === 0 ? <li>No persisting weaknesses were flagged.</li> : null}
+            {comparison.persisting_weaknesses.length === 0 ? <li>{t('noPersisting')}</li> : null}
             {comparison.persisting_weaknesses.map((item) => (
               <li key={item}>• {item}</li>
             ))}
@@ -113,7 +111,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
       {review ? (
         <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
           <WorkspaceCard>
-            <CardHeader eyebrow="Current skills" title="How this draft did on the current skills" />
+            <CardHeader eyebrow={t('currentSkillsEyebrow')} title={t('currentSkillsTitle')} />
             <div className="mt-4">
               <ProviderProvenance providerNote={review.provider_note} />
             </div>
@@ -134,11 +132,11 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           <WorkspaceCard>
             <CardHeader
               eyebrow="Older skills"
-              title="Older skills to keep steady"
-              description="Skills you already learned are still checked lightly."
+              title={t('olderSkillsTitle')}
+              description={t('olderSkillsDescription')}
             />
             <div className="mt-4 space-y-3">
-              {review.completed_tgo_checks.length === 0 ? <Text>No older mastered skills slipped in this revision.</Text> : null}
+              {review.completed_tgo_checks.length === 0 ? <Text>{t('noOlderSkillsSlipped')}</Text> : null}
               {review.completed_tgo_checks.map((assessment) => (
                 <div key={assessment.tgo_code} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                   <div className="flex items-center justify-between gap-4">
@@ -155,7 +153,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
 
       {review?.skill_scores.length ? (
         <WorkspaceCard>
-          <CardHeader eyebrow="Ratings" title="Skill ratings" />
+          <CardHeader eyebrow={t('ratingsEyebrow')} title={t('ratingsTitle')} />
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
             {review.skill_scores.map((item) => (
               <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">

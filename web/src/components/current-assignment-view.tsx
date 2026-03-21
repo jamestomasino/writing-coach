@@ -10,6 +10,7 @@ import { Textarea } from '@/components/textarea'
 import { formatLocalDateTime } from '@/lib/datetime'
 import { useCurrentAssignmentWorkspace } from '@/lib/use-current-assignment-workspace'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
+import { useTranslations } from 'next-intl'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { MasteryProgress } from './mastery-progress'
@@ -18,6 +19,7 @@ import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './st
 import { WorkspaceCard } from './workspace-card'
 
 export function CurrentAssignmentView() {
+  const t = useTranslations('currentAssignmentView')
   const router = useRouter()
   const searchParams = useSearchParams()
   const revisionExerciseID = Number(searchParams.get('revisionExercise') ?? 0)
@@ -53,15 +55,15 @@ export function CurrentAssignmentView() {
   if (sessionRequired) {
     return (
       <EmptyState
-        title="Sign in to continue"
-        body="Once you sign in, this page becomes the current assignment workspace for your active practice path."
+        title={t('signInTitle')}
+        body={t('signInBody')}
         actionHref="/login"
-        actionLabel="Open sign in"
+        actionLabel={t('signInAction')}
       />
     )
   }
   if (error) {
-    return <AppErrorState error={error} title="Workspace unavailable" />
+    return <AppErrorState error={error} title={t('workspaceUnavailable')} />
   }
   if (!workspace) {
     return <LoadingState />
@@ -79,12 +81,12 @@ export function CurrentAssignmentView() {
     return (
       <div className="space-y-8">
         <PageHeader
-          eyebrow="Assignment workspace"
-          title="Current assignment"
-          intro="You do not have an active assignment yet. Choose 3 available skills and generate the next assignment."
+          eyebrow={t('workspaceEyebrow')}
+          title={t('workspaceTitle')}
+          intro={t('noAssignmentIntro')}
         />
         <WorkspaceCard>
-          <CardHeader eyebrow="Skills in focus" title="Current skills" />
+          <CardHeader eyebrow={t('skillsEyebrow')} title={t('skillsTitle')} />
           <div className="mt-4 flex flex-wrap gap-2">
             {dashboard.active_tgos.map((tgo) => (
               <Badge key={tgo.code} color="blue">
@@ -94,7 +96,7 @@ export function CurrentAssignmentView() {
           </div>
           <div className="mt-6">
             <Button href="/new-assignment" color="dark/zinc">
-              Start new assignment
+              {t('startNewAssignment')}
             </Button>
           </div>
         </WorkspaceCard>
@@ -105,7 +107,7 @@ export function CurrentAssignmentView() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Assignment workspace"
+        eyebrow={t('workspaceEyebrow')}
         title={exercise.title}
         intro={exercise.brief}
         actions={
@@ -115,7 +117,7 @@ export function CurrentAssignmentView() {
             </Button>
             {review ? (
               <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={busy}>
-                {preparingRevision ? 'Preparing revision brief…' : 'Create revision brief'}
+                {preparingRevision ? t('preparingRevisionBrief') : t('createRevisionBrief')}
               </Button>
             ) : null}
           </>
@@ -123,24 +125,24 @@ export function CurrentAssignmentView() {
       />
       {reviewPending ? (
         <TaskProgressState
-          title="Review in progress"
-          body="Your draft is saved. You can leave this page while feedback is being prepared."
+          title={t('reviewProgressTitle')}
+          body={t('reviewProgressBody')}
           steps={[
-            'Save the latest draft.',
-            'Check it against the selected skills.',
-            'Prepare feedback and the next step.',
+            t('reviewStep1'),
+            t('reviewStep2'),
+            t('reviewStep3'),
           ]}
         />
       ) : null}
 
       {preparingRevision ? (
         <TaskProgressState
-          title="Revision brief in progress"
-          body="Building a revision brief from your latest feedback."
+          title={t('revisionProgressTitle')}
+          body={t('revisionProgressBody')}
           steps={[
-            'Load the latest reviewed draft.',
-            'Pull out the highest-priority revision targets.',
-            'Build the next revision brief.',
+            t('revisionStep1'),
+            t('revisionStep2'),
+            t('revisionStep3'),
           ]}
         />
       ) : null}
@@ -148,18 +150,18 @@ export function CurrentAssignmentView() {
       {reviewFailed ? (
         <Callout
           tone="warning"
-          eyebrow="Review status"
-          title="Feedback did not finish"
-          body="Your draft was saved, but the feedback job did not finish. You can retry without losing your work."
+          eyebrow={t('reviewStatusEyebrow')}
+          title={t('reviewFailedTitle')}
+          body={t('reviewFailedBody')}
           actions={
             <Button onClick={handleRetryReview} color="dark/zinc" disabled={reviewing}>
-              {reviewing ? 'Retrying…' : 'Retry review'}
+              {reviewing ? t('retrying') : t('retryReview')}
             </Button>
           }
         >
           <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
             <ExclamationTriangleIcon className="size-4" />
-            Background review interrupted
+            {t('backgroundReviewInterrupted')}
           </div>
           {reviewJob?.last_error ? <Text className="mt-2 text-sm">{reviewJob.last_error}</Text> : null}
         </Callout>
@@ -168,9 +170,9 @@ export function CurrentAssignmentView() {
       {isRevisionBrief ? (
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Revision mode"
-            title="Revision brief"
-            description="Use the notes below to revise this draft."
+            eyebrow={t('revisionModeEyebrow')}
+            title={t('revisionModeTitle')}
+            description={t('revisionModeDescription')}
             actions={
               review ? (
                 <Button href={`/compare/${compareSubmissionID}`} outline>
@@ -179,7 +181,7 @@ export function CurrentAssignmentView() {
                 </Button>
               ) : sourceReview ? (
                 <Button href={`/reviews/${sourceReview.id}`} outline>
-                  Open earlier feedback
+                  {t('openEarlierFeedback')}
                 </Button>
               ) : null
             }
@@ -192,40 +194,38 @@ export function CurrentAssignmentView() {
                   onClick={() => setRevisionPanel('brief')}
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition ${revisionPanel === 'brief' ? 'bg-white text-zinc-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white'}`}
                 >
-                  Revision brief
+                  {t('revisionBriefTab')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setRevisionPanel('feedback')}
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition ${revisionPanel === 'feedback' ? 'bg-white text-zinc-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white'}`}
                 >
-                  Earlier feedback
+                  {t('earlierFeedbackTab')}
                 </button>
               </div>
               {revisionPanel === 'brief' ? (
                 <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
                   <div className="flex flex-wrap items-center gap-3">
-                    <Badge color="zinc">Source draft #{sourceSubmission?.draft_number ?? 1}</Badge>
+                    <Badge color="zinc">{t('sourceDraft', { draftNumber: sourceSubmission?.draft_number ?? 1 })}</Badge>
                     <Badge color="cyan">{exercise.generation_kind}</Badge>
                   </div>
                   <div className="mt-3">
                     <ProviderProvenance providerNote={exercise.provider_note} compact />
                   </div>
-                  <Text className="mt-3">
-                    Your last reviewed draft is already loaded so you can revise it directly.
-                  </Text>
+                  <Text className="mt-3">{t('lastReviewedDraftLoaded')}</Text>
                 </div>
               ) : (
                 <div className="mt-4 space-y-4">
                   <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
                     <div className="text-sm font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
-                      Prior coaching summary
+                      {t('priorCoachingSummary')}
                     </div>
                     <Text className="mt-3">{sourceReview.summary}</Text>
                   </div>
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-                      <div className="text-sm font-semibold text-zinc-950 dark:text-white">Strengths to preserve</div>
+                      <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('strengthsToPreserve')}</div>
                       <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
                         {sourceReview.strengths.map((item) => (
                           <li key={item}>• {item}</li>
@@ -233,7 +233,7 @@ export function CurrentAssignmentView() {
                       </ul>
                     </div>
                     <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-                      <div className="text-sm font-semibold text-zinc-950 dark:text-white">Revision targets</div>
+                      <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('revisionTargets')}</div>
                       <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
                         {sourceReview.weaknesses.map((item) => (
                           <li key={item}>• {item}</li>
@@ -242,7 +242,7 @@ export function CurrentAssignmentView() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">Next focus</div>
+                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('nextFocus')}</div>
                     <Text className="mt-3">{sourceReview.next_focus}</Text>
                   </div>
                 </div>
@@ -255,8 +255,8 @@ export function CurrentAssignmentView() {
       <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Assignment brief"
-            title="Assignment"
+            eyebrow={t('briefEyebrow')}
+            title={t('briefTitle')}
             actions={<Badge color="zinc">{exercise.generation_kind}</Badge>}
           />
           <div className="mt-4 space-y-5">
@@ -282,9 +282,9 @@ export function CurrentAssignmentView() {
 
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Skills in focus"
-            title="Skills for this assignment"
-            description="The review will focus mainly on these three skills."
+            eyebrow={t('skillsEyebrow')}
+            title={t('skillsForAssignmentTitle')}
+            description={t('skillsForAssignmentDescription')}
           />
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.map((tgo) => (
@@ -308,15 +308,15 @@ export function CurrentAssignmentView() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <CardHeader
-              eyebrow="Write and submit"
-              title="Draft submission"
-              description="Paste your draft, or upload a file, then ask for feedback."
+              eyebrow={t('writeEyebrow')}
+              title={t('writeTitle')}
+              description={t('writeDescription')}
             />
           </div>
           <div className="flex items-center gap-3">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-stone-50 dark:border-white/10 dark:text-zinc-200 dark:hover:bg-white/5">
               <ArrowUpTrayIcon className="size-4" />
-              Upload draft
+              {t('uploadDraft')}
               <input
                 type="file"
                 accept=".md,.txt,text/plain,text/markdown"
@@ -333,7 +333,7 @@ export function CurrentAssignmentView() {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             rows={18}
-            placeholder="Paste your draft here."
+            placeholder={t('draftPlaceholder')}
             disabled={busy}
             data-testid="draft-textarea"
           />
@@ -342,9 +342,12 @@ export function CurrentAssignmentView() {
           <Text>
             {workspace.submission
               ? reviewPending
-                ? `Latest saved draft: #${workspace.submission.draft_number}. Review queued ${queuedReviewTime ?? 'just now'}.`
-                : `Latest saved draft: #${workspace.submission.draft_number}`
-              : 'No draft submitted yet for this assignment.'}
+                ? t('savedDraftQueued', {
+                    draftNumber: workspace.submission.draft_number,
+                    time: queuedReviewTime ?? t('justNow'),
+                  })
+                : t('savedDraft', { draftNumber: workspace.submission.draft_number })
+              : t('noDraftYet')}
           </Text>
           <Button
             onClick={handleReview}
@@ -353,7 +356,7 @@ export function CurrentAssignmentView() {
             data-testid="submit-review-button"
           >
             <SparklesIcon />
-            {reviewing || reviewPending ? 'Feedback requested…' : 'Get feedback'}
+            {reviewing || reviewPending ? t('feedbackRequested') : t('getFeedback')}
           </Button>
         </div>
       </WorkspaceCard>

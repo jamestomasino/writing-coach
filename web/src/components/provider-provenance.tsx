@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/badge'
 import { Text } from '@/components/text'
+import { useTranslations } from 'next-intl'
 
 function providerLabel(value: string) {
   switch (value) {
@@ -69,6 +70,7 @@ export function ProviderProvenance({
   providerNote?: string
   compact?: boolean
 }) {
+  const t = useTranslations('providerProvenance')
   const parsed = parseProviderNote(providerNote)
   if (!parsed) {
     return null
@@ -83,8 +85,16 @@ export function ProviderProvenance({
       </div>
       {!compact && parsed.providerLabel ? (
         <Text className="text-sm">
-          Created with {parsed.sourceLabel.toLowerCase()} {parsed.providerLabel}
-          {parsed.modelLabel ? ` using ${parsed.modelLabel}` : ''}.
+          {parsed.modelLabel
+            ? t('createdWithModel', {
+                source: parsed.sourceLabel.toLowerCase(),
+                provider: parsed.providerLabel,
+                model: parsed.modelLabel,
+              })
+            : t('createdWith', {
+                source: parsed.sourceLabel.toLowerCase(),
+                provider: parsed.providerLabel,
+              })}
         </Text>
       ) : null}
     </div>

@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/page-header'
 import { archiveTrack, getOnboarding, getOnboardingOptions, listTracks, saveOnboarding } from '@/lib/api'
 import type { OnboardingOptions, OnboardingState, UserTrack } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
+import { useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
 import { OnboardingTrackForm } from './onboarding-track-form'
@@ -23,6 +24,7 @@ const emptyOptions: OnboardingOptions = {
 }
 
 export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) {
+  const t = useTranslations('onboardingView')
   const router = useRouter()
   const pathname = usePathname()
   const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession(pathname)
@@ -79,7 +81,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load onboarding')
+          setError(err instanceof Error ? err.message : t('loadError'))
         }
       } finally {
         if (!cancelled) {
@@ -91,7 +93,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
     return () => {
       cancelled = true
     }
-  }, [mode, session])
+  }, [mode, session, t])
 
   function toggle(list: string[], setList: (items: string[]) => void, value: string) {
     if (list.includes(value)) {
@@ -121,7 +123,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
       })
       router.push(onboardingState?.onboarding_complete ? '/' : '/new-assignment')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save onboarding')
+      setError(err instanceof Error ? err.message : t('saveError'))
     } finally {
       setSaving(false)
     }
@@ -132,9 +134,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
     if (!treeSlug) {
       return
     }
-    const confirmed = window.confirm(
-      'Archive this practice path? Its history will be kept, but it will be removed from your active practice paths.'
-    )
+    const confirmed = window.confirm(t('archiveConfirm'))
     if (!confirmed) {
       return
     }
@@ -145,17 +145,17 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
       router.push('/')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not archive practice path')
+      setError(err instanceof Error ? err.message : t('archiveError'))
     } finally {
       setArchiving(false)
     }
   }
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading onboarding…" />
+    return <LoadingState label={t('loading')} />
   }
   if (sessionError) {
-    return <EmptyState title="Onboarding issue" body={sessionError} />
+    return <EmptyState title={t('issueTitle')} body={sessionError} />
   }
 
   const canArchive = mode === 'edit' && existingProfile && tracks.length > 1
@@ -163,46 +163,46 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow={setupFlow ? 'Step 2 of 3 · Practice path setup' : 'Practice path setup'}
+        eyebrow={setupFlow ? t('setupStepEyebrow') : t('setupEyebrow')}
         title={
-          mode === 'create' ? 'Create a new practice path' : existingProfile ? 'Edit practice path' : 'Set your starting point'
+          mode === 'create' ? t('createTitle') : existingProfile ? t('editTitle') : t('startingPointTitle')
         }
         intro={
           setupFlow
-            ? 'Tell us what kind of writing you want to practice first.'
+            ? t('setupIntro')
             : mode === 'create'
-            ? 'Start another practice path for a different kind of writing.'
+            ? t('createIntro')
             : existingProfile
-              ? 'Update this practice path’s focus, tone, and goals.'
-              : 'Tell us what kind of writing you want to improve first.'
+              ? t('editIntro')
+              : t('startingPointIntro')
         }
       />
 
       {setupFlow ? (
         <Callout
           tone="active"
-          eyebrow="Onboarding"
-          title="Next, create your first practice path"
-          body="Your answers shape what you practice next."
+          eyebrow={t('calloutEyebrow')}
+          title={t('calloutTitle')}
+          body={t('calloutBody')}
         >
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <li>Describe the kind of writing you want to practice most often.</li>
-            <li>Pick the audience, tone, and outcomes you want the coach to optimize for.</li>
-            <li>Saving this step takes you straight to Step 3 of 3: your first assignment.</li>
+            <li>{t('calloutBullet1')}</li>
+            <li>{t('calloutBullet2')}</li>
+            <li>{t('calloutBullet3')}</li>
           </ul>
         </Callout>
       ) : null}
 
       <WorkspaceCard>
-        <CardHeader eyebrow="How it works" title="How practice paths work" />
+        <CardHeader eyebrow={t('howItWorksEyebrow')} title={t('howItWorksTitle')} />
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-          <p>You work on up to three skills at a time.</p>
-          <p>Each assignment and each round of feedback stays focused on those skills.</p>
-          <p>As you improve, older skills are checked more lightly and new ones open up.</p>
+          <p>{t('howItWorksBody1')}</p>
+          <p>{t('howItWorksBody2')}</p>
+          <p>{t('howItWorksBody3')}</p>
         </div>
       </WorkspaceCard>
 
-      {error ? <EmptyState title="Onboarding issue" body={error} /> : null}
+      {error ? <EmptyState title={t('issueTitle')} body={error} /> : null}
 
       <OnboardingTrackForm
         mode={mode}
