@@ -29,14 +29,14 @@
     "@types/node": "^24.1.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "^16.2.1",
     "postcss": "^8",
-    "prettier": "^3.6.2",
-    "prettier-plugin-organize-imports": "^4.2.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4.2.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "@types/react": "19.2.14",
