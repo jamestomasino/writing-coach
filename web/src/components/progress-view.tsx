@@ -305,7 +305,7 @@ export function ProgressView() {
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-sm font-medium text-zinc-900 dark:text-white">{item.title}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {item.tgos.map((tgo) => (
+                    {(item.tgos ?? []).map((tgo) => (
                       <Badge key={tgo} color="zinc">
                         {tgo}
                       </Badge>
