@@ -137,6 +137,7 @@ The intended deployment is Docker Compose behind host `nginx`.
 Current production posture:
 
 - host `nginx` terminates TLS
+- host `nginx` can serve a static maintenance page when the upstream is unavailable
 - the published web upstream stays bound to localhost
 - the web app proxies API and Kratos browser routes internally
 - Ory Kratos handles identity, recovery, verification, and sessions
