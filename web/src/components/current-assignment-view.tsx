@@ -113,9 +113,6 @@ export function CurrentAssignmentView() {
             <Button href={`/assignments/${exercise.id}`} plain>
               View timeline
             </Button>
-            <Button href="/new-assignment" outline>
-              New assignment
-            </Button>
             {review ? (
               <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={busy}>
                 {preparingRevision ? 'Preparing revision brief…' : 'Revise from latest review'}
