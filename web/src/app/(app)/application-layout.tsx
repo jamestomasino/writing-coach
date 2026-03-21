@@ -241,7 +241,6 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="min-w-0">
                   <div className="text-lg/6 font-semibold text-zinc-950 dark:text-white">Writing Coach</div>
-                  <div className="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">{t('structuredPractice')}</div>
                 </div>
               </div>
               {authenticated === true ? (
