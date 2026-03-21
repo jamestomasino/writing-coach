@@ -1,11 +1,8 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
 import { Badge } from '@/components/badge'
-import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { Field, FieldGroup, Label } from '@/components/fieldset'
-import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
 import { Select } from '@/components/select'
 import { Text } from '@/components/text'
@@ -13,7 +10,6 @@ import { formatLocalDateTime } from '@/lib/datetime'
 import { useAdminWorkspace } from '@/lib/use-admin-workspace'
 import { useTranslations } from 'next-intl'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
-import { useToast } from './toast-provider'
 import { WorkspaceCard } from './workspace-card'
 
 function humanizeEventLabel(value: string) {
@@ -56,9 +52,6 @@ function userLabel(userSlug: string | undefined, userID: number) {
 
 export function AdminView() {
   const t = useTranslations('adminView')
-  const toast = useToast()
-  const [slug, setSlug] = useState('')
-  const [name, setName] = useState('')
   const {
     loading,
     error,
@@ -75,24 +68,8 @@ export function AdminView() {
     setSelectedProvider,
     selectedEvent,
     setSelectedEvent,
-    saving,
     loadingProviderActivity,
-    provision,
   } = useAdminWorkspace()
-
-  async function handleProvision(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    try {
-      await provision({ slug, name })
-      setSlug('')
-      setName('')
-      toast.success(t('provisionedUserToastBody', { name }), t('userCreatedToastTitle'))
-    } catch (err) {
-      const message = err instanceof Error ? err.message : t('provisionError')
-      setError(message)
-      toast.error(message, t('provisioningFailedToastTitle'))
-    }
-  }
 
   if (loading) {
     return <LoadingState label={t('loading')} />
@@ -122,31 +99,6 @@ export function AdminView() {
       {error ? <EmptyState title={t('actionFailedTitle')} body={error} /> : null}
 
       <div className="grid gap-8 xl:grid-cols-[1.4fr_1fr]">
-        <WorkspaceCard>
-          <CardHeader
-            eyebrow={t('provisioningEyebrow')}
-            title={t('addUserTitle')}
-            description={t('addUserDescription')}
-          />
-          <form className="mt-5" onSubmit={handleProvision}>
-            <FieldGroup>
-              <Field>
-                <Label>{t('name')}</Label>
-                <Input value={name} onChange={(event) => setName(event.target.value)} required />
-              </Field>
-              <Field>
-                <Label>{t('slug')}</Label>
-                <Input value={slug} onChange={(event) => setSlug(event.target.value)} required />
-              </Field>
-            </FieldGroup>
-            <div className="mt-5">
-                <Button type="submit" color="dark/zinc" disabled={saving}>
-                {saving ? t('saving') : t('addUser')}
-                </Button>
-            </div>
-          </form>
-        </WorkspaceCard>
-
         <WorkspaceCard>
           <CardHeader eyebrow={t('accessEyebrow')} title={t('accessTitle')} />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">

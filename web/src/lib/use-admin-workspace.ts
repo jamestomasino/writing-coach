@@ -1,13 +1,8 @@
 'use client'
 
-import { getAdminAIProviderEvents, getSession, listAdmins, listUsers, provisionUser } from '@/lib/api'
+import { getAdminAIProviderEvents, getSession, listAdmins, listUsers } from '@/lib/api'
 import type { AIProviderEvent, AIProviderEventFilters, AIProviderEventSummary, AuthSession, UserRecord } from '@/lib/types'
-import { FormEvent, useEffect, useState } from 'react'
-
-type ProvisionInput = {
-  slug: string
-  name: string
-}
+import { useEffect, useState } from 'react'
 
 export function useAdminWorkspace() {
   const [loading, setLoading] = useState(true)
@@ -21,7 +16,6 @@ export function useAdminWorkspace() {
   const [selectedHours, setSelectedHours] = useState('24')
   const [selectedProvider, setSelectedProvider] = useState('')
   const [selectedEvent, setSelectedEvent] = useState('')
-  const [saving, setSaving] = useState(false)
   const [loadingProviderActivity, setLoadingProviderActivity] = useState(false)
 
   useEffect(() => {
@@ -97,21 +91,6 @@ export function useAdminWorkspace() {
     }
   }, [providerFilters, selectedEvent, selectedHours, selectedProvider, session?.is_admin])
 
-  async function provision(input: ProvisionInput) {
-    try {
-      setSaving(true)
-      setError(null)
-      await provisionUser(input)
-      setUsers(await listUsers())
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not provision user'
-      setError(message)
-      throw new Error(message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return {
     loading,
     error,
@@ -128,8 +107,6 @@ export function useAdminWorkspace() {
     setSelectedProvider,
     selectedEvent,
     setSelectedEvent,
-    saving,
     loadingProviderActivity,
-    provision,
   }
 }
