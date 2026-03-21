@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { Checkbox, CheckboxField } from '@/components/checkbox'
@@ -184,6 +185,7 @@ function FlowMessages({ messages }: { messages?: KratosMessage[] }) {
 }
 
 export function KratosFlowView({ kind }: { kind: FlowKind }) {
+  const t = useTranslations('kratosFlowView')
   const router = useRouter()
   const searchParams = useSearchParams()
   const flowID = searchParams.get('flow')
@@ -191,7 +193,15 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
   const [error, setError] = useState<string | null>(null)
   const [flow, setFlow] = useState<KratosFlow | null>(null)
 
-  const meta = kindMeta[kind]
+  const meta = {
+    ...kindMeta[kind],
+    title: t(`kind.${kind}.title`),
+    intro: t(`kind.${kind}.intro`),
+    submitLabel: t(`kind.${kind}.submitLabel`),
+    alternateHref: kindMeta[kind].alternateHref,
+    alternateLabel: kindMeta[kind].alternateLabel ? t(`kind.${kind}.alternateLabel`) : undefined,
+    alternateLead: kindMeta[kind].alternateLead ? t(`kind.${kind}.alternateLead`) : undefined,
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -216,7 +226,7 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load authentication flow')
+          setError(err instanceof Error ? err.message : t('loadError'))
         }
       } finally {
         if (!cancelled) {
@@ -229,15 +239,15 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
     return () => {
       cancelled = true
     }
-  }, [flowID, meta.getPath, meta.initPath, router, searchParams])
+  }, [flowID, meta.getPath, meta.initPath, router, searchParams, t])
 
   const grouped = useMemo(() => groupNodes(flow?.ui.nodes ?? []), [flow])
 
   if (loading) {
-    return <LoadingState label="Loading account flow…" />
+    return <LoadingState label={t('loading')} />
   }
   if (error || !flow) {
-    return <AppErrorState title="Authentication unavailable" error={error ?? 'Could not load the account flow.'} />
+    return <AppErrorState title={t('unavailableTitle')} error={error ?? t('unavailableBody')} />
   }
 
   const submitNode = grouped.submit[0]
@@ -310,11 +320,11 @@ export function KratosFlowView({ kind }: { kind: FlowKind }) {
 
       {kind === 'verification' || kind === 'recovery' ? (
         <div className="space-y-2 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
-          <CardHeader eyebrow="Account flow" title="Need a different account flow?" />
+          <CardHeader eyebrow={t('accountFlowEyebrow')} title={t('differentFlowTitle')} />
           <Text className="mt-2 text-sm">
-            <TextLink href="/login">Return to sign in</TextLink>
+            <TextLink href="/login">{t('returnToSignIn')}</TextLink>
             {' · '}
-            <TextLink href="/register">Create a new account</TextLink>
+            <TextLink href="/register">{t('createNewAccount')}</TextLink>
           </Text>
         </div>
       ) : null}

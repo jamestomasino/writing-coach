@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
@@ -36,6 +37,7 @@ function badgeColorForTGO(title: string, byTitle: Map<string, TGO>): React.Compo
 }
 
 export function PastAssignmentsView() {
+  const t = useTranslations('pastAssignmentsView')
   const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession('/assignments')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +58,7 @@ export function PastAssignmentsView() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load assignment archive')
+          setError(err instanceof Error ? err.message : t('loadError'))
         }
       } finally {
         if (!cancelled) {
@@ -68,7 +70,7 @@ export function PastAssignmentsView() {
     return () => {
       cancelled = true
     }
-  }, [session])
+  }, [session, t])
 
   const currentAssignment = useMemo(() => assignments.find((item) => item.is_current), [assignments])
   const pastAssignments = useMemo(() => assignments.filter((item) => !item.is_current), [assignments])
@@ -89,29 +91,29 @@ export function PastAssignmentsView() {
   }, [dashboard])
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading past assignments…" />
+    return <LoadingState label={t('loading')} />
   }
   if (sessionError || error) {
-    return <AppErrorState title="Archive unavailable" error={sessionError ?? error ?? 'Archive unavailable'} />
+    return <AppErrorState title={t('unavailableTitle')} error={sessionError ?? error ?? t('unavailableBody')} />
   }
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Assignments"
-        title="Past assignments"
-        intro="Look back at earlier assignments from the current practice path and revisit your drafts, feedback, and revisions."
+        eyebrow={t('eyebrow')}
+        title={t('title')}
+        intro={t('intro')}
       />
 
       {currentAssignment ? (
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Current assignment"
+            eyebrow={t('currentAssignmentEyebrow')}
             title={currentAssignment.title}
-            description="Your current assignment is still active. You can open its full history here."
+            description={t('currentAssignmentDescription')}
             actions={
               <Button href={`/assignments/${currentAssignment.current_exercise_id}`} plain>
-                View current timeline
+                {t('viewCurrentTimeline')}
               </Button>
             }
           />
@@ -120,10 +122,10 @@ export function PastAssignmentsView() {
 
       {pastAssignments.length === 0 ? (
         <EmptyState
-          title="No past assignments yet"
-          body="Older assignments will show up here once you move on from the current one."
+          title={t('emptyTitle')}
+          body={t('emptyBody')}
           actionHref="/"
-          actionLabel="Open current assignment"
+          actionLabel={t('openCurrentAssignment')}
         />
       ) : (
         <div className="grid gap-6 xl:grid-cols-2">
@@ -131,10 +133,10 @@ export function PastAssignmentsView() {
             <WorkspaceCard key={assignment.root_exercise_id}>
               <CardHeader
                 title={assignment.title}
-                description={`Latest activity ${formatLocalDateTime(assignment.latest_activity) ?? assignment.latest_activity}.`}
+                description={t('latestActivity', { datetime: formatLocalDateTime(assignment.latest_activity) ?? assignment.latest_activity })}
                 actions={
                   <Button href={`/assignments/${assignment.current_exercise_id}`} color="dark/zinc">
-                    Open timeline
+                    {t('openTimeline')}
                     <ArrowRightIcon />
                   </Button>
                 }
@@ -149,25 +151,25 @@ export function PastAssignmentsView() {
               <div className="mt-5 grid gap-4 sm:grid-cols-4">
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
-                    Prompts
+                    {t('promptsStat')}
                   </div>
                   <Text className="mt-2 text-sm">{assignment.exercise_count}</Text>
                 </div>
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
-                    First drafts
+                    {t('firstDraftsStat')}
                   </div>
                   <Text className="mt-2 text-sm">{assignment.draft_count}</Text>
                 </div>
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
-                    Feedback
+                    {t('feedbackStat')}
                   </div>
                   <Text className="mt-2 text-sm">{assignment.review_count}</Text>
                 </div>
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
-                    Revisions
+                    {t('revisionsStat')}
                   </div>
                   <Text className="mt-2 text-sm">{assignment.revision_count}</Text>
                 </div>

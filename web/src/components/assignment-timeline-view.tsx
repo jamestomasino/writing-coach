@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
@@ -60,7 +61,7 @@ function TimelineRail({
   )
 }
 
-function ExerciseStepSection({ step }: { step: AssignmentTimelineStep }) {
+function ExerciseStepSection({ step, t }: { step: AssignmentTimelineStep; t: ReturnType<typeof useTranslations<'assignmentTimelineView'>> }) {
   if (!step.exercise) {
     return null
   }
@@ -76,7 +77,7 @@ function ExerciseStepSection({ step }: { step: AssignmentTimelineStep }) {
           <ProviderProvenance providerNote={step.exercise.provider_note} />
         </div>
         <div>
-          <Strong>Constraints</Strong>
+          <Strong>{t('constraints')}</Strong>
           <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
             {step.exercise.constraints.map((item) => (
               <li key={item}>• {item}</li>
@@ -84,7 +85,7 @@ function ExerciseStepSection({ step }: { step: AssignmentTimelineStep }) {
           </ul>
         </div>
         <div>
-          <Strong>Success criteria</Strong>
+          <Strong>{t('successCriteria')}</Strong>
           <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
             {step.exercise.success_criteria.map((item) => (
               <li key={item}>• {item}</li>
@@ -96,7 +97,7 @@ function ExerciseStepSection({ step }: { step: AssignmentTimelineStep }) {
   )
 }
 
-function SubmissionStepSection({ step }: { step: AssignmentTimelineStep }) {
+function SubmissionStepSection({ step, t }: { step: AssignmentTimelineStep; t: ReturnType<typeof useTranslations<'assignmentTimelineView'>> }) {
   if (!step.submission) {
     return null
   }
@@ -104,8 +105,8 @@ function SubmissionStepSection({ step }: { step: AssignmentTimelineStep }) {
     <WorkspaceCard>
       <CardHeader
         eyebrow={step.label}
-        title={`${step.submission.word_count} words`}
-        description={`Saved ${formatLocalDateTime(step.created_at) ?? step.created_at}.`}
+        title={t('wordCountTitle', { count: step.submission.word_count })}
+        description={t('savedAt', { datetime: formatLocalDateTime(step.created_at) ?? step.created_at })}
       />
       <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
         <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-zinc-700 dark:text-zinc-200">{step.submission.content}</pre>
@@ -114,7 +115,7 @@ function SubmissionStepSection({ step }: { step: AssignmentTimelineStep }) {
   )
 }
 
-function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
+function ReviewStepSection({ step, t }: { step: AssignmentTimelineStep; t: ReturnType<typeof useTranslations<'assignmentTimelineView'>> }) {
   if (!step.review) {
     return null
   }
@@ -123,16 +124,16 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
       <CardHeader
         eyebrow={step.label}
         title={step.review.summary}
-        description={`Feedback completed ${formatLocalDateTime(step.created_at) ?? step.created_at}.`}
+        description={t('feedbackCompletedAt', { datetime: formatLocalDateTime(step.created_at) ?? step.created_at })}
         actions={
           <div className="flex gap-2">
             <Button href={`/reviews/${step.review.id}`} outline>
-              Open feedback
+              {t('openFeedback')}
             </Button>
             {step.review.artifacts?.comparison && step.submission_id ? (
               <Button href={`/compare/${step.submission_id}`} plain>
                 <ArrowPathIcon />
-                Compare drafts
+                {t('compareDrafts')}
               </Button>
             ) : null}
           </div>
@@ -141,13 +142,13 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
       <div className="mt-5 grid gap-6 xl:grid-cols-2">
         <div className="space-y-4">
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">How this was created</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('howCreated')}</div>
             <div className="mt-3">
               <ProviderProvenance providerNote={step.review.provider_note} />
             </div>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">What worked</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('whatWorked')}</div>
             <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
               {step.review.strengths.map((item) => (
                 <li key={item}>• {item}</li>
@@ -155,7 +156,7 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
             </ul>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">What to improve</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('whatToImprove')}</div>
             <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
               {step.review.weaknesses.map((item) => (
                 <li key={item}>• {item}</li>
@@ -165,12 +166,12 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
         </div>
         <div className="space-y-4">
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Next focus</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('nextFocus')}</div>
             <Text className="mt-3">{step.review.next_focus}</Text>
           </div>
           {step.review.skill_scores.length ? (
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Skill ratings</div>
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('skillRatings')}</div>
               <div className="mt-3 space-y-3">
                 {step.review.skill_scores.map((item) => (
                   <SkillScoreMeter key={item.skill} score={item} compact />
@@ -180,7 +181,7 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
           ) : null}
           {step.review.artifacts?.comparison ? (
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">What changed across drafts</div>
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('whatChangedAcrossDrafts')}</div>
               <Text className="mt-3">{step.review.artifacts.comparison.summary}</Text>
             </div>
           ) : null}
@@ -190,7 +191,15 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
   )
 }
 
-function StepSection({ step, selected }: { step: AssignmentTimelineStep; selected: boolean }) {
+function StepSection({
+  step,
+  selected,
+  t,
+}: {
+  step: AssignmentTimelineStep
+  selected: boolean
+  t: ReturnType<typeof useTranslations<'assignmentTimelineView'>>
+}) {
   return (
     <section id={step.id} className="scroll-mt-28">
       <div className="mb-3 flex items-center gap-3">
@@ -198,9 +207,9 @@ function StepSection({ step, selected }: { step: AssignmentTimelineStep; selecte
         <Text>{formatLocalDateTime(step.created_at) ?? step.created_at}</Text>
       </div>
       <div className={selected ? 'rounded-[2rem] bg-stone-100/70 p-3 dark:bg-white/5' : ''}>
-        {step.kind === 'exercise' ? <ExerciseStepSection step={step} /> : null}
-        {step.kind === 'submission' ? <SubmissionStepSection step={step} /> : null}
-        {step.kind === 'review' ? <ReviewStepSection step={step} /> : null}
+        {step.kind === 'exercise' ? <ExerciseStepSection step={step} t={t} /> : null}
+        {step.kind === 'submission' ? <SubmissionStepSection step={step} t={t} /> : null}
+        {step.kind === 'review' ? <ReviewStepSection step={step} t={t} /> : null}
       </div>
     </section>
   )
@@ -213,29 +222,30 @@ export function AssignmentTimelineView({
   exerciseId: number
   showCompletionState?: boolean
 }) {
+  const t = useTranslations('assignmentTimelineView')
   const { sessionLoading, sessionError, loading, error, assignment, selectedStepID, selectStep } =
     useAssignmentTimeline(exerciseId)
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading assignment timeline…" />
+    return <LoadingState label={t('loading')} />
   }
   if (sessionError || error || !assignment) {
-    return <AppErrorState title="Assignment unavailable" error={sessionError ?? error ?? 'Could not load the requested assignment.'} />
+    return <AppErrorState title={t('unavailableTitle')} error={sessionError ?? error ?? t('unavailableBody')} />
   }
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Assignment timeline"
+        eyebrow={t('eyebrow')}
         title={assignment.title}
-        intro="See what happened on this assignment, from the first brief to the latest feedback."
+        intro={t('intro')}
         actions={
           <>
             <Button href="/assignments" plain>
-              Past assignments
+              {t('pastAssignments')}
             </Button>
             <Button href="/" outline>
-              Current assignment
+              {t('currentAssignment')}
             </Button>
           </>
         }
@@ -244,12 +254,12 @@ export function AssignmentTimelineView({
       {showCompletionState ? (
         <Callout
           tone="success"
-          eyebrow="Assignment complete"
-          title="You finished this assignment"
-          body="Take a moment to review the full draft and feedback history, then start your next assignment when you're ready."
+          eyebrow={t('completeEyebrow')}
+          title={t('completeTitle')}
+          body={t('completeBody')}
           actions={
             <Button href="/new-assignment" color="dark/zinc">
-              Start next assignment
+              {t('startNextAssignment')}
             </Button>
           }
         />
@@ -257,9 +267,9 @@ export function AssignmentTimelineView({
 
       <WorkspaceCard>
         <CardHeader
-          eyebrow="Navigation"
-          title="Assignment flow"
-          description="Jump to any step in this assignment."
+          eyebrow={t('navigationEyebrow')}
+          title={t('navigationTitle')}
+          description={t('navigationDescription')}
         />
         <div className="mt-5">
           <TimelineRail steps={assignment.steps} selectedStepID={selectedStepID} onSelect={selectStep} />
@@ -268,7 +278,7 @@ export function AssignmentTimelineView({
 
       <div className="space-y-8">
         {assignment.steps.map((step) => (
-          <StepSection key={step.id} step={step} selected={selectedStepID === step.id} />
+          <StepSection key={step.id} step={step} selected={selectedStepID === step.id} t={t} />
         ))}
       </div>
     </div>
