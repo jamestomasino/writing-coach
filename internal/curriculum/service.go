@@ -27,10 +27,6 @@ func (Service) DescribeNextStep(state domain.CurriculumState) string {
 }
 
 func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, enrollmentID int64, review domain.Review) (Recommendation, error) {
-	treeDef, err := store.TreeDefinitionBySlug(ctx, treeSlug)
-	if err != nil {
-		return Recommendation{}, err
-	}
 	active, err := store.ActiveTGOs(ctx, enrollmentID)
 	if err != nil {
 		return Recommendation{}, err
@@ -70,10 +66,6 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 		if assessment.Status != "mastered" {
 			continue
 		}
-		slot := findSlot(active, assessment.TGOCode)
-		if slot == 0 {
-			continue
-		}
 		tgo, ok := findTGO(active, assessment.TGOCode)
 		if !ok {
 			continue
@@ -86,16 +78,9 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 			continue
 		}
 		completedSet[assessment.TGOCode] = true
-		delete(activeSet, assessment.TGOCode)
-		nextOptions := domain.NextUnlockedFromDefinition(treeDef, completedSet, activeSet, 1)
-		if len(nextOptions) == 0 {
-			continue
-		}
-		next := nextOptions[0]
-		if err := store.ReplaceActiveTGO(ctx, enrollmentID, slot, assessment.TGOCode, next.Code); err != nil {
+		if err := store.MarkTGOCompleted(ctx, enrollmentID, assessment.TGOCode); err != nil {
 			return Recommendation{}, err
 		}
-		activeSet[next.Code] = true
 	}
 
 	active, err = store.ActiveTGOs(ctx, enrollmentID)
@@ -103,7 +88,7 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 		return Recommendation{}, err
 	}
 	primary := ""
-	rationale := "Maintain exactly three active TGOs and advance only when mastery is stable."
+	rationale := "Active TGOs stay fixed for the full assignment chain. Choose replacements when you start the next assignment."
 	if len(active) > 0 {
 		primary = active[0].Title
 		rationale = active[0].Description + " Mastery marker: " + active[0].MasteryHint
@@ -114,15 +99,6 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 		Difficulty: 2,
 		Rationale:  rationale,
 	}, nil
-}
-
-func findSlot(active []domain.TGO, code string) int {
-	for _, tgo := range active {
-		if tgo.Code == code {
-			return tgo.ActiveSlot
-		}
-	}
-	return 0
 }
 
 func findTGO(active []domain.TGO, code string) (domain.TGO, bool) {

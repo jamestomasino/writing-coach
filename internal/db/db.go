@@ -667,6 +667,15 @@ func (s *Store) ReplaceActiveTGO(ctx context.Context, enrollmentID int64, slot i
 	return tx.Commit()
 }
 
+func (s *Store) MarkTGOCompleted(ctx context.Context, enrollmentID int64, code string) error {
+	_, err := s.SQL.ExecContext(ctx, `
+		INSERT INTO enrollment_completed_tgos (enrollment_id, tgo_code)
+		SELECT ?, ?
+		WHERE NOT EXISTS (SELECT 1 FROM enrollment_completed_tgos WHERE enrollment_id = ? AND tgo_code = ?)
+	`, enrollmentID, code, enrollmentID, code)
+	return err
+}
+
 func (s *Store) SetActiveTGOs(ctx context.Context, enrollmentID int64, codes []string) error {
 	if len(codes) != 3 {
 		return fmt.Errorf("exactly 3 TGO codes are required")
