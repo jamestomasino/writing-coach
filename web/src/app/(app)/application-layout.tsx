@@ -282,17 +282,9 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
 
           <SidebarBody>
-            <SidebarSection>
-              <SidebarItem href="/about" current={pathname.startsWith('/about')}>
-                <InformationCircleIcon />
-                <SidebarLabel>About</SidebarLabel>
-              </SidebarItem>
-            </SidebarSection>
-
             {authenticated === true ? (
               <>
                 <SidebarSection>
-                  <SidebarHeading>Track</SidebarHeading>
                   <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
                     <ChartBarSquareIcon />
                     <SidebarLabel>Track progress</SidebarLabel>
@@ -331,6 +323,10 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
             <SidebarSpacer />
 
             <SidebarSection>
+              <SidebarItem href="/about" current={pathname.startsWith('/about')}>
+                <InformationCircleIcon />
+                <SidebarLabel>About</SidebarLabel>
+              </SidebarItem>
               {authenticated === false ? (
                 <>
                   <SidebarItem href="/login">
