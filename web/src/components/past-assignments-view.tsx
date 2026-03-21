@@ -148,7 +148,7 @@ export function PastAssignmentsView() {
                   </Badge>
                 ))}
               </div>
-              <div className="mt-5 grid gap-4 sm:grid-cols-4">
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
                     {t('promptsStat')}
@@ -157,7 +157,7 @@ export function PastAssignmentsView() {
                 </div>
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
-                    {t('firstDraftsStat')}
+                    {t('draftsStat')}
                   </div>
                   <Text className="mt-2 text-sm">{assignment.draft_count}</Text>
                 </div>
@@ -166,12 +166,6 @@ export function PastAssignmentsView() {
                     {t('feedbackStat')}
                   </div>
                   <Text className="mt-2 text-sm">{assignment.review_count}</Text>
-                </div>
-                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase dark:text-zinc-400">
-                    {t('revisionsStat')}
-                  </div>
-                  <Text className="mt-2 text-sm">{assignment.revision_count}</Text>
                 </div>
               </div>
             </WorkspaceCard>

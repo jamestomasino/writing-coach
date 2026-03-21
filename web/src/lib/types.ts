@@ -170,6 +170,7 @@ export type Dashboard = {
   active_tgos: TGO[]
   completed_tgos: TGO[]
   upcoming_tgos: TGO[]
+  total_assignments?: number
   completed_assignments: number
   draft_count?: number
   revision_count?: number

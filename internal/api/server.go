@@ -1119,9 +1119,7 @@ func (s Server) assignmentSummaries(ctx context.Context, appContext session.Cont
 		if chain == nil {
 			continue
 		}
-		if submission.DraftNumber <= 1 {
-			chain.draftCount++
-		}
+		chain.draftCount++
 		if submission.CreatedAt.After(chain.latestActivity) {
 			chain.latestActivity = submission.CreatedAt
 			chain.latestStepLabel = stepLabel("submission", exercise, submission)

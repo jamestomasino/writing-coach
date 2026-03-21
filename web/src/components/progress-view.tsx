@@ -95,9 +95,8 @@ export function ProgressView() {
   const recurringWeaknesses = dashboard.recurring_weaknesses ?? []
   const recurringFindings = dashboard.recurring_findings ?? []
   const recurringCompletedSlips = dashboard.recurring_completed_slips ?? []
-  const completedAssignments = dashboard.completed_assignments ?? 0
+  const totalAssignments = dashboard.total_assignments ?? dashboard.completed_assignments ?? 0
   const draftCount = dashboard.draft_count ?? history.length
-  const revisionCount = dashboard.revision_count ?? 0
   const profile = onboarding?.profile
   const profileCards = profile
     ? [
@@ -218,25 +217,19 @@ export function ProgressView() {
               </Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-900 dark:text-white">{t('assignmentsCompleted')}</div>
-              <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="text-sm font-semibold text-zinc-900 dark:text-white">{t('assignmentsTitle')}</div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-stone-200 bg-white/70 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                    {t('totalStat')}
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{totalAssignments}</div>
+                </div>
                 <div className="rounded-xl border border-stone-200 bg-white/70 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                     {t('draftsStat')}
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{draftCount}</div>
-                </div>
-                <div className="rounded-xl border border-stone-200 bg-white/70 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                    {t('revisionsStat')}
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{revisionCount}</div>
-                </div>
-                <div className="rounded-xl border border-stone-200 bg-white/70 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                    {t('completedStat')}
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{completedAssignments}</div>
                 </div>
               </div>
             </div>

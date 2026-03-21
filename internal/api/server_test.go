@@ -116,6 +116,7 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 	}
 
 	var payload struct {
+		TotalAssignments     int `json:"total_assignments"`
 		CompletedAssignments int `json:"completed_assignments"`
 		DraftCount           int `json:"draft_count"`
 		RevisionCount        int `json:"revision_count"`
@@ -123,18 +124,18 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode dashboard: %v", err)
 	}
+	if payload.TotalAssignments != 1 {
+		t.Fatalf("total assignments = %d", payload.TotalAssignments)
+	}
 	if payload.CompletedAssignments != 1 {
 		t.Fatalf("completed assignments = %d", payload.CompletedAssignments)
 	}
 	if payload.DraftCount != 1 {
 		t.Fatalf("draft count = %d", payload.DraftCount)
 	}
-	if payload.RevisionCount != 0 {
-		t.Fatalf("revision count = %d", payload.RevisionCount)
-	}
 }
 
-func TestDashboardCountsDraftsRevisionsAndCompletedChains(t *testing.T) {
+func TestDashboardCountsAssignmentsAndSubmissions(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
 	defer testServer.Close()
@@ -282,6 +283,7 @@ func TestDashboardCountsDraftsRevisionsAndCompletedChains(t *testing.T) {
 	}
 
 	var payload struct {
+		TotalAssignments     int `json:"total_assignments"`
 		CompletedAssignments int `json:"completed_assignments"`
 		DraftCount           int `json:"draft_count"`
 		RevisionCount        int `json:"revision_count"`
@@ -289,14 +291,14 @@ func TestDashboardCountsDraftsRevisionsAndCompletedChains(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode dashboard: %v", err)
 	}
+	if payload.TotalAssignments != 1 {
+		t.Fatalf("total assignments = %d", payload.TotalAssignments)
+	}
 	if payload.CompletedAssignments != 1 {
 		t.Fatalf("completed assignments = %d", payload.CompletedAssignments)
 	}
-	if payload.DraftCount != 1 {
+	if payload.DraftCount != 3 {
 		t.Fatalf("draft count = %d", payload.DraftCount)
-	}
-	if payload.RevisionCount != 2 {
-		t.Fatalf("revision count = %d", payload.RevisionCount)
 	}
 }
 
@@ -1346,7 +1348,7 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 	}
 }
 
-func TestAssignmentsListCountsInitialDraftsSeparatelyFromRevisions(t *testing.T) {
+func TestAssignmentsListCountsAllSubmissionsAsDrafts(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
 	defer testServer.Close()
@@ -1465,7 +1467,7 @@ func TestAssignmentsListCountsInitialDraftsSeparatelyFromRevisions(t *testing.T)
 	if len(payload.Assignments) != 1 {
 		t.Fatalf("assignment count = %d", len(payload.Assignments))
 	}
-	if payload.Assignments[0].DraftCount != 1 || payload.Assignments[0].RevisionCount != 1 || payload.Assignments[0].ReviewCount != 2 {
+	if payload.Assignments[0].DraftCount != 2 || payload.Assignments[0].RevisionCount != 1 || payload.Assignments[0].ReviewCount != 2 {
 		t.Fatalf("assignment counts = %#v", payload.Assignments[0])
 	}
 }

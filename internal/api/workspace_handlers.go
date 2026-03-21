@@ -1025,7 +1025,7 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	completedAssignments, draftCount, revisionCount := dashboardAssignmentStats(exercises, submissions, reviews)
+	totalAssignments, draftCount, completedAssignments := dashboardAssignmentStats(exercises, submissions, reviews)
 	recurringWeaknesses, err := s.Store.RecurringWeaknesses(ctx, appContext.UserID, appContext.TreeID, 5)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -1073,9 +1073,10 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		"active_tgos":               toTGOResponses(activeTGOs),
 		"completed_tgos":            toTGOResponses(completedTGOs),
 		"upcoming_tgos":             toTGOResponses(upcoming),
+		"total_assignments":         totalAssignments,
 		"completed_assignments":     completedAssignments,
 		"draft_count":               draftCount,
-		"revision_count":            revisionCount,
+		"revision_count":            0,
 		"progress_lines":            progress,
 		"strongest_skills":          strongest,
 		"weakest_skills":            weakest,
@@ -1086,7 +1087,7 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 	})
 }
 
-func dashboardAssignmentStats(exercises []domain.Exercise, submissions []domain.Submission, reviews []domain.Review) (completedAssignments, draftCount, revisionCount int) {
+func dashboardAssignmentStats(exercises []domain.Exercise, submissions []domain.Submission, reviews []domain.Review) (totalAssignments, draftCount, completedAssignments int) {
 	exerciseByID := make(map[int64]domain.Exercise, len(exercises))
 	for _, exercise := range exercises {
 		exerciseByID[exercise.ID] = exercise
@@ -1094,10 +1095,13 @@ func dashboardAssignmentStats(exercises []domain.Exercise, submissions []domain.
 	submissionByID := make(map[int64]domain.Submission, len(submissions))
 	for _, submission := range submissions {
 		submissionByID[submission.ID] = submission
-		if submission.DraftNumber <= 1 {
-			draftCount++
-		} else {
-			revisionCount++
+		draftCount++
+	}
+	totalRoots := make(map[int64]bool)
+	for _, exercise := range exercises {
+		rootID := rootExerciseID(exercise, exerciseByID, submissionByID)
+		if rootID != 0 {
+			totalRoots[rootID] = true
 		}
 	}
 
@@ -1116,5 +1120,5 @@ func dashboardAssignmentStats(exercises []domain.Exercise, submissions []domain.
 			completedRoots[rootID] = true
 		}
 	}
-	return len(completedRoots), draftCount, revisionCount
+	return len(totalRoots), draftCount, len(completedRoots)
 }
