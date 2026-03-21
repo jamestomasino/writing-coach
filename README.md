@@ -1,6 +1,8 @@
 # Writing Coach
 
-`writing-coach` is a Docker-deployed writing practice app with:
+`writing-coach` is a Docker-deployed writing practice app for structured skill building.
+
+It combines:
 
 - a Go API backend
 - a Next.js web client
@@ -9,23 +11,23 @@
 - deterministic analysis plus LLM-backed prompt and review generation
 - assignment history, revision compare, and archive browsing
 
-The app is built around a closed feedback loop:
+The core loop is simple:
 
-1. set a writing track through onboarding
+1. choose a practice path
 2. generate an assignment
 3. submit a draft
-4. receive feedback and scores
+4. get feedback tied to a few active skills
 5. revise or move on
-6. adapt future assignments based on accumulated history
+6. use that history to shape the next assignment
 
-## What It Does
+## What Users Get
 
-- keeps exactly 3 active `TGOs` in focus at a time
-- generates prompts and revision briefs
-- reviews drafts against active skills
-- preserves assignment history across prompt, draft, feedback, revision, and later passes
-- supports per-user AI provider settings
-- falls back to deterministic local logic where supported if a model call fails
+- exactly 3 active skill goals at a time
+- new assignments and revision briefs
+- reviews tied to the current skill goals
+- assignment history across prompt, draft, feedback, revision, and later passes
+- per-user AI provider settings
+- deterministic fallback behavior when model-backed generation is unavailable
 
 Supported personal AI providers:
 
@@ -41,7 +43,7 @@ The intended deployment is a single Docker Compose stack behind host `nginx`:
 
 - host `nginx` terminates TLS
 - host `nginx` reverse-proxies a localhost-bound web port
-- the web app, API, Kratos, LanguageTool, and storage stay on the internal Docker network
+- the web app, API, Kratos, analyzers, and storage stay on the internal Docker network
 
 This repository contains mixed-license materials. The web UI includes Tailwind Plus-derived code. See:
 
@@ -103,6 +105,27 @@ openssl rand -base64 48
 ```
 
 Keep `WRITING_COACH_AI_KEY_SECRET` stable after deployment. Changing it later will make previously saved user keys unreadable.
+
+## How Feedback Works
+
+Reviews are intentionally layered.
+
+1. Deterministic analyzers inspect the draft for concrete issues.
+2. The active skill goals decide what matters most on this assignment.
+3. The review and revision flow use those signals to shape feedback and the next step.
+
+That means the app does not simply send a draft to a model and accept the result uncritically.
+
+The deterministic layer includes:
+
+- built-in heuristic checks
+- `Vale` for style and custom prose rules
+- `LanguageTool` for grammar and usage suggestions
+- `spaCy` plus `TextDescriptives` for sentence and readability analysis
+
+If a language model is enabled, it works on top of that structure. It helps write clearer assignments, coaching summaries, and revision briefs. It does not replace the deterministic analysis layer.
+
+If no model is available, the app still produces deterministic prompts, reviews, and revision briefs.
 
 ## AI Provider Modes
 
@@ -191,44 +214,27 @@ State is stored in Docker volumes:
 - admin users can inspect provider activity in the admin workspace
 
 ## Deterministic Analysis
-
 Every review runs built-in heuristic analysis. In the Compose deployment, the stack also includes:
 
 - Vale bundled into the app image
 - LanguageTool as an internal Docker service
 - spaCy plus TextDescriptives as an internal Docker service
 
-These findings feed the review pipeline and are saved as review artifacts for later reporting and UI use.
+These findings are stored as review artifacts for later reporting and UI use.
 
 If an external analyzer is unavailable, the app continues with the remaining analyzers.
 
 The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach).
 
-## How Review And Prompting Work
-
-The current pipeline is intentionally layered:
-
-1. deterministic analyzers inspect the draft for concrete signals
-2. the active `TGOs` decide which skills matter most on this assignment
-3. the review and revision flow use those signals to shape feedback and the next step
-
-When a model is enabled, it does not replace the deterministic layer. It uses the analyzer summary, selected findings, and active skill context to generate clearer assignment language and more readable coaching. If no model is available, the app still produces deterministic prompts, reviews, and revision briefs.
-
-In practical terms:
-
-- deterministic tools handle grammar, style, sentence strain, and measurable prose signals
-- the TGO system keeps the review focused on the current skill goals instead of trying to judge everything at once
-- the LLM, when enabled, helps synthesize and phrase the coaching rather than starting from a blank guess
-
 ## Web Experience
 
-The browser UI now centers the full assignment loop:
+The browser UI is built around the assignment loop:
 
 - current assignment workspace as the default home
 - background review and revision queue states with progress loaders
 - full assignment timelines showing prompt, draft, feedback, and revision steps
 - archive browsing for older assignments
-- About-page explanation of how the coaching loop works in plain language
+- an About page that explains the coaching loop in plain language
 
 ## API Overview
 

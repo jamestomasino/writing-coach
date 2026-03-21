@@ -14,13 +14,13 @@ export function TrackManagementCard({
   return (
     <WorkspaceCard>
       <CardHeader
-        eyebrow="Track management"
-        title="Archive this track"
-        description="Archive hides this track from the switcher but keeps its assignment history and progress data intact."
+        eyebrow="Practice path settings"
+        title="Archive this practice path"
+        description="This hides the practice path from the switcher but keeps its assignment history and progress."
       />
       <div className="mt-5 flex justify-end">
         <Button color="red" onClick={onArchive} disabled={archiving} data-testid="archive-track-button">
-          {archiving ? 'Archiving…' : 'Archive track'}
+          {archiving ? 'Archiving…' : 'Archive practice path'}
         </Button>
       </div>
     </WorkspaceCard>

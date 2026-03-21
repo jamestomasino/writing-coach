@@ -108,12 +108,12 @@ export function ProgressView() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Progress"
-        title={tree?.title ?? 'Progress board'}
-        intro={tree?.description ?? 'Active skills remain the primary measure.'}
+        title={tree?.title ?? 'Practice path progress'}
+        intro={tree?.description ?? 'See what you are working on now, what is getting stronger, and what is likely to open next.'}
       />
 
       {profile ? (
-        <section aria-label="Track profile" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section aria-label="Practice path profile" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {profileCards.map((item) => (
             <WorkspaceCard key={item.label} className="p-5">
               <Eyebrow>{item.label}</Eyebrow>
@@ -123,8 +123,8 @@ export function ProgressView() {
         </section>
       ) : (
         <WorkspaceCard>
-          <Subheading>Track profile</Subheading>
-          <Text className="mt-3">This track was created without a saved profile.</Text>
+          <Subheading>Practice path profile</Subheading>
+          <Text className="mt-3">This practice path was created without a saved profile.</Text>
         </WorkspaceCard>
       )}
 
@@ -132,8 +132,8 @@ export function ProgressView() {
         <WorkspaceCard>
           <CardHeader
             eyebrow="Progress"
-            title="Track completion"
-            description="See how much of this track you've practiced and how much you've mastered."
+            title="Practice path progress"
+            description="See how much of this path you have practiced and how much you have mastered."
             actions={<Badge color="green">{completionRatio}% complete</Badge>}
           />
           <div className="mt-6">
@@ -146,7 +146,7 @@ export function ProgressView() {
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-300">
               <span>{completedCount} completed</span>
               <span>{activeTGOs.length} active</span>
-              <span>{upcomingTGOs.length} unlocked next</span>
+              <span>{upcomingTGOs.length} ready next</span>
               <span>{Math.max(totalSkills - completedCount - activeTGOs.length, 0)} still ahead</span>
             </div>
           </div>
@@ -182,7 +182,7 @@ export function ProgressView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <CardHeader eyebrow="Status" title="Current coaching state" />
+          <CardHeader eyebrow="Right now" title="What to focus on now" />
           <div className="mt-5 space-y-4">
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-blue-900 dark:text-blue-200">
@@ -210,9 +210,7 @@ export function ProgressView() {
                 Mastered skills
               </div>
               <Text className="mt-2 text-sm">
-                {completedTGOs.length === 0
-                  ? 'No skills have been mastered yet.'
-                  : `${completedTGOs.length} skills have been marked mastered.`}
+                {completedTGOs.length === 0 ? 'No skills have been mastered yet.' : `${completedTGOs.length} skills are now in strong shape.`}
               </Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
@@ -226,12 +224,12 @@ export function ProgressView() {
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
                 <ExclamationTriangleIcon className="size-4" />
-                Regression watch
+                Older skills to watch
               </div>
               <Text className="mt-2 text-sm">
                 {recurringCompletedSlips.length === 0
-                  ? 'No mastered-skill regressions are currently being flagged.'
-                  : `${recurringCompletedSlips.length} maintenance issues need attention.`}
+                  ? 'No older mastered skills are slipping right now.'
+                  : `${recurringCompletedSlips.length} older skills need attention.`}
               </Text>
             </div>
           </div>
@@ -240,15 +238,15 @@ export function ProgressView() {
 
       <div className="grid gap-8 xl:grid-cols-2">
         <WorkspaceCard>
-          <Subheading>Skill signals</Subheading>
+          <Subheading>Recent patterns</Subheading>
           <Text className="mt-2">
-            A quick read on where your recent work looks strongest and where it still needs attention.
+            A quick read on where your recent work looks strongest and where it still needs more attention.
           </Text>
           <div className="mt-6 space-y-6">
             <div>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-white">
                 <ArrowTrendingUpIcon className="size-4 text-green-600" />
-                Strongest
+                Looking strongest
               </div>
               <div className="space-y-3">
                 {strongestSkills.map((item, index) => (
@@ -270,7 +268,7 @@ export function ProgressView() {
             <div>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-white">
                 <ArrowTrendingDownIcon className="size-4 text-amber-600" />
-                Weakest
+                Needs attention
               </div>
               <div className="space-y-3">
                 {weakestSkills.map((item, index) => (
@@ -293,9 +291,9 @@ export function ProgressView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <Subheading>Recent activity timeline</Subheading>
+          <Subheading>Recent assignments</Subheading>
           <Text className="mt-2">
-            A quick view of your recent assignments, reviews, and next focus.
+            A quick view of recent assignments and the skills they worked on.
           </Text>
           <ol className="mt-6 space-y-4">
             {history.length === 0 ? (
@@ -305,7 +303,7 @@ export function ProgressView() {
               <li key={`${item.title}-${index}`} className="relative pl-6">
                 <span className="absolute top-1.5 left-0 size-2 rounded-full bg-stone-800 dark:bg-stone-200" />
                 <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">Assignment: {item.title}</div>
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">{item.title}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {item.tgos.map((tgo) => (
                       <Badge key={tgo} color="zinc">

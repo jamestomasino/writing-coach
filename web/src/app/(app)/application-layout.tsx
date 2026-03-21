@@ -64,7 +64,7 @@ function initialsForName(value: string) {
 
 function trackStatusLine(track: UserTrack | null) {
   if (!track) {
-    return 'No active track selected'
+    return 'No active practice path selected'
   }
   if (track.assignment_count === 0) {
     return 'No assignments yet'
@@ -74,7 +74,7 @@ function trackStatusLine(track: UserTrack | null) {
   if (track.current_assignment) {
     return activity ? `${track.current_assignment} · ${activity}` : track.current_assignment
   }
-  return activity || `${track.assignment_count} assignment chains`
+  return activity || `${track.assignment_count} assignments`
 }
 
 function AccountDropdownMenu({
@@ -193,7 +193,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
     }
     if (shouldConfirmTrackSwitch(window.__writingCoachHasUnsavedDraft)) {
       const confirmed = window.confirm(
-        'You have an unsaved draft in the current track. Switch tracks and discard those unsaved edits?'
+        'You have an unsaved draft in the current practice path. Switch practice paths and discard those unsaved edits?'
       )
       if (!confirmed) {
         return
@@ -246,10 +246,10 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   >
                     <span className="min-w-0">
                       <span className="block text-[11px] font-semibold tracking-[0.18em] text-zinc-500 uppercase dark:text-zinc-400">
-                        Track
+                        Practice path
                       </span>
                       <span className="mt-1 block truncate text-sm font-semibold">
-                        {activeTrack?.title ?? 'Select a track'}
+                        {activeTrack?.title ?? 'Select a practice path'}
                       </span>
                       <span className="mt-1 block truncate text-xs text-zinc-500 dark:text-zinc-400">
                         {trackStatusLine(activeTrack)}
@@ -275,7 +275,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                     <DropdownDivider />
                     <DropdownItem href="/onboarding?mode=create" data-testid="new-track-link">
                       <PlusIcon />
-                      <DropdownLabel>New track</DropdownLabel>
+                      <DropdownLabel>New practice path</DropdownLabel>
                     </DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
@@ -289,7 +289,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                 <SidebarSection>
                   <SidebarItem href="/progress" current={pathname.startsWith('/progress')}>
                     <ChartBarSquareIcon />
-                    <SidebarLabel>Track progress</SidebarLabel>
+                    <SidebarLabel>Practice path progress</SidebarLabel>
                   </SidebarItem>
                   <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
                     <Squares2X2Icon />
@@ -297,7 +297,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   </SidebarItem>
                   <SidebarItem href="/onboarding?mode=edit" current={pathname.startsWith('/onboarding')}>
                     <ArrowPathIcon />
-                    <SidebarLabel>Edit track</SidebarLabel>
+                    <SidebarLabel>Edit practice path</SidebarLabel>
                   </SidebarItem>
                 </SidebarSection>
 

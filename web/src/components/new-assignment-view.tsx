@@ -137,8 +137,8 @@ export function NewAssignmentView() {
         title="New assignment"
         intro={
           setupFlow
-            ? 'Choose the three skills you want your first assignment to focus on.'
-            : 'Choose the three skills you want this assignment to focus on.'
+            ? 'Choose the three skills you want your first assignment to build.'
+            : 'Choose the three skills you want this assignment to build.'
         }
       />
 
@@ -147,22 +147,22 @@ export function NewAssignmentView() {
           tone="active"
           eyebrow="Onboarding"
           title="Finish by generating your first assignment"
-          body="Pick three skills, generate a prompt, and accept it. Once you do, the full writing workspace becomes your normal home."
+          body="Pick three skills, generate an assignment, and use it. Once you do, the full writing workspace becomes your normal home."
         >
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
             <li>Keep the selection to exactly three skills.</li>
-            <li>Generate the prompt, then refresh it if the first version misses the mark.</li>
-            <li>Accept the prompt to enter the current assignment workspace.</li>
+            <li>Generate the assignment, then try another if the first version misses the mark.</li>
+            <li>Use the assignment to enter the current assignment workspace.</li>
           </ul>
         </Callout>
       ) : null}
 
-      {error ? <EmptyState title="Prompt generation issue" body={error} /> : null}
+      {error ? <EmptyState title="Assignment issue" body={error} /> : null}
 
       <WorkspaceCard>
         <CardHeader
-          eyebrow="Review focus"
-          title="Choose 3 review skills"
+          eyebrow="Assignment focus"
+          title="Choose 3 skills for this assignment"
           description="Pick the three skills you want this assignment to focus on."
         />
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -220,7 +220,7 @@ export function NewAssignmentView() {
                 <Eyebrow tone="cyan">Assignment generation</Eyebrow>
                 <Subheading>Generating assignment</Subheading>
                 <Text className="mt-2">
-                  Creating a new prompt for this track. This usually takes a few seconds.
+                  Creating a new assignment for this practice path. This usually takes a few seconds.
                 </Text>
               </div>
             </div>
@@ -244,12 +244,12 @@ export function NewAssignmentView() {
       {preview ? (
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Generated prompt"
+            eyebrow="Draft assignment"
             title={preview.title}
             actions={
               <div className="flex gap-2">
                 <Button plain onClick={generate} disabled={generating}>
-                  {generating ? 'Refreshing…' : 'Refresh prompt'}
+                  {generating ? 'Trying another…' : 'Try another'}
                 </Button>
                 <Button
                   onClick={acceptPreview}
@@ -257,7 +257,7 @@ export function NewAssignmentView() {
                   disabled={generating || accepting}
                   data-testid="accept-assignment-button"
                 >
-                  {accepting ? 'Accepting…' : 'Accept and continue'}
+                  {accepting ? 'Opening…' : 'Use this assignment'}
                 </Button>
               </div>
             }

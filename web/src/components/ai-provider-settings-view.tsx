@@ -183,7 +183,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         title="AI provider"
         intro={
           required
-            ? 'Connect an AI provider before creating your first track. Assignment generation and review both depend on it.'
+            ? 'Connect an AI provider before creating your first practice path. Assignment generation and review both depend on it.'
             : 'Connect your own provider for assignment and review generation. You can keep using the shared provider while it is available.'
         }
       />
@@ -198,7 +198,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
             <li>Choose a provider and paste a valid API key.</li>
             <li>Keep the default base URL unless you are using a compatible proxy.</li>
-            <li>Save here to continue to Step 2 of 3: create your first track.</li>
+            <li>Save here to continue to Step 2 of 3: create your first practice path.</li>
           </ul>
         </Callout>
       ) : null}

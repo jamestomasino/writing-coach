@@ -100,7 +100,7 @@ export function PastAssignmentsView() {
       <PageHeader
         eyebrow="Assignments"
         title="Past assignments"
-        intro="Look back at earlier assignments from the active track and revisit your drafts, feedback, and revisions."
+        intro="Look back at earlier assignments from the current practice path and revisit your drafts, feedback, and revisions."
       />
 
       {currentAssignment ? (

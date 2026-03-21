@@ -83,7 +83,7 @@ export function ProviderProvenance({
       </div>
       {!compact && parsed.providerLabel ? (
         <Text className="text-sm">
-          Generated with {parsed.sourceLabel.toLowerCase()} {parsed.providerLabel}
+          Created with {parsed.sourceLabel.toLowerCase()} {parsed.providerLabel}
           {parsed.modelLabel ? ` using ${parsed.modelLabel}` : ''}.
         </Text>
       ) : null}

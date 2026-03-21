@@ -89,7 +89,7 @@ export function AdminView() {
         <WorkspaceCard>
           <CardHeader
             eyebrow="Provisioning"
-            title="Provision user"
+            title="Add user"
             description="Create the account record before someone signs in for the first time."
           />
           <form className="mt-5" onSubmit={handleProvision}>
@@ -105,14 +105,14 @@ export function AdminView() {
             </FieldGroup>
             <div className="mt-5">
               <Button type="submit" color="dark/zinc" disabled={saving}>
-                {saving ? 'Saving…' : 'Provision user'}
+                {saving ? 'Saving…' : 'Add user'}
               </Button>
             </div>
           </form>
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <CardHeader eyebrow="Access" title="Admin allowlist" />
+          <CardHeader eyebrow="Access" title="Admin access list" />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
             {admins.map((admin) => (
               <li key={admin}>• {admin}</li>

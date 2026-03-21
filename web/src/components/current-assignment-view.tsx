@@ -54,7 +54,7 @@ export function CurrentAssignmentView() {
     return (
       <EmptyState
         title="Sign in to continue"
-        body="Authentication runs through the Kratos browser flow. Once you sign in, this page becomes the current assignment workspace for your active track."
+        body="Once you sign in, this page becomes the current assignment workspace for your active practice path."
         actionHref="/login"
         actionLabel="Open sign in"
       />
@@ -81,10 +81,10 @@ export function CurrentAssignmentView() {
         <PageHeader
           eyebrow="Assignment workspace"
           title="Current assignment"
-          intro="You do not have an active assignment yet. Choose 3 unlocked skills and generate the next prompt."
+          intro="You do not have an active assignment yet. Choose 3 available skills and generate the next assignment."
         />
         <WorkspaceCard>
-          <CardHeader eyebrow="Current focus" title="Active skills" />
+          <CardHeader eyebrow="Skills in focus" title="Current skills" />
           <div className="mt-4 flex flex-wrap gap-2">
             {dashboard.active_tgos.map((tgo) => (
               <Badge key={tgo.code} color="blue">
@@ -115,7 +115,7 @@ export function CurrentAssignmentView() {
             </Button>
             {review ? (
               <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={busy}>
-                {preparingRevision ? 'Preparing revision brief…' : 'Revise from latest review'}
+                {preparingRevision ? 'Preparing revision brief…' : 'Create revision brief'}
               </Button>
             ) : null}
           </>
@@ -124,11 +124,11 @@ export function CurrentAssignmentView() {
       {reviewPending ? (
         <TaskProgressState
           title="Review in progress"
-          body="Your draft is saved. Review is running in the background."
+          body="Your draft is saved. You can leave this page while feedback is being prepared."
           steps={[
             'Save the latest draft.',
-            'Review it against the selected skills.',
-            'Prepare feedback and next steps.',
+            'Check it against the selected skills.',
+            'Prepare feedback and the next step.',
           ]}
         />
       ) : null}
@@ -136,11 +136,11 @@ export function CurrentAssignmentView() {
       {preparingRevision ? (
         <TaskProgressState
           title="Revision brief in progress"
-          body="Preparing a revision brief from your latest review."
+          body="Building a revision brief from your latest feedback."
           steps={[
             'Load the latest reviewed draft.',
-            'Extract the highest-priority revision targets.',
-            'Generate a focused revision brief for the next pass.',
+            'Pull out the highest-priority revision targets.',
+            'Build the next revision brief.',
           ]}
         />
       ) : null}
@@ -149,8 +149,8 @@ export function CurrentAssignmentView() {
         <Callout
           tone="warning"
           eyebrow="Review status"
-          title="Review failed"
-          body="The draft saved, but the background review did not finish. You can retry without losing your submission."
+          title="Feedback did not finish"
+          body="Your draft was saved, but the feedback job did not finish. You can retry without losing your work."
           actions={
             <Button onClick={handleRetryReview} color="dark/zinc" disabled={reviewing}>
               {reviewing ? 'Retrying…' : 'Retry review'}
@@ -170,16 +170,16 @@ export function CurrentAssignmentView() {
           <CardHeader
             eyebrow="Revision mode"
             title="Revision brief"
-            description="Revise this draft using the notes below."
+            description="Use the notes below to revise this draft."
             actions={
               review ? (
                 <Button href={`/compare/${compareSubmissionID}`} outline>
                   <ArrowPathIcon />
-                  Open revision compare
+                  Compare drafts
                 </Button>
               ) : sourceReview ? (
                 <Button href={`/reviews/${sourceReview.id}`} outline>
-                  Open prior review
+                  Open earlier feedback
                 </Button>
               ) : null
             }
@@ -199,7 +199,7 @@ export function CurrentAssignmentView() {
                   onClick={() => setRevisionPanel('feedback')}
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition ${revisionPanel === 'feedback' ? 'bg-white text-zinc-950 shadow-sm dark:bg-white/10 dark:text-white' : 'text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white'}`}
                 >
-                  Prior feedback
+                  Earlier feedback
                 </button>
               </div>
               {revisionPanel === 'brief' ? (
@@ -256,7 +256,7 @@ export function CurrentAssignmentView() {
         <WorkspaceCard>
           <CardHeader
             eyebrow="Assignment brief"
-            title="Prompt"
+            title="Assignment"
             actions={<Badge color="zinc">{exercise.generation_kind}</Badge>}
           />
           <div className="mt-4 space-y-5">
@@ -282,9 +282,9 @@ export function CurrentAssignmentView() {
 
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Current focus"
-            title="Active skills"
-            description="The review will focus most on these three skills."
+            eyebrow="Skills in focus"
+            title="Skills for this assignment"
+            description="The review will focus mainly on these three skills."
           />
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.map((tgo) => (
@@ -310,7 +310,7 @@ export function CurrentAssignmentView() {
             <CardHeader
               eyebrow="Write and submit"
               title="Draft submission"
-              description="Paste plain text or markdown, or load a local draft file before requesting a review."
+              description="Paste your draft, or upload a file, then ask for feedback."
             />
           </div>
           <div className="flex items-center gap-3">
@@ -353,7 +353,7 @@ export function CurrentAssignmentView() {
             data-testid="submit-review-button"
           >
             <SparklesIcon />
-            {reviewing || reviewPending ? 'Review queued…' : 'Submit for review'}
+            {reviewing || reviewPending ? 'Feedback requested…' : 'Get feedback'}
           </Button>
         </div>
       </WorkspaceCard>

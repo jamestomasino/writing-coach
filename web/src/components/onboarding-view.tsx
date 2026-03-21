@@ -133,7 +133,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
       return
     }
     const confirmed = window.confirm(
-      'Archive this track? Its history will be kept, but it will be removed from the active track list.'
+      'Archive this practice path? Its history will be kept, but it will be removed from your active practice paths.'
     )
     if (!confirmed) {
       return
@@ -145,7 +145,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
       router.push('/')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not archive track')
+      setError(err instanceof Error ? err.message : 'Could not archive practice path')
     } finally {
       setArchiving(false)
     }
@@ -163,15 +163,17 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow={setupFlow ? 'Step 2 of 3 · Track setup' : 'Track setup'}
-        title={mode === 'create' ? 'Create a new track' : existingProfile ? 'Edit track' : 'Set your starting path'}
+        eyebrow={setupFlow ? 'Step 2 of 3 · Practice path setup' : 'Practice path setup'}
+        title={
+          mode === 'create' ? 'Create a new practice path' : existingProfile ? 'Edit practice path' : 'Set your starting point'
+        }
         intro={
           setupFlow
             ? 'Tell us what kind of writing you want to practice first.'
             : mode === 'create'
-            ? 'Start another track for a different kind of writing.'
+            ? 'Start another practice path for a different kind of writing.'
             : existingProfile
-              ? 'Update this track’s focus, tone, and goals.'
+              ? 'Update this practice path’s focus, tone, and goals.'
               : 'Tell us what kind of writing you want to improve first.'
         }
       />
@@ -180,7 +182,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
         <Callout
           tone="active"
           eyebrow="Onboarding"
-          title="Next, create your first track"
+          title="Next, create your first practice path"
           body="Your answers shape what you practice next."
         >
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
@@ -192,13 +194,11 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
       ) : null}
 
       <WorkspaceCard>
-        <CardHeader eyebrow="How it works" title="How track practice works" />
+        <CardHeader eyebrow="How it works" title="How practice paths work" />
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-          <p>You can focus on up to three skills at a time.</p>
-          <p>Each assignment and review focuses on those skills.</p>
-          <p>
-            As you improve, skills move into maintenance and new ones open up.
-          </p>
+          <p>You work on up to three skills at a time.</p>
+          <p>Each assignment and each round of feedback stays focused on those skills.</p>
+          <p>As you improve, older skills are checked more lightly and new ones open up.</p>
         </div>
       </WorkspaceCard>
 

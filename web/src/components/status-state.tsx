@@ -84,9 +84,9 @@ function classifyErrorMessage(message: string) {
   if (normalized.includes('not found') || normalized.includes('unavailable') || normalized.includes('404')) {
     return {
       title: 'Page unavailable',
-      body: 'The page or record you requested could not be found in this account context.',
+      body: 'The page or record you requested could not be found in this practice path.',
       actions: [
-        { href: '/', label: 'Active track' },
+        { href: '/', label: 'Current assignment' },
         { href: '/assignments', label: 'Past assignments', outline: true },
         { href: '/about', label: 'About', outline: true },
       ],
@@ -103,7 +103,7 @@ function classifyErrorMessage(message: string) {
       title: 'Something went wrong',
       body: 'A server error came back while loading this page.',
       actions: [
-        { href: '/', label: 'Active track' },
+        { href: '/', label: 'Current assignment' },
         { href: '/about', label: 'About', outline: true },
       ],
     }
@@ -112,7 +112,7 @@ function classifyErrorMessage(message: string) {
     title: 'Something went wrong',
     body: message,
     actions: [
-      { href: '/', label: 'Active track' },
+      { href: '/', label: 'Current assignment' },
       { href: '/about', label: 'About', outline: true },
     ],
   }

@@ -123,11 +123,11 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
       <CardHeader
         eyebrow={step.label}
         title={step.review.summary}
-        description={`Review completed ${formatLocalDateTime(step.created_at) ?? step.created_at}.`}
+        description={`Feedback completed ${formatLocalDateTime(step.created_at) ?? step.created_at}.`}
         actions={
           <div className="flex gap-2">
             <Button href={`/reviews/${step.review.id}`} outline>
-              Open review
+              Open feedback
             </Button>
             {step.review.artifacts?.comparison && step.submission_id ? (
               <Button href={`/compare/${step.submission_id}`} plain>
@@ -141,13 +141,13 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
       <div className="mt-5 grid gap-6 xl:grid-cols-2">
         <div className="space-y-4">
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Provider details</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">How this was created</div>
             <div className="mt-3">
               <ProviderProvenance providerNote={step.review.provider_note} />
             </div>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Strengths</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">What worked</div>
             <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
               {step.review.strengths.map((item) => (
                 <li key={item}>• {item}</li>
@@ -155,7 +155,7 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
             </ul>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Weaknesses</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">What to improve</div>
             <ul className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
               {step.review.weaknesses.map((item) => (
                 <li key={item}>• {item}</li>
@@ -170,7 +170,7 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
           </div>
           {step.review.skill_scores.length ? (
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Skill scores</div>
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Skill ratings</div>
               <div className="mt-3 space-y-3">
                 {step.review.skill_scores.map((item) => (
                   <SkillScoreMeter key={item.skill} score={item} compact />
@@ -180,7 +180,7 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
           ) : null}
           {step.review.artifacts?.comparison ? (
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Revision trajectory</div>
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">What changed across drafts</div>
               <Text className="mt-3">{step.review.artifacts.comparison.summary}</Text>
             </div>
           ) : null}
@@ -228,7 +228,7 @@ export function AssignmentTimelineView({
       <PageHeader
         eyebrow="Assignment timeline"
         title={assignment.title}
-        intro="Review the full history of this assignment in one place."
+        intro="See what happened on this assignment, from the first brief to the latest feedback."
         actions={
           <>
             <Button href="/assignments" plain>

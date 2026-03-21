@@ -34,10 +34,10 @@ export function ResetDataCard() {
       tone="danger"
       eyebrow="Danger zone"
       title="Reset coaching data"
-      body="Delete your track setup, assignments, reviews, and progress history. Your account and sign-in stay intact."
+      body="Delete your practice path setup, assignments, reviews, and progress history. Your account and sign-in stay intact."
       actions={
         <Button color="rose" onClick={handleReset} disabled={working}>
-          {working ? 'Resetting…' : 'Reset all user data'}
+          {working ? 'Resetting…' : 'Reset all coaching data'}
         </Button>
       }
     >
