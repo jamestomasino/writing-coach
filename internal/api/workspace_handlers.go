@@ -1015,6 +1015,18 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	submissions, err := s.Store.ListSubmissions(ctx, appContext.UserID, appContext.TreeID, 0, 500)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	draftCount := len(submissions)
+	revisionCount := 0
+	for _, submission := range submissions {
+		if submission.ParentSubmissionID != 0 || submission.DraftNumber > 1 {
+			revisionCount++
+		}
+	}
 	recurringWeaknesses, err := s.Store.RecurringWeaknesses(ctx, appContext.UserID, appContext.TreeID, 5)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -1063,6 +1075,8 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		"completed_tgos":            toTGOResponses(completedTGOs),
 		"upcoming_tgos":             toTGOResponses(upcoming),
 		"completed_assignments":     completedAssignments,
+		"draft_count":               draftCount,
+		"revision_count":            revisionCount,
 		"progress_lines":            progress,
 		"strongest_skills":          strongest,
 		"weakest_skills":            weakest,

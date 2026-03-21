@@ -171,6 +171,8 @@ export type Dashboard = {
   completed_tgos: TGO[]
   upcoming_tgos: TGO[]
   completed_assignments: number
+  draft_count?: number
+  revision_count?: number
   progress_lines: string[]
   strongest_skills: string[]
   weakest_skills: string[]
