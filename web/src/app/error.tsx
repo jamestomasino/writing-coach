@@ -20,7 +20,7 @@ export default function GlobalError({
     <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-16">
       <div className="w-full rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-10 text-center dark:border-white/10 dark:bg-white/5">
         <Heading level={2}>Something went wrong</Heading>
-        <Text className="mx-auto mt-3 max-w-2xl">An unexpected error occurred while loading this page.</Text>
+        <Text className="mx-auto mt-3 max-w-2xl">Something went wrong while loading this page.</Text>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button onClick={reset} outline>
             Try again

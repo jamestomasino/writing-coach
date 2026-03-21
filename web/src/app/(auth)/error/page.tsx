@@ -15,7 +15,7 @@ export default function ErrorPage({
     <div className="grid w-full max-w-lg grid-cols-1 gap-8">
       <EmptyState
         title="Account flow error"
-        body="The account flow could not be completed. This can happen when a browser flow expires or a link is reused."
+        body="The sign-in flow could not be completed. Your link may have expired, so try starting again."
         actions={[
           { href: '/login', label: 'Sign in' },
           { href: '/register', label: 'Register', outline: true },

@@ -12,7 +12,7 @@ export function ResetDataCard() {
   const [error, setError] = useState<string | null>(null)
 
   async function handleReset() {
-    if (!window.confirm('Reset all coaching data for this account? This keeps your login, but deletes onboarding, assignments, submissions, reviews, and progress history.')) {
+    if (!window.confirm('Reset all writing progress for this account? Your sign-in will stay the same.')) {
       return
     }
 

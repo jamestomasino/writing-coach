@@ -171,7 +171,7 @@ export function CurrentAssignmentView() {
           <CardHeader
             eyebrow="Revision mode"
             title="Revision brief"
-            description="This revision is based on your last review. Keep the core draft, but revise toward the notes below."
+            description="Revise this draft using the notes below."
             actions={
               review ? (
                 <Button href={`/compare/${compareSubmissionID}`} outline>

@@ -252,7 +252,7 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
 export function TreeView() {
   const { sessionLoading, sessionError, loading, error, tree, dashboard } = useTrackDashboardData('/tree', {
     requireActiveTree: true,
-    loadErrorMessage: 'Could not load skill map',
+    loadErrorMessage: 'Could not load skill tree',
   })
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const effectiveSelectedCode = selectedCode ?? dashboard?.active_tgos?.[0]?.code ?? tree?.tgos?.[0]?.code ?? null
@@ -265,7 +265,7 @@ export function TreeView() {
   }, [dashboard, effectiveSelectedCode, tree])
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading skill map…" />
+    return <LoadingState label="Loading skill tree…" />
   }
   if (sessionError || error || !tree || !dashboard || !graph) {
     return <AppErrorState title="Tree unavailable" error={sessionError ?? error ?? 'Could not load the current tree.'} />

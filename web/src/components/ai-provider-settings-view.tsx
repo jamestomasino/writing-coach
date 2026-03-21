@@ -175,7 +175,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
   async function handleDelete() {
     try {
       await remove()
-      toast.success('Personal provider removed. The app will use the system provider when available.')
+      toast.success('Personal provider removed. The shared provider will be used when available.')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not remove AI settings'
       toast.error(message, 'Provider issue')

@@ -181,7 +181,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
           tone="active"
           eyebrow="Onboarding"
           title="Next, create your first track"
-          body="These answers shape your assignments and feedback."
+          body="Your answers shape what you practice next."
         >
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
             <li>Describe the kind of writing you want to practice most often.</li>

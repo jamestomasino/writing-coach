@@ -124,7 +124,7 @@ export function ProgressView() {
       ) : (
         <WorkspaceCard>
           <Subheading>Track profile</Subheading>
-          <Text className="mt-3">This track does not have a saved profile yet.</Text>
+          <Text className="mt-3">This track was created without a saved profile.</Text>
         </WorkspaceCard>
       )}
 
