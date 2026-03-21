@@ -91,9 +91,7 @@ export function useCurrentAssignmentWorkspace(revisionExerciseID: number) {
         setLoading(true)
         const session = await getSession()
         if (!session.authenticated) {
-          if (!cancelled) {
-            setSessionRequired(true)
-          }
+          router.replace('/about')
           return
         }
         const nextPath = requiredSetupPath(session, '/')
@@ -162,7 +160,7 @@ export function useCurrentAssignmentWorkspace(revisionExerciseID: number) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Failed to load current assignment'
           if (message.toLowerCase().includes('unauthorized')) {
-            setSessionRequired(true)
+            router.replace('/about')
           } else if (revisionExerciseID > 0 && isTransientError(err)) {
             setError(
               'Could not load the revision workspace on the first attempt. Please try again. The revision brief may already be ready.'
