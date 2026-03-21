@@ -9,21 +9,11 @@ import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
 import { Select } from '@/components/select'
 import { Text } from '@/components/text'
+import { formatLocalDateTime } from '@/lib/datetime'
 import { useAdminWorkspace } from '@/lib/use-admin-workspace'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { useToast } from './toast-provider'
 import { WorkspaceCard } from './workspace-card'
-
-function formatLocalTimestamp(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
-}
 
 function humanizeEventLabel(value: string) {
   return value.replaceAll('_', ' ')
@@ -178,7 +168,9 @@ export function AdminView() {
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
                 <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Events</div>
                 <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{providerSummary.total}</div>
-                <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Since {providerSummary.since}</div>
+                <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  Since {formatLocalDateTime(providerSummary.since) ?? providerSummary.since}
+                </div>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
                 <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Validation failures</div>
@@ -231,7 +223,9 @@ export function AdminView() {
                   <div className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
                     User: <span className="font-medium text-zinc-950 dark:text-white">{event.user_slug || `#${event.user_id}`}</span>
                   </div>
-                  <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{formatLocalTimestamp(event.created_at)}</div>
+                  <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    {formatLocalDateTime(event.created_at) ?? event.created_at}
+                  </div>
                   {event.details && Object.keys(event.details).length > 0 ? (
                     <pre className="mt-3 overflow-x-auto rounded-xl bg-white/70 px-3 py-3 text-xs text-zinc-700 dark:bg-black/20 dark:text-zinc-300">
                       {JSON.stringify(event.details, null, 2)}

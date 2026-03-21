@@ -11,6 +11,7 @@ import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
 import { Select } from '@/components/select'
 import { Text } from '@/components/text'
+import { formatLocalDateTime } from '@/lib/datetime'
 import {
   CUSTOM_MODEL_OPTION,
   DEFAULT_MODEL_OPTION,
@@ -97,20 +98,6 @@ function classifyProviderIssue(message: string | null) {
   }
 }
 
-function formatLocalTimestamp(value?: string) {
-  if (!value) {
-    return null
-  }
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
-}
-
 export function AIProviderSettingsView({ required = false, nextPath }: { required?: boolean; nextPath?: string }) {
   const toast = useToast()
   const {
@@ -142,7 +129,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
     handleReviewModelChange,
   } = useAIProviderSettings({ required, nextPath })
   const status = providerStatus(settings)
-  const validatedAt = formatLocalTimestamp(settings?.validated_at)
+  const validatedAt = formatLocalDateTime(settings?.validated_at)
   const personalStorageAvailable = settings?.personal_provider_storage_available ?? true
   const promptModelIsPreset = selectedProvider.promptModels.includes(promptModel as never)
   const reviewModelIsPreset = selectedProvider.reviewModels.includes(reviewModel as never)

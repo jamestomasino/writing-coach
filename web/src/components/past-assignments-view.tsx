@@ -12,6 +12,7 @@ import { ArrowRightIcon } from '@heroicons/react/16/solid'
 import { useEffect, useMemo, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
+import { formatLocalDateTime } from '@/lib/datetime'
 
 export function PastAssignmentsView() {
   const { session, loading: sessionLoading, error: sessionError } = useRequiredAppSession('/assignments')
@@ -98,7 +99,7 @@ export function PastAssignmentsView() {
               <CardHeader
                 eyebrow={assignment.latest_step_label}
                 title={assignment.title}
-                description={`Latest activity ${assignment.latest_activity}.`}
+                description={`Latest activity ${formatLocalDateTime(assignment.latest_activity) ?? assignment.latest_activity}.`}
                 actions={
                   <Button href={`/assignments/${assignment.current_exercise_id}`} color="dark/zinc">
                     Open timeline

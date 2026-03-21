@@ -6,23 +6,13 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
+import { formatLocalDateTime } from '@/lib/datetime'
 import { useAssignmentTimeline } from '@/lib/use-assignment-timeline'
 import type { AssignmentTimelineStep } from '@/lib/types'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
-
-function formatTimelineTimestamp(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
-}
 
 function railTone(step: AssignmentTimelineStep) {
   if (step.kind === 'review') {
@@ -59,7 +49,7 @@ function TimelineRail({
             >
               <div className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">{step.label}</div>
               <div className="mt-1 text-sm font-semibold">{step.title}</div>
-              <div className="mt-1 text-xs opacity-70">{formatTimelineTimestamp(step.created_at)}</div>
+              <div className="mt-1 text-xs opacity-70">{formatLocalDateTime(step.created_at) ?? step.created_at}</div>
             </button>
             {index < steps.length - 1 ? <div className="h-px w-8 bg-stone-300 dark:bg-white/15" /> : null}
           </div>
@@ -114,7 +104,7 @@ function SubmissionStepSection({ step }: { step: AssignmentTimelineStep }) {
       <CardHeader
         eyebrow={step.label}
         title={`${step.submission.word_count} words`}
-        description={`Saved ${formatTimelineTimestamp(step.created_at)}.`}
+        description={`Saved ${formatLocalDateTime(step.created_at) ?? step.created_at}.`}
       />
       <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
         <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-zinc-700 dark:text-zinc-200">{step.submission.content}</pre>
@@ -132,7 +122,7 @@ function ReviewStepSection({ step }: { step: AssignmentTimelineStep }) {
       <CardHeader
         eyebrow={step.label}
         title={step.review.summary}
-        description={`Review completed ${formatTimelineTimestamp(step.created_at)}.`}
+        description={`Review completed ${formatLocalDateTime(step.created_at) ?? step.created_at}.`}
         actions={
           <div className="flex gap-2">
             <Button href={`/reviews/${step.review.id}`} outline>
@@ -204,7 +194,7 @@ function StepSection({ step, selected }: { step: AssignmentTimelineStep; selecte
     <section id={step.id} className="scroll-mt-28">
       <div className="mb-3 flex items-center gap-3">
         <Badge color={railTone(step)}>{step.label}</Badge>
-        <Text>{formatTimelineTimestamp(step.created_at)}</Text>
+        <Text>{formatLocalDateTime(step.created_at) ?? step.created_at}</Text>
       </div>
       <div className={selected ? 'rounded-[2rem] bg-stone-100/70 p-3 dark:bg-white/5' : ''}>
         {step.kind === 'exercise' ? <ExerciseStepSection step={step} /> : null}

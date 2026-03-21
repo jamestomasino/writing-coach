@@ -24,6 +24,7 @@ import {
 } from '@/components/sidebar'
 import { SidebarLayout } from '@/components/sidebar-layout'
 import { getSession, listTracks, setActiveTrack } from '@/lib/api'
+import { formatLocalDateTime } from '@/lib/datetime'
 import { shouldConfirmTrackSwitch } from '@/lib/track-switch-guard'
 import type { UserTrack } from '@/lib/types'
 import {
@@ -68,7 +69,8 @@ function trackStatusLine(track: UserTrack | null) {
   if (track.assignment_count === 0) {
     return 'No assignments yet'
   }
-  const activity = track.latest_assignment_time ? `Latest ${track.latest_assignment_time}` : ''
+  const latestAssignmentTime = formatLocalDateTime(track.latest_assignment_time)
+  const activity = latestAssignmentTime ? `Latest ${latestAssignmentTime}` : ''
   if (track.current_assignment) {
     return activity ? `${track.current_assignment} · ${activity}` : track.current_assignment
   }

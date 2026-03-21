@@ -7,6 +7,7 @@ import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
+import { formatLocalDateTime } from '@/lib/datetime'
 import { useCurrentAssignmentWorkspace } from '@/lib/use-current-assignment-workspace'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -72,6 +73,7 @@ export function CurrentAssignmentView() {
   const reviewFailed = reviewJob?.status === 'failed'
   const busy = reviewing || preparingRevision || reviewPending
   const compareSubmissionID = workspace.submission?.id ?? 0
+  const queuedReviewTime = formatLocalDateTime(reviewJob?.updated_at)
 
   if (!exercise) {
     return (
@@ -343,7 +345,7 @@ export function CurrentAssignmentView() {
           <Text>
             {workspace.submission
               ? reviewPending
-                ? `Latest saved draft: #${workspace.submission.draft_number}. Review queued ${reviewJob?.updated_at ?? 'just now'}.`
+                ? `Latest saved draft: #${workspace.submission.draft_number}. Review queued ${queuedReviewTime ?? 'just now'}.`
                 : `Latest saved draft: #${workspace.submission.draft_number}`
               : 'No draft submitted yet for this assignment.'}
           </Text>
