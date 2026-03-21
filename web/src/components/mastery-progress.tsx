@@ -13,9 +13,10 @@ function stageLabel(stage?: string) {
   return stage ?? 'emerging'
 }
 
-function stageFillClass(index: number, tone: 'neutral' | 'blue') {
+function stageFillClass(filledSegments: number, tone: 'neutral' | 'blue') {
+  const level = Math.max(1, Math.min(stageOrder.length, filledSegments)) - 1
   if (tone === 'blue') {
-    switch (index) {
+    switch (level) {
       case 0:
         return 'bg-blue-500 dark:bg-blue-300'
       case 1:
@@ -27,7 +28,7 @@ function stageFillClass(index: number, tone: 'neutral' | 'blue') {
     }
   }
 
-  switch (index) {
+  switch (level) {
     case 0:
       return 'bg-stone-500 dark:bg-stone-300'
     case 1:
@@ -96,7 +97,7 @@ export function MasteryProgress({
         {stageOrder.map((segment, index) => (
           <div
             key={segment}
-            className={`h-2 rounded-full ${index < filledSegments ? stageFillClass(index, tone) : palette.emptySegment}`}
+            className={`h-2 rounded-full ${index < filledSegments ? stageFillClass(filledSegments, tone) : palette.emptySegment}`}
           />
         ))}
       </div>
