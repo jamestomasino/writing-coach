@@ -35,7 +35,7 @@ function TimelineRail({
   onSelect: (stepID: string) => void
 }) {
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="timeline-scrollbar overflow-x-auto pb-2">
       <div className="flex min-w-max items-center gap-3">
         {steps.map((step, index) => (
           <div key={step.id} className="flex items-center gap-3">
