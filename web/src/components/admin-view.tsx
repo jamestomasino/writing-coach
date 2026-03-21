@@ -11,6 +11,7 @@ import { Select } from '@/components/select'
 import { Text } from '@/components/text'
 import { formatLocalDateTime } from '@/lib/datetime'
 import { useAdminWorkspace } from '@/lib/use-admin-workspace'
+import { useTranslations } from 'next-intl'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { useToast } from './toast-provider'
 import { WorkspaceCard } from './workspace-card'
@@ -54,6 +55,7 @@ function userLabel(userSlug: string | undefined, userID: number) {
 }
 
 export function AdminView() {
+  const t = useTranslations('adminView')
   const toast = useToast()
   const [slug, setSlug] = useState('')
   const [name, setName] = useState('')
@@ -84,69 +86,69 @@ export function AdminView() {
       await provision({ slug, name })
       setSlug('')
       setName('')
-      toast.success(`Provisioned ${name}.`, 'User created')
+      toast.success(t('provisionedUserToastBody', { name }), t('userCreatedToastTitle'))
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not provision user'
+      const message = err instanceof Error ? err.message : t('provisionError')
       setError(message)
-      toast.error(message, 'Provisioning failed')
+      toast.error(message, t('provisioningFailedToastTitle'))
     }
   }
 
   if (loading) {
-    return <LoadingState label="Loading admin workspace…" />
+    return <LoadingState label={t('loading')} />
   }
   if (!session?.is_admin) {
     return (
       <EmptyState
-        title="Admin workspace unavailable"
-        body="Admin access required."
+        title={t('unavailableTitle')}
+        body={t('unavailableBody')}
         actionHref="/"
-        actionLabel="Back to assignment"
+        actionLabel={t('backToAssignment')}
       />
     )
   }
   if (error && users.length === 0) {
-    return <AppErrorState title="Admin workspace unavailable" error={error} />
+    return <AppErrorState title={t('unavailableTitle')} error={error} />
   }
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Operations"
-        title="Admin"
-        intro="Manage account access, provision users, and keep an eye on AI provider health."
+        eyebrow={t('pageEyebrow')}
+        title={t('pageTitle')}
+        intro={t('pageIntro')}
       />
 
-      {error ? <EmptyState title="Admin action failed" body={error} /> : null}
+      {error ? <EmptyState title={t('actionFailedTitle')} body={error} /> : null}
 
       <div className="grid gap-8 xl:grid-cols-[1.4fr_1fr]">
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Provisioning"
-            title="Add user"
-            description="Create the account record before someone signs in for the first time."
+            eyebrow={t('provisioningEyebrow')}
+            title={t('addUserTitle')}
+            description={t('addUserDescription')}
           />
           <form className="mt-5" onSubmit={handleProvision}>
             <FieldGroup>
               <Field>
-                <Label>Name</Label>
+                <Label>{t('name')}</Label>
                 <Input value={name} onChange={(event) => setName(event.target.value)} required />
               </Field>
               <Field>
-                <Label>Slug</Label>
+                <Label>{t('slug')}</Label>
                 <Input value={slug} onChange={(event) => setSlug(event.target.value)} required />
               </Field>
             </FieldGroup>
             <div className="mt-5">
-              <Button type="submit" color="dark/zinc" disabled={saving}>
-                {saving ? 'Saving…' : 'Add user'}
-              </Button>
+                <Button type="submit" color="dark/zinc" disabled={saving}>
+                {saving ? t('saving') : t('addUser')}
+                </Button>
             </div>
           </form>
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <CardHeader eyebrow="Access" title="Admin access list" />
+          <CardHeader eyebrow={t('accessEyebrow')} title={t('accessTitle')} />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
             {admins.map((admin) => (
               <li key={admin}>• {admin}</li>
@@ -157,25 +159,25 @@ export function AdminView() {
 
       <WorkspaceCard>
         <CardHeader
-          eyebrow="AI operations"
-          title="Provider activity"
-          description="Recent validation failures, local throttling, provider resolution, and fallback events."
+          eyebrow={t('aiOpsEyebrow')}
+          title={t('providerActivityTitle')}
+          description={t('providerActivityDescription')}
         />
         <FieldGroup className="mt-5 md:grid-cols-3">
           <Field>
-            <Label>Window</Label>
+            <Label>{t('window')}</Label>
             <Select value={selectedHours} onChange={(event) => setSelectedHours(event.target.value)}>
-              <option value="1">Last hour</option>
-              <option value="6">Last 6 hours</option>
-              <option value="24">Last 24 hours</option>
-              <option value="72">Last 3 days</option>
-              <option value="168">Last 7 days</option>
+              <option value="1">{t('lastHour')}</option>
+              <option value="6">{t('last6Hours')}</option>
+              <option value="24">{t('last24Hours')}</option>
+              <option value="72">{t('last3Days')}</option>
+              <option value="168">{t('last7Days')}</option>
             </Select>
           </Field>
           <Field>
-            <Label>Provider</Label>
+            <Label>{t('provider')}</Label>
             <Select value={selectedProvider} onChange={(event) => setSelectedProvider(event.target.value)}>
-              <option value="">All providers</option>
+              <option value="">{t('allProviders')}</option>
               {providerFilters?.providers.map((provider) => (
                 <option key={provider} value={provider}>
                   {provider}
@@ -184,9 +186,9 @@ export function AdminView() {
             </Select>
           </Field>
           <Field>
-            <Label>Event type</Label>
+            <Label>{t('eventType')}</Label>
             <Select value={selectedEvent} onChange={(event) => setSelectedEvent(event.target.value)}>
-              <option value="">All event types</option>
+              <option value="">{t('allEventTypes')}</option>
               {providerFilters?.events.map((eventName) => (
                 <option key={eventName} value={eventName}>
                   {humanizeEventLabel(eventName)}
@@ -197,32 +199,32 @@ export function AdminView() {
         </FieldGroup>
         {providerSummary ? (
           <>
-            {loadingProviderActivity ? <Text className="mt-4 text-sm">Refreshing provider activity…</Text> : null}
+            {loadingProviderActivity ? <Text className="mt-4 text-sm">{t('refreshingActivity')}</Text> : null}
             <div className="mt-5 grid gap-4 md:grid-cols-4">
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
-                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Events</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('events')}</div>
                 <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{providerSummary.total}</div>
                 <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  Since {formatLocalDateTime(providerSummary.since) ?? providerSummary.since}
+                  {t('since', { time: formatLocalDateTime(providerSummary.since) ?? providerSummary.since })}
                 </div>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
-                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Validation failures</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('validationFailures')}</div>
                 <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{providerSummary.validation_failures}</div>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
-                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Validation throttles</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('validationThrottles')}</div>
                 <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{providerSummary.validation_rate_limit}</div>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
-                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Fallbacks</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('fallbacks')}</div>
                 <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{providerSummary.fallbacks}</div>
               </div>
             </div>
 
             <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
               <div>
-                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Top providers</div>
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('topProviders')}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {providerSummary.provider_counts.map((item) => (
                     <Badge key={item.label} color="zinc">
@@ -232,11 +234,11 @@ export function AdminView() {
                 </div>
               </div>
               <div>
-                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Top categories</div>
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('topCategories')}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {providerSummary.category_counts.map((item) => (
                     <Badge key={item.label} color="zinc">
-                      {humanizeCategoryLabel(item.label)} {item.count}
+                      {(item.label === 'uncategorized' ? t('uncategorized') : humanizeCategoryLabel(item.label))} {item.count}
                     </Badge>
                   ))}
                 </div>
@@ -249,13 +251,13 @@ export function AdminView() {
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="font-semibold text-zinc-950 dark:text-white">{humanizeEventLabel(event.event)}</div>
                     <Badge color={categoryBadgeColor(event.category)}>
-                      {event.provider || 'unknown'}
+                      {event.provider || t('unknown')}
                     </Badge>
-                    {event.category ? <Badge color={categoryBadgeColor(event.category)}>{humanizeCategoryLabel(event.category)}</Badge> : null}
-                    {event.status_code ? <Badge color="zinc">HTTP {event.status_code}</Badge> : null}
+                    {event.category ? <Badge color={categoryBadgeColor(event.category)}>{event.category === 'uncategorized' ? t('uncategorized') : humanizeCategoryLabel(event.category)}</Badge> : null}
+                    {event.status_code ? <Badge color="zinc">{t('httpStatus', { status: event.status_code })}</Badge> : null}
                   </div>
                   <div className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
-                    User: <span className="font-medium text-zinc-950 dark:text-white">{userLabel(event.user_slug, event.user_id)}</span>
+                    {t('user')}: <span className="font-medium text-zinc-950 dark:text-white">{userLabel(event.user_slug, event.user_id)}</span>
                   </div>
                   <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     {formatLocalDateTime(event.created_at) ?? event.created_at}
@@ -270,12 +272,12 @@ export function AdminView() {
             </div>
           </>
         ) : (
-          <Text className="mt-4 text-sm">No provider activity has been recorded yet.</Text>
+          <Text className="mt-4 text-sm">{t('noProviderActivity')}</Text>
         )}
       </WorkspaceCard>
 
       <WorkspaceCard>
-        <CardHeader eyebrow="Directory" title="Provisioned users" />
+        <CardHeader eyebrow={t('directoryEyebrow')} title={t('directoryTitle')} />
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
           {users.map((user) => (
             <div key={user.id} className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">

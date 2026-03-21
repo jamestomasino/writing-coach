@@ -1,17 +1,19 @@
 import { EmptyState } from '@/components/status-state'
+import { localeMessages } from '@/i18n/config'
 
 export default function NotFound() {
+  const t = localeMessages.en.notFoundPage
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-16">
       <div className="w-full">
         <EmptyState
-          title="Page not found"
-          body="The page you requested does not exist, or it is not available in the current coaching context."
+          title={t.title}
+          body={t.body}
           actions={[
-            { href: '/', label: 'Current assignment' },
-            { href: '/assignments', label: 'Past assignments', outline: true },
-            { href: '/progress', label: 'Track progress', outline: true },
-            { href: '/about', label: 'About', outline: true },
+            { href: '/', label: t.currentAssignment },
+            { href: '/assignments', label: t.pastAssignments, outline: true },
+            { href: '/progress', label: t.progress, outline: true },
+            { href: '/about', label: t.about, outline: true },
           ]}
         />
       </div>

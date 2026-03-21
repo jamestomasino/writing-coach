@@ -15,6 +15,7 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
 } from '@heroicons/react/16/solid'
+import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 import { MasteryProgress } from './mastery-progress'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
@@ -62,9 +63,10 @@ function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: S
 }
 
 export function ProgressView() {
+  const t = useTranslations('progressView')
   const { sessionLoading, sessionError, loading, error, dashboard, tree, onboarding } = useTrackDashboardData(
     '/progress',
-    { loadErrorMessage: 'Could not load progress' }
+    { loadErrorMessage: t('loadError') }
   )
 
   const completedCodes = useMemo(() => new Set((dashboard?.completed_tgos ?? []).map((tgo) => tgo.code)), [dashboard])
@@ -78,10 +80,10 @@ export function ProgressView() {
   )
 
   if (sessionLoading || loading) {
-    return <LoadingState label="Loading progress board…" />
+    return <LoadingState label={t('loading')} />
   }
   if (sessionError || error || !dashboard) {
-    return <AppErrorState title="Progress unavailable" error={sessionError ?? error ?? 'Could not load progress board.'} />
+    return <AppErrorState title={t('unavailableTitle')} error={sessionError ?? error ?? t('unavailableBody')} />
   }
 
   const activeTGOs = dashboard.active_tgos ?? []
@@ -97,23 +99,23 @@ export function ProgressView() {
   const profile = onboarding?.profile
   const profileCards = profile
     ? [
-        { label: 'Writing type', value: profile.writing_type },
-        { label: 'Experience level', value: profile.experience_level },
-        { label: 'Desired tone', value: profile.desired_tone },
-        { label: 'Goals', value: profile.writing_goals },
+        { label: t('writingType'), value: profile.writing_type },
+        { label: t('experienceLevel'), value: profile.experience_level },
+        { label: t('desiredTone'), value: profile.desired_tone },
+        { label: t('goals'), value: profile.writing_goals },
       ]
     : []
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Progress"
-        title={tree?.title ?? 'Practice path progress'}
-        intro={tree?.description ?? 'See what you are working on now, what is getting stronger, and what is likely to open next.'}
+        eyebrow={t('eyebrow')}
+        title={tree?.title ?? t('defaultTitle')}
+        intro={tree?.description ?? t('defaultIntro')}
       />
 
       {profile ? (
-        <section aria-label="Practice path profile" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section aria-label={t('profileAria')} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {profileCards.map((item) => (
             <WorkspaceCard key={item.label} className="p-5">
               <Eyebrow>{item.label}</Eyebrow>
@@ -123,18 +125,18 @@ export function ProgressView() {
         </section>
       ) : (
         <WorkspaceCard>
-          <Subheading>Practice path profile</Subheading>
-          <Text className="mt-3">This practice path was created without a saved profile.</Text>
+          <Subheading>{t('profileTitle')}</Subheading>
+          <Text className="mt-3">{t('profileMissing')}</Text>
         </WorkspaceCard>
       )}
 
       <div className="grid gap-8 xl:grid-cols-[1.35fr_1fr]">
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Progress"
-            title="Practice path progress"
-            description="See how much of this path you have practiced and how much you have mastered."
-            actions={<Badge color="green">{completionRatio}% complete</Badge>}
+            eyebrow={t('progressEyebrow')}
+            title={t('progressTitle')}
+            description={t('progressDescription')}
+            actions={<Badge color="green">{t('complete', { percent: completionRatio })}</Badge>}
           />
           <div className="mt-6">
             <div className="h-3 rounded-full bg-stone-200 dark:bg-white/10">
@@ -145,9 +147,10 @@ export function ProgressView() {
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-300">
               <span>{completedCount} completed</span>
-              <span>{activeTGOs.length} active</span>
-              <span>{upcomingTGOs.length} ready next</span>
-              <span>{Math.max(totalSkills - completedCount - activeTGOs.length, 0)} still ahead</span>
+              <span>{t('completedCount', { count: completedCount })}</span>
+              <span>{t('activeCount', { count: activeTGOs.length })}</span>
+              <span>{t('readyNextCount', { count: upcomingTGOs.length })}</span>
+              <span>{t('stillAheadCount', { count: Math.max(totalSkills - completedCount - activeTGOs.length, 0) })}</span>
             </div>
           </div>
           {stages.length > 0 ? (
@@ -172,7 +175,7 @@ export function ProgressView() {
                       />
                     </div>
                     <Text className="mt-3 text-sm">
-                      {stage.active > 0 ? `${stage.active} active now.` : 'No active skills in this stage.'}
+                      {stage.active > 0 ? t('activeNow', { count: stage.active }) : t('noActiveInStage')}
                     </Text>
                   </div>
                 )
@@ -182,12 +185,12 @@ export function ProgressView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <CardHeader eyebrow="Right now" title="What to focus on now" />
+          <CardHeader eyebrow={t('rightNowEyebrow')} title={t('rightNowTitle')} />
           <div className="mt-5 space-y-4">
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-blue-900 dark:text-blue-200">
                 <SparklesIcon className="size-4" />
-                Active skills
+                {t('activeSkills')}
               </div>
               <div className="mt-3 space-y-3">
                 {activeTGOs.map((tgo) => (
@@ -207,29 +210,29 @@ export function ProgressView() {
             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-500/20 dark:bg-green-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-green-900 dark:text-green-200">
                 <CheckBadgeIcon className="size-4" />
-                Mastered skills
+                {t('masteredSkills')}
               </div>
               <Text className="mt-2 text-sm">
-                {completedTGOs.length === 0 ? 'No skills have been mastered yet.' : `${completedTGOs.length} skills are now in strong shape.`}
+                {completedTGOs.length === 0 ? t('noMasteredSkills') : t('masteredSkillsCount', { count: completedTGOs.length })}
               </Text>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-900 dark:text-white">Assignments completed</div>
+              <div className="text-sm font-semibold text-zinc-900 dark:text-white">{t('assignmentsCompleted')}</div>
               <Text className="mt-2 text-sm">
                 {completedAssignments === 0
-                  ? 'No assignments have been completed yet.'
-                  : `${completedAssignments} assignments have been completed, including revision rounds.`}
+                  ? t('noAssignmentsCompleted')
+                  : t('assignmentsCompletedCount', { count: completedAssignments })}
               </Text>
             </div>
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
               <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
                 <ExclamationTriangleIcon className="size-4" />
-                Older skills to watch
+                {t('olderSkillsToWatch')}
               </div>
               <Text className="mt-2 text-sm">
                 {recurringCompletedSlips.length === 0
-                  ? 'No older mastered skills are slipping right now.'
-                  : `${recurringCompletedSlips.length} older skills need attention.`}
+                  ? t('noOlderSkillsSlipping')
+                  : t('olderSkillsNeedAttention', { count: recurringCompletedSlips.length })}
               </Text>
             </div>
           </div>
@@ -238,22 +241,20 @@ export function ProgressView() {
 
       <div className="grid gap-8 xl:grid-cols-2">
         <WorkspaceCard>
-          <Subheading>Recent patterns</Subheading>
-          <Text className="mt-2">
-            A quick read on where your recent work looks strongest and where it still needs more attention.
-          </Text>
+          <Subheading>{t('recentPatternsTitle')}</Subheading>
+          <Text className="mt-2">{t('recentPatternsBody')}</Text>
           <div className="mt-6 space-y-6">
             <div>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-white">
                 <ArrowTrendingUpIcon className="size-4 text-green-600" />
-                Looking strongest
+                {t('lookingStrongest')}
               </div>
               <div className="space-y-3">
                 {strongestSkills.map((item, index) => (
                   <div key={item}>
                     <div className="mb-1 flex items-center justify-between gap-4 text-sm">
                       <span className="text-zinc-900 dark:text-white">{item}</span>
-                      <span className="text-zinc-500 dark:text-zinc-400">signal</span>
+                      <span className="text-zinc-500 dark:text-zinc-400">{t('signal')}</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
                       <div
@@ -268,14 +269,14 @@ export function ProgressView() {
             <div>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-white">
                 <ArrowTrendingDownIcon className="size-4 text-amber-600" />
-                Needs attention
+                {t('needsAttention')}
               </div>
               <div className="space-y-3">
                 {weakestSkills.map((item, index) => (
                   <div key={item}>
                     <div className="mb-1 flex items-center justify-between gap-4 text-sm">
                       <span className="text-zinc-900 dark:text-white">{item}</span>
-                      <span className="text-zinc-500 dark:text-zinc-400">attention</span>
+                      <span className="text-zinc-500 dark:text-zinc-400">{t('attention')}</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
                       <div
@@ -291,13 +292,11 @@ export function ProgressView() {
         </WorkspaceCard>
 
         <WorkspaceCard>
-          <Subheading>Recent assignments</Subheading>
-          <Text className="mt-2">
-            A quick view of recent assignments and the skills they worked on.
-          </Text>
+          <Subheading>{t('recentAssignmentsTitle')}</Subheading>
+          <Text className="mt-2">{t('recentAssignmentsBody')}</Text>
           <ol className="mt-6 space-y-4">
             {history.length === 0 ? (
-              <li className="text-sm text-zinc-600 dark:text-zinc-300">No recent history yet.</li>
+              <li className="text-sm text-zinc-600 dark:text-zinc-300">{t('noRecentHistory')}</li>
             ) : null}
             {history.map((item, index) => (
               <li key={`${item.title}-${index}`} className="relative pl-6">
@@ -320,9 +319,9 @@ export function ProgressView() {
 
       <div className="grid gap-8 xl:grid-cols-3">
         <WorkspaceCard>
-          <Subheading>Unlocked next</Subheading>
+          <Subheading>{t('unlockedNextTitle')}</Subheading>
           <div className="mt-4 flex flex-wrap gap-2">
-            {upcomingTGOs.length === 0 ? <Text>No new skill unlocks yet.</Text> : null}
+            {upcomingTGOs.length === 0 ? <Text>{t('noNewSkillUnlocks')}</Text> : null}
             {upcomingTGOs.map((tgo) => (
               <Badge key={tgo.code} color="amber">
                 {tgo.title}
@@ -331,18 +330,18 @@ export function ProgressView() {
           </div>
         </WorkspaceCard>
         <WorkspaceCard>
-          <Subheading>Recurring weaknesses</Subheading>
+          <Subheading>{t('recurringWeaknessesTitle')}</Subheading>
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-            {recurringWeaknesses.length === 0 ? <li>No repeating weaknesses have been detected yet.</li> : null}
+            {recurringWeaknesses.length === 0 ? <li>{t('noRecurringWeaknesses')}</li> : null}
             {recurringWeaknesses.map((item) => (
               <li key={item}>• {item}</li>
             ))}
           </ul>
         </WorkspaceCard>
         <WorkspaceCard>
-          <Subheading>Analyzer trends</Subheading>
+          <Subheading>{t('analyzerTrendsTitle')}</Subheading>
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-            {recurringFindings.length === 0 ? <li>No repeated analyzer findings yet.</li> : null}
+            {recurringFindings.length === 0 ? <li>{t('noAnalyzerTrends')}</li> : null}
             {recurringFindings.map((item) => (
               <li key={item}>• {item}</li>
             ))}

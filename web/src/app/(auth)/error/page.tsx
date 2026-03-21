@@ -1,9 +1,10 @@
 import { EmptyState } from '@/components/status-state'
+import { localeMessages } from '@/i18n/config'
 import { Text } from '@/components/text'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Account Error',
+  title: localeMessages.en.authErrorPage.metadataTitle,
 }
 
 export default function ErrorPage({
@@ -11,20 +12,21 @@ export default function ErrorPage({
 }: {
   searchParams: { id?: string }
 }) {
+  const t = localeMessages.en.authErrorPage
   return (
     <div className="grid w-full max-w-lg grid-cols-1 gap-8">
       <EmptyState
-        title="Account flow error"
-        body="The sign-in flow could not be completed. Your link may have expired, so try starting again."
+        title={t.title}
+        body={t.body}
         actions={[
-          { href: '/login', label: 'Sign in' },
-          { href: '/register', label: 'Register', outline: true },
-          { href: '/about', label: 'Back to home', outline: true },
+          { href: '/login', label: t.signIn },
+          { href: '/register', label: t.register, outline: true },
+          { href: '/about', label: t.backToHome, outline: true },
         ]}
       />
       {searchParams.id ? (
         <Text className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm dark:border-white/10 dark:bg-white/5">
-          Reference: {searchParams.id}
+          {t.reference.replace('{id}', searchParams.id)}
         </Text>
       ) : null}
     </div>
