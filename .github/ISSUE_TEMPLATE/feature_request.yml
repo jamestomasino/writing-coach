@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest an improvement to the app or coaching experience.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Start with the user need or pain point.
+      placeholder: It is hard to tell which older skills are slipping without opening several assignment timelines.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What change would you like?
+      placeholder: Add a compact regression summary to the progress page that highlights slipping skills and links to the last relevant review.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Note any workarounds or other approaches you considered.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Coaching / review quality
+        - Practice paths and skills
+        - Writing prompts and assignments
+        - Web UI
+        - Admin
+        - Localization
+        - Docs
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Add examples, references, or mockups if useful.
+
