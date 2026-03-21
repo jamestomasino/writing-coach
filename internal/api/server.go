@@ -921,13 +921,36 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 	})
 
 	steps := make([]assignmentStepResponse, 0, len(chain)*3)
+	revisionNumberByExercise := make(map[int64]int, len(chain))
+	draftNumberBySubmission := make(map[int64]int, len(submissions))
+	revisionNumber := 0
+	draftNumber := 0
+	for _, exercise := range chain {
+		if exercise.SourceSubmissionID != 0 {
+			revisionNumber++
+			revisionNumberByExercise[exercise.ID] = revisionNumber
+		}
+		exerciseSubmissions := append([]domain.Submission(nil), submissionsByExercise[exercise.ID]...)
+		sort.Slice(exerciseSubmissions, func(i, j int) bool {
+			if exerciseSubmissions[i].DraftNumber == exerciseSubmissions[j].DraftNumber {
+				return exerciseSubmissions[i].ID < exerciseSubmissions[j].ID
+			}
+			return exerciseSubmissions[i].DraftNumber < exerciseSubmissions[j].DraftNumber
+		})
+		for _, submission := range exerciseSubmissions {
+			draftNumber++
+			draftNumberBySubmission[submission.ID] = draftNumber
+		}
+	}
+
 	for _, exercise := range chain {
 		exerciseCopy := exercise
+		exerciseLabel := assignmentStepLabel("exercise", exercise, domain.Submission{}, revisionNumberByExercise[exercise.ID], 0)
 		steps = append(steps, assignmentStepResponse{
 			ID:         fmt.Sprintf("exercise-%d", exercise.ID),
 			Kind:       "exercise",
 			Title:      exerciseTitle(exercise),
-			Label:      stepLabel("exercise", exercise, domain.Submission{}),
+			Label:      exerciseLabel,
 			CreatedAt:  db.Since(exercise.CreatedAt),
 			ExerciseID: exercise.ID,
 			Exercise:   ptrExerciseResponse(toExerciseResponse(exerciseCopy)),
@@ -942,11 +965,13 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 		})
 		for _, submission := range exerciseSubmissions {
 			submissionCopy := submission
+			stepNumber := draftNumberBySubmission[submission.ID]
+			submissionLabel := assignmentStepLabel("submission", exercise, submission, revisionNumberByExercise[exercise.ID], stepNumber)
 			steps = append(steps, assignmentStepResponse{
 				ID:           fmt.Sprintf("submission-%d", submission.ID),
 				Kind:         "submission",
-				Title:        fmt.Sprintf("Draft %d", submission.DraftNumber),
-				Label:        stepLabel("submission", exercise, submission),
+				Title:        submissionLabel,
+				Label:        submissionLabel,
 				CreatedAt:    db.Since(submission.CreatedAt),
 				ExerciseID:   exercise.ID,
 				SubmissionID: submission.ID,
@@ -965,11 +990,12 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 					reviewResponse.Annotations = append(reviewResponse.Annotations, reviewResponse.Artifacts.Annotations...)
 				}
 			}
+			reviewLabel := assignmentStepLabel("review", exercise, submission, revisionNumberByExercise[exercise.ID], stepNumber)
 			steps = append(steps, assignmentStepResponse{
 				ID:           fmt.Sprintf("review-%d", reviewResult.ID),
 				Kind:         "review",
-				Title:        fmt.Sprintf("Feedback %d", submission.DraftNumber),
-				Label:        stepLabel("review", exercise, submission),
+				Title:        reviewLabel,
+				Label:        reviewLabel,
 				CreatedAt:    db.Since(reviewResult.CreatedAt),
 				ExerciseID:   exercise.ID,
 				SubmissionID: submission.ID,
@@ -1173,20 +1199,33 @@ func titlesForTGOCodes(codes []string) []string {
 	return out
 }
 
-func stepLabel(kind string, exercise domain.Exercise, submission domain.Submission) string {
+func assignmentStepLabel(kind string, exercise domain.Exercise, submission domain.Submission, revisionNumber int, draftNumber int) string {
 	switch kind {
 	case "exercise":
 		if exercise.SourceSubmissionID != 0 {
-			return "Revision brief"
+			if revisionNumber > 0 {
+				return fmt.Sprintf("Revision %d", revisionNumber)
+			}
+			return "Revision"
 		}
 		return "Prompt"
 	case "submission":
+		if draftNumber > 0 {
+			return fmt.Sprintf("Draft %d", draftNumber)
+		}
 		return fmt.Sprintf("Draft %d", submission.DraftNumber)
 	case "review":
+		if draftNumber > 0 {
+			return fmt.Sprintf("Feedback %d", draftNumber)
+		}
 		return fmt.Sprintf("Feedback %d", submission.DraftNumber)
 	default:
 		return ""
 	}
+}
+
+func stepLabel(kind string, exercise domain.Exercise, submission domain.Submission) string {
+	return assignmentStepLabel(kind, exercise, submission, 0, 0)
 }
 
 func ptrExerciseResponse(value exerciseResponse) *exerciseResponse {

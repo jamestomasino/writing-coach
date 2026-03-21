@@ -1045,13 +1045,25 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 	if payload.Assignment.Steps[0].Kind != "exercise" || payload.Assignment.Steps[0].ExerciseID != rootExerciseID {
 		t.Fatalf("first step = %#v", payload.Assignment.Steps[0])
 	}
+	if payload.Assignment.Steps[0].Label != "Prompt" {
+		t.Fatalf("first step label = %q", payload.Assignment.Steps[0].Label)
+	}
+	if payload.Assignment.Steps[1].Kind != "submission" || payload.Assignment.Steps[1].Label != "Draft 1" {
+		t.Fatalf("second step = %#v", payload.Assignment.Steps[1])
+	}
 	if payload.Assignment.Steps[2].Kind != "review" || payload.Assignment.Steps[2].Label != "Feedback 1" {
 		t.Fatalf("third step = %#v", payload.Assignment.Steps[2])
 	}
 	if payload.Assignment.Steps[3].Kind != "exercise" || payload.Assignment.Steps[3].ExerciseID != revisionExerciseID {
 		t.Fatalf("fourth step = %#v", payload.Assignment.Steps[3])
 	}
-	if payload.Assignment.Steps[5].Kind != "review" || payload.Assignment.Steps[5].SubmissionID != revisionSubmissionID {
+	if payload.Assignment.Steps[3].Label != "Revision 1" {
+		t.Fatalf("fourth step label = %q", payload.Assignment.Steps[3].Label)
+	}
+	if payload.Assignment.Steps[4].Kind != "submission" || payload.Assignment.Steps[4].Label != "Draft 2" {
+		t.Fatalf("fifth step = %#v", payload.Assignment.Steps[4])
+	}
+	if payload.Assignment.Steps[5].Kind != "review" || payload.Assignment.Steps[5].SubmissionID != revisionSubmissionID || payload.Assignment.Steps[5].Label != "Feedback 2" {
 		t.Fatalf("last step = %#v", payload.Assignment.Steps[5])
 	}
 }
