@@ -19,6 +19,40 @@ function humanizeEventLabel(value: string) {
   return value.replaceAll('_', ' ')
 }
 
+function humanizeCategoryLabel(value: string) {
+  if (value === 'uncategorized') {
+    return 'Uncategorized'
+  }
+  return value.replaceAll('_', ' ')
+}
+
+function categoryBadgeColor(value?: string) {
+  switch (value) {
+    case 'auth':
+    case 'quota':
+      return 'rose'
+    case 'local_rate_limit':
+    case 'rate_limit':
+    case 'timeout':
+      return 'amber'
+    case 'settings':
+      return 'blue'
+    case 'provider':
+      return 'cyan'
+    case 'generation':
+      return 'green'
+    default:
+      return 'zinc'
+  }
+}
+
+function userLabel(userSlug: string | undefined, userID: number) {
+  if (userSlug && userSlug.trim() !== '') {
+    return `${userSlug} · #${userID}`
+  }
+  return `#${userID}`
+}
+
 export function AdminView() {
   const toast = useToast()
   const [slug, setSlug] = useState('')
@@ -202,7 +236,7 @@ export function AdminView() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {providerSummary.category_counts.map((item) => (
                     <Badge key={item.label} color="zinc">
-                      {item.label} {item.count}
+                      {humanizeCategoryLabel(item.label)} {item.count}
                     </Badge>
                   ))}
                 </div>
@@ -214,14 +248,14 @@ export function AdminView() {
                 <div key={event.id} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="font-semibold text-zinc-950 dark:text-white">{humanizeEventLabel(event.event)}</div>
-                    <Badge color={event.category === 'auth' || event.category === 'quota' ? 'rose' : event.category === 'local_rate_limit' || event.category === 'rate_limit' ? 'amber' : 'zinc'}>
+                    <Badge color={categoryBadgeColor(event.category)}>
                       {event.provider || 'unknown'}
                     </Badge>
-                    {event.category ? <Badge color="zinc">{event.category}</Badge> : null}
+                    {event.category ? <Badge color={categoryBadgeColor(event.category)}>{humanizeCategoryLabel(event.category)}</Badge> : null}
                     {event.status_code ? <Badge color="zinc">HTTP {event.status_code}</Badge> : null}
                   </div>
                   <div className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
-                    User: <span className="font-medium text-zinc-950 dark:text-white">{event.user_slug || `#${event.user_id}`}</span>
+                    User: <span className="font-medium text-zinc-950 dark:text-white">{userLabel(event.user_slug, event.user_id)}</span>
                   </div>
                   <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     {formatLocalDateTime(event.created_at) ?? event.created_at}

@@ -316,11 +316,12 @@ func (s Server) logAIProviderEvent(event, provider string, userID int64, fields 
 			statusCode = int(value)
 		}
 	}
+	category := inferredAIProviderEventCategory(strings.TrimSpace(event), fields)
 	eventRecord := domain.AIProviderEvent{
 		UserID:     userID,
 		Provider:   strings.TrimSpace(provider),
 		Event:      strings.TrimSpace(event),
-		Category:   strings.TrimSpace(fmt.Sprint(fields["category"])),
+		Category:   category,
 		StatusCode: statusCode,
 		DetailJSON: detailJSON,
 		CreatedAt:  time.Now().UTC(),
@@ -331,6 +332,24 @@ func (s Server) logAIProviderEvent(event, provider string, userID int64, fields 
 	}
 	if err := s.Store.SaveAIProviderEvent(context.Background(), eventRecord); err != nil {
 		log.Printf("ai_provider_event_store_failed provider=%s event=%s user=%d err=%v", strings.TrimSpace(provider), strings.TrimSpace(event), userID, err)
+	}
+}
+
+func inferredAIProviderEventCategory(event string, fields map[string]any) string {
+	if raw, ok := fields["category"]; ok {
+		if category := strings.TrimSpace(fmt.Sprint(raw)); category != "" && category != "<nil>" {
+			return category
+		}
+	}
+	switch {
+	case strings.HasPrefix(event, "settings_"):
+		return "settings"
+	case strings.HasPrefix(event, "provider_"):
+		return "provider"
+	case strings.HasPrefix(event, "generation_"):
+		return "generation"
+	default:
+		return "uncategorized"
 	}
 }
 

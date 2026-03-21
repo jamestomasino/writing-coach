@@ -121,7 +121,7 @@ func (s Server) toAIProviderEventResponses(events []domain.AIProviderEvent) []ai
 			UserSlug:   event.UserSlug,
 			Provider:   event.Provider,
 			Event:      event.Event,
-			Category:   event.Category,
+			Category:   normalizeAIProviderEventCategoryLabel(event.Category),
 			StatusCode: event.StatusCode,
 			CreatedAt:  db.Since(event.CreatedAt),
 		}
@@ -152,9 +152,17 @@ func toAIProviderEventCountResponses(counts []domain.AIProviderEventCount) []aiP
 	items := make([]aiProviderEventCountResponse, 0, len(counts))
 	for _, count := range counts {
 		items = append(items, aiProviderEventCountResponse{
-			Label: count.Label,
+			Label: normalizeAIProviderEventCategoryLabel(count.Label),
 			Count: count.Count,
 		})
 	}
 	return items
+}
+
+func normalizeAIProviderEventCategoryLabel(value string) string {
+	category := strings.TrimSpace(value)
+	if category == "" || category == "<nil>" || category == "none" {
+		return "uncategorized"
+	}
+	return category
 }

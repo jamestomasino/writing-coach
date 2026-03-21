@@ -134,8 +134,8 @@ func (s *Store) SummarizeAIProviderEventsSince(ctx context.Context, since time.T
 		}
 		providerCounts[providerKey] += count
 		categoryKey := strings.TrimSpace(category)
-		if categoryKey == "" {
-			categoryKey = "none"
+		if categoryKey == "" || categoryKey == "<nil>" {
+			categoryKey = "uncategorized"
 		}
 		categoryCounts[categoryKey] += count
 	}
