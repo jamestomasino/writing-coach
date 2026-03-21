@@ -167,12 +167,12 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
         title={mode === 'create' ? 'Create a new track' : existingProfile ? 'Edit track' : 'Set your starting path'}
         intro={
           setupFlow
-            ? 'Define the writing context for your first coaching track. This determines the skill map, assignment style, and review emphasis that follow.'
+            ? 'Tell us what kind of writing you want to practice first.'
             : mode === 'create'
-            ? 'Create an additional writing track with its own skill map, progress, and assignment history.'
+            ? 'Start another track for a different kind of writing.'
             : existingProfile
-              ? 'Update the writing profile that shapes your coaching track. Saving here refreshes the recommended path, active skills, and future assignment focus.'
-              : 'Tell the coach what kind of writing you want to improve. This recommends a starting path into the writing skill map, including your first active skills and the regions most likely to matter first.'
+              ? 'Update this track’s focus, tone, and goals.'
+              : 'Tell us what kind of writing you want to improve first.'
         }
       />
 
@@ -181,7 +181,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
           tone="active"
           eyebrow="Onboarding"
           title="Next, create your first track"
-          body="This is the profile the coach will use to generate assignments, score your writing, and choose which skills matter first."
+          body="These answers shape your assignments and feedback."
         >
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
             <li>Describe the kind of writing you want to practice most often.</li>
@@ -192,13 +192,12 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
       ) : null}
 
       <WorkspaceCard>
-        <CardHeader eyebrow="How it works" title="How the coaching loop works" />
+        <CardHeader eyebrow="How it works" title="How track practice works" />
         <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
           <p>You can focus on up to three skills at a time.</p>
-          <p>Your assignment prompt and review are built around those active skills.</p>
+          <p>Each assignment and review focuses on those skills.</p>
           <p>
-            When you show strong, consistent control, a skill can become mastered and stay in lighter maintenance checks
-            going forward.
+            As you improve, skills move into maintenance and new ones open up.
           </p>
         </div>
       </WorkspaceCard>

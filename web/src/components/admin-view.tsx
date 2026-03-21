@@ -100,7 +100,7 @@ export function AdminView() {
           <CardHeader
             eyebrow="Provisioning"
             title="Provision user"
-            description="This prepares the internal user record. Browser authentication now runs through the app’s own branded account flows backed by Kratos."
+            description="Create the account record before someone signs in for the first time."
           />
           <form className="mt-5" onSubmit={handleProvision}>
             <FieldGroup>

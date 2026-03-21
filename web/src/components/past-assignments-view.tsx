@@ -74,7 +74,7 @@ export function PastAssignmentsView() {
           <CardHeader
             eyebrow="Current chain"
             title={currentAssignment.title}
-            description="Your active track's current assignment is still in the main workspace. You can view its full history here."
+            description="Your current assignment is still active. You can open its full history here."
             actions={
               <Button href={`/assignments/${currentAssignment.current_exercise_id}`} plain>
                 View current timeline
@@ -87,7 +87,7 @@ export function PastAssignmentsView() {
       {pastAssignments.length === 0 ? (
         <EmptyState
           title="No past assignments yet"
-          body="Once you move beyond the current assignment chain in this track, older work will appear here for historical browsing."
+          body="Older assignments will show up here once you move on from the current one."
           actionHref="/"
           actionLabel="Open current assignment"
         />

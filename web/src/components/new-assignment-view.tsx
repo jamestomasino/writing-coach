@@ -137,8 +137,8 @@ export function NewAssignmentView() {
         title="New assignment"
         intro={
           setupFlow
-            ? 'Choose the three skills you want your first assignment to emphasize. The prompt will come from your new track, and the review will score this selection most closely.'
-            : 'Choose exactly three skills for the next review. The assignment prompt itself comes from the active track details, while this selection sets what the review will measure most closely.'
+            ? 'Choose the three skills you want your first assignment to focus on.'
+            : 'Choose the three skills you want this assignment to focus on.'
         }
       />
 
@@ -163,7 +163,7 @@ export function NewAssignmentView() {
         <CardHeader
           eyebrow="Review focus"
           title="Choose 3 review skills"
-          description="Mastered skills stay in the maintenance layer. This selection defines the primary review rubric for the next assignment, not the prompt premise."
+          description="Pick the three skills you want this assignment to focus on."
         />
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {selectable.map((tgo) => {
@@ -220,8 +220,7 @@ export function NewAssignmentView() {
                 <Eyebrow tone="cyan">Assignment generation</Eyebrow>
                 <Subheading>Generating assignment</Subheading>
                 <Text className="mt-2">
-                  Building a new prompt from the active track details and current coaching context. This usually takes a
-                  few seconds.
+                  Creating a new prompt for this track. This usually takes a few seconds.
                 </Text>
               </div>
             </div>

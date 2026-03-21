@@ -124,7 +124,7 @@ export function ProgressView() {
       ) : (
         <WorkspaceCard>
           <Subheading>Track profile</Subheading>
-          <Text className="mt-3">This track was seeded without a persisted onboarding profile.</Text>
+          <Text className="mt-3">This track does not have a saved profile yet.</Text>
         </WorkspaceCard>
       )}
 
@@ -133,7 +133,7 @@ export function ProgressView() {
           <CardHeader
             eyebrow="Progress"
             title="Track completion"
-            description="This is the broad curriculum view: how much of the current skill map has been mastered and how much is currently under active practice."
+            description="See how much of this track you've practiced and how much you've mastered."
             actions={<Badge color="green">{completionRatio}% complete</Badge>}
           />
           <div className="mt-6">
@@ -242,8 +242,7 @@ export function ProgressView() {
         <WorkspaceCard>
           <Subheading>Skill signals</Subheading>
           <Text className="mt-2">
-            These are ranked signals, not absolute scores. They help you see where recent reviews consistently read
-            strongest versus where the coaching load remains heaviest.
+            A quick read on where your recent work looks strongest and where it still needs attention.
           </Text>
           <div className="mt-6 space-y-6">
             <div>
@@ -296,8 +295,7 @@ export function ProgressView() {
         <WorkspaceCard>
           <Subheading>Recent activity timeline</Subheading>
           <Text className="mt-2">
-            This compresses the recent coaching loop into a readable sequence so you can see what the system has
-            emphasized lately.
+            A quick view of your recent assignments, reviews, and next focus.
           </Text>
           <ol className="mt-6 space-y-4">
             {history.length === 0 ? (

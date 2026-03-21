@@ -125,11 +125,11 @@ export function CurrentAssignmentView() {
       {reviewPending ? (
         <TaskProgressState
           title="Review in progress"
-          body="Your draft is saved. The app is reviewing it in the background against the active skills and will open the coaching pass when it is ready."
+          body="Your draft is saved. Review is running in the background."
           steps={[
-            'Save the latest draft snapshot.',
-            'Score the draft against the active skill rubric.',
-            'Assemble the coaching summary, annotations, and next focus.',
+            'Save the latest draft.',
+            'Review it against the selected skills.',
+            'Prepare feedback and next steps.',
           ]}
         />
       ) : null}
@@ -137,7 +137,7 @@ export function CurrentAssignmentView() {
       {preparingRevision ? (
         <TaskProgressState
           title="Revision brief in progress"
-          body="The app is building a revision brief from your latest review and active skills."
+          body="Preparing a revision brief from your latest review."
           steps={[
             'Load the latest reviewed draft.',
             'Extract the highest-priority revision targets.',
@@ -171,7 +171,7 @@ export function CurrentAssignmentView() {
           <CardHeader
             eyebrow="Revision mode"
             title="Revision brief"
-            description="This assignment was generated from the latest review. Keep the same core material, but revise explicitly against the active skills and the coaching notes below."
+            description="This revision is based on your last review. Keep the core draft, but revise toward the notes below."
             actions={
               review ? (
                 <Button href={`/compare/${compareSubmissionID}`} outline>
@@ -213,8 +213,7 @@ export function CurrentAssignmentView() {
                     <ProviderProvenance providerNote={exercise.provider_note} compact />
                   </div>
                   <Text className="mt-3">
-                    The editor is preloaded with your latest reviewed draft so you can revise directly instead of
-                    pasting it back in.
+                    Your last reviewed draft is already loaded so you can revise it directly.
                   </Text>
                 </div>
               ) : (
@@ -286,7 +285,7 @@ export function CurrentAssignmentView() {
           <CardHeader
             eyebrow="Current focus"
             title="Active skills"
-            description="These are the three skills the review will measure most heavily on this assignment."
+            description="The review will focus most on these three skills."
           />
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.map((tgo) => (

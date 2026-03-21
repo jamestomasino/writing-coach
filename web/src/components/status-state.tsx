@@ -74,7 +74,7 @@ function classifyErrorMessage(message: string) {
   ) {
     return {
       title: 'Sign in required',
-      body: 'This page is only available inside an authenticated coaching session.',
+      body: 'Sign in to open this page.',
       actions: [
         { href: '/login', label: 'Sign in' },
         { href: '/about', label: 'Back to home', outline: true },
@@ -101,7 +101,7 @@ function classifyErrorMessage(message: string) {
   ) {
     return {
       title: 'Something went wrong',
-      body: 'The app hit a server-side problem while trying to load this page.',
+      body: 'A server error came back while loading this page.',
       actions: [
         { href: '/', label: 'Active track' },
         { href: '/about', label: 'About', outline: true },

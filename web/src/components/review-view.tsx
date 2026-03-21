@@ -68,7 +68,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       {preparingRevision ? (
         <TaskProgressState
           title="Revision brief in progress"
-          body="The app is translating this review into a focused revision brief."
+          body="Turning this review into a revision brief."
           steps={[
             'Load the reviewed draft and coaching artifacts.',
             'Select the most urgent revision targets.',
@@ -80,8 +80,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       {!canActOnReview ? (
         <WorkspaceCard>
           <Text>
-            This review is part of your assignment history. To keep working, return to the active track&apos;s current
-            assignment workspace.
+            This review is part of your assignment history. To keep writing, go back to your current assignment.
           </Text>
         </WorkspaceCard>
       ) : null}
@@ -122,7 +121,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <CardHeader
             eyebrow="Maintenance"
             title="Mastered skill maintenance"
-            description="These checks are lighter than the active rubric, but they help catch regression on already established skills."
+            description="Quick checks on skills you've already learned."
           />
           <div className="mt-4 space-y-3">
             {review.completed_tgo_checks.length === 0 ? (
@@ -152,7 +151,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <CardHeader
             eyebrow="Scores"
             title="Skill scores"
-            description="These scores summarize the latest draft across the tracked skill dimensions."
+            description="How this draft scored on the skills we tracked."
           />
           <div className="mt-4 space-y-3">
             {review.skill_scores.map((item) => (
@@ -227,7 +226,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         <CardHeader
           eyebrow="Annotations"
           title="Inline coaching markup"
-          description="These annotations tie short quoted passages to the active rubric, so revision decisions stay anchored to concrete lines instead of drifting into abstraction."
+          description="Quoted lines with notes on what to revise."
         />
         <div className="mt-4 space-y-4">
           {review.annotations.length === 0 ? (

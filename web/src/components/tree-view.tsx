@@ -282,7 +282,7 @@ export function TreeView() {
         <PageHeader
           eyebrow="Track map"
           title="Skill Tree"
-          intro="This tree shows how your learning track opens over time. When you show steady control of the active skills, those skills can become mastered and new connected skills unlock to become the next focus of your assignments and reviews."
+          intro="See what you are working on now, what you have already mastered, and what is likely to open next."
           actions={
             <>
               <Badge color="blue">{activeCount} active</Badge>

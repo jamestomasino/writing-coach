@@ -6,7 +6,7 @@ export default function UnauthorizedPage() {
       <div className="w-full">
         <EmptyState
           title="Sign in required"
-          body="This page is only available inside an authenticated coaching session."
+          body="Sign in to open this page."
           actions={[
             { href: '/login', label: 'Sign in' },
             { href: '/about', label: 'Back to home', outline: true },

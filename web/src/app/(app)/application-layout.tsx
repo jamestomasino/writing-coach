@@ -125,7 +125,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [accountName, setAccountName] = useState('Workshop')
-  const [accountDetail, setAccountDetail] = useState('Scholastic coaching loop')
+  const [accountDetail, setAccountDetail] = useState('Writing practice')
   const [tracks, setTracks] = useState<UserTrack[]>([])
   const [switchingTrack, setSwitchingTrack] = useState<string | null>(null)
 
@@ -160,7 +160,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
           return
         }
 
-        const fallbackDetail = session.authenticated ? 'Writing practice workspace' : 'Scholastic coaching loop'
+        const fallbackDetail = session.authenticated ? 'Writing practice workspace' : 'Writing practice'
         setAccountName(session.authenticated ? 'Writing Coach' : 'Workshop')
         setAccountDetail(session.is_admin ? 'Administrator account' : fallbackDetail)
       } catch {
@@ -171,7 +171,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
         setIsAdmin(false)
         setTracks([])
         setAccountName('Workshop')
-        setAccountDetail('Scholastic coaching loop')
+        setAccountDetail('Writing practice')
       }
     }
 

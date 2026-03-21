@@ -46,13 +46,13 @@ function providerStatus(settings: AIProviderSettings | null) {
   if (settings.enabled && settings.provider) {
     return {
       label: providerLabel(settings.provider),
-      detail: 'Your personal provider is active for future generation.',
+      detail: 'Your personal provider is active.',
       badgeColor: 'emerald' as const,
     }
   }
   return {
     label: 'System provider',
-    detail: settings?.system_fallback ? 'The app will use the shared provider while it remains available.' : 'No shared provider is available.',
+    detail: settings?.system_fallback ? 'The shared provider is active for now.' : 'No shared provider is available.',
     badgeColor: settings?.system_fallback ? ('amber' as const) : ('rose' as const),
   }
 }
@@ -65,7 +65,7 @@ function classifyProviderIssue(message: string | null) {
   if (text.includes('rejected this api key')) {
     return {
       title: 'API key rejected',
-      body: 'This provider did not accept the key. Check that you copied the full key and that it belongs to the selected provider.',
+      body: 'That key was rejected. Check that you copied it fully and chose the right provider.',
       tone: 'danger' as const,
     }
   }
@@ -86,7 +86,7 @@ function classifyProviderIssue(message: string | null) {
   if (text.includes('temporarily unavailable') || text.includes('timed out')) {
     return {
       title: 'Provider is temporarily unavailable',
-      body: 'This usually means an endpoint or upstream issue. Confirm the base URL and try again shortly.',
+      body: 'Check the base URL and try again in a moment.',
       tone: 'warning' as const,
     }
   }
@@ -197,7 +197,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
         intro={
           required
             ? 'Connect an AI provider before creating your first track. Assignment generation and review both depend on it.'
-            : 'Connect your own provider credentials for assignment and review generation. You can keep using the shared system provider while it remains available.'
+            : 'Connect your own provider for assignment and review generation. You can keep using the shared provider while it is available.'
         }
       />
 
@@ -206,7 +206,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
           tone="active"
           eyebrow="Onboarding"
           title="First, connect an AI provider"
-          body="Once this is ready, the app will send you straight to track creation. You only need one working provider to continue."
+          body="You only need one working provider to continue."
         >
           <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
             <li>Choose a provider and paste a valid API key.</li>
@@ -260,7 +260,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
 
       {required && !settings?.ready ? (
         <Callout title="Setup needed to continue">
-          This workspace needs an AI provider before assignment and feedback generation can run.
+          Add a working provider before you create assignments or get feedback.
         </Callout>
       ) : null}
 
@@ -278,7 +278,7 @@ export function AIProviderSettingsView({ required = false, nextPath }: { require
             <CardHeader
               eyebrow="Connection"
               title="Personal provider"
-              description="Supported providers include Anthropic, Gemini, OpenAI, Groq, and xAI. Advanced fields are optional."
+              description="Pick a provider and add your key. Advanced fields are optional."
             />
 
             <Callout

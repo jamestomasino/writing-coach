@@ -34,7 +34,7 @@ export function ResetDataCard() {
       tone="danger"
       eyebrow="Danger zone"
       title="Reset coaching data"
-      body="This clears your onboarding profile, generated track, assignments, submissions, reviews, and progress history. Your account and sign-in remain intact."
+      body="Delete your track setup, assignments, reviews, and progress history. Your account and sign-in stay intact."
       actions={
         <Button color="rose" onClick={handleReset} disabled={working}>
           {working ? 'Resetting…' : 'Reset all user data'}
