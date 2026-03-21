@@ -1094,7 +1094,7 @@ func dashboardAssignmentStats(exercises []domain.Exercise, submissions []domain.
 	submissionByID := make(map[int64]domain.Submission, len(submissions))
 	for _, submission := range submissions {
 		submissionByID[submission.ID] = submission
-		if submission.ParentSubmissionID == 0 {
+		if submission.DraftNumber <= 1 {
 			draftCount++
 		} else {
 			revisionCount++
