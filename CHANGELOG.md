@@ -16,10 +16,26 @@ For the full workflow, see [docs/release-process.md](/home/tomasino/writing-coac
 
 ## Unreleased
 
-- Added a Dockerized spaCy/TextDescriptives analyzer sidecar and wired its findings into the deterministic review pipeline.
-- Expanded the About page with a plain-language explanation of deterministic analysis, active skills, and model-assisted coaching.
-- Unified assignment, review, and revision queue loaders around the same progress treatment.
-- Refined the assignment archive language and visuals so current work and historical assignments read more naturally to users.
+### Added
+
+- Added a spaCy/TextDescriptives NLP analyzer sidecar for richer deterministic review signals.
+- Added localization infrastructure with `next-intl` and an English message catalog.
+- Added domain-aware Vale style selection across fiction, technical, academic, professional, marketing, and thought-leadership writing.
+- Added progress dashboard stats for drafts, revisions, and completed assignment chains.
+
+### Changed
+
+- Rewrote user-facing copy across the app to use clearer terminology, including `Practice Path` and `skills`.
+- Moved more About, Admin, Progress, and error-page UI copy into localization messages.
+- Made deterministic heuristics, NLP analysis, and fallback review language domain-aware across writing types.
+- Improved admin AI provider event categories and user labeling.
+- Updated README and architecture docs for the analyzer pipeline and archive/progress UX.
+
+### Fixed
+
+- Fixed a `/progress` crash caused by missing history skill tag data.
+- Fixed progress dashboard counts so revision rounds no longer inflate draft and completed-assignment totals.
+- Fixed archive assignment summaries so revision submissions no longer inflate draft totals.
 
 ## 2026.03.21
 
