@@ -244,7 +244,7 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   >
                     <span className="min-w-0">
                       <span className="block text-[11px] font-semibold tracking-[0.18em] text-zinc-500 uppercase dark:text-zinc-400">
-                        Active track
+                        Track
                       </span>
                       <span className="mt-1 block truncate text-sm font-semibold">
                         {activeTrack?.title ?? 'Select a track'}
