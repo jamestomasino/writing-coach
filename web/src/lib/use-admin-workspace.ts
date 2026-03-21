@@ -59,7 +59,7 @@ export function useAdminWorkspace() {
   }, [])
 
   useEffect(() => {
-    if (!session?.is_admin || !providerFilters) {
+    if (!session?.is_admin || loading) {
       return
     }
 
@@ -72,7 +72,6 @@ export function useAdminWorkspace() {
         if (!cancelled) {
           setProviderSummary(providerData.summary)
           setProviderEvents(providerData.events)
-          setProviderFilters(providerData.filters)
         }
       } catch (err) {
         if (!cancelled) {
@@ -89,7 +88,7 @@ export function useAdminWorkspace() {
     return () => {
       cancelled = true
     }
-  }, [providerFilters, selectedEvent, selectedHours, selectedProvider, session?.is_admin])
+  }, [loading, selectedEvent, selectedHours, selectedProvider, session?.is_admin])
 
   return {
     loading,
