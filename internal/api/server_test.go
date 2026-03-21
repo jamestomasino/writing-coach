@@ -126,6 +126,41 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 	}
 }
 
+func TestDashboardEndpointRebuildsMissingCurriculumState(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	enrollmentID, err := harness.Store.EnrollmentID(context.Background(), user.ID, tree.ID)
+	if err != nil {
+		t.Fatalf("lookup enrollment: %v", err)
+	}
+	if _, err := harness.Store.SQL.ExecContext(context.Background(), `DELETE FROM user_curriculum_state WHERE enrollment_id = ?`, enrollmentID); err != nil {
+		t.Fatalf("delete curriculum state: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get dashboard: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", resp.StatusCode)
+	}
+
+	if _, err := harness.Store.GetCurriculumState(context.Background(), enrollmentID); err != nil {
+		t.Fatalf("curriculum state was not rebuilt: %v", err)
+	}
+}
+
 func TestAccountResetClearsUserDataButKeepsAccount(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
@@ -750,6 +785,41 @@ func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
 	}
 	if !strings.Contains(payload.Error, "exercise not found") {
 		t.Fatalf("expected exercise not found error, got %q", payload.Error)
+	}
+}
+
+func TestSubmissionsListRejectsForeignExerciseFilter(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	otherUserID, otherTreeID, _, err := harness.Store.EnsureDefaultUserTree(ctx, "other-writer", "Other Writer", "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("ensure other user tree: %v", err)
+	}
+	foreignExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          otherUserID,
+		TreeID:          otherTreeID,
+		Title:           "Foreign assignment",
+		Brief:           "Do not allow this to leak.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "openai",
+	})
+	if err != nil {
+		t.Fatalf("save foreign exercise: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship&exercise_id=" + int64String(foreignExerciseID))
+	if err != nil {
+		t.Fatalf("list submissions: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 for foreign exercise filter, got %d", resp.StatusCode)
 	}
 }
 

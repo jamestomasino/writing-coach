@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,18 +24,9 @@ func (s Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	state, err := s.Store.GetCurriculumState(r.Context(), appContext.EnrollmentID)
+	state, activeTGOs, completedTGOs, err := s.dashboardState(r.Context(), appContext)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	activeTGOs, err := s.Store.ActiveTGOs(r.Context(), appContext.EnrollmentID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	completedTGOs, err := s.Store.CompletedTGOs(r.Context(), appContext.EnrollmentID)
-	if err != nil {
+		log.Printf("dashboard: load failed for user=%d tree=%d enrollment=%d: %v", appContext.UserID, appContext.TreeID, appContext.EnrollmentID, err)
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -329,8 +322,25 @@ func (s Server) handleSubmissionsList(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid exercise_id"))
 		return
 	}
+	if exerciseID != 0 {
+		exercise, err := s.Store.GetExercise(r.Context(), exerciseID)
+		if err != nil {
+			status := http.StatusInternalServerError
+			if db.IsNotFound(err) {
+				status = http.StatusNotFound
+			}
+			log.Printf("submissions list: exercise lookup failed for user=%d tree=%d exercise=%d: %v", appContext.UserID, appContext.TreeID, exerciseID, err)
+			writeError(w, status, err)
+			return
+		}
+		if !belongsToContext(exercise.UserID, exercise.TreeID, appContext) {
+			writeError(w, http.StatusNotFound, fmt.Errorf("exercise not found"))
+			return
+		}
+	}
 	submissions, err := s.Store.ListSubmissions(r.Context(), appContext.UserID, appContext.TreeID, exerciseID, listLimit(r, 20, 100))
 	if err != nil {
+		log.Printf("submissions list: load failed for user=%d tree=%d exercise=%d: %v", appContext.UserID, appContext.TreeID, exerciseID, err)
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -342,6 +352,37 @@ func (s Server) handleSubmissionsList(w http.ResponseWriter, r *http.Request) {
 		"context":     requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
 		"submissions": items,
 	})
+}
+
+func (s Server) dashboardState(ctx context.Context, appContext session.Context) (domain.CurriculumState, []domain.TGO, []domain.TGO, error) {
+	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
+	if errors.Is(err, sql.ErrNoRows) {
+		if err := s.reseedEnrollmentState(ctx, appContext); err != nil {
+			return domain.CurriculumState{}, nil, nil, err
+		}
+		state, err = s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
+	}
+	if err != nil {
+		return domain.CurriculumState{}, nil, nil, err
+	}
+	activeTGOs, err := s.Store.ActiveTGOs(ctx, appContext.EnrollmentID)
+	if err != nil {
+		return domain.CurriculumState{}, nil, nil, err
+	}
+	completedTGOs, err := s.Store.CompletedTGOs(ctx, appContext.EnrollmentID)
+	if err != nil {
+		return domain.CurriculumState{}, nil, nil, err
+	}
+	return state, activeTGOs, completedTGOs, nil
+}
+
+func (s Server) reseedEnrollmentState(ctx context.Context, appContext session.Context) error {
+	user, err := s.Store.UserBySlug(ctx, appContext.UserSlug)
+	if err != nil {
+		return err
+	}
+	_, _, _, err = s.Store.EnsureDefaultUserTree(ctx, appContext.UserSlug, user.Name, appContext.TreeSlug)
+	return err
 }
 
 func (s Server) handleSubmissionGet(w http.ResponseWriter, r *http.Request) {

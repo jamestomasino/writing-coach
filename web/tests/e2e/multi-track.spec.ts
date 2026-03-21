@@ -50,7 +50,8 @@ test('guards unsaved drafts during track switching and switches when confirmed',
 
     await page.goto('/onboarding?mode=create')
     await createTrack(page, 'switch-two')
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(/\/new-assignment/)
+    await expect(page.getByText('Finish by generating your first assignment')).toBeVisible()
 
     await openTrackMenu(page)
     await page.getByTestId(`track-option-${firstTrackSlug}`).click()
@@ -90,7 +91,7 @@ test('archives the current track and refreshes the sidebar track list', async ({
 
     await page.goto('/onboarding?mode=create')
     await createTrack(page, 'archive-two')
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(/\/new-assignment/)
     await createFirstAssignment(page)
 
     await page.goto('/onboarding?mode=edit')
