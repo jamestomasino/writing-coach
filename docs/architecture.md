@@ -161,6 +161,7 @@ Current secure deployment direction:
 - `Vale` is bundled into the app image for deterministic prose linting
 - all deploy-time settings are driven from `.env` and consumed by `docker-compose.yml`
 - the intended production topology is `host nginx -> localhost-bound web upstream -> internal Docker services` on `coach.tomasino.org`
+- UI locale and writing language are modeled separately so future contributors can add coaching support for non-English writing without coupling it to interface language
 
 ## Interfaces
 

@@ -796,6 +796,7 @@ func toExerciseResponse(ex domain.Exercise) exerciseResponse {
 
 func toOnboardingProfileResponse(profile domain.OnboardingProfile) *onboardingProfileResponse {
 	return &onboardingProfileResponse{
+		WritingLanguage:     domain.NormalizeWritingLanguage(profile.WritingLanguage),
 		WritingType:         profile.WritingType,
 		AssignmentFormat:    profile.AssignmentFormat,
 		TargetAudience:      profile.TargetAudience,

@@ -116,6 +116,12 @@ def message_for(domain, key):
 
 
 def analyze_text(text, payload):
+    if str(payload.get("writing_language", "en")).strip().lower() not in {"", "en", "en-us", "english"}:
+        return {
+            "metrics": {},
+            "findings": [],
+            "warnings": ["nlp skipped: deterministic coaching for this language is not configured yet"],
+        }
     domain = normalized_domain(payload)
     doc = NLP(text)
     metrics = td.extract_dict(doc)[0]
@@ -214,7 +220,7 @@ def analyze_text(text, payload):
             }
         )
 
-    return {"metrics": metrics_payload, "findings": findings}
+    return {"metrics": metrics_payload, "findings": findings, "warnings": []}
 
 
 class Handler(BaseHTTPRequestHandler):

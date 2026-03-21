@@ -30,6 +30,9 @@ func (v Vale) AnalyzeWithContext(ctx context.Context, text string, options Conte
 	if v.Binary == "" {
 		return Report{Warnings: []string{"vale not configured"}}, nil
 	}
+	if !deterministicLanguageSupported(options.WritingLanguage) {
+		return Report{Warnings: []string{unsupportedLanguageWarning(v.Name(), options.WritingLanguage)}}, nil
+	}
 
 	tempDir := ""
 	if v.WorkingDir != "" {

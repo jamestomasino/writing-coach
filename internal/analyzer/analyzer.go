@@ -20,6 +20,7 @@ type Report struct {
 }
 
 type ContextOptions struct {
+	WritingLanguage  string
 	TreeSlug         string
 	WritingType      string
 	AssignmentFormat string
@@ -38,6 +39,7 @@ type ContextualAnalyzer interface {
 
 func ContextFromProfile(treeSlug string, profile domain.OnboardingProfile) ContextOptions {
 	return ContextOptions{
+		WritingLanguage:  domain.NormalizeWritingLanguage(profile.WritingLanguage),
 		TreeSlug:         treeSlug,
 		WritingType:      profile.WritingType,
 		AssignmentFormat: profile.AssignmentFormat,

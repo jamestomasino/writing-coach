@@ -134,7 +134,8 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		Schema:      ExerciseSchema(),
 		SystemInput: ExerciseSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Writing track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+			"Writing language: %s\nWriting track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+			FormatWritingLanguage(input.WritingLanguage),
 			FormatOnboardingProfile(input.OnboardingProfile),
 			MeasurabilityGuidance(input.ActiveTGOs),
 			EmptyDefault(input.CurrentFocus, "none"),
@@ -175,7 +176,8 @@ func (c *Client) GenerateRevisionExercise(ctx context.Context, input RevisionExe
 		Schema:      ExerciseSchema(),
 		SystemInput: RevisionSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Current focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+			"Writing language: %s\nCurrent focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+			FormatWritingLanguage(input.WritingLanguage),
 			EmptyDefault(input.CurrentFocus, "prose precision"),
 			input.DifficultyLevel,
 			JoinTGOs(input.ActiveTGOs),
@@ -218,7 +220,8 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		Schema:      ReviewSchema(),
 		SystemInput: ReviewSystemPrompt(),
 		UserInput: fmt.Sprintf(
-			"Submission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nCoaching context: %s\nSubmission:\n%s",
+			"Writing language: %s\nSubmission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nCoaching context: %s\nSubmission:\n%s",
+			FormatWritingLanguage(input.WritingLanguage),
 			input.SubmissionID,
 			input.WordCount,
 			JoinTGOs(input.ActiveTGOs),
@@ -397,6 +400,7 @@ Ask for a fresh draft written from scratch unless the user input clearly says ot
 Write at about a 6th-grade reading level.
 Use short, plain sentences.
 Make the request easy to understand on the first read.
+If a writing language is supplied, write the assignment in that language.
 Build the assignment from the writing track profile first: writing domain, format, audience, subject matter, tone, and goals.
 Use the track profile to create a concrete premise, situation, or communication problem, not a generic template.
 The brief must give the writer a real starting point: a pressure point, choice, conflict, reader need, or message to handle.
@@ -429,6 +433,7 @@ Do not generate a fresh unrelated exercise.
 Write at about a 6th-grade reading level.
 Use short, plain sentences.
 Make each instruction easy to follow.
+If a writing language is supplied, write the revision brief in that language.
 Preserve the core scene, but focus the revision on the most important weaknesses.
 Keep the brief aligned to the supplied coaching context without repeating every profile detail.
 Do not introduce genre or tone framing words such as "mythic", "fantasy", "epic", or "tragic" unless they are clearly present in the supplied track profile or coaching context.
@@ -443,6 +448,8 @@ func ReviewSystemPrompt() string {
 You are a professional writing coach reviewing a writing exercise.
 Return only schema-compliant JSON.
 Evaluate for narrative clarity, control, tonal discipline, and scene construction in the mode implied by the coaching context.
+If a writing language is supplied, write the review in that language.
+Keep quoted annotations exactly as they appear in the submission.
 Do not flatter. Be concrete and developmental.
 Choose the next focus that would most improve the following exercise.
 Choose next_focus only from the supplied taxonomy.
@@ -603,6 +610,14 @@ func FormatOnboardingProfile(profile *domain.OnboardingProfile) string {
 		return "none"
 	}
 	return strings.Join(lines, "\n")
+}
+
+func FormatWritingLanguage(code string) string {
+	normalized := domain.NormalizeWritingLanguage(code)
+	if normalized == "" {
+		normalized = domain.DefaultWritingLanguage
+	}
+	return fmt.Sprintf("%s (%s)", domain.WritingLanguageLabel(normalized), normalized)
 }
 
 func CoalesceFocusSkills(activeTGOs []domain.TGO, fallback []string) []string {

@@ -52,6 +52,7 @@ func (s Service) WithClient(client llm.Client, kind string) Service {
 func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercise {
 	if s.client != nil && s.client.Enabled() {
 		exercise, err := s.client.GenerateExercise(ctx, llm.ExerciseRequest{
+			WritingLanguage:   writingLanguageForProfile(input.OnboardingProfile),
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
 			ActiveTGOs:        input.ActiveTGOs,
@@ -84,6 +85,7 @@ func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exe
 	}
 	if s.client != nil && s.client.Enabled() {
 		exercise, err := s.client.GenerateRevisionExercise(ctx, llm.RevisionExerciseRequest{
+			WritingLanguage:   writingLanguageForProfile(input.OnboardingProfile),
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
 			ActiveTGOs:        input.ActiveTGOs,
@@ -247,6 +249,13 @@ func ensureDefaultTGOs(active []domain.TGO) []domain.TGO {
 		}
 	}
 	return out
+}
+
+func writingLanguageForProfile(profile *domain.OnboardingProfile) string {
+	if profile == nil {
+		return domain.DefaultWritingLanguage
+	}
+	return domain.NormalizeWritingLanguage(profile.WritingLanguage)
 }
 
 func tgoCodes(tgos []domain.TGO) []string {

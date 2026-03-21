@@ -27,6 +27,7 @@ type onboardingOptionResponse struct {
 }
 
 type onboardingOptionsResponse struct {
+	WritingLanguages  []onboardingOptionResponse `json:"writing_languages"`
 	WritingDomains    []onboardingOptionResponse `json:"writing_domains"`
 	AssignmentFormats []onboardingOptionResponse `json:"assignment_formats"`
 	ExperienceLevels  []onboardingOptionResponse `json:"experience_levels"`
@@ -36,6 +37,7 @@ type onboardingOptionsResponse struct {
 }
 
 type onboardingProfileResponse struct {
+	WritingLanguage     string   `json:"writing_language"`
 	WritingType         string   `json:"writing_type"`
 	AssignmentFormat    string   `json:"assignment_format"`
 	TargetAudience      string   `json:"target_audience"`
@@ -53,6 +55,7 @@ type onboardingProfileResponse struct {
 func (s Server) handleOnboardingOptions(w http.ResponseWriter, r *http.Request) {
 	options := domain.AvailableOnboardingOptions()
 	writeJSON(w, http.StatusOK, onboardingOptionsResponse{
+		WritingLanguages:  toOnboardingOptionResponses(options.WritingLanguages),
 		WritingDomains:    toOnboardingOptionResponses(options.WritingDomains),
 		AssignmentFormats: toOnboardingOptionResponses(options.AssignmentFormats),
 		ExperienceLevels:  toOnboardingOptionResponses(options.ExperienceLevels),
@@ -107,6 +110,7 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 	}
 	var payload struct {
 		Mode                string   `json:"mode"`
+		WritingLanguage     string   `json:"writing_language"`
 		WritingType         string   `json:"writing_type"`
 		AssignmentFormat    string   `json:"assignment_format"`
 		TargetAudience      string   `json:"target_audience"`
@@ -123,6 +127,7 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	profile := domain.OnboardingProfile{
+		WritingLanguage:     domain.NormalizeWritingLanguage(payload.WritingLanguage),
 		WritingType:         strings.TrimSpace(payload.WritingType),
 		AssignmentFormat:    strings.TrimSpace(payload.AssignmentFormat),
 		TargetAudience:      strings.TrimSpace(payload.TargetAudience),

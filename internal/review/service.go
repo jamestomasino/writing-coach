@@ -68,6 +68,7 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 			SubmissionID:     sub.ID,
 			Content:          sub.Content,
 			WordCount:        sub.WordCount,
+			WritingLanguage:  analyzerContextLanguage(options.AnalyzerContext),
 			ActiveTGOs:       activeTGOs,
 			CompletedTGOs:    completedTGOs,
 			AnalysisSummary:  analyzer.Summary(report),
@@ -91,6 +92,10 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 	return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 }
 
+func analyzerContextLanguage(options analyzer.ContextOptions) string {
+	return domain.NormalizeWritingLanguage(options.WritingLanguage)
+}
+
 func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options analyzer.ContextOptions) (domain.Review, []domain.SkillScore) {
 	wordCount := sub.WordCount
 	sentences := report.Metrics["sentence_count"]
@@ -99,6 +104,23 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 		avgSentenceLength = report.Metrics["avg_sentence_length"]
 	}
 	domainName := analyzer.DomainForContext(options)
+	writingLanguage := analyzerContextLanguage(options)
+
+	if !domain.WritingLanguageSupported(writingLanguage) {
+		scores := defaultScoresForActiveTGOs(sub.ID, activeTGOs, wordCount, avgSentenceLength, len(report.Findings))
+		return domain.Review{
+			SubmissionID:       sub.ID,
+			Summary:            "This review is limited because deterministic coaching is not configured for the selected writing language yet.",
+			Strengths:          []string{"The submission was saved and can still be reviewed by a model-backed coach if one is enabled."},
+			Weaknesses:         []string{"Deterministic analyzers are currently configured only for English, so this fallback review cannot make confident craft judgments yet."},
+			AnalyzerFindings:   analyzer.TopFindings(report, 6),
+			TGOAssessments:     deterministicAssessments(activeTGOs, report),
+			CompletedTGOChecks: deterministicCompletedChecks(completedTGOs, report),
+			Annotations:        nil,
+			NextFocus:          "clarity and coherence",
+			MetricWordCount:    wordCount,
+		}, scores
+	}
 
 	summary, strengths, weaknesses, nextFocus := deterministicReviewLanguage(domainName)
 

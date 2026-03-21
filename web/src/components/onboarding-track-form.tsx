@@ -17,6 +17,7 @@ type Props = {
   mode: 'create' | 'edit'
   options: OnboardingOptions
   existingProfile: boolean
+  writingLanguage: string
   writingType: string
   assignmentFormat: string
   targetAudience: string
@@ -28,6 +29,7 @@ type Props = {
   weaknesses: string[]
   outcomes: string[]
   saving: boolean
+  onWritingLanguageChange: (value: string) => void
   onWritingTypeChange: (value: string) => void
   onAssignmentFormatChange: (value: string) => void
   onTargetAudienceChange: (value: string) => void
@@ -45,6 +47,7 @@ export function OnboardingTrackForm({
   mode,
   options,
   existingProfile,
+  writingLanguage,
   writingType,
   assignmentFormat,
   targetAudience,
@@ -56,6 +59,7 @@ export function OnboardingTrackForm({
   weaknesses,
   outcomes,
   saving,
+  onWritingLanguageChange,
   onWritingTypeChange,
   onAssignmentFormatChange,
   onTargetAudienceChange,
@@ -73,6 +77,20 @@ export function OnboardingTrackForm({
     <WorkspaceCard>
       <form className="space-y-8" onSubmit={onSubmit} data-testid="track-form">
         <FieldGroup>
+          <Field>
+            <Label>{t('writingLanguageLabel')}</Label>
+            <Text className="mt-1 text-sm">{t('writingLanguageHelp')}</Text>
+            <Select value={writingLanguage} onChange={(event) => onWritingLanguageChange(event.target.value)}>
+              <option value="" disabled>
+                {t('writingLanguagePlaceholder')}
+              </option>
+              {options.writing_languages.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field>
             <Label>{t('writingTypeLabel')}</Label>
             <Select value={writingType} onChange={(event) => onWritingTypeChange(event.target.value)}>

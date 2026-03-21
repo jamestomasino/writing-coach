@@ -19,6 +19,9 @@ func (h Heuristic) Analyze(ctx context.Context, text string) (Report, error) {
 }
 
 func (Heuristic) AnalyzeWithContext(_ context.Context, text string, options ContextOptions) (Report, error) {
+	if !deterministicLanguageSupported(options.WritingLanguage) {
+		return Report{Warnings: []string{unsupportedLanguageWarning("heuristic", options.WritingLanguage)}}, nil
+	}
 	wordCount := len(strings.Fields(text))
 	sentenceCount := estimateSentenceCount(text)
 	paragraphCount := countParagraphs(text)

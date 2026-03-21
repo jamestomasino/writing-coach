@@ -73,6 +73,15 @@ func TestExerciseSystemPromptRequiresConcretePremise(t *testing.T) {
 	if !strings.Contains(got, "brief itself must contain the core situation") {
 		t.Fatalf("expected brief/core situation instruction, got %q", got)
 	}
+	if !strings.Contains(got, "write the assignment in that language") {
+		t.Fatalf("expected writing-language instruction, got %q", got)
+	}
+}
+
+func TestFormatWritingLanguageUsesNormalizedCode(t *testing.T) {
+	if got := FormatWritingLanguage("EN-US"); got != "English (en)" {
+		t.Fatalf("FormatWritingLanguage = %q", got)
+	}
 }
 
 func TestValidateCredentialsUsesModelsEndpoint(t *testing.T) {

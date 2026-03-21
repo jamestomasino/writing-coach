@@ -15,6 +15,7 @@ import { TrackManagementCard } from './track-management-card'
 import { WorkspaceCard } from './workspace-card'
 
 const emptyOptions: OnboardingOptions = {
+  writing_languages: [],
   writing_domains: [],
   assignment_formats: [],
   experience_levels: [],
@@ -32,6 +33,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
   const [error, setError] = useState<string | null>(null)
   const [existingProfile, setExistingProfile] = useState(false)
   const [options, setOptions] = useState<OnboardingOptions>(emptyOptions)
+  const [writingLanguage, setWritingLanguage] = useState('en')
   const [writingType, setWritingType] = useState('')
   const [assignmentFormat, setAssignmentFormat] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
@@ -67,6 +69,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
         setOptions(nextOptions)
         setTracks(trackList)
         if (mode === 'edit' && onboarding.profile) {
+          setWritingLanguage(onboarding.profile.writing_language || 'en')
           setWritingType(onboarding.profile.writing_type)
           setAssignmentFormat(onboarding.profile.assignment_format)
           setTargetAudience(onboarding.profile.target_audience)
@@ -110,6 +113,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
       setError(null)
       await saveOnboarding({
         mode,
+        writing_language: writingLanguage,
         writing_type: writingType,
         assignment_format: assignmentFormat,
         target_audience: targetAudience,
@@ -208,6 +212,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
         mode={mode}
         options={options}
         existingProfile={existingProfile}
+        writingLanguage={writingLanguage}
         writingType={writingType}
         assignmentFormat={assignmentFormat}
         targetAudience={targetAudience}
@@ -219,6 +224,7 @@ export function OnboardingView({ mode = 'edit' }: { mode?: 'create' | 'edit' }) 
         weaknesses={weaknesses}
         outcomes={outcomes}
         saving={saving}
+        onWritingLanguageChange={setWritingLanguage}
         onWritingTypeChange={setWritingType}
         onAssignmentFormatChange={setAssignmentFormat}
         onTargetAudienceChange={setTargetAudience}

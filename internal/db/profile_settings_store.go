@@ -11,13 +11,14 @@ func (s *Store) OnboardingProfileByEnrollmentID(ctx context.Context, enrollmentI
 	var profile domain.OnboardingProfile
 	var weaknessesJSON, outcomesJSON string
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT e.id, e.user_id, p.writing_type, p.assignment_format, p.target_audience, p.subject_matter, p.experience_level, p.desired_tone, p.biggest_weaknesses_json, p.desired_outcomes_json, p.difficulty_intensity, p.writing_goals, p.generated_tree_slug, p.template_key
+		SELECT e.id, e.user_id, p.writing_language, p.writing_type, p.assignment_format, p.target_audience, p.subject_matter, p.experience_level, p.desired_tone, p.biggest_weaknesses_json, p.desired_outcomes_json, p.difficulty_intensity, p.writing_goals, p.generated_tree_slug, p.template_key
 		FROM enrollment_onboarding_profiles p
 		JOIN user_tree_enrollments e ON e.id = p.enrollment_id
 		WHERE p.enrollment_id = ?
 	`, enrollmentID).Scan(
 		&profile.EnrollmentID,
 		&profile.UserID,
+		&profile.WritingLanguage,
 		&profile.WritingType,
 		&profile.AssignmentFormat,
 		&profile.TargetAudience,
@@ -40,6 +41,7 @@ func (s *Store) OnboardingProfileByEnrollmentID(ctx context.Context, enrollmentI
 	if profile.DesiredOutcomes, err = DecodeStringSlice(outcomesJSON); err != nil {
 		return domain.OnboardingProfile{}, err
 	}
+	profile.WritingLanguage = domain.NormalizeWritingLanguage(profile.WritingLanguage)
 	return profile, nil
 }
 
@@ -54,10 +56,11 @@ func (s *Store) OnboardingProfileByUserID(ctx context.Context, userID int64) (do
 func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.OnboardingProfile) error {
 	_, err := s.SQL.ExecContext(ctx, `
 		INSERT INTO enrollment_onboarding_profiles (
-			enrollment_id, writing_type, assignment_format, target_audience, subject_matter, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json,
+			enrollment_id, writing_language, writing_type, assignment_format, target_audience, subject_matter, experience_level, desired_tone, biggest_weaknesses_json, desired_outcomes_json,
 			difficulty_intensity, writing_goals, generated_tree_slug, template_key, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(enrollment_id) DO UPDATE SET
+			writing_language = excluded.writing_language,
 			writing_type = excluded.writing_type,
 			assignment_format = excluded.assignment_format,
 			target_audience = excluded.target_audience,
@@ -71,7 +74,7 @@ func (s *Store) SaveOnboardingProfile(ctx context.Context, profile domain.Onboar
 			generated_tree_slug = excluded.generated_tree_slug,
 			template_key = excluded.template_key,
 			updated_at = CURRENT_TIMESTAMP
-	`, profile.EnrollmentID, profile.WritingType, profile.AssignmentFormat, profile.TargetAudience, profile.SubjectMatter, profile.ExperienceLevel, profile.DesiredTone, mustJSON(profile.BiggestWeaknesses), mustJSON(profile.DesiredOutcomes), profile.DifficultyIntensity, profile.WritingGoals, profile.GeneratedTreeSlug, profile.TemplateKey)
+	`, profile.EnrollmentID, domain.NormalizeWritingLanguage(profile.WritingLanguage), profile.WritingType, profile.AssignmentFormat, profile.TargetAudience, profile.SubjectMatter, profile.ExperienceLevel, profile.DesiredTone, mustJSON(profile.BiggestWeaknesses), mustJSON(profile.DesiredOutcomes), profile.DifficultyIntensity, profile.WritingGoals, profile.GeneratedTreeSlug, profile.TemplateKey)
 	return err
 }
 

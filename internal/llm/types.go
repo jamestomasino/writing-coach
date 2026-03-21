@@ -32,6 +32,7 @@ func (e *HTTPError) Error() string {
 }
 
 type ExerciseRequest struct {
+	WritingLanguage   string
 	CurrentFocus      string
 	DifficultyLevel   int
 	ActiveTGOs        []domain.TGO
@@ -43,6 +44,7 @@ type ExerciseRequest struct {
 }
 
 type RevisionExerciseRequest struct {
+	WritingLanguage   string
 	CurrentFocus      string
 	DifficultyLevel   int
 	ActiveTGOs        []domain.TGO
@@ -60,6 +62,7 @@ type ReviewRequest struct {
 	SubmissionID     int64
 	Content          string
 	WordCount        int
+	WritingLanguage  string
 	ActiveTGOs       []domain.TGO
 	CompletedTGOs    []domain.TGO
 	AnalysisSummary  string

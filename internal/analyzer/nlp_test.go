@@ -62,6 +62,7 @@ func TestNLPAnalyzerSendsContext(t *testing.T) {
 	defer server.Close()
 
 	_, err := (NLP{BaseURL: server.URL}).AnalyzeWithContext(context.Background(), "text", ContextOptions{
+		WritingLanguage:  "en",
 		WritingType:      "technical writing",
 		AssignmentFormat: "how-to guide",
 		TemplateKey:      "technical-writing",
@@ -73,7 +74,25 @@ func TestNLPAnalyzerSendsContext(t *testing.T) {
 	if payload["domain"] != DomainTechnical {
 		t.Fatalf("expected technical domain, got %#v", payload["domain"])
 	}
+	if payload["writing_language"] != "en" {
+		t.Fatalf("expected writing language, got %#v", payload["writing_language"])
+	}
 	if payload["writing_type"] != "technical writing" {
 		t.Fatalf("expected writing type, got %#v", payload["writing_type"])
+	}
+}
+
+func TestNLPAnalyzerSkipsUnsupportedLanguage(t *testing.T) {
+	report, err := (NLP{BaseURL: "http://example.com"}).AnalyzeWithContext(context.Background(), "texto", ContextOptions{
+		WritingLanguage: "es",
+	})
+	if err != nil {
+		t.Fatalf("analyze: %v", err)
+	}
+	if len(report.Warnings) == 0 {
+		t.Fatalf("expected warning for unsupported language, got %#v", report)
+	}
+	if len(report.Findings) != 0 {
+		t.Fatalf("expected no findings, got %#v", report.Findings)
 	}
 }

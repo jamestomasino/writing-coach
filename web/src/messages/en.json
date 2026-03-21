@@ -72,6 +72,9 @@
     "howItWorksBody3": "As you improve, older skills are checked more lightly and new ones open up."
   },
   "onboardingTrackForm": {
+    "writingLanguageLabel": "What language will you write in?",
+    "writingLanguageHelp": "English coaching is available now. This setting keeps the practice path ready for future language support.",
+    "writingLanguagePlaceholder": "Choose a writing language",
     "writingTypeLabel": "What kind of writing is this for?",
     "writingTypePlaceholder": "Choose a writing type",
     "assignmentFormatLabel": "What kind of assignments do you want?",

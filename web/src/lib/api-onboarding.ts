@@ -11,6 +11,7 @@ export function getOnboardingOptions() {
 
 export function saveOnboarding(input: {
   mode?: 'create' | 'edit'
+  writing_language: string
   writing_type: string
   assignment_format: string
   target_audience: string

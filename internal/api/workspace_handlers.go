@@ -860,6 +860,10 @@ func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext sessio
 
 func (s Server) createRevisionExercise(ctx context.Context, appContext session.Context, submissionID int64) (domain.Exercise, error) {
 	coachingBrief := s.coachingBrief(ctx, appContext.EnrollmentID)
+	var profile *domain.OnboardingProfile
+	if loadedProfile, err := s.Store.OnboardingProfileByEnrollmentID(ctx, appContext.EnrollmentID); err == nil {
+		profile = &loadedProfile
+	}
 	sub, err := s.Store.GetSubmission(ctx, submissionID)
 	if err != nil {
 		return domain.Exercise{}, err
@@ -911,6 +915,7 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	ex := s.Prompts.WithClient(runtime.Client, runtime.ProviderKind).RevisionExercise(ctx, prompt.Context{
 		CurriculumState:    state,
 		ActiveTGOs:         activeTGOs,
+		OnboardingProfile:  profile,
 		RecentTitles:       recentTitles,
 		RecentWeaknesses:   recentWeaknesses,
 		RecurringFindings:  recurringFindings,

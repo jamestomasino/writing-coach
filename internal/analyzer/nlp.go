@@ -27,6 +27,9 @@ func (n NLP) AnalyzeWithContext(ctx context.Context, text string, options Contex
 	if n.BaseURL == "" {
 		return Report{Warnings: []string{"nlp analyzer not configured"}}, nil
 	}
+	if !deterministicLanguageSupported(options.WritingLanguage) {
+		return Report{Warnings: []string{unsupportedLanguageWarning(n.Name(), options.WritingLanguage)}}, nil
+	}
 
 	client := n.HTTPClient
 	if client == nil {
@@ -35,6 +38,7 @@ func (n NLP) AnalyzeWithContext(ctx context.Context, text string, options Contex
 
 	body, err := json.Marshal(struct {
 		Text             string `json:"text"`
+		WritingLanguage  string `json:"writing_language,omitempty"`
 		TreeSlug         string `json:"tree_slug,omitempty"`
 		WritingType      string `json:"writing_type,omitempty"`
 		AssignmentFormat string `json:"assignment_format,omitempty"`
@@ -42,6 +46,7 @@ func (n NLP) AnalyzeWithContext(ctx context.Context, text string, options Contex
 		Domain           string `json:"domain,omitempty"`
 	}{
 		Text:             text,
+		WritingLanguage:  normalizeWritingLanguage(options.WritingLanguage),
 		TreeSlug:         strings.TrimSpace(options.TreeSlug),
 		WritingType:      strings.TrimSpace(options.WritingType),
 		AssignmentFormat: strings.TrimSpace(options.AssignmentFormat),
@@ -69,6 +74,7 @@ func (n NLP) AnalyzeWithContext(ctx context.Context, text string, options Contex
 
 	var payload struct {
 		Metrics  map[string]int `json:"metrics"`
+		Warnings []string       `json:"warnings"`
 		Findings []struct {
 			Category string `json:"category"`
 			Severity string `json:"severity"`
@@ -80,7 +86,8 @@ func (n NLP) AnalyzeWithContext(ctx context.Context, text string, options Contex
 	}
 
 	report := Report{
-		Metrics: payload.Metrics,
+		Metrics:  payload.Metrics,
+		Warnings: payload.Warnings,
 	}
 	for _, finding := range payload.Findings {
 		report.Findings = append(report.Findings, Finding{

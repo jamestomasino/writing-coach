@@ -281,6 +281,7 @@ export type AIProviderEvent = {
 }
 
 export type OnboardingProfile = {
+  writing_language: string
   writing_type: string
   assignment_format: string
   target_audience: string
@@ -309,6 +310,7 @@ export type OnboardingOption = {
 }
 
 export type OnboardingOptions = {
+  writing_languages: OnboardingOption[]
   writing_domains: OnboardingOption[]
   assignment_formats: OnboardingOption[]
   experience_levels: OnboardingOption[]

@@ -127,6 +127,12 @@ If a language model is enabled, it works on top of that structure. It helps writ
 
 If no model is available, the app still produces deterministic prompts, reviews, and revision briefs.
 
+The app also tracks a separate `writing language` on each practice path. That is distinct from the UI locale. English is the only shipped coaching language right now, but the analyzer and model pipeline are wired so contributors can add future language support without redesigning the app.
+
+Contributor reference:
+
+- [docs/coaching-language-contributors.md](/home/tomasino/writing-coach/docs/coaching-language-contributors.md)
+
 ## AI Provider Modes
 
 The app supports two operating modes:

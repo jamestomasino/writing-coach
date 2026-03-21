@@ -10,6 +10,7 @@ import (
 type OnboardingProfile struct {
 	EnrollmentID        int64
 	UserID              int64
+	WritingLanguage     string
 	WritingType         string
 	AssignmentFormat    string
 	TargetAudience      string
@@ -30,6 +31,7 @@ type OnboardingOption struct {
 }
 
 type OnboardingOptions struct {
+	WritingLanguages  []OnboardingOption
 	WritingDomains    []OnboardingOption
 	AssignmentFormats []OnboardingOption
 	ExperienceLevels  []OnboardingOption
@@ -79,6 +81,9 @@ func (p OnboardingProfile) MissingFields() []string {
 
 func AvailableOnboardingOptions() OnboardingOptions {
 	return OnboardingOptions{
+		WritingLanguages: []OnboardingOption{
+			{Value: "en", Label: "English"},
+		},
 		WritingDomains: []OnboardingOption{
 			{Value: "fiction", Label: "Fiction"},
 			{Value: "fantasy fiction", Label: "Fantasy fiction"},
@@ -159,6 +164,9 @@ func TemplateKeyForProfile(profile OnboardingProfile) string {
 
 func CoachingBrief(profile OnboardingProfile) string {
 	parts := []string{}
+	if value := WritingLanguageLabel(profile.WritingLanguage); strings.TrimSpace(value) != "" {
+		parts = append(parts, "writing language: "+value)
+	}
 	if value := strings.TrimSpace(profile.WritingType); value != "" {
 		parts = append(parts, "writing type: "+value)
 	}
@@ -260,6 +268,9 @@ func PromptGoal(profile OnboardingProfile) string {
 
 func PromptProfileLines(profile OnboardingProfile) []string {
 	lines := []string{}
+	if value := WritingLanguageLabel(profile.WritingLanguage); strings.TrimSpace(value) != "" {
+		lines = append(lines, "writing language: "+value)
+	}
 	if value := strings.TrimSpace(profile.WritingType); value != "" {
 		lines = append(lines, "writing domain: "+value)
 	}

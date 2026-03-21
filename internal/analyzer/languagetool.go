@@ -20,8 +20,16 @@ func (lt LanguageTool) Name() string {
 }
 
 func (lt LanguageTool) Analyze(ctx context.Context, text string) (Report, error) {
+	return lt.AnalyzeWithContext(ctx, text, ContextOptions{})
+}
+
+func (lt LanguageTool) AnalyzeWithContext(ctx context.Context, text string, options ContextOptions) (Report, error) {
 	if lt.BaseURL == "" {
 		return Report{Warnings: []string{"languagetool not configured"}}, nil
+	}
+	code := languageToolCode(options.WritingLanguage)
+	if code == "" {
+		return Report{Warnings: []string{unsupportedLanguageWarning(lt.Name(), options.WritingLanguage)}}, nil
 	}
 
 	client := lt.HTTPClient
@@ -31,7 +39,7 @@ func (lt LanguageTool) Analyze(ctx context.Context, text string) (Report, error)
 
 	form := url.Values{}
 	form.Set("text", text)
-	form.Set("language", "en-US")
+	form.Set("language", code)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(lt.BaseURL, "/")+"/v2/check", strings.NewReader(form.Encode()))
 	if err != nil {
