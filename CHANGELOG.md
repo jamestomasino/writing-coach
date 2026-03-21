@@ -16,6 +16,8 @@ For the full workflow, see [docs/release-process.md](/home/tomasino/writing-coac
 
 ## Unreleased
 
+## 2026.03.21
+
 - Added multi-track coaching so each user can create, switch, and archive independent writing tracks with separate progress and history.
 - Added a guided first-run setup funnel covering AI readiness, first-track creation, and first-assignment creation.
 - Hardened backend request handling, auth defaults, submission ownership checks, and shutdown behavior.
