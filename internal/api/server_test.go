@@ -117,12 +117,186 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 
 	var payload struct {
 		CompletedAssignments int `json:"completed_assignments"`
+		DraftCount           int `json:"draft_count"`
+		RevisionCount        int `json:"revision_count"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode dashboard: %v", err)
 	}
 	if payload.CompletedAssignments != 1 {
 		t.Fatalf("completed assignments = %d", payload.CompletedAssignments)
+	}
+	if payload.DraftCount != 1 {
+		t.Fatalf("draft count = %d", payload.DraftCount)
+	}
+	if payload.RevisionCount != 0 {
+		t.Fatalf("revision count = %d", payload.RevisionCount)
+	}
+}
+
+func TestDashboardCountsDraftsRevisionsAndCompletedChains(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+
+	rootExerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Assignment One",
+		Brief:           "Write something.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"prose precision"},
+		TGOCodes:        []string{"prose-precision"},
+		SuccessCriteria: []string{"clear result"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	firstSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: rootExerciseID,
+		Content:    "First draft.",
+		WordCount:  2,
+	})
+	if err != nil {
+		t.Fatalf("save first submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     firstSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "Solid.",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"tighten"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "prose precision",
+		MetricWordCount:  2,
+	}, nil); err != nil {
+		t.Fatalf("save first review: %v", err)
+	}
+
+	revisionExerciseOneID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		Title:              "Revision One",
+		Brief:              "Revise it.",
+		Constraints:        []string{"one"},
+		FocusSkills:        []string{"prose precision"},
+		TGOCodes:           []string{"prose-precision"},
+		SuccessCriteria:    []string{"clearer result"},
+		GenerationKind:     "deterministic",
+		SourceSubmissionID: firstSubmissionID,
+	})
+	if err != nil {
+		t.Fatalf("save revision exercise one: %v", err)
+	}
+	secondSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		ExerciseID:         revisionExerciseOneID,
+		ParentSubmissionID: firstSubmissionID,
+		DraftNumber:        2,
+		Content:            "Second draft.",
+		WordCount:          2,
+	})
+	if err != nil {
+		t.Fatalf("save second submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     secondSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "Better.",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"tighten"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "prose precision",
+		MetricWordCount:  2,
+	}, nil); err != nil {
+		t.Fatalf("save second review: %v", err)
+	}
+
+	revisionExerciseTwoID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		Title:              "Revision Two",
+		Brief:              "Revise it again.",
+		Constraints:        []string{"one"},
+		FocusSkills:        []string{"prose precision"},
+		TGOCodes:           []string{"prose-precision"},
+		SuccessCriteria:    []string{"clearest result"},
+		GenerationKind:     "deterministic",
+		SourceSubmissionID: secondSubmissionID,
+	})
+	if err != nil {
+		t.Fatalf("save revision exercise two: %v", err)
+	}
+	thirdSubmissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:             user.ID,
+		TreeID:             tree.ID,
+		ExerciseID:         revisionExerciseTwoID,
+		ParentSubmissionID: secondSubmissionID,
+		DraftNumber:        3,
+		Content:            "Third draft.",
+		WordCount:          2,
+	})
+	if err != nil {
+		t.Fatalf("save third submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     thirdSubmissionID,
+		ReviewKind:       "coach",
+		Summary:          "Better.",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"tighten"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "prose precision",
+		MetricWordCount:  2,
+	}, nil); err != nil {
+		t.Fatalf("save third review: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get dashboard: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		CompletedAssignments int `json:"completed_assignments"`
+		DraftCount           int `json:"draft_count"`
+		RevisionCount        int `json:"revision_count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode dashboard: %v", err)
+	}
+	if payload.CompletedAssignments != 1 {
+		t.Fatalf("completed assignments = %d", payload.CompletedAssignments)
+	}
+	if payload.DraftCount != 1 {
+		t.Fatalf("draft count = %d", payload.DraftCount)
+	}
+	if payload.RevisionCount != 2 {
+		t.Fatalf("revision count = %d", payload.RevisionCount)
 	}
 }
 

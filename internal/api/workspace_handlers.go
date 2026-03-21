@@ -1010,7 +1010,7 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	completedAssignments, err := s.Store.CompletedAssignmentCount(ctx, appContext.UserID, appContext.TreeID)
+	exercises, err := s.Store.ListExercises(ctx, appContext.UserID, appContext.TreeID, 500)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -1020,13 +1020,12 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	draftCount := len(submissions)
-	revisionCount := 0
-	for _, submission := range submissions {
-		if submission.ParentSubmissionID != 0 || submission.DraftNumber > 1 {
-			revisionCount++
-		}
+	reviews, err := s.Store.ListReviews(ctx, appContext.UserID, appContext.TreeID, 0, 500)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
 	}
+	completedAssignments, draftCount, revisionCount := dashboardAssignmentStats(exercises, submissions, reviews)
 	recurringWeaknesses, err := s.Store.RecurringWeaknesses(ctx, appContext.UserID, appContext.TreeID, 5)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -1085,4 +1084,37 @@ func (s Server) writeDashboardPayload(ctx context.Context, w http.ResponseWriter
 		"recurring_completed_slips": recurringSlips,
 		"history":                   toHistoryResponses(recentExercises),
 	})
+}
+
+func dashboardAssignmentStats(exercises []domain.Exercise, submissions []domain.Submission, reviews []domain.Review) (completedAssignments, draftCount, revisionCount int) {
+	exerciseByID := make(map[int64]domain.Exercise, len(exercises))
+	for _, exercise := range exercises {
+		exerciseByID[exercise.ID] = exercise
+	}
+	submissionByID := make(map[int64]domain.Submission, len(submissions))
+	for _, submission := range submissions {
+		submissionByID[submission.ID] = submission
+		if submission.ParentSubmissionID == 0 {
+			draftCount++
+		} else {
+			revisionCount++
+		}
+	}
+
+	completedRoots := make(map[int64]bool)
+	for _, reviewResult := range reviews {
+		submission, ok := submissionByID[reviewResult.SubmissionID]
+		if !ok {
+			continue
+		}
+		exercise, ok := exerciseByID[submission.ExerciseID]
+		if !ok {
+			continue
+		}
+		rootID := rootExerciseID(exercise, exerciseByID, submissionByID)
+		if rootID != 0 {
+			completedRoots[rootID] = true
+		}
+	}
+	return len(completedRoots), draftCount, revisionCount
 }
