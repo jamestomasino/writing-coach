@@ -57,7 +57,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
               </Button>
             ) : null}
             {canActOnReview ? (
-              <Button href="/" outline>
+              <Button href={`/assignments/${exercise.id}?completed=1`} outline>
                 Accept and move on
               </Button>
             ) : null}

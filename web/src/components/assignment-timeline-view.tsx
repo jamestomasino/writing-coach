@@ -3,6 +3,7 @@
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
+import { Callout } from '@/components/callout'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
@@ -205,7 +206,13 @@ function StepSection({ step, selected }: { step: AssignmentTimelineStep; selecte
   )
 }
 
-export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
+export function AssignmentTimelineView({
+  exerciseId,
+  showCompletionState = false,
+}: {
+  exerciseId: number
+  showCompletionState?: boolean
+}) {
   const { sessionLoading, sessionError, loading, error, assignment, selectedStepID, selectStep } =
     useAssignmentTimeline(exerciseId)
 
@@ -233,6 +240,20 @@ export function AssignmentTimelineView({ exerciseId }: { exerciseId: number }) {
           </>
         }
       />
+
+      {showCompletionState ? (
+        <Callout
+          tone="success"
+          eyebrow="Assignment complete"
+          title="You finished this assignment"
+          body="Take a moment to review the full draft and feedback history, then start your next assignment when you're ready."
+          actions={
+            <Button href="/new-assignment" color="dark/zinc">
+              Start next assignment
+            </Button>
+          }
+        />
+      ) : null}
 
       <WorkspaceCard>
         <CardHeader
