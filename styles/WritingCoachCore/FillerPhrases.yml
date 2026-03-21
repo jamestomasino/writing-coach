@@ -1,0 +1,9 @@
+extends: existence
+message: "Filler phrase '%s' may be adding words without adding value."
+level: suggestion
+ignorecase: true
+tokens:
+  - "\\bin order to\\b"
+  - "\\bthe fact that\\b"
+  - "\\bbasically\\b"
+  - "\\bactually\\b"

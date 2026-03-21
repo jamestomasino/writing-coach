@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tomasino/writing-coach/internal/analyzer"
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/curriculum"
 	"github.com/tomasino/writing-coach/internal/db"
@@ -621,12 +622,18 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	if err != nil {
 		return fmt.Errorf("load tree slug: %w", err)
 	}
+	analyzerContext := analyzer.ContextOptions{TreeSlug: treeSlug}
+	if profile, err := s.Store.OnboardingProfileByEnrollmentID(ctx, job.EnrollmentID); err == nil {
+		analyzerContext = analyzer.ContextFromProfile(treeSlug, profile)
+	}
 	runtime, err := s.resolveLLMRuntime(ctx, job.UserID)
 	if err != nil {
 		return fmt.Errorf("resolve provider: %w", err)
 	}
 
-	reviewResult := s.Reviews.WithClient(runtime.Client, runtime.ProviderKind).ReviewSubmissionDetailed(ctx, sub, activeTGOs, completedTGOs)
+	reviewResult := s.Reviews.WithClient(runtime.Client, runtime.ProviderKind).ReviewSubmissionDetailedWithOptions(ctx, sub, activeTGOs, completedTGOs, review.Options{
+		AnalyzerContext: analyzerContext,
+	})
 	if reviewResult.Review.ReviewKind == runtime.ProviderKind {
 		reviewResult.Review.ProviderNote = formatProviderNote(runtime.ProviderKind, runtime.ReviewModel)
 	}

@@ -1,5 +1,5 @@
 extends: existence
-message: "Abstract burden word '%s' may be carrying emotional weight the scene hasn't dramatized yet."
+message: "Abstract burden word '%s' may be carrying emotional weight the scene has not dramatized yet."
 level: suggestion
 ignorecase: true
 tokens:

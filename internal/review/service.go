@@ -18,6 +18,10 @@ type Service struct {
 	fallback   deterministicReviewer
 }
 
+type Options struct {
+	AnalyzerContext analyzer.ContextOptions
+}
+
 type Result struct {
 	Review         domain.Review
 	Scores         []domain.SkillScore
@@ -48,7 +52,16 @@ func (s Service) ReviewSubmission(ctx context.Context, sub domain.Submission, ac
 }
 
 func (s Service) ReviewSubmissionDetailed(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO) Result {
-	report := s.analyzers.Analyze(ctx, sub.Content)
+	return s.ReviewSubmissionDetailedWithOptions(ctx, sub, activeTGOs, completedTGOs, Options{})
+}
+
+func (s Service) ReviewSubmissionWithOptions(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options Options) (domain.Review, []domain.SkillScore) {
+	result := s.ReviewSubmissionDetailedWithOptions(ctx, sub, activeTGOs, completedTGOs, options)
+	return result.Review, result.Scores
+}
+
+func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options Options) Result {
+	report := s.analyzers.AnalyzeWithContext(ctx, sub.Content, options.AnalyzerContext)
 
 	if s.client != nil && s.client.Enabled() {
 		reviewResult, scores, err := s.client.ReviewSubmission(ctx, llm.ReviewRequest{

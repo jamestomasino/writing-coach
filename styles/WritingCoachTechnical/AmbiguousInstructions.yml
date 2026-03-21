@@ -1,0 +1,10 @@
+extends: existence
+message: "Instructional word '%s' may under-explain the step or outcome."
+level: warning
+ignorecase: true
+tokens:
+  - "\\bsimply\\b"
+  - "\\bjust\\b"
+  - "\\beasy\\b"
+  - "\\beasily\\b"
+  - "\\bobvious(?:ly)?\\b"

@@ -1,0 +1,9 @@
+extends: existence
+message: "Phrase '%s' may signal authority without adding substance."
+level: suggestion
+ignorecase: true
+tokens:
+  - everyone knows
+  - it is safe to say
+  - the fact of the matter
+  - needless to say

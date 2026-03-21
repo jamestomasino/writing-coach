@@ -15,9 +15,13 @@ func NewService(analyzers ...Analyzer) Service {
 }
 
 func (s Service) Analyze(ctx context.Context, text string) Report {
+	return s.AnalyzeWithContext(ctx, text, ContextOptions{})
+}
+
+func (s Service) AnalyzeWithContext(ctx context.Context, text string, options ContextOptions) Report {
 	var reports []Report
 	for _, analyzer := range s.analyzers {
-		report, err := analyzer.Analyze(ctx, text)
+		report, err := analyzeWithOptions(ctx, analyzer, text, options)
 		if err != nil {
 			reports = append(reports, Report{
 				Warnings: []string{analyzer.Name() + ": " + err.Error()},
@@ -27,6 +31,13 @@ func (s Service) Analyze(ctx context.Context, text string) Report {
 		reports = append(reports, report)
 	}
 	return Merge(reports...)
+}
+
+func analyzeWithOptions(ctx context.Context, analyzer Analyzer, text string, options ContextOptions) (Report, error) {
+	if contextual, ok := analyzer.(ContextualAnalyzer); ok {
+		return contextual.AnalyzeWithContext(ctx, text, options)
+	}
+	return analyzer.Analyze(ctx, text)
 }
 
 func TopFindings(report Report, limit int) []string {

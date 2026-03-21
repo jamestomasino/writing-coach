@@ -1,0 +1,10 @@
+extends: existence
+message: "Phrase '%s' may leave the reader guessing about what to do or when to stop."
+level: suggestion
+ignorecase: true
+tokens:
+  - "\\betc\\.\\b"
+  - "\\band so on\\b"
+  - "\\bas needed\\b"
+  - "\\bas appropriate\\b"
+  - "\\bif necessary\\b"

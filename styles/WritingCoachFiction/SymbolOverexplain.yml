@@ -1,5 +1,5 @@
 extends: existence
-message: "This phrasing may explain symbolism too directly; let the object carry more of the meaning."
+message: "This phrasing may explain symbolism too directly; let the image or object carry more of the meaning."
 level: warning
 ignorecase: true
 tokens:

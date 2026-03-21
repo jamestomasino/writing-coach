@@ -1,0 +1,10 @@
+extends: existence
+message: "Phrase '%s' risks sounding like stock positioning instead of a specific claim."
+level: warning
+ignorecase: true
+tokens:
+  - in today's fast-paced world
+  - paradigm shift
+  - game changer
+  - thought leader
+  - move the needle

@@ -1,5 +1,5 @@
 extends: existence
-message: "Intensifier '%s' is often weaker than a more exact noun or verb."
+message: "Intensifier '%s' is often weaker than a more exact word choice."
 level: suggestion
 ignorecase: true
 tokens:
@@ -8,4 +8,3 @@ tokens:
   - "\\btruly\\b"
   - "\\bquite\\b"
   - "\\brather\\b"
-  - "\\bsuddenly\\b"

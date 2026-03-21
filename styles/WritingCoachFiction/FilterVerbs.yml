@@ -1,5 +1,5 @@
 extends: existence
-message: "Filter phrase '%s' distances the reader from the scene."
+message: "Filter phrase '%s' may distance the reader from the immediate scene."
 level: suggestion
 ignorecase: true
 tokens:

@@ -76,9 +76,12 @@ func New(ctx context.Context) (*App, error) {
 	analyzerService := analyzer.NewService(
 		analyzer.Heuristic{},
 		analyzer.Vale{
-			Binary:     valeBinary,
-			ConfigPath: filepath.Join(projectRoot, ".vale.ini"),
-			WorkingDir: projectRoot,
+			Binary:        valeBinary,
+			ConfigPath:    filepath.Join(projectRoot, ".vale.ini"),
+			WorkingDir:    projectRoot,
+			StylesPath:    filepath.Join(projectRoot, "styles"),
+			MinAlertLevel: "suggestion",
+			BaseStyles:    []string{"WritingCoachCore"},
 		},
 		analyzer.LanguageTool{BaseURL: cfg.LanguageToolURL},
 		analyzer.NLP{BaseURL: cfg.NLPAnalyzerURL},

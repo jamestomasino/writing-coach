@@ -1,0 +1,9 @@
+extends: existence
+message: "Word '%s' may be overstating the certainty of the claim."
+level: suggestion
+ignorecase: true
+tokens:
+  - "\\bclearly\\b"
+  - "\\bobviously\\b"
+  - "\\bundeniably\\b"
+  - "\\bproves\\b"

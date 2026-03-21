@@ -1,6 +1,10 @@
 package analyzer
 
-import "context"
+import (
+	"context"
+
+	"github.com/tomasino/writing-coach/internal/domain"
+)
 
 type Finding struct {
 	Analyzer string
@@ -15,9 +19,30 @@ type Report struct {
 	Warnings []string
 }
 
+type ContextOptions struct {
+	TreeSlug         string
+	WritingType      string
+	AssignmentFormat string
+	TemplateKey      string
+}
+
 type Analyzer interface {
 	Name() string
 	Analyze(ctx context.Context, text string) (Report, error)
+}
+
+type ContextualAnalyzer interface {
+	Analyzer
+	AnalyzeWithContext(ctx context.Context, text string, options ContextOptions) (Report, error)
+}
+
+func ContextFromProfile(treeSlug string, profile domain.OnboardingProfile) ContextOptions {
+	return ContextOptions{
+		TreeSlug:         treeSlug,
+		WritingType:      profile.WritingType,
+		AssignmentFormat: profile.AssignmentFormat,
+		TemplateKey:      profile.TemplateKey,
+	}
 }
 
 func Merge(reports ...Report) Report {

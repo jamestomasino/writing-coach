@@ -1,5 +1,5 @@
 extends: existence
-message: "Stock fantasy phrase '%s' risks flattening the mythic voice."
+message: "Stock fantasy phrase '%s' risks flattening the voice."
 level: warning
 ignorecase: true
 tokens:

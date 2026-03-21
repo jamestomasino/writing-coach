@@ -1,0 +1,10 @@
+extends: existence
+message: "Academic framing phrase '%s' often delays the real claim."
+level: warning
+ignorecase: true
+tokens:
+  - in today's society
+  - throughout history
+  - since the beginning of time
+  - this essay will
+  - i will discuss

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tomasino/writing-coach/internal/analyzer"
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/curriculum"
 	"github.com/tomasino/writing-coach/internal/db"
@@ -333,7 +334,13 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	reviewResult, scores := c.Reviews.ReviewSubmission(ctx, sub, activeTGOs, completedTGOs)
+	analyzerContext := analyzer.ContextOptions{TreeSlug: c.AppContext.TreeSlug}
+	if profile, err := c.Store.OnboardingProfileByEnrollmentID(ctx, c.AppContext.EnrollmentID); err == nil {
+		analyzerContext = analyzer.ContextFromProfile(c.AppContext.TreeSlug, profile)
+	}
+	reviewResult, scores := c.Reviews.ReviewSubmissionWithOptions(ctx, sub, activeTGOs, completedTGOs, review.Options{
+		AnalyzerContext: analyzerContext,
+	})
 	reviewResult.UserID = c.AppContext.UserID
 	reviewResult.TreeID = c.AppContext.TreeID
 	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, c.AppContext.TreeSlug, c.AppContext.EnrollmentID, reviewResult)

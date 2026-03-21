@@ -1,0 +1,9 @@
+extends: existence
+message: "Claim word '%s' may overpromise unless the draft can support it."
+level: warning
+ignorecase: true
+tokens:
+  - "\\bguarantee(?:d|s)?\\b"
+  - "\\bnever\\b"
+  - "\\balways\\b"
+  - "\\bno-risk\\b"

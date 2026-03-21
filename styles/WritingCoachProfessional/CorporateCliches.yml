@@ -1,0 +1,10 @@
+extends: existence
+message: "Workplace phrase '%s' may obscure the action you actually want."
+level: suggestion
+ignorecase: true
+tokens:
+  - circle back
+  - touch base
+  - leverage
+  - low-hanging fruit
+  - synergy

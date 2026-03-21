@@ -1,0 +1,9 @@
+extends: existence
+message: "Phrase '%s' may make the request less direct than it needs to be."
+level: suggestion
+ignorecase: true
+tokens:
+  - at your earliest convenience
+  - please be advised
+  - kindly
+  - per my last email

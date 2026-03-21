@@ -1,0 +1,12 @@
+extends: existence
+message: "Hype term '%s' may weaken trust unless the draft proves it concretely."
+level: warning
+ignorecase: true
+tokens:
+  - revolutionary
+  - best-in-class
+  - world-class
+  - cutting-edge
+  - seamless
+  - robust
+  - game-changing

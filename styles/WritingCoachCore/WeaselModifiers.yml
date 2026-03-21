@@ -1,5 +1,5 @@
 extends: existence
-message: "Modifier '%s' may be diluting precision."
+message: "Modifier '%s' may be softening the sentence without adding useful meaning."
 level: suggestion
 ignorecase: true
 tokens:
