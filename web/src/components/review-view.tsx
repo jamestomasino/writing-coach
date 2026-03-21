@@ -22,14 +22,23 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     submission,
     exercise,
     preparingRevision,
+    closingAssignment,
     canActOnReview,
     prepareRevisionPrompt,
+    acceptAndCloseAssignment,
   } = useReviewWorkspace(reviewId)
 
   async function handleRevisionPrompt() {
     const revisionExercise = await prepareRevisionPrompt()
     if (revisionExercise) {
       window.location.href = `/?revisionExercise=${revisionExercise.id}`
+    }
+  }
+
+  async function handleAcceptAndMoveOn() {
+    const exerciseId = await acceptAndCloseAssignment()
+    if (exerciseId) {
+      window.location.href = `/assignments/${exerciseId}?completed=1`
     }
   }
 
@@ -57,8 +66,8 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
               </Button>
             ) : null}
             {canActOnReview ? (
-              <Button href={`/assignments/${exercise.id}?completed=1`} outline>
-                Accept and move on
+              <Button onClick={handleAcceptAndMoveOn} outline disabled={closingAssignment}>
+                {closingAssignment ? 'Finishing assignment…' : 'Accept and move on'}
               </Button>
             ) : null}
           </>
@@ -80,7 +89,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       {!canActOnReview ? (
         <WorkspaceCard>
           <Text>
-            This review is part of your assignment history. To keep writing, go back to your current assignment.
+            This review is part of your assignment history. This chain is no longer active, so you can review it here but not revise it further.
           </Text>
         </WorkspaceCard>
       ) : null}

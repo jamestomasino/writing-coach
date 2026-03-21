@@ -100,6 +100,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
 	mux.HandleFunc("GET /api/assignments", s.handleAssignmentsList)
 	mux.HandleFunc("GET /api/assignments/{id}", s.handleAssignmentGet)
+	mux.HandleFunc("POST /api/assignments/{id}/close", s.handleAssignmentClose)
 	mux.HandleFunc("GET /api/exercises", s.handleExercisesList)
 	mux.HandleFunc("GET /api/exercises/{id}", s.handleExerciseGet)
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
@@ -214,6 +215,7 @@ type assignmentResponse struct {
 	CurrentExerciseID int64                    `json:"current_exercise_id"`
 	Title             string                   `json:"title"`
 	IsCurrent         bool                     `json:"is_current,omitempty"`
+	IsClosed          bool                     `json:"is_closed,omitempty"`
 	LatestStepID      string                   `json:"latest_step_id,omitempty"`
 	Steps             []assignmentStepResponse `json:"steps"`
 }
@@ -224,12 +226,13 @@ type assignmentListItemResponse struct {
 	Title             string   `json:"title"`
 	LatestActivity    string   `json:"latest_activity"`
 	LatestStepLabel   string   `json:"latest_step_label"`
+	IsCurrent         bool     `json:"is_current,omitempty"`
+	IsClosed          bool     `json:"is_closed,omitempty"`
 	ExerciseCount     int      `json:"exercise_count"`
 	DraftCount        int      `json:"draft_count"`
 	ReviewCount       int      `json:"review_count"`
 	RevisionCount     int      `json:"revision_count"`
 	TGOs              []string `json:"tgos,omitempty"`
-	IsCurrent         bool     `json:"is_current,omitempty"`
 }
 
 type assignmentStepResponse struct {
@@ -1010,13 +1013,7 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 	if title == "" {
 		title = exerciseTitle(current)
 	}
-	latestExercise := exercises[0]
-	for _, exercise := range exercises[1:] {
-		if exercise.CreatedAt.After(latestExercise.CreatedAt) || (exercise.CreatedAt.Equal(latestExercise.CreatedAt) && exercise.ID > latestExercise.ID) {
-			latestExercise = exercise
-		}
-	}
-	currentRootID := rootExerciseID(latestExercise, exerciseByID, submissionByID)
+	currentRootID := latestOpenRootExerciseID(exercises, exerciseByID, submissionByID)
 	latestStepID := ""
 	if len(steps) > 0 {
 		latestStepID = steps[len(steps)-1].ID
@@ -1026,6 +1023,7 @@ func (s Server) assignmentTimeline(ctx context.Context, appContext session.Conte
 		CurrentExerciseID: current.ID,
 		Title:             title,
 		IsCurrent:         rootID == currentRootID,
+		IsClosed:          assignmentClosed(rootID, exerciseByID),
 		LatestStepID:      latestStepID,
 		Steps:             steps,
 	}, nil
@@ -1074,13 +1072,10 @@ func (s Server) assignmentSummaries(ctx context.Context, appContext session.Cont
 		reviewCount       int
 		revisionCount     int
 		tgos              []string
+		isClosed          bool
 	}
 	chains := map[int64]*chainSummary{}
-	latestExercise := exercises[0]
 	for _, exercise := range exercises {
-		if exercise.CreatedAt.After(latestExercise.CreatedAt) || (exercise.CreatedAt.Equal(latestExercise.CreatedAt) && exercise.ID > latestExercise.ID) {
-			latestExercise = exercise
-		}
 		rootID := rootExerciseID(exercise, exerciseByID, submissionByID)
 		chain := chains[rootID]
 		if chain == nil {
@@ -1090,6 +1085,7 @@ func (s Server) assignmentSummaries(ctx context.Context, appContext session.Cont
 				latestActivity:  exercise.CreatedAt,
 				latestStepLabel: stepLabel("exercise", exercise, domain.Submission{}),
 				tgos:            titlesForTGOCodes(exerciseByID[rootID].TGOCodes),
+				isClosed:        assignmentClosed(rootID, exerciseByID),
 			}
 			chains[rootID] = chain
 		}
@@ -1130,7 +1126,7 @@ func (s Server) assignmentSummaries(ctx context.Context, appContext session.Cont
 		}
 	}
 
-	currentRootID := rootExerciseID(latestExercise, exerciseByID, submissionByID)
+	currentRootID := latestOpenRootExerciseID(exercises, exerciseByID, submissionByID)
 	items := make([]assignmentListItemResponse, 0, len(chains))
 	for _, chain := range chains {
 		items = append(items, assignmentListItemResponse{
@@ -1145,6 +1141,7 @@ func (s Server) assignmentSummaries(ctx context.Context, appContext session.Cont
 			RevisionCount:     chain.revisionCount,
 			TGOs:              chain.tgos,
 			IsCurrent:         chain.rootExerciseID == currentRootID,
+			IsClosed:          chain.isClosed,
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
@@ -1174,6 +1171,30 @@ func rootExerciseID(exercise domain.Exercise, exerciseByID map[int64]domain.Exer
 		seen[current.ID] = true
 	}
 	return current.ID
+}
+
+func assignmentClosed(rootID int64, exerciseByID map[int64]domain.Exercise) bool {
+	root, ok := exerciseByID[rootID]
+	return ok && !root.ClosedAt.IsZero()
+}
+
+func latestOpenRootExerciseID(exercises []domain.Exercise, exerciseByID map[int64]domain.Exercise, submissionByID map[int64]domain.Submission) int64 {
+	var latest domain.Exercise
+	var found bool
+	for _, exercise := range exercises {
+		rootID := rootExerciseID(exercise, exerciseByID, submissionByID)
+		if assignmentClosed(rootID, exerciseByID) {
+			continue
+		}
+		if !found || exercise.CreatedAt.After(latest.CreatedAt) || (exercise.CreatedAt.Equal(latest.CreatedAt) && exercise.ID > latest.ID) {
+			latest = exercise
+			found = true
+		}
+	}
+	if !found {
+		return 0
+	}
+	return rootExerciseID(latest, exerciseByID, submissionByID)
 }
 
 func exerciseTitle(exercise domain.Exercise) string {

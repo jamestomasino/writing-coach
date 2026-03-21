@@ -90,6 +90,13 @@ export async function createRevisionAssignment(submissionId: number) {
   return payload.exercise
 }
 
+export async function closeAssignment(exerciseId: number) {
+  await request<{ ok: boolean }>(`/api/assignments/${exerciseId}/close`, {
+    method: 'POST',
+    body: '{}',
+  })
+}
+
 export async function submitDraft(input: { exerciseId: number; content: string; parentSubmissionId?: number }) {
   const payload = await request<{ submission: Submission }>('/api/submissions', {
     method: 'POST',

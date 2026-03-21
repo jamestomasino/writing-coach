@@ -203,6 +203,7 @@ export type AssignmentTimeline = {
   current_exercise_id: number
   title: string
   is_current?: boolean
+  is_closed?: boolean
   latest_step_id?: string
   steps: AssignmentTimelineStep[]
 }
@@ -219,6 +220,7 @@ export type AssignmentSummary = {
   revision_count: number
   tgos: string[]
   is_current?: boolean
+  is_closed?: boolean
 }
 
 export type Tree = {

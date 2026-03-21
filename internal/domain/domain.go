@@ -123,6 +123,7 @@ type Exercise struct {
 	GenerationKind     string
 	ProviderNote       string
 	SourceSubmissionID int64
+	ClosedAt           time.Time
 	CreatedAt          time.Time
 }
 

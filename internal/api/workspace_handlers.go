@@ -18,6 +18,8 @@ import (
 	"github.com/tomasino/writing-coach/internal/session"
 )
 
+var errAssignmentClosed = errors.New("assignment is closed")
+
 func (s Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
@@ -74,6 +76,37 @@ func (s Server) handleAssignmentGet(w http.ResponseWriter, r *http.Request) {
 		"context":    requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
 		"assignment": assignment,
 	})
+}
+
+func (s Server) handleAssignmentClose(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid assignment id"))
+		return
+	}
+	rootID, _, err := s.assignmentRootID(r.Context(), appContext, id)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if err := s.Store.CloseExercise(r.Context(), appContext.UserID, appContext.TreeID, rootID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (s Server) handleExercisesList(w http.ResponseWriter, r *http.Request) {
@@ -232,7 +265,11 @@ func (s Server) handlePromptRevise(w http.ResponseWriter, r *http.Request) {
 	}
 	ex, err := s.createRevisionExercise(r.Context(), appContext, payload.SubmissionID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, errAssignmentClosed) {
+			status = http.StatusConflict
+		}
+		writeError(w, status, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -271,6 +308,10 @@ func (s Server) handleSubmissionCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	if !belongsToContext(exercise.UserID, exercise.TreeID, appContext) {
 		writeError(w, http.StatusNotFound, fmt.Errorf("exercise not found"))
+		return
+	}
+	if closed, err := s.isExerciseChainClosed(r.Context(), appContext, exercise); err == nil && closed {
+		writeError(w, http.StatusConflict, fmt.Errorf("assignment is closed"))
 		return
 	}
 	draftNumber := 1
@@ -823,6 +864,13 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	if err != nil {
 		return domain.Exercise{}, err
 	}
+	existingExercise, err := s.Store.GetExercise(ctx, sub.ExerciseID)
+	if err != nil {
+		return domain.Exercise{}, err
+	}
+	if closed, err := s.isExerciseChainClosed(ctx, appContext, existingExercise); err == nil && closed {
+		return domain.Exercise{}, errAssignmentClosed
+	}
 	reviewResult, err := s.Store.LatestReviewForSubmission(ctx, sub.ID)
 	if err != nil {
 		return domain.Exercise{}, fmt.Errorf("submission %d has no review yet", sub.ID)
@@ -890,6 +938,41 @@ func (s Server) createRevisionExercise(ctx context.Context, appContext session.C
 	}
 	ex.ID = id
 	return ex, nil
+}
+
+func (s Server) assignmentRootID(ctx context.Context, appContext session.Context, exerciseID int64) (int64, map[int64]domain.Exercise, error) {
+	current, err := s.Store.GetExercise(ctx, exerciseID)
+	if err != nil {
+		return 0, nil, err
+	}
+	if !belongsToContext(current.UserID, current.TreeID, appContext) {
+		return 0, nil, sql.ErrNoRows
+	}
+	exercises, err := s.Store.ListExercises(ctx, appContext.UserID, appContext.TreeID, 500)
+	if err != nil {
+		return 0, nil, err
+	}
+	submissions, err := s.Store.ListSubmissions(ctx, appContext.UserID, appContext.TreeID, 0, 500)
+	if err != nil {
+		return 0, nil, err
+	}
+	exerciseByID := make(map[int64]domain.Exercise, len(exercises))
+	for _, exercise := range exercises {
+		exerciseByID[exercise.ID] = exercise
+	}
+	submissionByID := make(map[int64]domain.Submission, len(submissions))
+	for _, submission := range submissions {
+		submissionByID[submission.ID] = submission
+	}
+	return rootExerciseID(current, exerciseByID, submissionByID), exerciseByID, nil
+}
+
+func (s Server) isExerciseChainClosed(ctx context.Context, appContext session.Context, exercise domain.Exercise) (bool, error) {
+	rootID, exerciseByID, err := s.assignmentRootID(ctx, appContext, exercise.ID)
+	if err != nil {
+		return false, err
+	}
+	return assignmentClosed(rootID, exerciseByID), nil
 }
 
 func (s Server) writeEnrollmentBoard(ctx context.Context, w http.ResponseWriter, appContext session.Context) {

@@ -287,7 +287,7 @@ func (s *Store) History(ctx context.Context, userID, treeID int64) ([]string, er
 
 func (s *Store) HistoryItems(ctx context.Context, userID, treeID int64) ([]domain.Exercise, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), created_at
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), closed_at, created_at
 		FROM exercises
 		WHERE user_id = ? AND tree_id = ?
 		ORDER BY id DESC

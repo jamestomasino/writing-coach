@@ -2,9 +2,9 @@
 
 import {
   createRevisionAssignment,
+  getAssignments,
   getDashboard,
   getExercise,
-  getExercises,
   getReviewJob,
   getReviews,
   getSession,
@@ -108,8 +108,11 @@ export function useCurrentAssignmentWorkspace(revisionExerciseID: number) {
         if (inRevisionMode) {
           exercise = await withRetry(() => getExercise(revisionExerciseID))
         } else {
-          const exercises = await getExercises(1)
-          exercise = exercises[0]
+          const assignments = await getAssignments()
+          const currentAssignment = assignments.find((item) => item.is_current && item.is_closed !== true)
+          if (currentAssignment) {
+            exercise = await getExercise(currentAssignment.current_exercise_id)
+          }
         }
         let submission: Submission | undefined
         let review: Review | undefined

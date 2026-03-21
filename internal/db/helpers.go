@@ -50,6 +50,7 @@ func skillPriority(prioritySkills []string, skill string) int {
 func scanExercise(scanner interface{ Scan(...any) error }) (domain.Exercise, error) {
 	var exercise domain.Exercise
 	var constraintsJSON, focusSkillsJSON, tgoCodesJSON, successJSON string
+	var closedAt sql.NullTime
 	if err := scanner.Scan(
 		&exercise.ID,
 		&exercise.UserID,
@@ -63,9 +64,13 @@ func scanExercise(scanner interface{ Scan(...any) error }) (domain.Exercise, err
 		&exercise.GenerationKind,
 		&exercise.ProviderNote,
 		&exercise.SourceSubmissionID,
+		&closedAt,
 		&exercise.CreatedAt,
 	); err != nil {
 		return domain.Exercise{}, err
+	}
+	if closedAt.Valid {
+		exercise.ClosedAt = closedAt.Time
 	}
 	var err error
 	exercise.Constraints, err = DecodeStringSlice(constraintsJSON)

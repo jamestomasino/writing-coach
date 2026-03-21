@@ -275,7 +275,7 @@ func (s *Store) SaveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 
 func (s *Store) GetExercise(ctx context.Context, exerciseID int64) (domain.Exercise, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), created_at
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), closed_at, created_at
 		FROM exercises
 		WHERE id = ?
 	`, exerciseID)
@@ -295,7 +295,7 @@ func (s *Store) GetExercise(ctx context.Context, exerciseID int64) (domain.Exerc
 
 func (s *Store) ListExercises(ctx context.Context, userID, treeID int64, limit int) ([]domain.Exercise, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), created_at
+		SELECT id, user_id, tree_id, title, brief, constraints_json, focus_skills_json, tgo_codes_json, success_criteria_json, generation_kind, provider_note, COALESCE(source_submission_id, 0), closed_at, created_at
 		FROM exercises
 		WHERE user_id = ? AND tree_id = ?
 		ORDER BY id DESC
@@ -315,6 +315,25 @@ func (s *Store) ListExercises(ctx context.Context, userID, treeID int64, limit i
 		exercises = append(exercises, exercise)
 	}
 	return exercises, rows.Err()
+}
+
+func (s *Store) CloseExercise(ctx context.Context, userID, treeID, exerciseID int64) error {
+	res, err := s.SQL.ExecContext(ctx, `
+		UPDATE exercises
+		SET closed_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND user_id = ? AND tree_id = ? AND closed_at IS NULL
+	`, exerciseID, userID, treeID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int64, error) {

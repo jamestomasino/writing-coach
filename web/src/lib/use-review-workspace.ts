@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  closeAssignment,
   createRevisionAssignment,
   getAssignmentTimeline,
   getExercise,
@@ -19,6 +20,7 @@ export function useReviewWorkspace(reviewId: number) {
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [preparingRevision, setPreparingRevision] = useState(false)
+  const [closingAssignment, setClosingAssignment] = useState(false)
   const [canActOnReview, setCanActOnReview] = useState(false)
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function useReviewWorkspace(reviewId: number) {
         let reviewIsActionable = false
         try {
           const timeline = await getAssignmentTimeline(exerciseData.id)
-          reviewIsActionable = timeline.is_current === true && timeline.latest_step_id === `review-${reviewData.id}`
+          reviewIsActionable = timeline.is_current === true && timeline.is_closed !== true && timeline.latest_step_id === `review-${reviewData.id}`
         } catch {
           reviewIsActionable = false
         }
@@ -78,6 +80,23 @@ export function useReviewWorkspace(reviewId: number) {
     }
   }
 
+  async function acceptAndCloseAssignment() {
+    if (!exercise) {
+      return null
+    }
+    try {
+      setClosingAssignment(true)
+      setError(null)
+      await closeAssignment(exercise.id)
+      return exercise.id
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not finish assignment')
+      return null
+    } finally {
+      setClosingAssignment(false)
+    }
+  }
+
   return {
     sessionLoading,
     sessionError,
@@ -87,7 +106,9 @@ export function useReviewWorkspace(reviewId: number) {
     submission,
     exercise,
     preparingRevision,
+    closingAssignment,
     canActOnReview,
     prepareRevisionPrompt,
+    acceptAndCloseAssignment,
   }
 }

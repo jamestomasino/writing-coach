@@ -14,7 +14,7 @@ import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
-  const { sessionLoading, sessionError, loading, error, comparison, submission, review, preparingRevision, prepareRevisionPrompt } =
+  const { sessionLoading, sessionError, loading, error, comparison, submission, review, preparingRevision, canActOnComparison, prepareRevisionPrompt } =
     useCompareWorkspace(submissionId)
 
   async function handleRevisionPrompt() {
@@ -42,13 +42,21 @@ export function CompareView({ submissionId }: { submissionId: number }) {
             <Button href={`/assignments/${submission.exercise_id}`} plain>
               View timeline
             </Button>
-            <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
-              <ArrowPathIcon />
-              {preparingRevision ? 'Preparing revision brief…' : 'Revise again'}
-            </Button>
+            {canActOnComparison ? (
+              <Button onClick={handleRevisionPrompt} color="dark/zinc" disabled={preparingRevision}>
+                <ArrowPathIcon />
+                {preparingRevision ? 'Preparing revision brief…' : 'Revise again'}
+              </Button>
+            ) : null}
           </>
         }
       />
+
+      {!canActOnComparison ? (
+        <WorkspaceCard>
+          <Text>This comparison belongs to a completed assignment chain. You can review it here, but the next step is to start a new assignment.</Text>
+        </WorkspaceCard>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-3">
         <WorkspaceCard>

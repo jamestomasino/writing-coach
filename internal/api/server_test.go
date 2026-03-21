@@ -1172,6 +1172,138 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 	}
 }
 
+func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Closable Assignment",
+		Brief:           "Write the turning point.",
+		Constraints:     []string{"under 500 words"},
+		FocusSkills:     []string{"causal clarity"},
+		TGOCodes:        []string{"causal-clarity"},
+		SuccessCriteria: []string{"the consequence is visible"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "The bell rang and the gate split under his hand.",
+		WordCount:  10,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	if _, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     submissionID,
+		ReviewKind:       "coach",
+		Summary:          "The turn is visible.",
+		Strengths:        []string{"clear pivot"},
+		Weaknesses:       []string{"push the consequence harder"},
+		AnalyzerFindings: []string{},
+		NextFocus:        "consequence",
+		MetricWordCount:  10,
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "causal-clarity", Status: "developing", Evidence: "The sequence is legible."},
+		},
+	}, nil); err != nil {
+		t.Fatalf("save review: %v", err)
+	}
+
+	closeReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/assignments/"+int64String(exerciseID)+"/close?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("close request: %v", err)
+	}
+	closeReq.Header.Set("Content-Type", "application/json")
+	closeResp, err := http.DefaultClient.Do(closeReq)
+	if err != nil {
+		t.Fatalf("close assignment: %v", err)
+	}
+	defer closeResp.Body.Close()
+	if closeResp.StatusCode != http.StatusOK {
+		t.Fatalf("close assignment status: %d", closeResp.StatusCode)
+	}
+
+	timelineResp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(exerciseID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("get assignment timeline: %v", err)
+	}
+	defer timelineResp.Body.Close()
+	if timelineResp.StatusCode != http.StatusOK {
+		t.Fatalf("timeline status: %d", timelineResp.StatusCode)
+	}
+	var timelinePayload struct {
+		Assignment struct {
+			IsCurrent bool `json:"is_current"`
+			IsClosed  bool `json:"is_closed"`
+		} `json:"assignment"`
+	}
+	if err := json.NewDecoder(timelineResp.Body).Decode(&timelinePayload); err != nil {
+		t.Fatalf("decode timeline: %v", err)
+	}
+	if timelinePayload.Assignment.IsCurrent {
+		t.Fatal("closed assignment should not remain current")
+	}
+	if !timelinePayload.Assignment.IsClosed {
+		t.Fatal("closed assignment should report is_closed")
+	}
+
+	assignmentsResp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=mythic-tragedy-apprenticeship")
+	if err != nil {
+		t.Fatalf("list assignments: %v", err)
+	}
+	defer assignmentsResp.Body.Close()
+	if assignmentsResp.StatusCode != http.StatusOK {
+		t.Fatalf("assignments status: %d", assignmentsResp.StatusCode)
+	}
+	var assignmentsPayload struct {
+		Assignments []struct {
+			IsCurrent bool `json:"is_current"`
+			IsClosed  bool `json:"is_closed"`
+		} `json:"assignments"`
+	}
+	if err := json.NewDecoder(assignmentsResp.Body).Decode(&assignmentsPayload); err != nil {
+		t.Fatalf("decode assignments: %v", err)
+	}
+	if len(assignmentsPayload.Assignments) != 1 {
+		t.Fatalf("assignment count = %d", len(assignmentsPayload.Assignments))
+	}
+	if assignmentsPayload.Assignments[0].IsCurrent {
+		t.Fatal("closed assignment should not be listed as current")
+	}
+	if !assignmentsPayload.Assignments[0].IsClosed {
+		t.Fatal("closed assignment should be listed as closed")
+	}
+
+	reviseResp, err := http.Post(testServer.URL+"/api/prompts/revise?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{"submission_id":`+int64String(submissionID)+`}`))
+	if err != nil {
+		t.Fatalf("revise request: %v", err)
+	}
+	defer reviseResp.Body.Close()
+	if reviseResp.StatusCode != http.StatusConflict {
+		t.Fatalf("revise status = %d", reviseResp.StatusCode)
+	}
+}
+
 func TestAISettingsLifecycleEndpoint(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
