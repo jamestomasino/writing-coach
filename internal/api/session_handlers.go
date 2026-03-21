@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -132,42 +133,31 @@ func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Co
 	if ident, ok := identityFromContext(ctx); ok {
 		userSlug := slugFromIdentity(ident)
 		userName := displayNameFromIdentity(ident)
-		if err := s.Store.EnsureUser(ctx, userSlug, userName); err != nil {
-			return session.Context{}, err
-		}
-		treeSlug := strings.TrimSpace(firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree")))
-		if treeSlug == "" {
-			activeTreeSlug, err := s.Store.UserActiveTreeSlug(ctx, userSlug)
-			if err == nil && strings.TrimSpace(activeTreeSlug) != "" {
-				treeSlug = activeTreeSlug
-			} else {
-				treeSlug = s.Config.DefaultTreeSlug
-			}
-		}
-
-		userID, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(ctx, userSlug, userName, treeSlug)
-		if err != nil {
-			return session.Context{}, err
-		}
-		return session.Context{
-			UserID:       userID,
-			TreeID:       treeID,
-			EnrollmentID: enrollmentID,
-			UserSlug:     userSlug,
-			TreeSlug:     treeSlug,
-		}, nil
+		return s.resolveUserSession(ctx, r, userSlug, userName)
 	}
 
 	userSlug := firstNonEmpty(r.URL.Query().Get("user"), r.Header.Get("X-Writing-Coach-User"), s.Config.DefaultUserSlug)
 	userName := firstNonEmpty(r.URL.Query().Get("user_name"), s.Config.WriterName)
+	return s.resolveUserSession(ctx, r, userSlug, userName)
+}
+
+func (s Server) resolveUserSession(ctx context.Context, r *http.Request, userSlug, userName string) (session.Context, error) {
 	if err := s.Store.EnsureUser(ctx, userSlug, userName); err != nil {
+		return session.Context{}, err
+	}
+	user, err := s.Store.UserBySlug(ctx, userSlug)
+	if err != nil {
 		return session.Context{}, err
 	}
 	treeSlug := strings.TrimSpace(firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree")))
 	if treeSlug == "" {
-		activeTreeSlug, err := s.Store.UserActiveTreeSlug(ctx, userSlug)
-		if err == nil && strings.TrimSpace(activeTreeSlug) != "" {
-			treeSlug = activeTreeSlug
+		if nextUser, err := s.archiveLegacyBootstrapTrack(ctx, user); err != nil {
+			log.Printf("session: legacy track cleanup failed for user=%s: %v", userSlug, err)
+		} else {
+			user = nextUser
+		}
+		if strings.TrimSpace(user.ActiveTreeSlug) != "" {
+			treeSlug = user.ActiveTreeSlug
 		} else {
 			treeSlug = s.Config.DefaultTreeSlug
 		}
@@ -184,6 +174,50 @@ func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Co
 		UserSlug:     userSlug,
 		TreeSlug:     treeSlug,
 	}, nil
+}
+
+func (s Server) archiveLegacyBootstrapTrack(ctx context.Context, user domain.User) (domain.User, error) {
+	tracks, err := s.Store.ListUserTracks(ctx, user.ID)
+	if err != nil || len(tracks) < 2 {
+		return user, err
+	}
+
+	var legacy *domain.UserTrack
+	var generated []domain.UserTrack
+	for i := range tracks {
+		track := tracks[i]
+		profile, err := s.Store.OnboardingProfileByEnrollmentID(ctx, track.EnrollmentID)
+		if track.TreeSlug == domain.GlobalSkillGraphSlug {
+			if err == nil && profile.GeneratedTreeSlug == track.TreeSlug {
+				return user, nil
+			}
+			legacy = &track
+			continue
+		}
+		if err == nil && profile.GeneratedTreeSlug == track.TreeSlug {
+			generated = append(generated, track)
+		}
+	}
+	if legacy == nil || len(generated) == 0 {
+		return user, nil
+	}
+
+	if strings.TrimSpace(user.ActiveTreeSlug) == "" || user.ActiveTreeSlug == legacy.TreeSlug {
+		nextActive := generated[0].TreeSlug
+		for _, track := range generated {
+			if track.IsActive {
+				nextActive = track.TreeSlug
+				break
+			}
+		}
+		if err := s.Store.SetUserActiveTree(ctx, user.ID, nextActive); err != nil {
+			return user, err
+		}
+	}
+	if err := s.Store.ArchiveUserTrack(ctx, user.ID, legacy.TreeSlug); err != nil {
+		return user, err
+	}
+	return s.Store.UserBySlug(ctx, user.Slug)
 }
 
 func (s Server) uniqueGeneratedTreeSlug(ctx context.Context, base string) string {

@@ -3056,6 +3056,91 @@ func TestArchiveTrackRemovesItAndSwitchesActiveContext(t *testing.T) {
 	}
 }
 
+func TestLegacyGlobalTrackIsArchivedForExistingUsersWithGeneratedTrack(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	userSlug := "legacy-user"
+	userName := "Legacy User"
+	userID, _, _, err := harness.Store.EnsureDefaultUserTree(ctx, userSlug, userName, domain.GlobalSkillGraphSlug)
+	if err != nil {
+		t.Fatalf("ensure legacy global track: %v", err)
+	}
+	profile := domain.OnboardingProfile{
+		WritingType:         "literary fiction",
+		AssignmentFormat:    "scene",
+		TargetAudience:      "novel readers",
+		SubjectMatter:       "small-town mystery",
+		ExperienceLevel:     "intermediate",
+		DesiredTone:         "quiet and precise",
+		BiggestWeaknesses:   []string{"word choice", "scene architecture"},
+		DesiredOutcomes:     []string{"publish stronger fiction", "develop a distinctive voice"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "I want to write sharper literary scenes.",
+	}
+	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
+	treeDef := domain.GenerateTreeDefinition(userSlug, userName, profile)
+	if err := harness.Store.SaveTreeDefinition(ctx, treeDef); err != nil {
+		t.Fatalf("save generated tree: %v", err)
+	}
+	_, _, enrollmentID, err := harness.Store.EnsureDefaultUserTree(ctx, userSlug, userName, treeDef.Slug)
+	if err != nil {
+		t.Fatalf("ensure generated track: %v", err)
+	}
+	profile.EnrollmentID = enrollmentID
+	profile.UserID = userID
+	profile.GeneratedTreeSlug = treeDef.Slug
+	if err := harness.Store.SaveOnboardingProfile(ctx, profile); err != nil {
+		t.Fatalf("save onboarding profile: %v", err)
+	}
+	if err := harness.Store.SetUserActiveTree(ctx, userID, domain.GlobalSkillGraphSlug); err != nil {
+		t.Fatalf("set legacy active tree: %v", err)
+	}
+
+	sessionResp, err := http.Get(testServer.URL + "/api/auth/session?user=" + userSlug)
+	if err != nil {
+		t.Fatalf("get auth session: %v", err)
+	}
+	defer sessionResp.Body.Close()
+	if sessionResp.StatusCode != http.StatusOK {
+		t.Fatalf("auth session status: %d", sessionResp.StatusCode)
+	}
+	var sessionBody struct {
+		ActiveTreeSlug string `json:"active_tree_slug"`
+	}
+	if err := json.NewDecoder(sessionResp.Body).Decode(&sessionBody); err != nil {
+		t.Fatalf("decode auth session: %v", err)
+	}
+	if sessionBody.ActiveTreeSlug != treeDef.Slug {
+		t.Fatalf("active tree slug = %q", sessionBody.ActiveTreeSlug)
+	}
+
+	tracksResp, err := http.Get(testServer.URL + "/api/tracks?user=" + userSlug)
+	if err != nil {
+		t.Fatalf("get tracks: %v", err)
+	}
+	defer tracksResp.Body.Close()
+	if tracksResp.StatusCode != http.StatusOK {
+		t.Fatalf("tracks status: %d", tracksResp.StatusCode)
+	}
+	var tracksBody struct {
+		Tracks []struct {
+			TreeSlug string `json:"tree_slug"`
+		} `json:"tracks"`
+	}
+	if err := json.NewDecoder(tracksResp.Body).Decode(&tracksBody); err != nil {
+		t.Fatalf("decode tracks: %v", err)
+	}
+	if len(tracksBody.Tracks) != 1 {
+		t.Fatalf("track count = %d", len(tracksBody.Tracks))
+	}
+	if tracksBody.Tracks[0].TreeSlug != treeDef.Slug {
+		t.Fatalf("remaining track = %q", tracksBody.Tracks[0].TreeSlug)
+	}
+}
+
 func TestTreeGetUsesProfileDisplayForGeneratedTrack(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
