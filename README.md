@@ -73,6 +73,14 @@ server {
     listen 80;
     server_name coach.example.com;
 
+    proxy_intercept_errors on;
+    error_page 502 503 504 /maintenance.html;
+
+    location = /maintenance.html {
+        root /var/www/writing-coach;
+        internal;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:11234;
         proxy_set_header Host $host;
@@ -82,6 +90,8 @@ server {
     }
 }
 ```
+
+For safer outages, copy [maintenance.html](/home/tomasino/writing-coach/deploy/maintenance.html) to a host path such as `/var/www/writing-coach/maintenance.html`. With `proxy_intercept_errors on`, `nginx` will serve that static page whenever the upstream returns `502`, `503`, or `504`.
 
 ## Required Setup
 
@@ -201,6 +211,7 @@ If `WRITING_COACH_AI_KEY_SECRET` is missing, personal provider storage is unavai
 
 - keep the published upstream bound to localhost
 - let host `nginx` terminate TLS
+- let host `nginx` serve a static maintenance page for `502`, `503`, and `504`
 - keep Compose volumes persistent
 - replace all default Kratos secrets
 - decide whether `OPENAI_API_KEY` stays as a transition fallback or is removed

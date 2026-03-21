@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Writing Coach is temporarily unavailable</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #16171b;
+        --panel: #1f2127;
+        --border: #343845;
+        --text: #f5f7fb;
+        --muted: #adb4c5;
+        --accent: #f0c44c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at top, rgba(240, 196, 76, 0.14), transparent 35%),
+          linear-gradient(180deg, #181a1f 0%, var(--bg) 100%);
+        color: var(--text);
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      main {
+        width: min(100%, 640px);
+        padding: 32px;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: rgba(31, 33, 39, 0.94);
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+      }
+
+      .eyebrow {
+        margin: 0 0 16px;
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: 1.05;
+      }
+
+      p {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 1.05rem;
+        line-height: 1.65;
+      }
+
+      p:last-child {
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Temporary outage</p>
+      <h1>Writing Coach is temporarily unavailable.</h1>
+      <p>The service is offline right now or still coming back up after maintenance.</p>
+      <p>Your drafts and practice history are still stored. Please try again in a few minutes.</p>
+    </main>
+  </body>
+</html>
