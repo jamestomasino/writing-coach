@@ -2,17 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
 import { resetAccountData } from '@/lib/api'
 
 export function ResetDataCard() {
+  const t = useTranslations('resetDataCard')
   const router = useRouter()
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleReset() {
-    if (!window.confirm('Reset all writing progress for this account? Your sign-in will stay the same.')) {
+    if (!window.confirm(t('confirm'))) {
       return
     }
 
@@ -23,7 +25,7 @@ export function ResetDataCard() {
       router.push('/onboarding')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not reset account data')
+      setError(err instanceof Error ? err.message : t('error'))
     } finally {
       setWorking(false)
     }
@@ -32,12 +34,12 @@ export function ResetDataCard() {
   return (
     <Callout
       tone="danger"
-      eyebrow="Danger zone"
-      title="Reset coaching data"
-      body="Delete your practice path setup, assignments, reviews, and progress history. Your account and sign-in stay intact."
+      eyebrow={t('eyebrow')}
+      title={t('title')}
+      body={t('body')}
       actions={
         <Button color="rose" onClick={handleReset} disabled={working}>
-          {working ? 'Resetting…' : 'Reset all coaching data'}
+          {working ? t('resetting') : t('action')}
         </Button>
       }
     >

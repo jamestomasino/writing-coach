@@ -572,6 +572,42 @@
       }
     }
   },
+  "treeView": {
+    "loadError": "Could not load skill tree",
+    "loading": "Loading skill tree…",
+    "unavailableTitle": "Tree unavailable",
+    "unavailableBody": "Could not load the current tree.",
+    "eyebrow": "Track map",
+    "title": "Skill Tree",
+    "intro": "See what you are working on now, what you have already mastered, and what is likely to open next.",
+    "activeBadge": "{count} active",
+    "masteredBadge": "{count} mastered",
+    "unlockedBadge": "{count} unlocked next",
+    "selectedSkill": "Selected skill",
+    "stage": "Stage",
+    "unlocks": "Unlocks",
+    "requires": "Requires",
+    "seedNode": "Seed node",
+    "unlockPathway": "Unlock pathway",
+    "terminalNode": "Terminal node",
+    "masteryMarker": "Mastery marker",
+    "selectNode": "Select a node to inspect its role in the tree.",
+    "status": {
+      "active": "Active",
+      "mastered": "Mastered",
+      "unlocked": "Unlocked",
+      "locked": "Locked"
+    }
+  },
+  "resetDataCard": {
+    "confirm": "Reset all writing progress for this account? Your sign-in will stay the same.",
+    "error": "Could not reset account data",
+    "eyebrow": "Danger zone",
+    "title": "Reset coaching data",
+    "body": "Delete your practice path setup, assignments, reviews, and progress history. Your account and sign-in stay intact.",
+    "resetting": "Resetting…",
+    "action": "Reset all coaching data"
+  },
   "adminView": {
     "provisionedUserToastBody": "Provisioned {name}.",
     "userCreatedToastTitle": "User created",
