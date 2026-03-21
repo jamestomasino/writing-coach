@@ -54,6 +54,13 @@ Model-based review should eventually cover:
 - clarity vs ornamentation
 - specific next-step advice
 
+Current working rule:
+
+- deterministic analyzers run first and always produce the base report
+- active TGOs narrow which findings matter most for the assignment
+- model-backed review, when enabled, receives analyzer summaries and selected findings instead of acting as the only reviewer
+- deterministic fallback remains available for prompts, reviews, and revision briefs
+
 ### Learning Engine
 
 Updates the enrollment-scoped curriculum state after every submission and review.
@@ -215,6 +222,12 @@ Implementation status:
 ### Phase 4
 
 Expand reporting, tree management, and deployment hardening while keeping the API stable for the first browser UI layer.
+
+Current browser-facing additions in this phase direction:
+
+- assignment archive browsing that treats older assignments as historical records rather than active workflow stages
+- queue-state loaders for review and revision generation that preserve the existing background polling and redirect flow
+- explanatory About-page copy that describes deterministic analysis, skill targeting, and model use in non-technical language
 
 ## Initial Technical Decisions
 

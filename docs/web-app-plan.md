@@ -13,6 +13,7 @@ Primary user flow:
 5. submit for review
 6. read the review with inline and summary feedback
 7. choose to revise or move on
+8. inspect the full assignment timeline or archive later if needed
 
 The home screen is therefore the assignment workspace rather than a reporting page.
 
@@ -34,7 +35,11 @@ Future routes:
 - `/onboarding`
 - `/tree`
 - `/tree/refresh`
-- `/assignments/[id]`
+
+Current history routes:
+
+- `/assignments` assignment archive
+- `/assignments/[id]` assignment timeline
 
 ## Current Assignment UX
 
@@ -72,6 +77,23 @@ Review pages should contain:
 - revision compare CTA
 
 The UI should present active TGOs as the primary rubric and completed TGO checks as a lighter maintenance pass.
+
+Queue-state behavior:
+
+- review submission can return immediately while a background job runs
+- revision brief generation can also take a short background turn before redirect
+- those states should use the same progress treatment so the product feels coherent across assignment generation, review, and revision work
+
+## Assignment Archive UX
+
+The archive should present past assignments as history, not as active workflow stages.
+
+Rules:
+
+- the current item should be labeled `Current assignment`, not `Current chain`
+- archive cards should lead with the assignment title instead of an internal stage eyebrow
+- skill tags should reflect current skill state where possible so old assignments remain useful as progress artifacts
+- the current assignment page CTA is not needed from the archive header if the current timeline card already exposes the relevant action
 
 ## TGO Selection UX
 

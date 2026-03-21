@@ -16,6 +16,11 @@ For the full workflow, see [docs/release-process.md](/home/tomasino/writing-coac
 
 ## Unreleased
 
+- Added a Dockerized spaCy/TextDescriptives analyzer sidecar and wired its findings into the deterministic review pipeline.
+- Expanded the About page with a plain-language explanation of deterministic analysis, active skills, and model-assisted coaching.
+- Unified assignment, review, and revision queue loaders around the same progress treatment.
+- Refined the assignment archive language and visuals so current work and historical assignments read more naturally to users.
+
 ## 2026.03.21
 
 - Added multi-track coaching so each user can create, switch, and archive independent writing tracks with separate progress and history.

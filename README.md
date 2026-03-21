@@ -7,6 +7,7 @@
 - Ory Kratos for authentication
 - SQLite persistence
 - deterministic analysis plus LLM-backed prompt and review generation
+- assignment history, revision compare, and archive browsing
 
 The app is built around a closed feedback loop:
 
@@ -202,6 +203,32 @@ These findings feed the review pipeline and are saved as review artifacts for la
 If an external analyzer is unavailable, the app continues with the remaining analyzers.
 
 The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach).
+
+## How Review And Prompting Work
+
+The current pipeline is intentionally layered:
+
+1. deterministic analyzers inspect the draft for concrete signals
+2. the active `TGOs` decide which skills matter most on this assignment
+3. the review and revision flow use those signals to shape feedback and the next step
+
+When a model is enabled, it does not replace the deterministic layer. It uses the analyzer summary, selected findings, and active skill context to generate clearer assignment language and more readable coaching. If no model is available, the app still produces deterministic prompts, reviews, and revision briefs.
+
+In practical terms:
+
+- deterministic tools handle grammar, style, sentence strain, and measurable prose signals
+- the TGO system keeps the review focused on the current skill goals instead of trying to judge everything at once
+- the LLM, when enabled, helps synthesize and phrase the coaching rather than starting from a blank guess
+
+## Web Experience
+
+The browser UI now centers the full assignment loop:
+
+- current assignment workspace as the default home
+- background review and revision queue states with progress loaders
+- full assignment timelines showing prompt, draft, feedback, and revision steps
+- archive browsing for older assignments
+- About-page explanation of how the coaching loop works in plain language
 
 ## API Overview
 
