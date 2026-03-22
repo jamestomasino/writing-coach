@@ -107,6 +107,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
 	mux.HandleFunc("POST /api/prompts/accept", s.handlePromptAccept)
 	mux.HandleFunc("POST /api/prompts/revise", s.handlePromptRevise)
+	mux.HandleFunc("POST /api/playground/review", s.handlePlaygroundReview)
 	mux.HandleFunc("GET /api/submissions", s.handleSubmissionsList)
 	mux.HandleFunc("POST /api/submissions", s.handleSubmissionCreate)
 	mux.HandleFunc("GET /api/submissions/{id}", s.handleSubmissionGet)

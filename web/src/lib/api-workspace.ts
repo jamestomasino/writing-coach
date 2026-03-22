@@ -1,6 +1,6 @@
 import { request } from './api-core'
 import { arrayOrEmpty, normalizeAssignmentTimeline, normalizeDashboard, normalizeReview, normalizeTree } from './api-normalizers'
-import type { AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, Review, ReviewJob, Submission, Tree } from './types'
+import type { AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundReviewInput, Review, ReviewJob, Submission, Tree } from './types'
 
 export function getDashboard() {
   return request<Dashboard>('/api/dashboard').then(normalizeDashboard)
@@ -120,4 +120,18 @@ export async function reviewSubmission(submissionId: number) {
 export async function getReviewJob(submissionId: number) {
   const payload = await request<{ job: ReviewJob }>(`/api/review-jobs?submission_id=${submissionId}`)
   return payload.job
+}
+
+export async function createPlaygroundReview(input: PlaygroundReviewInput) {
+  const payload = await request<{ review: Review }>('/api/playground/review', {
+    method: 'POST',
+    body: JSON.stringify({
+      content: input.content,
+      writing_language: input.writing_language ?? '',
+      writing_type: input.writing_type ?? '',
+      assignment_format: input.assignment_format ?? '',
+      coaching_brief: input.coaching_brief ?? '',
+    }),
+  })
+  return normalizeReview(payload.review)
 }

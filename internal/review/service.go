@@ -20,6 +20,8 @@ type Service struct {
 
 type Options struct {
 	AnalyzerContext analyzer.ContextOptions
+	CoachingBrief   string
+	AllowUnscoped   bool
 }
 
 type Result struct {
@@ -62,6 +64,7 @@ func (s Service) ReviewSubmissionWithOptions(ctx context.Context, sub domain.Sub
 
 func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options Options) Result {
 	report := s.analyzers.AnalyzeWithContext(ctx, sub.Content, options.AnalyzerContext)
+	fallbackActiveTGOs := reviewTGOs(activeTGOs, options.AllowUnscoped)
 
 	if s.client != nil && s.client.Enabled() {
 		reviewResult, scores, err := s.client.ReviewSubmission(ctx, llm.ReviewRequest{
@@ -73,6 +76,7 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 			CompletedTGOs:    completedTGOs,
 			AnalysisSummary:  analyzer.Summary(report),
 			AnalyzerFindings: analyzer.TopFindings(report, 6),
+			CoachingBrief:    strings.TrimSpace(options.CoachingBrief),
 		})
 		if err == nil {
 			reviewResult.ReviewKind = s.clientKind
@@ -81,13 +85,13 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 			return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 		}
 
-		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs, options.AnalyzerContext)
+		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, fallbackActiveTGOs, completedTGOs, options.AnalyzerContext)
 		reviewResult.ReviewKind = "deterministic-fallback"
 		reviewResult.ProviderNote = strings.TrimSpace(s.clientKind + ": " + err.Error())
 		return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 	}
 
-	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, activeTGOs, completedTGOs, options.AnalyzerContext)
+	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, fallbackActiveTGOs, completedTGOs, options.AnalyzerContext)
 	reviewResult.ReviewKind = "deterministic"
 	return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
 }
@@ -149,7 +153,12 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 }
 
 func defaultScoresForActiveTGOs(submissionID int64, activeTGOs []domain.TGO, wordCount, avgSentenceLength, findingCount int) []domain.SkillScore {
-	activeTGOs = ensureReviewTGOs(activeTGOs)
+	if len(activeTGOs) == 0 {
+		return []domain.SkillScore{
+			{SubmissionID: submissionID, Skill: "clarity and coherence", Score: scoreFromSentenceLength(avgSentenceLength)},
+			{SubmissionID: submissionID, Skill: "sentence economy", Score: scoreFromFindingCount(findingCount)},
+		}
+	}
 	seen := map[string]bool{}
 	scores := []domain.SkillScore{
 		{SubmissionID: submissionID, Skill: "scene architecture", Score: scoreFromWordCount(wordCount)},
@@ -210,7 +219,9 @@ func scoreFromFindingCount(count int) int {
 }
 
 func deterministicAssessments(activeTGOs []domain.TGO, report analyzer.Report) []domain.TGOAssessment {
-	activeTGOs = ensureReviewTGOs(activeTGOs)
+	if len(activeTGOs) == 0 {
+		return nil
+	}
 	status := "secure"
 	if len(report.Findings) >= 4 {
 		status = "developing"
@@ -233,8 +244,8 @@ func deterministicAssessments(activeTGOs []domain.TGO, report analyzer.Report) [
 	return out
 }
 
-func ensureReviewTGOs(active []domain.TGO) []domain.TGO {
-	if len(active) == 3 {
+func reviewTGOs(active []domain.TGO, allowUnscoped bool) []domain.TGO {
+	if len(active) == 3 || (allowUnscoped && len(active) == 0) {
 		return active
 	}
 	var out []domain.TGO
@@ -278,7 +289,6 @@ func deterministicAnnotations(content string, activeTGOs []domain.TGO, completed
 	if len(sentences) == 0 {
 		return nil
 	}
-	activeTGOs = ensureReviewTGOs(activeTGOs)
 	finding := defaultAnnotationComment(domainName)
 	if findings := analyzer.TopFindings(report, 1); len(findings) > 0 {
 		finding = findings[0]
