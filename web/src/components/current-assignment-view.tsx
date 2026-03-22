@@ -18,6 +18,10 @@ import { ProviderProvenance } from './provider-provenance'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
+function tierLabel(tier?: string, fallback?: string) {
+  return (tier ?? fallback ?? '').replace(/-/g, ' ')
+}
+
 export function CurrentAssignmentView() {
   const t = useTranslations('currentAssignmentView')
   const router = useRouter()
@@ -294,7 +298,7 @@ export function CurrentAssignmentView() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <Strong>{tgo.title}</Strong>
-                  <Badge color="cyan">{tgo.stage}</Badge>
+                  <Badge color="cyan">{tierLabel(tgo.skill_tier, tgo.stage)}</Badge>
                 </div>
                 <Text className="mt-2">{tgo.description}</Text>
                 <MasteryProgress tgo={tgo} />

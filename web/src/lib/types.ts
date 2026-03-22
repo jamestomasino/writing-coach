@@ -44,6 +44,7 @@ export type TGO = {
   title: string
   description: string
   stage: string
+  skill_tier?: string
   stage_order: number
   active_slot?: number
   prerequisites?: string[]
