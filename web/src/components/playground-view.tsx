@@ -14,15 +14,17 @@ import { Textarea } from '@/components/textarea'
 import { WorkspaceCard } from '@/components/workspace-card'
 import { formatLocalDateTime } from '@/lib/datetime'
 import {
+  createPlaygroundDraft,
   createPlaygroundSession,
   createPlaygroundSessionReview,
   getAIJob,
   getPlaygroundSession,
+  getPlaygroundSessionDrafts,
   getPlaygroundSessionReviews,
   updatePlaygroundSession,
 } from '@/lib/api'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
-import type { AIJob, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession } from '@/lib/types'
+import type { AIJob, PlaygroundDraft, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession } from '@/lib/types'
 import { useTranslations } from 'next-intl'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -58,6 +60,7 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
   const { loading: sessionLoading, error: sessionError } = useRequiredAppSession(sessionId ? `/playground/${sessionId}` : '/playground')
   const [form, setForm] = useState<PlaygroundReviewInput>(initialForm)
   const [savedSession, setSavedSession] = useState<PlaygroundSession | null>(null)
+  const [drafts, setDrafts] = useState<PlaygroundDraft[]>([])
   const [reviews, setReviews] = useState<PlaygroundReview[]>([])
   const [selectedReviewID, setSelectedReviewID] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -75,8 +78,9 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
     async function load() {
       setLoadingSession(true)
       try {
-        const [nextSession, nextReviews] = await Promise.all([
+        const [nextSession, nextDrafts, nextReviews] = await Promise.all([
           getPlaygroundSession(nextSessionID),
+          getPlaygroundSessionDrafts(nextSessionID),
           getPlaygroundSessionReviews(nextSessionID),
         ])
         if (cancelled) {
@@ -84,6 +88,7 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
         }
         setSavedSession(nextSession)
         setForm(sessionToForm(nextSession))
+        setDrafts(nextDrafts)
         setReviews(nextReviews)
         setSelectedReviewID(nextReviews[0]?.id ?? null)
         setError(null)
@@ -147,11 +152,13 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
   }
 
   async function refreshSessionReviews(nextSessionID: number) {
-    const [nextSession, nextReviews] = await Promise.all([
+    const [nextSession, nextDrafts, nextReviews] = await Promise.all([
       getPlaygroundSession(nextSessionID),
+      getPlaygroundSessionDrafts(nextSessionID),
       getPlaygroundSessionReviews(nextSessionID),
     ])
     setSavedSession(nextSession)
+    setDrafts(nextDrafts)
     setReviews(nextReviews)
     setSelectedReviewID(nextReviews[0]?.id ?? null)
   }
@@ -163,7 +170,9 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
     setSaving(true)
     setError(null)
     try {
-      await persistSession()
+      const nextSession = await persistSession()
+      await createPlaygroundDraft(nextSession.id)
+      await refreshSessionReviews(nextSession.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('saveError'))
     } finally {
@@ -314,7 +323,7 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
               {savedSession ? <Badge color="green">{t('saved')}</Badge> : null}
               {savedSession ? (
                 <span>
-                  {t('savedDraftLabel')}: {formatLocalDateTime(savedSession.updated_at) ?? savedSession.updated_at}
+                  {t('savedDraftLabel')}: {savedSession.draft_count}
                 </span>
               ) : form.content.trim() ? null : (
                 <span>{t('emptyHint')}</span>
@@ -342,6 +351,36 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
       ) : (
         <div className="space-y-8">
           <div className="grid gap-8 xl:grid-cols-[0.95fr_1.35fr]">
+            <WorkspaceCard>
+              <CardHeader
+                eyebrow={t('draftsEyebrow')}
+                title={t('draftsTitle')}
+                description={drafts.length > 0 ? undefined : t('draftsEmpty')}
+              />
+              <div className="mt-4 space-y-3">
+                {drafts.length === 0 ? <Text>{t('draftsEmpty')}</Text> : null}
+                {drafts.map((item, index) => (
+                  <div key={item.id} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-semibold">{t('draftNumber', { count: drafts.length - index })}</div>
+                      <Badge color="zinc">{item.word_count}</Badge>
+                    </div>
+                    <Text className="mt-2 text-sm">{formatLocalDateTime(item.created_at) ?? item.created_at}</Text>
+                    <Text className="mt-2 line-clamp-3 text-sm">{item.content}</Text>
+                    <div className="mt-3">
+                      <Button
+                        type="button"
+                        outline
+                        onClick={() => setForm((current) => ({ ...current, content: item.content }))}
+                      >
+                        {t('loadDraft')}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </WorkspaceCard>
+
             <WorkspaceCard>
               <CardHeader
                 eyebrow={t('previousReviewsEyebrow')}
@@ -383,6 +422,25 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
           </div>
 
           <div className="grid gap-8 xl:grid-cols-2">
+            {currentReview.review.artifacts?.comparison ? (
+              <WorkspaceCard>
+                <CardHeader eyebrow={t('compareEyebrow')} title={t('compareTitle')} description={currentReview.review.artifacts.comparison.summary} />
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('wordDelta')}</div>
+                    <Text className="mt-2 text-sm">{currentReview.review.artifacts.comparison.word_delta}</Text>
+                  </div>
+                  <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('addressed')}</div>
+                    <Text className="mt-2 text-sm">{(currentReview.review.artifacts.comparison.addressed_weaknesses ?? []).length}</Text>
+                  </div>
+                  <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('persisting')}</div>
+                    <Text className="mt-2 text-sm">{(currentReview.review.artifacts.comparison.persisting_weaknesses ?? []).length}</Text>
+                  </div>
+                </div>
+              </WorkspaceCard>
+            ) : null}
             <WorkspaceCard>
               <CardHeader eyebrow={t('workedEyebrow')} title={t('workedTitle')} />
               <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">

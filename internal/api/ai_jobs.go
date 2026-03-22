@@ -210,6 +210,7 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 		return fmt.Errorf("decode playground payload: %w", err)
 	}
 	var sessionID int64
+	var draft domain.PlaygroundDraft
 	content := strings.TrimSpace(payload.Content)
 	writingLanguage := strings.TrimSpace(payload.WritingLanguage)
 	writingType := strings.TrimSpace(payload.WritingType)
@@ -221,7 +222,11 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 			return fmt.Errorf("load playground session: %w", err)
 		}
 		sessionID = item.ID
-		content = strings.TrimSpace(item.Content)
+		draft, err = s.Store.EnsurePlaygroundDraftSnapshot(ctx, item)
+		if err != nil {
+			return fmt.Errorf("save playground draft snapshot: %w", err)
+		}
+		content = strings.TrimSpace(draft.Content)
 		writingLanguage = strings.TrimSpace(item.WritingLanguage)
 		writingType = strings.TrimSpace(item.WritingType)
 		assignmentFormat = strings.TrimSpace(item.AssignmentFormat)
@@ -261,12 +266,32 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 	}
 	result.Review.SkillScores = append([]domain.SkillScore(nil), result.Scores...)
 	if sessionID != 0 {
+		comparisonJSON := ""
+		if draft.ParentDraftID != 0 {
+			if previousDraft, err := s.Store.GetPlaygroundDraft(ctx, draft.ParentDraftID); err == nil {
+				if previousReview, err := s.Store.LatestPlaygroundReviewForDraft(ctx, previousDraft.ID); err == nil {
+					currentSub := domain.Submission{Content: draft.Content, WordCount: draft.WordCount}
+					previousSub := domain.Submission{Content: previousDraft.Content, WordCount: previousDraft.WordCount}
+					comparison := review.CompareSubmissions(currentSub, previousSub, result.Review, previousReview.Review)
+					comparisonJSON = mustJSON(map[string]any{
+						"summary":               comparison.Summary,
+						"word_delta":            comparison.WordDelta,
+						"added_words":           comparison.AddedWords,
+						"removed_words":         comparison.RemovedWords,
+						"addressed_weaknesses":  comparison.AddressedWeaknesses,
+						"persisting_weaknesses": comparison.PersistingWeaknesses,
+					})
+				}
+			}
+		}
 		reviewID, err := s.Store.SavePlaygroundReview(ctx, domain.PlaygroundReview{
 			SessionID:          sessionID,
+			DraftID:            draft.ID,
 			UserID:             job.UserID,
 			TreeID:             job.TreeID,
 			Review:             result.Review,
 			AnalyzerReportJSON: mustJSON(result.AnalyzerReport),
+			ComparisonJSON:     comparisonJSON,
 		})
 		if err != nil {
 			return fmt.Errorf("save playground review: %w", err)

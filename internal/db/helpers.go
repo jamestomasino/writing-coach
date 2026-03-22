@@ -173,8 +173,10 @@ func scanPlaygroundSession(scanner interface{ Scan(...any) error }) (domain.Play
 		&session.WritingType,
 		&session.AssignmentFormat,
 		&session.CoachingBrief,
+		&session.LatestDraftID,
 		&session.LatestReviewID,
 		&latestReviewAt,
+		&session.DraftCount,
 		&session.ReviewCount,
 		&session.CreatedAt,
 		&session.UpdatedAt,
@@ -187,6 +189,23 @@ func scanPlaygroundSession(scanner interface{ Scan(...any) error }) (domain.Play
 	return session, nil
 }
 
+func scanPlaygroundDraft(scanner interface{ Scan(...any) error }) (domain.PlaygroundDraft, error) {
+	var item domain.PlaygroundDraft
+	if err := scanner.Scan(
+		&item.ID,
+		&item.SessionID,
+		&item.UserID,
+		&item.TreeID,
+		&item.ParentDraftID,
+		&item.Content,
+		&item.WordCount,
+		&item.CreatedAt,
+	); err != nil {
+		return domain.PlaygroundDraft{}, err
+	}
+	return item, nil
+}
+
 func scanPlaygroundReview(scanner interface{ Scan(...any) error }) (domain.PlaygroundReview, error) {
 	var item domain.PlaygroundReview
 	var strengthsJSON, weaknessesJSON, findingsJSON string
@@ -194,6 +213,7 @@ func scanPlaygroundReview(scanner interface{ Scan(...any) error }) (domain.Playg
 	if err := scanner.Scan(
 		&item.ID,
 		&item.SessionID,
+		&item.DraftID,
 		&item.UserID,
 		&item.TreeID,
 		&item.Review.ID,
@@ -210,6 +230,7 @@ func scanPlaygroundReview(scanner interface{ Scan(...any) error }) (domain.Playg
 		&completedChecksJSON,
 		&annotationsJSON,
 		&item.AnalyzerReportJSON,
+		&item.ComparisonJSON,
 		&item.CreatedAt,
 	); err != nil {
 		return domain.PlaygroundReview{}, err

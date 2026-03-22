@@ -1,6 +1,6 @@
 import { request } from './api-core'
 import { arrayOrEmpty, normalizeAssignmentTimeline, normalizeDashboard, normalizePlaygroundReview, normalizeReview, normalizeTree } from './api-normalizers'
-import type { AIJob, AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession, Review, Submission, Tree } from './types'
+import type { AIJob, AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundDraft, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession, Review, Submission, Tree } from './types'
 
 export function getDashboard() {
   return request<Dashboard>('/api/dashboard').then(normalizeDashboard)
@@ -180,6 +180,19 @@ export async function createPlaygroundSessionReview(sessionId: number) {
     body: '{}',
   })
   return payload.job
+}
+
+export async function createPlaygroundDraft(sessionId: number) {
+  const payload = await request<{ draft: PlaygroundDraft; session: PlaygroundSession }>(`/api/playground/sessions/${sessionId}/drafts`, {
+    method: 'POST',
+    body: '{}',
+  })
+  return payload
+}
+
+export async function getPlaygroundSessionDrafts(sessionId: number, limit = 50) {
+  const payload = await request<{ drafts: PlaygroundDraft[] }>(`/api/playground/sessions/${sessionId}/drafts?limit=${limit}`)
+  return arrayOrEmpty(payload.drafts)
 }
 
 export async function getPlaygroundSessionReviews(sessionId: number, limit = 20) {

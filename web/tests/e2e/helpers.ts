@@ -21,21 +21,24 @@ export async function closeContext(context: BrowserContext) {
 
 export async function fillTrackForm(page: Page, suffix: string) {
   await expect(page.getByTestId('track-form')).toBeVisible()
-  await page.getByLabel('Primary writing domain').selectOption({ index: 1 })
-  await page.getByLabel('Common assignment format').selectOption({ index: 1 })
+  await page.getByLabel('What kind of writing is this for?').selectOption({ index: 1 })
+  await page.getByLabel('What kind of assignments do you want?').selectOption({ index: 1 })
   await page.getByLabel('Experience level').selectOption({ index: 1 })
-  await page.getByLabel('Difficulty and intensity').selectOption({ index: 1 })
-  await page.getByLabel('Target audience').fill(`Readers ${suffix}`)
-  await page.getByLabel('Typical subject matter').fill(`Subject matter ${suffix}`)
-  await page.getByLabel('Tone target').fill(`Direct and clear ${suffix}`)
-  await page.getByLabel('Writing goals').fill(`Build a stronger writing practice for ${suffix}.`)
-  await page.getByText('word choice', { exact: true }).click()
-  await page.getByText('build revision discipline', { exact: true }).click()
+  await page.getByLabel('How hard should this push you?').selectOption({ index: 1 })
+  await page.getByLabel('Who are you writing for?').fill(`Readers ${suffix}`)
+  await page.getByLabel('What topics or situations should this draw from?').fill(`Subject matter ${suffix}`)
+  await page.getByLabel('What tone are you aiming for?').fill(`Direct and clear ${suffix}`)
+  await page.getByLabel('What do you want to get better at?').fill(`Build a stronger writing practice for ${suffix}.`)
+  await page.getByRole('checkbox', { name: 'word choice' }).check()
+  await page.getByRole('checkbox', { name: 'build revision discipline' }).check()
 }
 
 export async function createTrack(page: Page, suffix: string) {
   await fillTrackForm(page, suffix)
-  await page.getByTestId('save-track-button').click()
+  await Promise.all([
+    page.waitForURL(/\/new-assignment/),
+    page.getByTestId('save-track-button').click(),
+  ])
 }
 
 export async function createFirstAssignment(page: Page) {

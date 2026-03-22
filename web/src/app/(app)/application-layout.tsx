@@ -324,15 +324,6 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                     <ClockIcon />
                     <SidebarLabel>{t('pastAssignments')}</SidebarLabel>
                   </SidebarItem>
-                </SidebarSection>
-              </>
-            ) : null}
-
-            <SidebarSpacer />
-
-            <SidebarSection>
-              {authenticated === true ? (
-                <>
                   <SidebarHeading>{t('playgroundHeading')}</SidebarHeading>
                   <SidebarItem
                     href="/playground"
@@ -345,8 +336,13 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                     <ClockIcon />
                     <SidebarLabel>{t('playgroundHistory')}</SidebarLabel>
                   </SidebarItem>
-                </>
-              ) : null}
+                </SidebarSection>
+              </>
+            ) : null}
+
+            <SidebarSpacer />
+
+            <SidebarSection>
               <SidebarItem href="/about" current={pathname.startsWith('/about')}>
                 <InformationCircleIcon />
                 <SidebarLabel>{t('about')}</SidebarLabel>

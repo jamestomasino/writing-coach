@@ -111,6 +111,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/playground/sessions", s.handlePlaygroundSessionCreate)
 	mux.HandleFunc("GET /api/playground/sessions/{id}", s.handlePlaygroundSessionGet)
 	mux.HandleFunc("PUT /api/playground/sessions/{id}", s.handlePlaygroundSessionUpdate)
+	mux.HandleFunc("GET /api/playground/sessions/{id}/drafts", s.handlePlaygroundSessionDraftsList)
+	mux.HandleFunc("POST /api/playground/sessions/{id}/drafts", s.handlePlaygroundSessionDraftCreate)
 	mux.HandleFunc("POST /api/playground/sessions/{id}/reviews", s.handlePlaygroundSessionReviewCreate)
 	mux.HandleFunc("GET /api/playground/sessions/{id}/reviews", s.handlePlaygroundSessionReviewsList)
 	mux.HandleFunc("GET /api/playground/reviews/{id}", s.handlePlaygroundReviewGet)
@@ -388,6 +390,15 @@ type aiJobResponse struct {
 	Result       *aiJobResultResponse `json:"result,omitempty"`
 }
 
+type playgroundDraftResponse struct {
+	ID            int64  `json:"id"`
+	SessionID     int64  `json:"session_id"`
+	ParentDraftID int64  `json:"parent_draft_id,omitempty"`
+	Content       string `json:"content"`
+	WordCount     int    `json:"word_count"`
+	CreatedAt     string `json:"created_at"`
+}
+
 type playgroundSessionResponse struct {
 	ID               int64  `json:"id"`
 	Title            string `json:"title"`
@@ -396,8 +407,10 @@ type playgroundSessionResponse struct {
 	WritingType      string `json:"writing_type,omitempty"`
 	AssignmentFormat string `json:"assignment_format,omitempty"`
 	CoachingBrief    string `json:"coaching_brief,omitempty"`
+	LatestDraftID    int64  `json:"latest_draft_id,omitempty"`
 	LatestReviewID   int64  `json:"latest_review_id,omitempty"`
 	LatestReviewAt   string `json:"latest_review_at,omitempty"`
+	DraftCount       int    `json:"draft_count"`
 	ReviewCount      int    `json:"review_count"`
 	CreatedAt        string `json:"created_at"`
 	UpdatedAt        string `json:"updated_at"`
@@ -406,6 +419,7 @@ type playgroundSessionResponse struct {
 type playgroundReviewResponse struct {
 	ID        int64          `json:"id"`
 	SessionID int64          `json:"session_id"`
+	DraftID   int64          `json:"draft_id,omitempty"`
 	CreatedAt string         `json:"created_at"`
 	Review    reviewResponse `json:"review"`
 }
@@ -1449,11 +1463,24 @@ func toPlaygroundSessionResponse(session domain.PlaygroundSession) playgroundSes
 		WritingType:      session.WritingType,
 		AssignmentFormat: session.AssignmentFormat,
 		CoachingBrief:    session.CoachingBrief,
+		LatestDraftID:    session.LatestDraftID,
 		LatestReviewID:   session.LatestReviewID,
 		LatestReviewAt:   latestReviewAt,
+		DraftCount:       session.DraftCount,
 		ReviewCount:      session.ReviewCount,
 		CreatedAt:        db.Since(session.CreatedAt),
 		UpdatedAt:        db.Since(session.UpdatedAt),
+	}
+}
+
+func toPlaygroundDraftResponse(item domain.PlaygroundDraft) playgroundDraftResponse {
+	return playgroundDraftResponse{
+		ID:            item.ID,
+		SessionID:     item.SessionID,
+		ParentDraftID: item.ParentDraftID,
+		Content:       item.Content,
+		WordCount:     item.WordCount,
+		CreatedAt:     db.Since(item.CreatedAt),
 	}
 }
 
@@ -1463,13 +1490,19 @@ func toPlaygroundReviewResponse(item domain.PlaygroundReview) playgroundReviewRe
 	if strings.TrimSpace(item.AnalyzerReportJSON) != "" {
 		_ = json.Unmarshal([]byte(item.AnalyzerReportJSON), &analyzerReport)
 	}
+	var comparison map[string]any
+	if strings.TrimSpace(item.ComparisonJSON) != "" {
+		_ = json.Unmarshal([]byte(item.ComparisonJSON), &comparison)
+	}
 	response.Artifacts = &reviewArtifactsPayload{
 		AnalyzerReport: analyzerReport,
+		Comparison:     comparison,
 		Annotations:    response.Annotations,
 	}
 	return playgroundReviewResponse{
 		ID:        item.ID,
 		SessionID: item.SessionID,
+		DraftID:   item.DraftID,
 		CreatedAt: db.Since(item.CreatedAt),
 		Review:    response,
 	}

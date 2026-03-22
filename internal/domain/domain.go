@@ -213,20 +213,35 @@ type PlaygroundSession struct {
 	WritingType      string
 	AssignmentFormat string
 	CoachingBrief    string
+	LatestDraftID    int64
 	LatestReviewID   int64
 	LatestReviewAt   time.Time
+	DraftCount       int
 	ReviewCount      int
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
 
+type PlaygroundDraft struct {
+	ID            int64
+	SessionID     int64
+	UserID        int64
+	TreeID        int64
+	ParentDraftID int64
+	Content       string
+	WordCount     int
+	CreatedAt     time.Time
+}
+
 type PlaygroundReview struct {
 	ID                 int64
 	SessionID          int64
+	DraftID            int64
 	UserID             int64
 	TreeID             int64
 	Review             Review
 	AnalyzerReportJSON string
+	ComparisonJSON     string
 	CreatedAt          time.Time
 }
 
