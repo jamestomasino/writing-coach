@@ -4252,7 +4252,7 @@ func newTestServerWithConfig(t *testing.T, store *db.Store, cfg config.Config) *
 	server := Server{
 		Config:     cfg,
 		Store:      store,
-		Prompts:    prompt.NewService(nil),
+		Prompts:    prompt.NewService(nil).WithGenerationTimeout(cfg.PromptGenerationTimeout),
 		Reviews:    review.NewService(nil, analyzer.Service{}),
 		Curriculum: curriculum.NewService(),
 	}
