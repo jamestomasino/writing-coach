@@ -146,9 +146,16 @@ export type ReviewAnnotation = {
   severity: string
 }
 
-export type ReviewJob = {
+export type AIJobResult = {
+  exercise?: Exercise
+  review?: Review
+}
+
+export type AIJob = {
   id: number
-  submission_id: number
+  kind: string
+  submission_id?: number
+  exercise_id?: number
   review_id?: number
   status: string
   attempt_count: number
@@ -156,6 +163,7 @@ export type ReviewJob = {
   last_error?: string
   created_at: string
   updated_at: string
+  result?: AIJobResult
 }
 
 export type Comparison = {

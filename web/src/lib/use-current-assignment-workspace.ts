@@ -2,6 +2,7 @@
 
 import {
   createRevisionAssignment,
+  getAIJob,
   getAssignments,
   getDashboard,
   getExercise,
@@ -15,7 +16,7 @@ import {
 } from '@/lib/api'
 import { requiredSetupPath } from '@/lib/onboarding-funnel'
 import { hasUnsavedTrackDraft } from '@/lib/track-switch-guard'
-import type { Dashboard, Exercise, Review, ReviewJob, Submission } from '@/lib/types'
+import type { AIJob, Dashboard, Exercise, Review, Submission } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -80,7 +81,7 @@ export function useCurrentAssignmentWorkspace(revisionExerciseID: number) {
   const [draft, setDraft] = useState('')
   const [reviewing, setReviewing] = useState(false)
   const [preparingRevision, setPreparingRevision] = useState(false)
-  const [reviewJob, setReviewJob] = useState<ReviewJob | null>(null)
+  const [reviewJob, setReviewJob] = useState<AIJob | null>(null)
   const [revisionPanel, setRevisionPanel] = useState<'brief' | 'feedback'>('brief')
 
   useEffect(() => {
@@ -116,7 +117,7 @@ export function useCurrentAssignmentWorkspace(revisionExerciseID: number) {
         let review: Review | undefined
         let sourceSubmission: Submission | undefined
         let sourceReview: Review | undefined
-        let pendingJob: ReviewJob | null = null
+        let pendingJob: AIJob | null = null
 
         if (exercise) {
           const submissions = inRevisionMode
@@ -294,8 +295,19 @@ export function useCurrentAssignmentWorkspace(revisionExerciseID: number) {
     try {
       setPreparingRevision(true)
       setError(null)
-      const exercise = await createRevisionAssignment(workspace.submission.id)
-      router.push(`/?revisionExercise=${exercise.id}`)
+      const job = await createRevisionAssignment(workspace.submission.id)
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        const nextJob = attempt === 0 ? job : await getAIJob(job.id)
+        if (nextJob.status === 'completed' && nextJob.result?.exercise) {
+          router.push(`/?revisionExercise=${nextJob.result.exercise.id}`)
+          return
+        }
+        if (nextJob.status === 'failed') {
+          throw new Error(nextJob.last_error || 'Could not create revision prompt')
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1500))
+      }
+      throw new Error('Could not create revision prompt')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create revision prompt')
     } finally {

@@ -765,27 +765,32 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("prompt next: %v", err)
 	}
 	defer promptResp.Body.Close()
-	if promptResp.StatusCode != http.StatusOK {
+	if promptResp.StatusCode != http.StatusAccepted {
 		t.Fatalf("prompt status: %d", promptResp.StatusCode)
 	}
 	var promptPayload struct {
-		Exercise exerciseResponse `json:"exercise"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(promptResp.Body).Decode(&promptPayload); err != nil {
 		t.Fatalf("decode prompt: %v", err)
 	}
+	completedPrompt := waitForAIJob(t, testServer.URL, promptPayload.Job.ID)
+	if completedPrompt.Result == nil || completedPrompt.Result.Exercise == nil {
+		t.Fatal("expected completed prompt exercise")
+	}
+	exercise := completedPrompt.Result.Exercise
 	acceptResp, err := http.Post(
 		testServer.URL+"/api/prompts/accept?user=tester&tree=story-craft-track",
 		"application/json",
 		strings.NewReader(mustJSONString(map[string]any{
-			"title":            promptPayload.Exercise.Title,
-			"brief":            promptPayload.Exercise.Brief,
-			"constraints":      promptPayload.Exercise.Constraints,
-			"focus_skills":     promptPayload.Exercise.FocusSkills,
-			"tgo_codes":        promptPayload.Exercise.TGOCodes,
-			"success_criteria": promptPayload.Exercise.SuccessCriteria,
-			"generation_kind":  promptPayload.Exercise.GenerationKind,
-			"provider_note":    promptPayload.Exercise.ProviderNote,
+			"title":            exercise.Title,
+			"brief":            exercise.Brief,
+			"constraints":      exercise.Constraints,
+			"focus_skills":     exercise.FocusSkills,
+			"tgo_codes":        exercise.TGOCodes,
+			"success_criteria": exercise.SuccessCriteria,
+			"generation_kind":  exercise.GenerationKind,
+			"provider_note":    exercise.ProviderNote,
 		})),
 	)
 	if err != nil {
@@ -795,9 +800,13 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	if acceptResp.StatusCode != http.StatusOK {
 		t.Fatalf("accept prompt status: %d", acceptResp.StatusCode)
 	}
-	if err := json.NewDecoder(acceptResp.Body).Decode(&promptPayload); err != nil {
+	var acceptedPayload struct {
+		Exercise exerciseResponse `json:"exercise"`
+	}
+	if err := json.NewDecoder(acceptResp.Body).Decode(&acceptedPayload); err != nil {
 		t.Fatalf("decode accepted prompt: %v", err)
 	}
+	exercise = &acceptedPayload.Exercise
 
 	exercisesResp, err := http.Get(testServer.URL + "/api/exercises?user=tester&tree=story-craft-track")
 	if err != nil {
@@ -808,7 +817,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("exercise list status: %d", exercisesResp.StatusCode)
 	}
 
-	exerciseResp, err := http.Get(testServer.URL + "/api/exercises/" + int64String(promptPayload.Exercise.ID) + "?user=tester&tree=story-craft-track")
+	exerciseResp, err := http.Get(testServer.URL + "/api/exercises/" + int64String(exercise.ID) + "?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get exercise: %v", err)
 	}
@@ -817,7 +826,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("exercise get status: %d", exerciseResp.StatusCode)
 	}
 
-	submitResp, err := http.Post(testServer.URL+"/api/submissions?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{"exercise_id":`+int64String(promptPayload.Exercise.ID)+`,"content":"The bell cracked as the prince chose the gate that had no hinge."}`))
+	submitResp, err := http.Post(testServer.URL+"/api/submissions?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{"exercise_id":`+int64String(exercise.ID)+`,"content":"The bell cracked as the prince chose the gate that had no hinge."}`))
 	if err != nil {
 		t.Fatalf("create submission: %v", err)
 	}
@@ -834,7 +843,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("decode submission: %v", err)
 	}
 
-	submissionsResp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=story-craft-track&exercise_id=" + int64String(promptPayload.Exercise.ID))
+	submissionsResp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=story-craft-track&exercise_id=" + int64String(exercise.ID))
 	if err != nil {
 		t.Fatalf("list submissions: %v", err)
 	}
@@ -928,37 +937,31 @@ func TestPlaygroundReviewEndpointDoesNotPersistReviewHistory(t *testing.T) {
 		t.Fatalf("playground review: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("playground review status: %d", resp.StatusCode)
 	}
 
 	var payload struct {
-		Review struct {
-			Summary     string `json:"summary"`
-			ReviewKind  string `json:"review_kind"`
-			SkillScores []struct {
-				Skill string `json:"skill"`
-				Score int    `json:"score"`
-			} `json:"skill_scores"`
-			TGOAssessments []struct {
-				TGOCode string `json:"tgo_code"`
-			} `json:"tgo_assessments"`
-		} `json:"review"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode playground review: %v", err)
 	}
-	if payload.Review.Summary == "" {
+	completed := waitForAIJob(t, testServer.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Review == nil {
+		t.Fatal("expected completed playground review result")
+	}
+	if completed.Result.Review.Summary == "" {
 		t.Fatal("expected playground review summary")
 	}
-	if payload.Review.ReviewKind == "" {
+	if completed.Result.Review.ReviewKind == "" {
 		t.Fatal("expected playground review kind")
 	}
-	if len(payload.Review.SkillScores) == 0 {
+	if len(completed.Result.Review.SkillScores) == 0 {
 		t.Fatal("expected playground review skill scores")
 	}
-	if len(payload.Review.TGOAssessments) != 0 {
-		t.Fatalf("expected unscoped playground review, got %d tgo assessments", len(payload.Review.TGOAssessments))
+	if len(completed.Result.Review.TGOAssessments) != 0 {
+		t.Fatalf("expected unscoped playground review, got %d tgo assessments", len(completed.Result.Review.TGOAssessments))
 	}
 
 	var reviewCount int
@@ -2462,28 +2465,28 @@ func TestPromptNextUsesUserProviderSettings(t *testing.T) {
 		t.Fatalf("prompt next: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("prompt next status: %d", resp.StatusCode)
 	}
 
 	var payload struct {
-		Exercise struct {
-			Title          string `json:"title"`
-			GenerationKind string `json:"generation_kind"`
-			ProviderNote   string `json:"provider_note"`
-		} `json:"exercise"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode prompt payload: %v", err)
 	}
-	if payload.Exercise.Title != "Provider Draft" {
-		t.Fatalf("exercise title = %q", payload.Exercise.Title)
+	completed := waitForAIJob(t, server.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Exercise == nil {
+		t.Fatal("expected prompt result exercise")
 	}
-	if payload.Exercise.GenerationKind != "user/xai" {
-		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
+	if completed.Result.Exercise.Title != "Provider Draft" {
+		t.Fatalf("exercise title = %q", completed.Result.Exercise.Title)
 	}
-	if payload.Exercise.ProviderNote != "user/xai • gpt-5-mini" {
-		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
+	if completed.Result.Exercise.GenerationKind != "user/xai" {
+		t.Fatalf("generation kind = %q", completed.Result.Exercise.GenerationKind)
+	}
+	if completed.Result.Exercise.ProviderNote != "user/xai • gpt-5-mini" {
+		t.Fatalf("provider note = %q", completed.Result.Exercise.ProviderNote)
 	}
 	if authHeader != "Bearer sk-user-9876" {
 		t.Fatalf("authorization header = %q", authHeader)
@@ -2634,27 +2637,27 @@ func TestPromptNextUsesAnthropicProviderSettings(t *testing.T) {
 		t.Fatalf("prompt next: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("prompt next status: %d", resp.StatusCode)
 	}
 	var payload struct {
-		Exercise struct {
-			Title          string `json:"title"`
-			GenerationKind string `json:"generation_kind"`
-			ProviderNote   string `json:"provider_note"`
-		} `json:"exercise"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode payload: %v", err)
 	}
-	if payload.Exercise.Title != "Anthropic Draft" {
-		t.Fatalf("title = %q", payload.Exercise.Title)
+	completed := waitForAIJob(t, server.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Exercise == nil {
+		t.Fatal("expected prompt result exercise")
 	}
-	if payload.Exercise.GenerationKind != "user/anthropic" {
-		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
+	if completed.Result.Exercise.Title != "Anthropic Draft" {
+		t.Fatalf("title = %q", completed.Result.Exercise.Title)
 	}
-	if payload.Exercise.ProviderNote != "user/anthropic • claude-sonnet-4-20250514" {
-		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
+	if completed.Result.Exercise.GenerationKind != "user/anthropic" {
+		t.Fatalf("generation kind = %q", completed.Result.Exercise.GenerationKind)
+	}
+	if completed.Result.Exercise.ProviderNote != "user/anthropic • claude-sonnet-4-20250514" {
+		t.Fatalf("provider note = %q", completed.Result.Exercise.ProviderNote)
 	}
 	if apiKey != "sk-ant-5555" {
 		t.Fatalf("api key header = %q", apiKey)
@@ -2793,27 +2796,27 @@ func TestPromptNextUsesGeminiProviderSettings(t *testing.T) {
 		t.Fatalf("prompt next: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("prompt next status: %d", resp.StatusCode)
 	}
 	var payload struct {
-		Exercise struct {
-			Title          string `json:"title"`
-			GenerationKind string `json:"generation_kind"`
-			ProviderNote   string `json:"provider_note"`
-		} `json:"exercise"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode payload: %v", err)
 	}
-	if payload.Exercise.Title != "Gemini Draft" {
-		t.Fatalf("title = %q", payload.Exercise.Title)
+	completed := waitForAIJob(t, server.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Exercise == nil {
+		t.Fatal("expected prompt result exercise")
 	}
-	if payload.Exercise.GenerationKind != "user/gemini" {
-		t.Fatalf("generation kind = %q", payload.Exercise.GenerationKind)
+	if completed.Result.Exercise.Title != "Gemini Draft" {
+		t.Fatalf("title = %q", completed.Result.Exercise.Title)
 	}
-	if payload.Exercise.ProviderNote != "user/gemini • gemini-2.5-flash" {
-		t.Fatalf("provider note = %q", payload.Exercise.ProviderNote)
+	if completed.Result.Exercise.GenerationKind != "user/gemini" {
+		t.Fatalf("generation kind = %q", completed.Result.Exercise.GenerationKind)
+	}
+	if completed.Result.Exercise.ProviderNote != "user/gemini • gemini-2.5-flash" {
+		t.Fatalf("provider note = %q", completed.Result.Exercise.ProviderNote)
 	}
 	if apiKey != "sk-gem-1234" {
 		t.Fatalf("api key query = %q", apiKey)
@@ -2928,23 +2931,25 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 		t.Fatalf("prompt next with selection: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("prompt status: %d", resp.StatusCode)
 	}
 
 	var payload struct {
-		Exercise struct {
-			TGOCodes []string `json:"tgo_codes"`
-		} `json:"exercise"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode prompt response: %v", err)
 	}
-	if len(payload.Exercise.TGOCodes) != 3 {
-		t.Fatalf("selected TGO count = %d", len(payload.Exercise.TGOCodes))
+	completed := waitForAIJob(t, testServer.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Exercise == nil {
+		t.Fatal("expected completed prompt preview")
 	}
-	if payload.Exercise.TGOCodes[0] != "story-scene-architecture" || payload.Exercise.TGOCodes[2] != "story-causal-clarity" {
-		t.Fatalf("expected selected TGO to persist, got %v", payload.Exercise.TGOCodes)
+	if len(completed.Result.Exercise.TGOCodes) != 3 {
+		t.Fatalf("selected TGO count = %d", len(completed.Result.Exercise.TGOCodes))
+	}
+	if completed.Result.Exercise.TGOCodes[0] != "story-scene-architecture" || completed.Result.Exercise.TGOCodes[2] != "story-causal-clarity" {
+		t.Fatalf("expected selected TGO to persist, got %v", completed.Result.Exercise.TGOCodes)
 	}
 }
 
@@ -2961,17 +2966,19 @@ func TestPromptNextUsesSelectedTGOsForSuccessCriteria(t *testing.T) {
 		t.Fatalf("prompt next with selection: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("prompt status: %d", resp.StatusCode)
 	}
 
 	var payload struct {
-		Exercise struct {
-			SuccessCriteria []string `json:"success_criteria"`
-		} `json:"exercise"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode prompt response: %v", err)
+	}
+	completed := waitForAIJob(t, testServer.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Exercise == nil {
+		t.Fatal("expected completed prompt preview")
 	}
 
 	want := []string{
@@ -2979,15 +2986,15 @@ func TestPromptNextUsesSelectedTGOsForSuccessCriteria(t *testing.T) {
 		"Replace soft modifiers with exact nouns and verbs.",
 		"Make action and consequence legible beat by beat.",
 	}
-	if len(payload.Exercise.SuccessCriteria) != len(want) {
-		t.Fatalf("success criteria count = %d, want %d (%v)", len(payload.Exercise.SuccessCriteria), len(want), payload.Exercise.SuccessCriteria)
+	if len(completed.Result.Exercise.SuccessCriteria) != len(want) {
+		t.Fatalf("success criteria count = %d, want %d (%v)", len(completed.Result.Exercise.SuccessCriteria), len(want), completed.Result.Exercise.SuccessCriteria)
 	}
 	for i := range want {
-		if payload.Exercise.SuccessCriteria[i] != want[i] {
-			t.Fatalf("success criterion %d = %q, want %q", i, payload.Exercise.SuccessCriteria[i], want[i])
+		if completed.Result.Exercise.SuccessCriteria[i] != want[i] {
+			t.Fatalf("success criterion %d = %q, want %q", i, completed.Result.Exercise.SuccessCriteria[i], want[i])
 		}
 	}
-	for _, criterion := range payload.Exercise.SuccessCriteria {
+	for _, criterion := range completed.Result.Exercise.SuccessCriteria {
 		if strings.Contains(strings.ToLower(criterion), "word") {
 			t.Fatalf("unexpected non-TGO success criterion leaked into rubric: %q", criterion)
 		}
@@ -3008,7 +3015,7 @@ func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
 		t.Fatalf("preview prompt: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("preview status: %d", resp.StatusCode)
 	}
 
@@ -3029,24 +3036,28 @@ func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
 	}
 
 	var payload struct {
-		Exercise exerciseResponse `json:"exercise"`
+		Job aiJobResponse `json:"job"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode preview payload: %v", err)
+	}
+	completed := waitForAIJob(t, testServer.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Exercise == nil {
+		t.Fatal("expected completed preview exercise")
 	}
 
 	acceptResp, err := http.Post(
 		testServer.URL+"/api/prompts/accept?user=tester",
 		"application/json",
 		strings.NewReader(mustJSONString(map[string]any{
-			"title":            payload.Exercise.Title,
-			"brief":            payload.Exercise.Brief,
-			"constraints":      payload.Exercise.Constraints,
-			"focus_skills":     payload.Exercise.FocusSkills,
-			"tgo_codes":        payload.Exercise.TGOCodes,
-			"success_criteria": payload.Exercise.SuccessCriteria,
-			"generation_kind":  payload.Exercise.GenerationKind,
-			"provider_note":    payload.Exercise.ProviderNote,
+			"title":            completed.Result.Exercise.Title,
+			"brief":            completed.Result.Exercise.Brief,
+			"constraints":      completed.Result.Exercise.Constraints,
+			"focus_skills":     completed.Result.Exercise.FocusSkills,
+			"tgo_codes":        completed.Result.Exercise.TGOCodes,
+			"success_criteria": completed.Result.Exercise.SuccessCriteria,
+			"generation_kind":  completed.Result.Exercise.GenerationKind,
+			"provider_note":    completed.Result.Exercise.ProviderNote,
 		})),
 	)
 	if err != nil {
@@ -4454,4 +4465,32 @@ func waitForReview(t *testing.T, baseURL string, submissionID int64) int64 {
 	}
 	t.Fatalf("timed out waiting for review job for submission %d", submissionID)
 	return 0
+}
+
+func waitForAIJob(t *testing.T, baseURL string, jobID int64) aiJobResponse {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := http.Get(baseURL + "/api/jobs/" + int64String(jobID) + "?user=tester&tree=story-craft-track")
+		if err != nil {
+			t.Fatalf("get ai job: %v", err)
+		}
+		var payload struct {
+			Job aiJobResponse `json:"job"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			resp.Body.Close()
+			t.Fatalf("decode ai job: %v", err)
+		}
+		resp.Body.Close()
+		if payload.Job.Status == "completed" {
+			return payload.Job
+		}
+		if payload.Job.Status == "failed" {
+			t.Fatalf("ai job failed for job %d: %s", jobID, payload.Job.LastError)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for ai job %d", jobID)
+	return aiJobResponse{}
 }

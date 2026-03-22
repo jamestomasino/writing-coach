@@ -108,6 +108,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/prompts/accept", s.handlePromptAccept)
 	mux.HandleFunc("POST /api/prompts/revise", s.handlePromptRevise)
 	mux.HandleFunc("POST /api/playground/review", s.handlePlaygroundReview)
+	mux.HandleFunc("GET /api/jobs/{id}", s.handleAIJobGet)
 	mux.HandleFunc("GET /api/submissions", s.handleSubmissionsList)
 	mux.HandleFunc("POST /api/submissions", s.handleSubmissionCreate)
 	mux.HandleFunc("GET /api/submissions/{id}", s.handleSubmissionGet)
@@ -358,6 +359,26 @@ type reviewJobResponse struct {
 	LastError    string `json:"last_error,omitempty"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
+}
+
+type aiJobResultResponse struct {
+	Exercise *exerciseResponse `json:"exercise,omitempty"`
+	Review   *reviewResponse   `json:"review,omitempty"`
+}
+
+type aiJobResponse struct {
+	ID           int64                `json:"id"`
+	Kind         string               `json:"kind"`
+	SubmissionID int64                `json:"submission_id,omitempty"`
+	ExerciseID   int64                `json:"exercise_id,omitempty"`
+	ReviewID     int64                `json:"review_id,omitempty"`
+	Status       string               `json:"status"`
+	AttemptCount int                  `json:"attempt_count"`
+	MaxAttempts  int                  `json:"max_attempts"`
+	LastError    string               `json:"last_error,omitempty"`
+	CreatedAt    string               `json:"created_at"`
+	UpdatedAt    string               `json:"updated_at"`
+	Result       *aiJobResultResponse `json:"result,omitempty"`
 }
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -1406,6 +1427,61 @@ func toReviewJobResponse(job domain.ReviewJob) reviewJobResponse {
 		CreatedAt:    db.Since(job.CreatedAt),
 		UpdatedAt:    db.Since(job.UpdatedAt),
 	}
+}
+
+func toReviewJobResponseFromAIJob(job domain.AIJob) reviewJobResponse {
+	return reviewJobResponse{
+		ID:           job.ID,
+		SubmissionID: job.SubmissionID,
+		ReviewID:     job.ReviewID,
+		Status:       job.Status,
+		AttemptCount: job.AttemptCount,
+		MaxAttempts:  job.MaxAttempts,
+		LastError:    job.LastError,
+		CreatedAt:    db.Since(job.CreatedAt),
+		UpdatedAt:    db.Since(job.UpdatedAt),
+	}
+}
+
+func (s Server) toAIJobResponse(ctx context.Context, job domain.AIJob) aiJobResponse {
+	out := aiJobResponse{
+		ID:           job.ID,
+		Kind:         job.Kind,
+		SubmissionID: job.SubmissionID,
+		ExerciseID:   job.ExerciseID,
+		ReviewID:     job.ReviewID,
+		Status:       job.Status,
+		AttemptCount: job.AttemptCount,
+		MaxAttempts:  job.MaxAttempts,
+		LastError:    job.LastError,
+		CreatedAt:    db.Since(job.CreatedAt),
+		UpdatedAt:    db.Since(job.UpdatedAt),
+	}
+	var result aiJobResultResponse
+	if job.ExerciseID != 0 {
+		if exercise, err := s.Store.GetExercise(ctx, job.ExerciseID); err == nil {
+			exerciseResponse := toExerciseResponse(exercise)
+			result.Exercise = &exerciseResponse
+		}
+	}
+	if job.ReviewID != 0 {
+		if reviewResult, err := s.Store.GetReview(ctx, job.ReviewID); err == nil {
+			response := toReviewResponse(reviewResult)
+			if artifacts, err := s.Store.GetReviewArtifacts(ctx, reviewResult.ID); err == nil {
+				response.Artifacts = decodeReviewArtifacts(artifacts)
+				if len(response.Annotations) == 0 {
+					response.Annotations = append(response.Annotations, response.Artifacts.Annotations...)
+				}
+			}
+			result.Review = &response
+		}
+	} else if strings.TrimSpace(job.ResultJSON) != "" {
+		_ = json.Unmarshal([]byte(job.ResultJSON), &result)
+	}
+	if result.Exercise != nil || result.Review != nil {
+		out.Result = &result
+	}
+	return out
 }
 
 func tgoTitleForCode(code string) string {

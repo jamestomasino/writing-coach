@@ -134,6 +134,32 @@ func scanReview(scanner interface{ Scan(...any) error }) (domain.Review, error) 
 	return hydrateReview(review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON)
 }
 
+func scanAIJob(scanner interface{ Scan(...any) error }) (domain.AIJob, error) {
+	var job domain.AIJob
+	if err := scanner.Scan(
+		&job.ID,
+		&job.UserID,
+		&job.TreeID,
+		&job.EnrollmentID,
+		&job.Kind,
+		&job.ResourceKey,
+		&job.ExerciseID,
+		&job.SubmissionID,
+		&job.ReviewID,
+		&job.Status,
+		&job.AttemptCount,
+		&job.MaxAttempts,
+		&job.LastError,
+		&job.PayloadJSON,
+		&job.ResultJSON,
+		&job.CreatedAt,
+		&job.UpdatedAt,
+	); err != nil {
+		return domain.AIJob{}, err
+	}
+	return job, nil
+}
+
 func hydrateReview(review domain.Review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string) (domain.Review, error) {
 	var err error
 	review.Strengths, err = DecodeStringSlice(strengthsJSON)

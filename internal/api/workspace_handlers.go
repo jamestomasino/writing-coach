@@ -183,15 +183,22 @@ func (s Server) handlePromptNext(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	ex, err := s.generateNextExercise(r.Context(), appContext)
+	job, err := s.Store.EnqueueAIJob(r.Context(), domain.AIJob{
+		UserID:       appContext.UserID,
+		TreeID:       appContext.TreeID,
+		EnrollmentID: appContext.EnrollmentID,
+		Kind:         aiJobKindPromptNext,
+		MaxAttempts:  3,
+		PayloadJSON:  "{}",
+	})
 	if err != nil {
-		log.Printf("prompt next: create exercise failed for user=%d tree=%d enrollment=%d: %v", appContext.UserID, appContext.TreeID, appContext.EnrollmentID, err)
+		log.Printf("prompt next: enqueue failed for user=%d tree=%d enrollment=%d: %v", appContext.UserID, appContext.TreeID, appContext.EnrollmentID, err)
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"context":  requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"exercise": toExerciseResponse(ex),
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"job":     s.toAIJobResponse(r.Context(), job),
 	})
 }
 
@@ -263,18 +270,42 @@ func (s Server) handlePromptRevise(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("submission_id is required"))
 		return
 	}
-	ex, err := s.createRevisionExercise(r.Context(), appContext, payload.SubmissionID)
+	sub, err := s.Store.GetSubmission(r.Context(), payload.SubmissionID)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if errors.Is(err, errAssignmentClosed) {
-			status = http.StatusConflict
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
 		}
 		writeError(w, status, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"context":  requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"exercise": toExerciseResponse(ex),
+	if !belongsToContext(sub.UserID, sub.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
+		return
+	}
+	if exercise, err := s.Store.GetExercise(r.Context(), sub.ExerciseID); err == nil {
+		if closed, closeErr := s.isExerciseChainClosed(r.Context(), appContext, exercise); closeErr == nil && closed {
+			writeError(w, http.StatusConflict, errAssignmentClosed)
+			return
+		}
+	}
+	job, err := s.Store.EnqueueAIJob(r.Context(), domain.AIJob{
+		UserID:       appContext.UserID,
+		TreeID:       appContext.TreeID,
+		EnrollmentID: appContext.EnrollmentID,
+		Kind:         aiJobKindPromptRevise,
+		ResourceKey:  fmt.Sprintf("%s:%d", aiJobKindPromptRevise, payload.SubmissionID),
+		SubmissionID: payload.SubmissionID,
+		MaxAttempts:  3,
+		PayloadJSON:  mustJSON(promptReviseJobPayload{SubmissionID: payload.SubmissionID}),
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"job":     s.toAIJobResponse(r.Context(), job),
 	})
 }
 
@@ -498,21 +529,24 @@ func (s Server) handleReviewCreate(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	job, err := s.Store.EnqueueReviewJob(r.Context(), domain.ReviewJob{
+	job, err := s.Store.EnqueueAIJob(r.Context(), domain.AIJob{
 		UserID:       appContext.UserID,
 		TreeID:       appContext.TreeID,
 		EnrollmentID: appContext.EnrollmentID,
+		Kind:         aiJobKindReviewSubmission,
+		ResourceKey:  fmt.Sprintf("%s:%d", aiJobKindReviewSubmission, sub.ID),
 		SubmissionID: sub.ID,
 		MaxAttempts:  3,
+		PayloadJSON:  mustJSON(reviewSubmissionJobPayload{SubmissionID: sub.ID}),
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	log.Printf("review job queued: job=%d submission=%d user=%d tree=%d", job.ID, job.SubmissionID, job.UserID, job.TreeID)
+	log.Printf("review job queued: job=%d submission=%d user=%d tree=%d", job.ID, sub.ID, job.UserID, job.TreeID)
 	writeJSON(w, http.StatusAccepted, map[string]any{
 		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"job":     toReviewJobResponse(job),
+		"job":     toReviewJobResponseFromAIJob(job),
 	})
 }
 
@@ -540,7 +574,7 @@ func (s Server) handleReviewJobGet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, fmt.Errorf("submission not found"))
 		return
 	}
-	job, err := s.Store.ReviewJobBySubmission(r.Context(), appContext.UserID, appContext.TreeID, submissionID)
+	job, err := s.Store.LatestAIJobBySubmission(r.Context(), appContext.UserID, appContext.TreeID, submissionID, aiJobKindReviewSubmission)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if db.IsNotFound(err) {
@@ -551,7 +585,7 @@ func (s Server) handleReviewJobGet(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"job":     toReviewJobResponse(job),
+		"job":     toReviewJobResponseFromAIJob(job),
 	})
 }
 

@@ -8,7 +8,7 @@ import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
-import { acceptAssignment, createAssignment, getDashboard } from '@/lib/api'
+import { acceptAssignment, createAssignment, getAIJob, getDashboard } from '@/lib/api'
 import type { Dashboard, Exercise } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { useTranslations } from 'next-intl'
@@ -29,6 +29,23 @@ export function NewAssignmentView() {
   const [generating, setGenerating] = useState(false)
   const [accepting, setAccepting] = useState(false)
   const [setupFlow, setSetupFlow] = useState(false)
+
+  async function waitForExercise(jobId: number) {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const job = await getAIJob(jobId)
+      if (job.status === 'completed') {
+        if (job.result?.exercise) {
+          return job.result.exercise
+        }
+        throw new Error(t('generateError'))
+      }
+      if (job.status === 'failed') {
+        throw new Error(job.last_error || t('generateError'))
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 1500))
+    }
+    throw new Error(t('generateError'))
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -97,7 +114,8 @@ export function NewAssignmentView() {
       setGenerating(true)
       setError(null)
       setPreview(null)
-      const exercise = await createAssignment(selected)
+      const job = await createAssignment(selected)
+      const exercise = await waitForExercise(job.id)
       setPreview(exercise)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('generateError'))
