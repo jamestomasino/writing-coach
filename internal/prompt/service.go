@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/tomasino/writing-coach/internal/domain"
@@ -14,10 +15,13 @@ import (
 type deterministicGenerator struct{}
 
 type Service struct {
-	client     llm.Client
-	clientKind string
-	fallback   deterministicGenerator
+	client            llm.Client
+	clientKind        string
+	fallback          deterministicGenerator
+	generationTimeout time.Duration
 }
+
+const defaultGenerationTimeout = 20 * time.Second
 
 type Context struct {
 	CurriculumState    domain.CurriculumState
@@ -34,9 +38,10 @@ type Context struct {
 
 func NewService(client llm.Client) Service {
 	return Service{
-		client:     client,
-		clientKind: "openai",
-		fallback:   deterministicGenerator{},
+		client:            client,
+		clientKind:        "openai",
+		fallback:          deterministicGenerator{},
+		generationTimeout: defaultGenerationTimeout,
 	}
 }
 
@@ -49,9 +54,16 @@ func (s Service) WithClient(client llm.Client, kind string) Service {
 	return s
 }
 
+func (s Service) WithGenerationTimeout(timeout time.Duration) Service {
+	s.generationTimeout = timeout
+	return s
+}
+
 func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercise {
 	if s.client != nil && s.client.Enabled() {
-		exercise, err := s.client.GenerateExercise(ctx, llm.ExerciseRequest{
+		generationCtx, cancel := s.generationContext(ctx)
+		defer cancel()
+		exercise, err := s.client.GenerateExercise(generationCtx, llm.ExerciseRequest{
 			WritingLanguage:   writingLanguageForProfile(input.OnboardingProfile),
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
@@ -84,7 +96,9 @@ func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exe
 		return s.NextExercise(ctx, input)
 	}
 	if s.client != nil && s.client.Enabled() {
-		exercise, err := s.client.GenerateRevisionExercise(ctx, llm.RevisionExerciseRequest{
+		generationCtx, cancel := s.generationContext(ctx)
+		defer cancel()
+		exercise, err := s.client.GenerateRevisionExercise(generationCtx, llm.RevisionExerciseRequest{
 			WritingLanguage:   writingLanguageForProfile(input.OnboardingProfile),
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
@@ -116,6 +130,15 @@ func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exe
 	exercise.GenerationKind = "deterministic"
 	exercise.SourceSubmissionID = input.RevisionOf.ID
 	return exercise
+}
+
+func (s Service) generationContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	base := context.WithoutCancel(ctx)
+	timeout := s.generationTimeout
+	if timeout <= 0 {
+		return base, func() {}
+	}
+	return context.WithTimeout(base, timeout)
 }
 
 func (deterministicGenerator) NextExercise(_ context.Context, input Context) domain.Exercise {

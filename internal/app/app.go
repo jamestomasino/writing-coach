@@ -96,7 +96,7 @@ func New(ctx context.Context) (*App, error) {
 		api: api.Server{
 			Config:     cfg,
 			Store:      store,
-			Prompts:    prompt.NewService(openAIClient),
+			Prompts:    prompt.NewService(openAIClient).WithGenerationTimeout(cfg.PromptGenerationTimeout),
 			Reviews:    review.NewService(openAIClient, analyzerService),
 			Curriculum: curriculum.NewService(),
 		},
@@ -104,7 +104,7 @@ func New(ctx context.Context) (*App, error) {
 			Config:     cfg,
 			AppContext: appContext,
 			Store:      store,
-			Prompts:    prompt.NewService(openAIClient),
+			Prompts:    prompt.NewService(openAIClient).WithGenerationTimeout(cfg.PromptGenerationTimeout),
 			Reviews:    review.NewService(openAIClient, analyzerService),
 			Curriculum: curriculum.NewService(),
 		},

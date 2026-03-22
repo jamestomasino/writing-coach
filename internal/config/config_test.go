@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestSaveAndLoadConfig(t *testing.T) {
@@ -90,5 +91,18 @@ func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
 	}
 	if loaded.AIProviderEventRetentionDays != 21 {
 		t.Fatalf("provider event retention days = %d", loaded.AIProviderEventRetentionDays)
+	}
+}
+
+func TestLoadReadsPromptGenerationTimeoutFromEnv(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("WRITING_COACH_PROMPT_GENERATION_TIMEOUT", "75s")
+
+	loaded, err := Load(root)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if loaded.PromptGenerationTimeout != 75*time.Second {
+		t.Fatalf("prompt generation timeout = %s", loaded.PromptGenerationTimeout)
 	}
 }

@@ -192,6 +192,8 @@ If `WRITING_COACH_AI_KEY_SECRET` is missing, personal provider storage is unavai
   Default shared prompt model.
 - `WRITING_COACH_REVIEW_MODEL`
   Default shared review model.
+- `WRITING_COACH_PROMPT_GENERATION_TIMEOUT`
+  Maximum time to wait on prompt-generation provider calls before falling back.
 - `WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE`
   Per-user cap for provider validation attempts.
 - `WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE`

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tomasino/writing-coach/internal/domain"
 )
@@ -14,29 +15,30 @@ import (
 const dirName = ".writing-coach"
 
 type Config struct {
-	ProjectRoot                    string   `json:"-"`
-	ConfigPath                     string   `json:"-"`
-	DataDir                        string   `json:"data_dir"`
-	DatabaseURL                    string   `json:"database_url"`
-	WriterName                     string   `json:"writer_name"`
-	DefaultUserSlug                string   `json:"default_user_slug"`
-	DefaultTreeSlug                string   `json:"default_tree_slug"`
-	HTTPAddr                       string   `json:"http_addr"`
-	APIToken                       string   `json:"-"`
-	AllowInsecureAuth              bool     `json:"allow_insecure_auth"`
-	AdminEmails                    []string `json:"admin_emails"`
-	KratosPublicURL                string   `json:"kratos_public_url"`
-	OpenAIAPIKey                   string   `json:"-"`
-	OpenAIBaseURL                  string   `json:"openai_base_url"`
-	AIKeySecret                    string   `json:"-"`
-	PromptModel                    string   `json:"prompt_model"`
-	ReviewModel                    string   `json:"review_model"`
-	AIValidateLimitPerMinute       int      `json:"ai_validate_limit_per_minute"`
-	AIValidateGlobalLimitPerMinute int      `json:"ai_validate_global_limit_per_minute"`
-	AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
-	ValeBinary                     string   `json:"vale_binary"`
-	LanguageToolURL                string   `json:"languagetool_url"`
-	NLPAnalyzerURL                 string   `json:"nlp_analyzer_url"`
+	ProjectRoot                    string        `json:"-"`
+	ConfigPath                     string        `json:"-"`
+	DataDir                        string        `json:"data_dir"`
+	DatabaseURL                    string        `json:"database_url"`
+	WriterName                     string        `json:"writer_name"`
+	DefaultUserSlug                string        `json:"default_user_slug"`
+	DefaultTreeSlug                string        `json:"default_tree_slug"`
+	HTTPAddr                       string        `json:"http_addr"`
+	APIToken                       string        `json:"-"`
+	AllowInsecureAuth              bool          `json:"allow_insecure_auth"`
+	AdminEmails                    []string      `json:"admin_emails"`
+	KratosPublicURL                string        `json:"kratos_public_url"`
+	OpenAIAPIKey                   string        `json:"-"`
+	OpenAIBaseURL                  string        `json:"openai_base_url"`
+	AIKeySecret                    string        `json:"-"`
+	PromptModel                    string        `json:"prompt_model"`
+	ReviewModel                    string        `json:"review_model"`
+	PromptGenerationTimeout        time.Duration `json:"-"`
+	AIValidateLimitPerMinute       int           `json:"ai_validate_limit_per_minute"`
+	AIValidateGlobalLimitPerMinute int           `json:"ai_validate_global_limit_per_minute"`
+	AIProviderEventRetentionDays   int           `json:"ai_provider_event_retention_days"`
+	ValeBinary                     string        `json:"vale_binary"`
+	LanguageToolURL                string        `json:"languagetool_url"`
+	NLPAnalyzerURL                 string        `json:"nlp_analyzer_url"`
 }
 
 func Default(projectRoot string) Config {
@@ -54,6 +56,7 @@ func Default(projectRoot string) Config {
 		OpenAIBaseURL:                  "https://api.openai.com/v1",
 		PromptModel:                    "gpt-5-mini",
 		ReviewModel:                    "gpt-5-mini",
+		PromptGenerationTimeout:        45 * time.Second,
 		AIValidateLimitPerMinute:       6,
 		AIValidateGlobalLimitPerMinute: 60,
 		AIProviderEventRetentionDays:   30,
@@ -91,6 +94,9 @@ func Load(projectRoot string) (Config, error) {
 	if cfg.ReviewModel == "" {
 		cfg.ReviewModel = "gpt-5-mini"
 	}
+	if cfg.PromptGenerationTimeout <= 0 {
+		cfg.PromptGenerationTimeout = 45 * time.Second
+	}
 	if cfg.AIValidateLimitPerMinute <= 0 {
 		cfg.AIValidateLimitPerMinute = 6
 	}
@@ -123,6 +129,9 @@ func Load(projectRoot string) (Config, error) {
 	}
 	if value := os.Getenv("WRITING_COACH_REVIEW_MODEL"); value != "" {
 		cfg.ReviewModel = value
+	}
+	if value := os.Getenv("WRITING_COACH_PROMPT_GENERATION_TIMEOUT"); value != "" {
+		cfg.PromptGenerationTimeout = parseDuration(value, cfg.PromptGenerationTimeout)
 	}
 	if value := os.Getenv("WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE"); value != "" {
 		cfg.AIValidateLimitPerMinute = parsePositiveInt(value, cfg.AIValidateLimitPerMinute)
@@ -195,6 +204,7 @@ func Save(cfg Config) error {
 		OpenAIBaseURL                  string   `json:"openai_base_url"`
 		PromptModel                    string   `json:"prompt_model"`
 		ReviewModel                    string   `json:"review_model"`
+		PromptGenerationTimeout        string   `json:"prompt_generation_timeout"`
 		AIValidateLimitPerMinute       int      `json:"ai_validate_limit_per_minute"`
 		AIValidateGlobalLimitPerMinute int      `json:"ai_validate_global_limit_per_minute"`
 		AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
@@ -214,6 +224,7 @@ func Save(cfg Config) error {
 		OpenAIBaseURL:                  cfg.OpenAIBaseURL,
 		PromptModel:                    cfg.PromptModel,
 		ReviewModel:                    cfg.ReviewModel,
+		PromptGenerationTimeout:        cfg.PromptGenerationTimeout.String(),
 		AIValidateLimitPerMinute:       cfg.AIValidateLimitPerMinute,
 		AIValidateGlobalLimitPerMinute: cfg.AIValidateGlobalLimitPerMinute,
 		AIProviderEventRetentionDays:   cfg.AIProviderEventRetentionDays,
@@ -243,6 +254,14 @@ func splitCSV(raw string) []string {
 
 func parsePositiveInt(raw string, fallback int) int {
 	value, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
+}
+
+func parseDuration(raw string, fallback time.Duration) time.Duration {
+	value, err := time.ParseDuration(strings.TrimSpace(raw))
 	if err != nil || value <= 0 {
 		return fallback
 	}
