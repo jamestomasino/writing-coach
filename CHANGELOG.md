@@ -16,12 +16,16 @@ For the full workflow, see [docs/release-process.md](/home/tomasino/writing-coac
 
 ## Unreleased
 
+## 2026.03.22
+
 ### Added
 
 - Added a spaCy/TextDescriptives NLP analyzer sidecar for richer deterministic review signals.
 - Added localization infrastructure with `next-intl` and an English message catalog.
 - Added domain-aware Vale style selection across fiction, technical, academic, professional, marketing, and thought-leadership writing.
 - Added progress dashboard stats for drafts, revisions, and completed assignment chains.
+- Added a documented staging and rollback workflow for safer Docker Compose releases.
+- Added generated skill-path UML/SVG docs for visual review in the repo.
 
 ### Changed
 
@@ -30,12 +34,17 @@ For the full workflow, see [docs/release-process.md](/home/tomasino/writing-coac
 - Made deterministic heuristics, NLP analysis, and fallback review language domain-aware across writing types.
 - Improved admin AI provider event categories and user labeling.
 - Updated README and architecture docs for the analyzer pipeline and archive/progress UX.
+- Refreshed the public skill-track catalog so it aligns with onboarding writing types and validated all built-in trees as DAGs and planar graphs.
+- Expanded curriculum documentation and generation rules around shared skill tiers, track seeds, and generated-track templates.
 
 ### Fixed
 
 - Fixed a `/progress` crash caused by missing history skill tag data.
 - Fixed progress dashboard counts so revision rounds no longer inflate draft and completed-assignment totals.
 - Fixed archive assignment summaries so revision submissions no longer inflate draft totals.
+- Fixed active-skill badges to show skill tier rather than graph stage in assignment and progress views.
+- Fixed prompt generation to tolerate canceled or slow provider calls with a bounded fallback timeout.
+- Fixed the admin provider event log layout so long histories stay scrollable instead of stretching the page.
 
 ## 2026.03.21
 
