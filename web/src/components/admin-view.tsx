@@ -197,7 +197,7 @@ export function AdminView() {
               </div>
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-6 max-h-[42rem] space-y-3 overflow-y-auto pr-2">
               {providerEvents.map((event) => (
                 <div key={event.id} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
                   <div className="flex flex-wrap items-center gap-2">
