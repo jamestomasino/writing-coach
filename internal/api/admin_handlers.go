@@ -144,6 +144,7 @@ func (s Server) toAIProviderEventSummaryResponse(summary domain.AIProviderEventS
 		ValidationRateLimit: summary.ValidationRateLimit,
 		Fallbacks:           summary.Fallbacks,
 		ProviderCounts:      toAIProviderEventCountResponses(summary.ProviderCounts),
+		EventCounts:         toAIProviderEventCountResponses(summary.EventCounts),
 		CategoryCounts:      toAIProviderEventCountResponses(summary.CategoryCounts),
 	}
 }

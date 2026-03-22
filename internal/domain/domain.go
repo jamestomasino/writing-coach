@@ -49,6 +49,7 @@ type AIProviderEventSummary struct {
 	ValidationRateLimit int
 	Fallbacks           int
 	ProviderCounts      []AIProviderEventCount
+	EventCounts         []AIProviderEventCount
 	CategoryCounts      []AIProviderEventCount
 }
 
