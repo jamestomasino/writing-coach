@@ -547,9 +547,9 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 
 var (
 	youthFoundationsTree, storyCraftTree, thoughtLeadershipTree, professionalWritingTree, academicEssayTree, technicalWritingTree, persuasiveWritingTree, memoirNarrativeTree, BuiltInTrees, TGOCodeToSkill = buildBuiltInCatalog()
-	fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree                                                                                                                       = buildExpandedFictionTrees()
-	marketingWritingTree, contentMarketingTree, journalismReportingTree, educationalWritingTree, grantWritingTree                                                                                                              = buildExpandedNonfictionTrees()
-	PublicBuiltInTrees                                                                                                                                                                                                         []TGOTreeDefinition
+	fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree                                                                                                    = buildExpandedFictionTrees()
+	marketingWritingTree, contentMarketingTree, journalismReportingTree, educationalWritingTree, grantWritingTree                                                                                           = buildExpandedNonfictionTrees()
+	PublicBuiltInTrees                                                                                                                                                                                      []TGOTreeDefinition
 )
 
 func init() {
@@ -613,41 +613,51 @@ func NormalizeTreeSlug(slug string) string {
 }
 
 func buildExpandedFictionTrees() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition) {
-	return cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
-			Slug:           "fantasy-fiction-track",
-			Title:          "Fantasy Track",
-			Description:    "Fiction track for fantasy writers building scene control, world pressure, character stakes, and durable narrative movement.",
-			CodePrefix:     "fantasy",
-			PrioritySkills: []string{"worldbuilding economy", "image freshness", "scene architecture", "narrative clarity", "dialogue intelligence", "emotional compression", "prose precision"},
-		}),
-		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
-			Slug:           "science-fiction-track",
-			Title:          "Science Fiction Track",
-			Description:    "Fiction track for science fiction writers building idea pressure, scene clarity, world logic, and character consequence.",
-			CodePrefix:     "scifi",
-			PrioritySkills: []string{"worldbuilding economy", "narrative clarity", "scene architecture", "prose precision", "dialogue intelligence", "image freshness", "structure and pacing"},
-		}),
-		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
-			Slug:           "romance-fiction-track",
-			Title:          "Romance Track",
-			Description:    "Fiction track for romance writers building relationship pressure, scene turns, emotional movement, and clear character stakes.",
-			CodePrefix:     "romance",
-			PrioritySkills: []string{"scene architecture", "emotional compression", "dialogue intelligence", "story development", "narrative clarity", "voice presence", "prose precision"},
-		}),
-		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
-			Slug:           "literary-fiction-track",
-			Title:          "Literary Fiction Track",
-			Description:    "Fiction track for literary writers building scene control, image discipline, emotional pressure, and formal clarity.",
-			CodePrefix:     "literary",
-			PrioritySkills: []string{"image freshness", "emotional compression", "prose precision", "narrative clarity", "scene architecture", "dialogue intelligence", "story development"},
-		}),
-		cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
-			Slug:           "mystery-thriller-track",
-			Title:          "Mystery and Thriller Track",
-			Description:    "Fiction track for mystery and thriller writers building suspense, clue control, scene pressure, and reader orientation.",
-			CodePrefix:     "thriller",
-			PrioritySkills: []string{"narrative clarity", "scene architecture", "structure and pacing", "dialogue intelligence", "worldbuilding economy", "prose precision", "story development"},
-		})
+	fantasy := cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+		Slug:           "fantasy-fiction-track",
+		Title:          "Fantasy Track",
+		Description:    "Fiction track for fantasy writers building scene control, world pressure, character stakes, and durable narrative movement.",
+		CodePrefix:     "fantasy",
+		PrioritySkills: []string{"worldbuilding economy", "image freshness", "scene architecture", "narrative clarity", "dialogue intelligence", "emotional compression", "prose precision"},
+	})
+	scifi := cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+		Slug:           "science-fiction-track",
+		Title:          "Science Fiction Track",
+		Description:    "Fiction track for science fiction writers building idea pressure, scene clarity, world logic, and character consequence.",
+		CodePrefix:     "scifi",
+		PrioritySkills: []string{"worldbuilding economy", "narrative clarity", "scene architecture", "prose precision", "dialogue intelligence", "image freshness", "structure and pacing"},
+	})
+	romance := cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+		Slug:           "romance-fiction-track",
+		Title:          "Romance Track",
+		Description:    "Fiction track for romance writers building relationship pressure, scene turns, emotional movement, and clear character stakes.",
+		CodePrefix:     "romance",
+		PrioritySkills: []string{"scene architecture", "emotional compression", "dialogue intelligence", "story development", "narrative clarity", "voice presence", "prose precision"},
+	})
+	literary := cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+		Slug:           "literary-fiction-track",
+		Title:          "Literary Fiction Track",
+		Description:    "Fiction track for literary writers building scene control, image discipline, emotional pressure, and formal clarity.",
+		CodePrefix:     "literary",
+		SeedCodes:      []string{"story-causal-clarity", "story-scene-architecture", "story-description-focus"},
+		PrioritySkills: []string{"image freshness", "emotional compression", "prose precision", "narrative clarity", "scene architecture", "dialogue intelligence", "story development"},
+	})
+	literary = rewriteClonePrerequisites(literary, map[string][]string{
+		"literary-story-description-focus": nil,
+		"literary-story-prose-precision":   {"literary-story-description-focus"},
+	})
+	thriller := cloneTreeDefinition(storyCraftTree, cloneTreeOptions{
+		Slug:           "mystery-thriller-track",
+		Title:          "Mystery and Thriller Track",
+		Description:    "Fiction track for mystery and thriller writers building suspense, clue control, scene pressure, and reader orientation.",
+		CodePrefix:     "thriller",
+		PrioritySkills: []string{"narrative clarity", "scene architecture", "structure and pacing", "dialogue intelligence", "worldbuilding economy", "prose precision", "story development"},
+	})
+	return fantasy,
+		scifi,
+		romance,
+		literary,
+		thriller
 }
 
 func buildExpandedNonfictionTrees() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition) {
@@ -693,6 +703,7 @@ type cloneTreeOptions struct {
 	Title          string
 	Description    string
 	CodePrefix     string
+	SeedCodes      []string
 	PrioritySkills []string
 }
 
@@ -708,7 +719,11 @@ func cloneTreeDefinition(base TGOTreeDefinition, options cloneTreeOptions) TGOTr
 		Description:    options.Description,
 		PrioritySkills: append([]string(nil), options.PrioritySkills...),
 	}
-	for _, code := range base.SeedCodes {
+	seedSource := base.SeedCodes
+	if len(options.SeedCodes) > 0 {
+		seedSource = options.SeedCodes
+	}
+	for _, code := range seedSource {
 		if next, ok := codeMap[code]; ok {
 			out.SeedCodes = append(out.SeedCodes, next)
 		}
@@ -732,6 +747,15 @@ func remapCodes(values []string, codeMap map[string]string) []string {
 		out = append(out, value)
 	}
 	return out
+}
+
+func rewriteClonePrerequisites(tree TGOTreeDefinition, replacements map[string][]string) TGOTreeDefinition {
+	for i := range tree.TGOs {
+		if prereqs, ok := replacements[tree.TGOs[i].Code]; ok {
+			tree.TGOs[i].Prerequisites = append([]string(nil), prereqs...)
+		}
+	}
+	return tree
 }
 
 func registerTreeSkills(trees ...TGOTreeDefinition) {

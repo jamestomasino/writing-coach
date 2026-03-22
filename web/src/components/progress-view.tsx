@@ -33,6 +33,10 @@ function stageTitle(stage: string) {
   return stage.replace(/-/g, ' ')
 }
 
+function tierLabel(tier?: string, fallback?: string) {
+  return (tier ?? fallback ?? '').replace(/-/g, ' ')
+}
+
 function stageCompletion(tree: Tree, completedCodes: Set<string>, activeCodes: Set<string>) {
   const groups = new Map<string, { label: string; order: number; total: number; completed: number; active: number }>()
   for (const tgo of tree.tgos ?? []) {
@@ -200,7 +204,7 @@ export function ProgressView() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
-                      <Badge color="blue">{tgo.stage}</Badge>
+                      <Badge color="blue">{tierLabel(tgo.skill_tier, tgo.stage)}</Badge>
                     </div>
                     <MasteryProgress tgo={tgo} tone="blue" />
                   </div>

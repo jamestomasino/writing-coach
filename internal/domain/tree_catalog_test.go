@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestBuiltInTreesHaveDepthAndSeeds(t *testing.T) {
 	if len(BuiltInTrees) < 18 {
@@ -73,6 +76,16 @@ func TestPublicBuiltInTreesStartWithTwoCoreAndOneDomainSeed(t *testing.T) {
 		if coreCount != 2 || domainCount != 1 {
 			t.Fatalf("tree %s seeds = %#v, want 2 core and 1 domain", tree.Slug, tree.SeedCodes)
 		}
+	}
+}
+
+func TestLiteraryFictionSeedsLeadWithImageWork(t *testing.T) {
+	if got, want := literaryFictionTree.SeedCodes, []string{
+		"literary-story-causal-clarity",
+		"literary-story-scene-architecture",
+		"literary-story-description-focus",
+	}; !slices.Equal(got, want) {
+		t.Fatalf("literary fiction seeds = %#v, want %#v", got, want)
 	}
 }
 

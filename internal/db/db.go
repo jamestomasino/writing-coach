@@ -88,9 +88,6 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 	if err := s.SaveTreeDefinition(ctx, domain.GlobalSkillGraphDefinition()); err != nil {
 		return err
 	}
-	if err := s.runOneTimeDataMigrations(ctx); err != nil {
-		return err
-	}
 
 	return nil
 }

@@ -257,6 +257,7 @@ type tgoResponse struct {
 	Title          string   `json:"title"`
 	Description    string   `json:"description"`
 	Stage          string   `json:"stage"`
+	SkillTier      string   `json:"skill_tier,omitempty"`
 	StageOrder     int      `json:"stage_order"`
 	ActiveSlot     int      `json:"active_slot,omitempty"`
 	Prerequisites  []string `json:"prerequisites,omitempty"`
@@ -391,6 +392,7 @@ func (s Server) handleSkillGraph(w http.ResponseWriter, r *http.Request) {
 				Title:         node.Title,
 				Description:   node.Description,
 				Stage:         node.Stage,
+				SkillTier:     skillTierForTGOCode(node.Code),
 				StageOrder:    node.StageOrder,
 				ActiveSlot:    node.ActiveSlot,
 				Prerequisites: append([]string(nil), node.Prerequisites...),
@@ -842,6 +844,7 @@ func toTGOResponses(tgos []domain.TGO) []tgoResponse {
 			Title:          tgo.Title,
 			Description:    tgo.Description,
 			Stage:          tgo.Stage,
+			SkillTier:      skillTierForTGOCode(tgo.Code),
 			StageOrder:     tgo.StageOrder,
 			ActiveSlot:     tgo.ActiveSlot,
 			Prerequisites:  tgo.Prerequisites,
@@ -853,6 +856,11 @@ func toTGOResponses(tgos []domain.TGO) []tgoResponse {
 		})
 	}
 	return out
+}
+
+func skillTierForTGOCode(code string) string {
+	skill := strings.TrimSpace(domain.TGOCodeToSkill[code])
+	return string(domain.SkillTierForName(skill))
 }
 
 func toHistoryResponses(exercises []domain.Exercise) []historyItemResponse {
