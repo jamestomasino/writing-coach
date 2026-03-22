@@ -131,7 +131,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           </WorkspaceCard>
           <WorkspaceCard>
             <CardHeader
-              eyebrow="Older skills"
+              eyebrow={t('olderSkillsEyebrow')}
               title={t('olderSkillsTitle')}
               description={t('olderSkillsDescription')}
             />

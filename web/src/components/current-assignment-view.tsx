@@ -368,19 +368,19 @@ export function CurrentAssignmentView() {
       {review ? (
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Latest feedback"
-            title="Latest coaching pass"
+            eyebrow={t('latestFeedbackEyebrow')}
+            title={t('latestFeedbackTitle')}
             description={review.summary}
             actions={
               <div className="flex gap-2">
                 <Button href={`/assignments/${exercise.id}`} plain>
-                  View timeline
+                  {t('viewTimeline')}
                 </Button>
                 <Button href={`/reviews/${review.id}`} outline>
-                  Open review
+                  {t('openReview')}
                 </Button>
                 <Button href={`/compare/${compareSubmissionID}`} plain>
-                  Compare drafts
+                  {t('compareDrafts')}
                 </Button>
               </div>
             }
@@ -388,15 +388,15 @@ export function CurrentAssignmentView() {
           {review.artifacts?.comparison ? (
             <div className="mt-5 grid gap-4 lg:grid-cols-3">
               <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Revision summary</div>
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('revisionSummary')}</div>
                 <Text className="mt-2 text-sm">{review.artifacts.comparison.summary}</Text>
               </div>
               <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Addressed</div>
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('addressed')}</div>
                 <Text className="mt-2 text-sm">{review.artifacts.comparison.addressed_weaknesses.length}</Text>
               </div>
               <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                <div className="text-sm font-semibold text-zinc-950 dark:text-white">Persisting</div>
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('persisting')}</div>
                 <Text className="mt-2 text-sm">{review.artifacts.comparison.persisting_weaknesses.length}</Text>
               </div>
             </div>

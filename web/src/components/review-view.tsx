@@ -124,7 +124,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
 
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Older skills"
+            eyebrow={t('olderSkillsEyebrow')}
             title={t('olderSkillsTitle')}
             description={t('olderSkillsDescription')}
           />
@@ -154,7 +154,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       <div className="grid gap-8 xl:grid-cols-2">
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Ratings"
+            eyebrow={t('ratingsEyebrow')}
             title={t('ratingsTitle')}
             description={t('ratingsDescription')}
           />
@@ -190,7 +190,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       {review.artifacts?.comparison ? (
         <WorkspaceCard>
           <CardHeader
-            eyebrow="Revision"
+            eyebrow={t('revisionEyebrow')}
             title={t('revisionTitle')}
             description={review.artifacts.comparison.summary}
             actions={
