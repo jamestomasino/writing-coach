@@ -332,10 +332,20 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
 
             <SidebarSection>
               {authenticated === true ? (
-                <SidebarItem href="/playground" current={pathname.startsWith('/playground')}>
-                  <BeakerIcon />
-                  <SidebarLabel>{t('playground')}</SidebarLabel>
-                </SidebarItem>
+                <>
+                  <SidebarHeading>{t('playgroundHeading')}</SidebarHeading>
+                  <SidebarItem
+                    href="/playground"
+                    current={pathname === '/playground' || (pathname.startsWith('/playground/') && !pathname.startsWith('/playground/history'))}
+                  >
+                    <BeakerIcon />
+                    <SidebarLabel>{t('newPlaygroundReview')}</SidebarLabel>
+                  </SidebarItem>
+                  <SidebarItem href="/playground/history" current={pathname === '/playground/history'}>
+                    <ClockIcon />
+                    <SidebarLabel>{t('playgroundHistory')}</SidebarLabel>
+                  </SidebarItem>
+                </>
               ) : null}
               <SidebarItem href="/about" current={pathname.startsWith('/about')}>
                 <InformationCircleIcon />

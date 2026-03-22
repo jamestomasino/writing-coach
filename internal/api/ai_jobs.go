@@ -34,6 +34,7 @@ type reviewSubmissionJobPayload struct {
 }
 
 type playgroundReviewJobPayload struct {
+	SessionID        int64  `json:"session_id"`
 	Content          string `json:"content"`
 	WritingLanguage  string `json:"writing_language"`
 	WritingType      string `json:"writing_type"`
@@ -208,7 +209,24 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 	if err := json.Unmarshal([]byte(job.PayloadJSON), &payload); err != nil {
 		return fmt.Errorf("decode playground payload: %w", err)
 	}
+	var sessionID int64
 	content := strings.TrimSpace(payload.Content)
+	writingLanguage := strings.TrimSpace(payload.WritingLanguage)
+	writingType := strings.TrimSpace(payload.WritingType)
+	assignmentFormat := strings.TrimSpace(payload.AssignmentFormat)
+	coachingBrief := strings.TrimSpace(payload.CoachingBrief)
+	if payload.SessionID != 0 {
+		item, err := s.Store.GetPlaygroundSession(ctx, payload.SessionID)
+		if err != nil {
+			return fmt.Errorf("load playground session: %w", err)
+		}
+		sessionID = item.ID
+		content = strings.TrimSpace(item.Content)
+		writingLanguage = strings.TrimSpace(item.WritingLanguage)
+		writingType = strings.TrimSpace(item.WritingType)
+		assignmentFormat = strings.TrimSpace(item.AssignmentFormat)
+		coachingBrief = strings.TrimSpace(item.CoachingBrief)
+	}
 	if content == "" {
 		return fmt.Errorf("content is required")
 	}
@@ -225,11 +243,11 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 		WordCount: db.CountWords(content),
 	}, nil, nil, review.Options{
 		AnalyzerContext: analyzer.ContextOptions{
-			WritingLanguage:  payload.WritingLanguage,
-			WritingType:      payload.WritingType,
-			AssignmentFormat: payload.AssignmentFormat,
+			WritingLanguage:  writingLanguage,
+			WritingType:      writingType,
+			AssignmentFormat: assignmentFormat,
 		},
-		CoachingBrief: strings.TrimSpace(payload.CoachingBrief),
+		CoachingBrief: coachingBrief,
 		AllowUnscoped: true,
 	})
 	if result.Review.ReviewKind == runtime.ProviderKind {
@@ -242,6 +260,24 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 		})
 	}
 	result.Review.SkillScores = append([]domain.SkillScore(nil), result.Scores...)
+	if sessionID != 0 {
+		reviewID, err := s.Store.SavePlaygroundReview(ctx, domain.PlaygroundReview{
+			SessionID:          sessionID,
+			UserID:             job.UserID,
+			TreeID:             job.TreeID,
+			Review:             result.Review,
+			AnalyzerReportJSON: mustJSON(result.AnalyzerReport),
+		})
+		if err != nil {
+			return fmt.Errorf("save playground review: %w", err)
+		}
+		saved, err := s.Store.GetPlaygroundReview(ctx, reviewID)
+		if err != nil {
+			return fmt.Errorf("load playground review: %w", err)
+		}
+		payloadResult := aiJobResultResponse{Review: ptrReviewResponse(toPlaygroundReviewResponse(saved).Review)}
+		return s.Store.CompleteAIJob(ctx, job.ID, 0, 0, mustJSON(payloadResult))
+	}
 	payloadResult := aiJobResultResponse{Review: ptrReviewResponse(toReviewResponse(result.Review))}
 	return s.Store.CompleteAIJob(ctx, job.ID, 0, 0, mustJSON(payloadResult))
 }

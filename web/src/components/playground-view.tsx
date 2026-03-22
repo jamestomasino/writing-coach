@@ -12,11 +12,20 @@ import { AppErrorState, LoadingState, TaskProgressState } from '@/components/sta
 import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { WorkspaceCard } from '@/components/workspace-card'
-import { createPlaygroundReview, getAIJob } from '@/lib/api'
+import { formatLocalDateTime } from '@/lib/datetime'
+import {
+  createPlaygroundSession,
+  createPlaygroundSessionReview,
+  getAIJob,
+  getPlaygroundSession,
+  getPlaygroundSessionReviews,
+  updatePlaygroundSession,
+} from '@/lib/api'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
-import type { AIJob, PlaygroundReviewInput, Review } from '@/lib/types'
+import type { AIJob, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession } from '@/lib/types'
 import { useTranslations } from 'next-intl'
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const initialForm: PlaygroundReviewInput = {
   content: '',
@@ -33,13 +42,73 @@ function localWordCount(value: string) {
     .filter(Boolean).length
 }
 
-export function PlaygroundView() {
+function sessionToForm(session: PlaygroundSession): PlaygroundReviewInput {
+  return {
+    content: session.content,
+    writing_language: session.writing_language || 'en',
+    writing_type: session.writing_type ?? '',
+    assignment_format: session.assignment_format ?? '',
+    coaching_brief: session.coaching_brief ?? '',
+  }
+}
+
+export function PlaygroundView({ sessionId }: { sessionId?: number }) {
   const t = useTranslations('playgroundView')
-  const { loading: sessionLoading, error: sessionError } = useRequiredAppSession('/playground')
+  const router = useRouter()
+  const { loading: sessionLoading, error: sessionError } = useRequiredAppSession(sessionId ? `/playground/${sessionId}` : '/playground')
   const [form, setForm] = useState<PlaygroundReviewInput>(initialForm)
-  const [review, setReview] = useState<Review | null>(null)
+  const [savedSession, setSavedSession] = useState<PlaygroundSession | null>(null)
+  const [reviews, setReviews] = useState<PlaygroundReview[]>([])
+  const [selectedReviewID, setSelectedReviewID] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loadingSession, setLoadingSession] = useState(Boolean(sessionId))
+  const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!sessionId) {
+      setLoadingSession(false)
+      return
+    }
+    const nextSessionID = sessionId
+    let cancelled = false
+    async function load() {
+      setLoadingSession(true)
+      try {
+        const [nextSession, nextReviews] = await Promise.all([
+          getPlaygroundSession(nextSessionID),
+          getPlaygroundSessionReviews(nextSessionID),
+        ])
+        if (cancelled) {
+          return
+        }
+        setSavedSession(nextSession)
+        setForm(sessionToForm(nextSession))
+        setReviews(nextReviews)
+        setSelectedReviewID(nextReviews[0]?.id ?? null)
+        setError(null)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : t('loadError'))
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSession(false)
+        }
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [sessionId, t])
+
+  const currentReview = useMemo(() => {
+    if (reviews.length === 0) {
+      return null
+    }
+    return reviews.find((item) => item.id === selectedReviewID) ?? reviews[0]
+  }, [reviews, selectedReviewID])
 
   async function waitForReview(job: AIJob) {
     for (let attempt = 0; attempt < 120; attempt += 1) {
@@ -58,6 +127,50 @@ export function PlaygroundView() {
     throw new Error(t('reviewError'))
   }
 
+  async function persistSession() {
+    const payload = {
+      content: form.content,
+      writing_language: form.writing_language ?? 'en',
+      writing_type: form.writing_type ?? '',
+      assignment_format: form.assignment_format ?? '',
+      coaching_brief: form.coaching_brief ?? '',
+    }
+    if (savedSession) {
+      const next = await updatePlaygroundSession(savedSession.id, payload)
+      setSavedSession(next)
+      return next
+    }
+    const created = await createPlaygroundSession(payload)
+    setSavedSession(created)
+    router.replace(`/playground/${created.id}`)
+    return created
+  }
+
+  async function refreshSessionReviews(nextSessionID: number) {
+    const [nextSession, nextReviews] = await Promise.all([
+      getPlaygroundSession(nextSessionID),
+      getPlaygroundSessionReviews(nextSessionID),
+    ])
+    setSavedSession(nextSession)
+    setReviews(nextReviews)
+    setSelectedReviewID(nextReviews[0]?.id ?? null)
+  }
+
+  async function handleSave() {
+    if (saving || submitting || form.content.trim() === '') {
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      await persistSession()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('saveError'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting) {
@@ -66,9 +179,10 @@ export function PlaygroundView() {
     setSubmitting(true)
     setError(null)
     try {
-      const job = await createPlaygroundReview(form)
-      const nextReview = await waitForReview(job)
-      setReview(nextReview)
+      const nextSession = await persistSession()
+      const job = await createPlaygroundSessionReview(nextSession.id)
+      await waitForReview(job)
+      await refreshSessionReviews(nextSession.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('reviewError'))
     } finally {
@@ -76,21 +190,39 @@ export function PlaygroundView() {
     }
   }
 
-  if (sessionLoading) {
+  function handleReset() {
+    if (savedSession) {
+      setForm(sessionToForm(savedSession))
+      return
+    }
+    setForm(initialForm)
+    setError(null)
+  }
+
+  if (sessionLoading || loadingSession) {
     return <LoadingState label={t('loading')} />
   }
   if (sessionError) {
     return <AppErrorState title={t('unavailableTitle')} error={sessionError} />
   }
+  if (error && sessionId && !savedSession) {
+    return <AppErrorState title={t('unavailableTitle')} error={error} />
+  }
 
   const wordCount = localWordCount(form.content ?? '')
+  const pageTitle = savedSession ? t('sessionTitle', { title: savedSession.title }) : t('title')
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow={t('eyebrow')}
-        title={t('title')}
+        title={pageTitle}
         intro={t('intro')}
+        actions={
+          <Button href="/playground/history" outline>
+            {t('openHistory')}
+          </Button>
+        }
       />
 
       {submitting ? (
@@ -179,21 +311,23 @@ export function PlaygroundView() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-white/10">
             <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
               <Badge color="zinc">{t('wordCount', { count: wordCount })}</Badge>
-              {form.content.trim() ? null : <span>{t('emptyHint')}</span>}
+              {savedSession ? <Badge color="green">{t('saved')}</Badge> : null}
+              {savedSession ? (
+                <span>
+                  {t('savedDraftLabel')}: {formatLocalDateTime(savedSession.updated_at) ?? savedSession.updated_at}
+                </span>
+              ) : form.content.trim() ? null : (
+                <span>{t('emptyHint')}</span>
+              )}
             </div>
             <div className="flex gap-3">
-              <Button
-                type="button"
-                outline
-                onClick={() => {
-                  setForm(initialForm)
-                  setError(null)
-                }}
-                disabled={submitting}
-              >
+              <Button type="button" outline onClick={handleReset} disabled={submitting || saving}>
                 {t('reset')}
               </Button>
-              <Button color="dark/zinc" type="submit" disabled={submitting || form.content.trim() === ''}>
+              <Button type="button" outline onClick={handleSave} disabled={submitting || saving || form.content.trim() === ''}>
+                {saving ? t('saving') : t('save')}
+              </Button>
+              <Button color="dark/zinc" type="submit" disabled={submitting || saving || form.content.trim() === ''}>
                 {submitting ? t('reviewing') : t('review')}
               </Button>
             </div>
@@ -201,25 +335,59 @@ export function PlaygroundView() {
         </form>
       </WorkspaceCard>
 
-      {!review ? (
+      {!currentReview ? (
         <WorkspaceCard>
           <CardHeader eyebrow={t('resultsEyebrow')} title={t('resultsTitle')} description={t('resultsEmpty')} />
         </WorkspaceCard>
       ) : (
         <div className="space-y-8">
-          <WorkspaceCard>
-            <CardHeader eyebrow={t('aiDetailsEyebrow')} title={t('aiDetailsTitle')} description={review.summary} />
-            <div className="mt-4 space-y-4">
-              <ProviderProvenance providerNote={review.provider_note} />
-            </div>
-          </WorkspaceCard>
+          <div className="grid gap-8 xl:grid-cols-[0.95fr_1.35fr]">
+            <WorkspaceCard>
+              <CardHeader
+                eyebrow={t('previousReviewsEyebrow')}
+                title={t('previousReviewsTitle')}
+                description={reviews.length > 0 ? undefined : t('previousReviewsEmpty')}
+              />
+              <div className="mt-4 space-y-3">
+                {reviews.length === 0 ? <Text>{t('previousReviewsEmpty')}</Text> : null}
+                {reviews.map((item, index) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedReviewID(item.id)}
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${item.id === currentReview.id ? 'border-zinc-900 bg-zinc-950 text-white dark:border-white dark:bg-white/10 dark:text-white' : 'border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100'}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-semibold">
+                        {index === 0 ? t('latestReview') : t('reviewNumber', { count: reviews.length - index })}
+                      </div>
+                      <Badge color={item.id === currentReview.id ? 'green' : 'zinc'}>{item.review.skill_scores.length}</Badge>
+                    </div>
+                    <Text className={`mt-2 text-sm ${item.id === currentReview.id ? 'text-zinc-200 dark:text-zinc-200' : ''}`}>
+                      {formatLocalDateTime(item.created_at) ?? item.created_at}
+                    </Text>
+                    <Text className={`mt-2 text-sm ${item.id === currentReview.id ? 'text-zinc-200 dark:text-zinc-200' : ''}`}>
+                      {item.review.summary}
+                    </Text>
+                  </button>
+                ))}
+              </div>
+            </WorkspaceCard>
+
+            <WorkspaceCard>
+              <CardHeader eyebrow={t('aiDetailsEyebrow')} title={t('aiDetailsTitle')} description={currentReview.review.summary} />
+              <div className="mt-4 space-y-4">
+                <ProviderProvenance providerNote={currentReview.review.provider_note} />
+              </div>
+            </WorkspaceCard>
+          </div>
 
           <div className="grid gap-8 xl:grid-cols-2">
             <WorkspaceCard>
               <CardHeader eyebrow={t('workedEyebrow')} title={t('workedTitle')} />
               <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-                {review.strengths.length === 0 ? <li>{t('noStrengths')}</li> : null}
-                {review.strengths.map((item) => (
+                {currentReview.review.strengths.length === 0 ? <li>{t('noStrengths')}</li> : null}
+                {currentReview.review.strengths.map((item) => (
                   <li key={item}>• {item}</li>
                 ))}
               </ul>
@@ -227,8 +395,8 @@ export function PlaygroundView() {
             <WorkspaceCard>
               <CardHeader eyebrow={t('improveEyebrow')} title={t('improveTitle')} />
               <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-                {review.weaknesses.length === 0 ? <li>{t('noWeaknesses')}</li> : null}
-                {review.weaknesses.map((item) => (
+                {currentReview.review.weaknesses.length === 0 ? <li>{t('noWeaknesses')}</li> : null}
+                {currentReview.review.weaknesses.map((item) => (
                   <li key={item}>• {item}</li>
                 ))}
               </ul>
@@ -238,26 +406,14 @@ export function PlaygroundView() {
           <div className="grid gap-8 xl:grid-cols-[1.3fr_0.7fr]">
             <WorkspaceCard>
               <CardHeader eyebrow={t('lineNotesEyebrow')} title={t('lineNotesTitle')} description={t('lineNotesDescription')} />
-              <div className="mt-4 space-y-4">
-                {review.annotations.length === 0 ? (
+              <div className="mt-4 space-y-3">
+                {currentReview.review.annotations.length === 0 ? (
                   <Text>{t('noLineNotes')}</Text>
                 ) : (
-                  review.annotations.map((item, index) => (
-                    <div
-                      key={`${item.quote}-${index}`}
-                      className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge color={item.severity === 'high' ? 'rose' : item.severity === 'medium' ? 'amber' : 'zinc'}>
-                          {item.severity}
-                        </Badge>
-                        {item.tgo_title || item.tgo_code ? <Badge color="blue">{item.tgo_title ?? item.tgo_code}</Badge> : null}
-                        <Badge color="cyan">{item.category}</Badge>
-                      </div>
-                      <blockquote className="mt-3 border-l-2 border-stone-300 pl-4 text-sm text-zinc-700 italic dark:border-white/15 dark:text-zinc-200">
-                        “{item.quote}”
-                      </blockquote>
-                      <Text className="mt-3">{item.comment}</Text>
+                  currentReview.review.annotations.map((item, index) => (
+                    <div key={`${item.quote}-${index}`} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-sm font-semibold text-zinc-900 dark:text-white">{item.quote}</div>
+                      <Text className="mt-2 text-sm">{item.comment}</Text>
                     </div>
                   ))
                 )}
@@ -268,14 +424,11 @@ export function PlaygroundView() {
               <WorkspaceCard>
                 <CardHeader eyebrow={t('ratingsEyebrow')} title={t('ratingsTitle')} description={t('ratingsDescription')} />
                 <div className="mt-4 space-y-3">
-                  {review.skill_scores.length === 0 ? (
+                  {currentReview.review.skill_scores.length === 0 ? (
                     <Text>{t('noRatings')}</Text>
                   ) : (
-                    review.skill_scores.map((item) => (
-                      <div
-                        key={item.skill}
-                        className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
-                      >
+                    currentReview.review.skill_scores.map((item) => (
+                      <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                         <SkillScoreMeter score={item} />
                       </div>
                     ))
@@ -285,18 +438,11 @@ export function PlaygroundView() {
 
               <WorkspaceCard>
                 <CardHeader eyebrow={t('signalsEyebrow')} title={t('signalsTitle')} />
-                <div className="mt-4 space-y-3">
-                  {review.analyzer_findings.length === 0 ? (
+                <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
+                  {currentReview.review.analyzer_findings.length === 0 ? (
                     <Text>{t('noSignals')}</Text>
                   ) : (
-                    review.analyzer_findings.map((item) => (
-                      <div
-                        key={item}
-                        className="rounded-xl border border-stone-200 bg-white p-4 text-sm text-zinc-700 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-300"
-                      >
-                        {item}
-                      </div>
-                    ))
+                    currentReview.review.analyzer_findings.map((item) => <div key={item}>• {item}</div>)
                   )}
                 </div>
               </WorkspaceCard>

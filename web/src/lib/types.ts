@@ -121,6 +121,28 @@ export type PlaygroundReviewInput = {
   coaching_brief?: string
 }
 
+export type PlaygroundSession = {
+  id: number
+  title: string
+  content: string
+  writing_language: string
+  writing_type?: string
+  assignment_format?: string
+  coaching_brief?: string
+  latest_review_id?: number
+  latest_review_at?: string
+  review_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type PlaygroundReview = {
+  id: number
+  session_id: number
+  created_at: string
+  review: Review
+}
+
 export type AIProviderSettings = {
   provider?: string
   base_url_override?: string

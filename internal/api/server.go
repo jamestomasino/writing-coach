@@ -107,6 +107,13 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)
 	mux.HandleFunc("POST /api/prompts/accept", s.handlePromptAccept)
 	mux.HandleFunc("POST /api/prompts/revise", s.handlePromptRevise)
+	mux.HandleFunc("GET /api/playground/sessions", s.handlePlaygroundSessionsList)
+	mux.HandleFunc("POST /api/playground/sessions", s.handlePlaygroundSessionCreate)
+	mux.HandleFunc("GET /api/playground/sessions/{id}", s.handlePlaygroundSessionGet)
+	mux.HandleFunc("PUT /api/playground/sessions/{id}", s.handlePlaygroundSessionUpdate)
+	mux.HandleFunc("POST /api/playground/sessions/{id}/reviews", s.handlePlaygroundSessionReviewCreate)
+	mux.HandleFunc("GET /api/playground/sessions/{id}/reviews", s.handlePlaygroundSessionReviewsList)
+	mux.HandleFunc("GET /api/playground/reviews/{id}", s.handlePlaygroundReviewGet)
 	mux.HandleFunc("POST /api/playground/review", s.handlePlaygroundReview)
 	mux.HandleFunc("GET /api/jobs/{id}", s.handleAIJobGet)
 	mux.HandleFunc("GET /api/submissions", s.handleSubmissionsList)
@@ -379,6 +386,28 @@ type aiJobResponse struct {
 	CreatedAt    string               `json:"created_at"`
 	UpdatedAt    string               `json:"updated_at"`
 	Result       *aiJobResultResponse `json:"result,omitempty"`
+}
+
+type playgroundSessionResponse struct {
+	ID               int64  `json:"id"`
+	Title            string `json:"title"`
+	Content          string `json:"content"`
+	WritingLanguage  string `json:"writing_language"`
+	WritingType      string `json:"writing_type,omitempty"`
+	AssignmentFormat string `json:"assignment_format,omitempty"`
+	CoachingBrief    string `json:"coaching_brief,omitempty"`
+	LatestReviewID   int64  `json:"latest_review_id,omitempty"`
+	LatestReviewAt   string `json:"latest_review_at,omitempty"`
+	ReviewCount      int    `json:"review_count"`
+	CreatedAt        string `json:"created_at"`
+	UpdatedAt        string `json:"updated_at"`
+}
+
+type playgroundReviewResponse struct {
+	ID        int64          `json:"id"`
+	SessionID int64          `json:"session_id"`
+	CreatedAt string         `json:"created_at"`
+	Review    reviewResponse `json:"review"`
 }
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -1405,6 +1434,45 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 		})
 	}
 	return out
+}
+
+func toPlaygroundSessionResponse(session domain.PlaygroundSession) playgroundSessionResponse {
+	latestReviewAt := ""
+	if !session.LatestReviewAt.IsZero() {
+		latestReviewAt = db.Since(session.LatestReviewAt)
+	}
+	return playgroundSessionResponse{
+		ID:               session.ID,
+		Title:            strings.TrimSpace(session.Title),
+		Content:          session.Content,
+		WritingLanguage:  session.WritingLanguage,
+		WritingType:      session.WritingType,
+		AssignmentFormat: session.AssignmentFormat,
+		CoachingBrief:    session.CoachingBrief,
+		LatestReviewID:   session.LatestReviewID,
+		LatestReviewAt:   latestReviewAt,
+		ReviewCount:      session.ReviewCount,
+		CreatedAt:        db.Since(session.CreatedAt),
+		UpdatedAt:        db.Since(session.UpdatedAt),
+	}
+}
+
+func toPlaygroundReviewResponse(item domain.PlaygroundReview) playgroundReviewResponse {
+	response := toReviewResponse(item.Review)
+	var analyzerReport map[string]any
+	if strings.TrimSpace(item.AnalyzerReportJSON) != "" {
+		_ = json.Unmarshal([]byte(item.AnalyzerReportJSON), &analyzerReport)
+	}
+	response.Artifacts = &reviewArtifactsPayload{
+		AnalyzerReport: analyzerReport,
+		Annotations:    response.Annotations,
+	}
+	return playgroundReviewResponse{
+		ID:        item.ID,
+		SessionID: item.SessionID,
+		CreatedAt: db.Since(item.CreatedAt),
+		Review:    response,
+	}
 }
 
 func toScoreResponses(scores []domain.SkillScore) []scoreResponse {

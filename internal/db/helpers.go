@@ -160,6 +160,87 @@ func scanAIJob(scanner interface{ Scan(...any) error }) (domain.AIJob, error) {
 	return job, nil
 }
 
+func scanPlaygroundSession(scanner interface{ Scan(...any) error }) (domain.PlaygroundSession, error) {
+	var session domain.PlaygroundSession
+	var latestReviewAt sql.NullTime
+	if err := scanner.Scan(
+		&session.ID,
+		&session.UserID,
+		&session.TreeID,
+		&session.Title,
+		&session.Content,
+		&session.WritingLanguage,
+		&session.WritingType,
+		&session.AssignmentFormat,
+		&session.CoachingBrief,
+		&session.LatestReviewID,
+		&latestReviewAt,
+		&session.ReviewCount,
+		&session.CreatedAt,
+		&session.UpdatedAt,
+	); err != nil {
+		return domain.PlaygroundSession{}, err
+	}
+	if latestReviewAt.Valid {
+		session.LatestReviewAt = latestReviewAt.Time
+	}
+	return session, nil
+}
+
+func scanPlaygroundReview(scanner interface{ Scan(...any) error }) (domain.PlaygroundReview, error) {
+	var item domain.PlaygroundReview
+	var strengthsJSON, weaknessesJSON, findingsJSON string
+	var scoresJSON, assessmentsJSON, completedChecksJSON, annotationsJSON string
+	if err := scanner.Scan(
+		&item.ID,
+		&item.SessionID,
+		&item.UserID,
+		&item.TreeID,
+		&item.Review.ID,
+		&item.Review.ReviewKind,
+		&item.Review.ProviderNote,
+		&item.Review.Summary,
+		&strengthsJSON,
+		&weaknessesJSON,
+		&findingsJSON,
+		&item.Review.NextFocus,
+		&item.Review.MetricWordCount,
+		&scoresJSON,
+		&assessmentsJSON,
+		&completedChecksJSON,
+		&annotationsJSON,
+		&item.AnalyzerReportJSON,
+		&item.CreatedAt,
+	); err != nil {
+		return domain.PlaygroundReview{}, err
+	}
+	item.Review.UserID = item.UserID
+	item.Review.TreeID = item.TreeID
+	item.Review.SubmissionID = 0
+	item.Review.CreatedAt = item.CreatedAt
+	var err error
+	item.Review, err = hydrateReview(item.Review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON)
+	if err != nil {
+		return domain.PlaygroundReview{}, err
+	}
+	if strings.TrimSpace(scoresJSON) != "" {
+		if err := json.Unmarshal([]byte(scoresJSON), &item.Review.SkillScores); err != nil {
+			return domain.PlaygroundReview{}, err
+		}
+	}
+	if strings.TrimSpace(assessmentsJSON) != "" {
+		if err := json.Unmarshal([]byte(assessmentsJSON), &item.Review.TGOAssessments); err != nil {
+			return domain.PlaygroundReview{}, err
+		}
+	}
+	if strings.TrimSpace(annotationsJSON) != "" {
+		if err := json.Unmarshal([]byte(annotationsJSON), &item.Review.Annotations); err != nil {
+			return domain.PlaygroundReview{}, err
+		}
+	}
+	return item, nil
+}
+
 func hydrateReview(review domain.Review, strengthsJSON, weaknessesJSON, findingsJSON, completedChecksJSON string) (domain.Review, error) {
 	var err error
 	review.Strengths, err = DecodeStringSlice(strengthsJSON)
