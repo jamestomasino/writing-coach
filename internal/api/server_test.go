@@ -914,6 +914,62 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 }
 
+func TestPlaygroundReviewEndpointDoesNotPersistReviewHistory(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	resp, err := http.Post(
+		testServer.URL+"/api/playground/review?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{"content":"Writing Coach helps writers practice with focused feedback instead of generic prompts.","writing_type":"professional","assignment_format":"about page","coaching_brief":"Focus on clarity, trust, and whether this sounds too abstract."}`),
+	)
+	if err != nil {
+		t.Fatalf("playground review: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("playground review status: %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Review struct {
+			Summary     string `json:"summary"`
+			ReviewKind  string `json:"review_kind"`
+			SkillScores []struct {
+				Skill string `json:"skill"`
+				Score int    `json:"score"`
+			} `json:"skill_scores"`
+			TGOAssessments []struct {
+				TGOCode string `json:"tgo_code"`
+			} `json:"tgo_assessments"`
+		} `json:"review"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode playground review: %v", err)
+	}
+	if payload.Review.Summary == "" {
+		t.Fatal("expected playground review summary")
+	}
+	if payload.Review.ReviewKind == "" {
+		t.Fatal("expected playground review kind")
+	}
+	if len(payload.Review.SkillScores) == 0 {
+		t.Fatal("expected playground review skill scores")
+	}
+	if len(payload.Review.TGOAssessments) != 0 {
+		t.Fatalf("expected unscoped playground review, got %d tgo assessments", len(payload.Review.TGOAssessments))
+	}
+
+	var reviewCount int
+	if err := harness.Store.SQL.QueryRow(`SELECT COUNT(*) FROM reviews`).Scan(&reviewCount); err != nil {
+		t.Fatalf("count reviews: %v", err)
+	}
+	if reviewCount != 0 {
+		t.Fatalf("expected no persisted reviews, got %d", reviewCount)
+	}
+}
+
 func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")

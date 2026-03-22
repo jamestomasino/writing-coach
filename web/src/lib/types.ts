@@ -113,6 +113,14 @@ export type Review = {
   }
 }
 
+export type PlaygroundReviewInput = {
+  content: string
+  writing_language?: string
+  writing_type?: string
+  assignment_format?: string
+  coaching_brief?: string
+}
+
 export type AIProviderSettings = {
   provider?: string
   base_url_override?: string

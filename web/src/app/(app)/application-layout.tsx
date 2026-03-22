@@ -39,6 +39,7 @@ import {
   UserPlusIcon,
 } from '@heroicons/react/16/solid'
 import {
+  BeakerIcon,
   ChartBarSquareIcon,
   ClockIcon,
   FolderIcon,
@@ -330,10 +331,16 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
             <SidebarSpacer />
 
             <SidebarSection>
-            <SidebarItem href="/about" current={pathname.startsWith('/about')}>
-              <InformationCircleIcon />
-              <SidebarLabel>{t('about')}</SidebarLabel>
-            </SidebarItem>
+              {authenticated === true ? (
+                <SidebarItem href="/playground" current={pathname.startsWith('/playground')}>
+                  <BeakerIcon />
+                  <SidebarLabel>{t('playground')}</SidebarLabel>
+                </SidebarItem>
+              ) : null}
+              <SidebarItem href="/about" current={pathname.startsWith('/about')}>
+                <InformationCircleIcon />
+                <SidebarLabel>{t('about')}</SidebarLabel>
+              </SidebarItem>
               {authenticated === false ? (
                 <>
                   <SidebarItem href="/login">
