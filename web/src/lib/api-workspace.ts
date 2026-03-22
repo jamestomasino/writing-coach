@@ -1,6 +1,6 @@
 import { request } from './api-core'
-import { arrayOrEmpty, normalizeAssignmentTimeline, normalizeDashboard, normalizeReview, normalizeTree } from './api-normalizers'
-import type { AIJob, AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundReviewInput, Review, Submission, Tree } from './types'
+import { arrayOrEmpty, normalizeAssignmentTimeline, normalizeDashboard, normalizePlaygroundReview, normalizeReview, normalizeTree } from './api-normalizers'
+import type { AIJob, AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession, Review, Submission, Tree } from './types'
 
 export function getDashboard() {
   return request<Dashboard>('/api/dashboard').then(normalizeDashboard)
@@ -134,6 +134,62 @@ export async function createPlaygroundReview(input: PlaygroundReviewInput) {
     }),
   })
   return payload.job
+}
+
+export async function createPlaygroundSession(input: PlaygroundReviewInput) {
+  const payload = await request<{ session: PlaygroundSession }>('/api/playground/sessions', {
+    method: 'POST',
+    body: JSON.stringify({
+      content: input.content,
+      writing_language: input.writing_language ?? '',
+      writing_type: input.writing_type ?? '',
+      assignment_format: input.assignment_format ?? '',
+      coaching_brief: input.coaching_brief ?? '',
+    }),
+  })
+  return payload.session
+}
+
+export async function updatePlaygroundSession(sessionId: number, input: PlaygroundReviewInput) {
+  const payload = await request<{ session: PlaygroundSession }>(`/api/playground/sessions/${sessionId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      content: input.content,
+      writing_language: input.writing_language ?? '',
+      writing_type: input.writing_type ?? '',
+      assignment_format: input.assignment_format ?? '',
+      coaching_brief: input.coaching_brief ?? '',
+    }),
+  })
+  return payload.session
+}
+
+export async function getPlaygroundSessions(limit = 50) {
+  const payload = await request<{ sessions: PlaygroundSession[] }>(`/api/playground/sessions?limit=${limit}`)
+  return arrayOrEmpty(payload.sessions)
+}
+
+export async function getPlaygroundSession(sessionId: number) {
+  const payload = await request<{ session: PlaygroundSession }>(`/api/playground/sessions/${sessionId}`)
+  return payload.session
+}
+
+export async function createPlaygroundSessionReview(sessionId: number) {
+  const payload = await request<{ job: AIJob }>(`/api/playground/sessions/${sessionId}/reviews`, {
+    method: 'POST',
+    body: '{}',
+  })
+  return payload.job
+}
+
+export async function getPlaygroundSessionReviews(sessionId: number, limit = 20) {
+  const payload = await request<{ reviews: PlaygroundReview[] }>(`/api/playground/sessions/${sessionId}/reviews?limit=${limit}`)
+  return arrayOrEmpty(payload.reviews).map(normalizePlaygroundReview)
+}
+
+export async function getPlaygroundReview(reviewId: number) {
+  const payload = await request<{ review: PlaygroundReview }>(`/api/playground/reviews/${reviewId}`)
+  return normalizePlaygroundReview(payload.review)
 }
 
 export async function getAIJob(jobId: number) {

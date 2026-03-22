@@ -203,6 +203,33 @@ type AIJob struct {
 	UpdatedAt    time.Time
 }
 
+type PlaygroundSession struct {
+	ID               int64
+	UserID           int64
+	TreeID           int64
+	Title            string
+	Content          string
+	WritingLanguage  string
+	WritingType      string
+	AssignmentFormat string
+	CoachingBrief    string
+	LatestReviewID   int64
+	LatestReviewAt   time.Time
+	ReviewCount      int
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type PlaygroundReview struct {
+	ID                 int64
+	SessionID          int64
+	UserID             int64
+	TreeID             int64
+	Review             Review
+	AnalyzerReportJSON string
+	CreatedAt          time.Time
+}
+
 type ReviewJob struct {
 	ID           int64
 	UserID       int64

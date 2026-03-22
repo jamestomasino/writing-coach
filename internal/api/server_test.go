@@ -923,7 +923,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	}
 }
 
-func TestPlaygroundReviewEndpointDoesNotPersistReviewHistory(t *testing.T) {
+func TestPlaygroundReviewEndpointPersistsSessionAndKeepsAssignmentReviewHistoryClean(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
 	defer testServer.Close()
@@ -942,10 +942,14 @@ func TestPlaygroundReviewEndpointDoesNotPersistReviewHistory(t *testing.T) {
 	}
 
 	var payload struct {
-		Job aiJobResponse `json:"job"`
+		Job     aiJobResponse             `json:"job"`
+		Session playgroundSessionResponse `json:"session"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode playground review: %v", err)
+	}
+	if payload.Session.ID == 0 {
+		t.Fatal("expected persisted playground session")
 	}
 	completed := waitForAIJob(t, testServer.URL, payload.Job.ID)
 	if completed.Result == nil || completed.Result.Review == nil {
@@ -969,7 +973,207 @@ func TestPlaygroundReviewEndpointDoesNotPersistReviewHistory(t *testing.T) {
 		t.Fatalf("count reviews: %v", err)
 	}
 	if reviewCount != 0 {
-		t.Fatalf("expected no persisted reviews, got %d", reviewCount)
+		t.Fatalf("expected no persisted assignment reviews, got %d", reviewCount)
+	}
+	var playgroundSessionCount int
+	if err := harness.Store.SQL.QueryRow(`SELECT COUNT(*) FROM playground_sessions`).Scan(&playgroundSessionCount); err != nil {
+		t.Fatalf("count playground sessions: %v", err)
+	}
+	if playgroundSessionCount != 1 {
+		t.Fatalf("expected one persisted playground session, got %d", playgroundSessionCount)
+	}
+	var playgroundReviewCount int
+	if err := harness.Store.SQL.QueryRow(`SELECT COUNT(*) FROM playground_reviews`).Scan(&playgroundReviewCount); err != nil {
+		t.Fatalf("count playground reviews: %v", err)
+	}
+	if playgroundReviewCount != 1 {
+		t.Fatalf("expected one persisted playground review, got %d", playgroundReviewCount)
+	}
+
+	sessionResp, err := http.Get(testServer.URL + "/api/playground/sessions/" + int64String(payload.Session.ID) + "?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("get playground session: %v", err)
+	}
+	defer sessionResp.Body.Close()
+	if sessionResp.StatusCode != http.StatusOK {
+		t.Fatalf("playground session status: %d", sessionResp.StatusCode)
+	}
+	var sessionPayload struct {
+		Session playgroundSessionResponse `json:"session"`
+	}
+	if err := json.NewDecoder(sessionResp.Body).Decode(&sessionPayload); err != nil {
+		t.Fatalf("decode playground session: %v", err)
+	}
+	if sessionPayload.Session.ReviewCount != 1 {
+		t.Fatalf("expected review_count=1, got %d", sessionPayload.Session.ReviewCount)
+	}
+	if sessionPayload.Session.LatestReviewID == 0 {
+		t.Fatal("expected latest review id on session")
+	}
+
+	reviewsResp, err := http.Get(testServer.URL + "/api/playground/sessions/" + int64String(payload.Session.ID) + "/reviews?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("list playground reviews: %v", err)
+	}
+	defer reviewsResp.Body.Close()
+	if reviewsResp.StatusCode != http.StatusOK {
+		t.Fatalf("playground reviews status: %d", reviewsResp.StatusCode)
+	}
+	var reviewsPayload struct {
+		Reviews []playgroundReviewResponse `json:"reviews"`
+	}
+	if err := json.NewDecoder(reviewsResp.Body).Decode(&reviewsPayload); err != nil {
+		t.Fatalf("decode playground reviews: %v", err)
+	}
+	if len(reviewsPayload.Reviews) != 1 {
+		t.Fatalf("expected one listed playground review, got %d", len(reviewsPayload.Reviews))
+	}
+	if reviewsPayload.Reviews[0].Review.Summary == "" {
+		t.Fatal("expected persisted playground review summary")
+	}
+}
+
+func TestPlaygroundSessionEndpointsSupportCreateUpdateAndReviewHistory(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	createResp, err := http.Post(
+		testServer.URL+"/api/playground/sessions?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{"content":"Original playground draft for the about page.","writing_language":"en","writing_type":"product","assignment_format":"about page","coaching_brief":"Focus on clarity."}`),
+	)
+	if err != nil {
+		t.Fatalf("create playground session: %v", err)
+	}
+	defer createResp.Body.Close()
+	if createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("create playground session status: %d", createResp.StatusCode)
+	}
+	var createPayload struct {
+		Session playgroundSessionResponse `json:"session"`
+	}
+	if err := json.NewDecoder(createResp.Body).Decode(&createPayload); err != nil {
+		t.Fatalf("decode create playground session: %v", err)
+	}
+	if createPayload.Session.ID == 0 {
+		t.Fatal("expected playground session id")
+	}
+
+	listResp, err := http.Get(testServer.URL + "/api/playground/sessions?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("list playground sessions: %v", err)
+	}
+	defer listResp.Body.Close()
+	if listResp.StatusCode != http.StatusOK {
+		t.Fatalf("list playground sessions status: %d", listResp.StatusCode)
+	}
+	var listPayload struct {
+		Sessions []playgroundSessionResponse `json:"sessions"`
+	}
+	if err := json.NewDecoder(listResp.Body).Decode(&listPayload); err != nil {
+		t.Fatalf("decode playground sessions: %v", err)
+	}
+	if len(listPayload.Sessions) != 1 {
+		t.Fatalf("expected one playground session, got %d", len(listPayload.Sessions))
+	}
+
+	updateReq, err := http.NewRequest(
+		http.MethodPut,
+		testServer.URL+"/api/playground/sessions/"+int64String(createPayload.Session.ID)+"?user=tester&tree=story-craft-track",
+		strings.NewReader(`{"content":"Updated playground draft for the about page.","writing_language":"en","writing_type":"product marketing","assignment_format":"about page","coaching_brief":"Focus on clarity and trust."}`),
+	)
+	if err != nil {
+		t.Fatalf("build update playground request: %v", err)
+	}
+	updateReq.Header.Set("Content-Type", "application/json")
+	updateResp, err := http.DefaultClient.Do(updateReq)
+	if err != nil {
+		t.Fatalf("update playground session: %v", err)
+	}
+	defer updateResp.Body.Close()
+	if updateResp.StatusCode != http.StatusOK {
+		t.Fatalf("update playground session status: %d", updateResp.StatusCode)
+	}
+	var updatePayload struct {
+		Session playgroundSessionResponse `json:"session"`
+	}
+	if err := json.NewDecoder(updateResp.Body).Decode(&updatePayload); err != nil {
+		t.Fatalf("decode updated playground session: %v", err)
+	}
+	if updatePayload.Session.WritingType != "product marketing" {
+		t.Fatalf("expected updated writing type, got %q", updatePayload.Session.WritingType)
+	}
+	if !strings.Contains(updatePayload.Session.Content, "Updated playground draft") {
+		t.Fatalf("expected updated content, got %q", updatePayload.Session.Content)
+	}
+
+	reviewResp, err := http.Post(
+		testServer.URL+"/api/playground/sessions/"+int64String(createPayload.Session.ID)+"/reviews?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{}`),
+	)
+	if err != nil {
+		t.Fatalf("create playground review: %v", err)
+	}
+	defer reviewResp.Body.Close()
+	if reviewResp.StatusCode != http.StatusAccepted {
+		t.Fatalf("create playground review status: %d", reviewResp.StatusCode)
+	}
+	var reviewPayload struct {
+		Job aiJobResponse `json:"job"`
+	}
+	if err := json.NewDecoder(reviewResp.Body).Decode(&reviewPayload); err != nil {
+		t.Fatalf("decode playground review job: %v", err)
+	}
+	completed := waitForAIJob(t, testServer.URL, reviewPayload.Job.ID)
+	if completed.Result == nil || completed.Result.Review == nil {
+		t.Fatal("expected completed playground review result")
+	}
+
+	reviewsResp, err := http.Get(testServer.URL + "/api/playground/sessions/" + int64String(createPayload.Session.ID) + "/reviews?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("list saved playground reviews: %v", err)
+	}
+	defer reviewsResp.Body.Close()
+	if reviewsResp.StatusCode != http.StatusOK {
+		t.Fatalf("saved playground reviews status: %d", reviewsResp.StatusCode)
+	}
+	var reviewsPayload struct {
+		Reviews []playgroundReviewResponse `json:"reviews"`
+	}
+	if err := json.NewDecoder(reviewsResp.Body).Decode(&reviewsPayload); err != nil {
+		t.Fatalf("decode saved playground reviews: %v", err)
+	}
+	if len(reviewsPayload.Reviews) != 1 {
+		t.Fatalf("expected one saved playground review, got %d", len(reviewsPayload.Reviews))
+	}
+	if reviewsPayload.Reviews[0].ID == 0 {
+		t.Fatal("expected saved playground review id")
+	}
+	if reviewsPayload.Reviews[0].Review.Artifacts == nil || len(reviewsPayload.Reviews[0].Review.Artifacts.AnalyzerReport) == 0 {
+		t.Fatal("expected analyzer report artifact on saved playground review")
+	}
+
+	singleReviewResp, err := http.Get(testServer.URL + "/api/playground/reviews/" + int64String(reviewsPayload.Reviews[0].ID) + "?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("get saved playground review: %v", err)
+	}
+	defer singleReviewResp.Body.Close()
+	if singleReviewResp.StatusCode != http.StatusOK {
+		t.Fatalf("saved playground review status: %d", singleReviewResp.StatusCode)
+	}
+	var singleReviewPayload struct {
+		Review playgroundReviewResponse `json:"review"`
+	}
+	if err := json.NewDecoder(singleReviewResp.Body).Decode(&singleReviewPayload); err != nil {
+		t.Fatalf("decode saved playground review: %v", err)
+	}
+	if singleReviewPayload.Review.SessionID != createPayload.Session.ID {
+		t.Fatalf("expected session id %d, got %d", createPayload.Session.ID, singleReviewPayload.Review.SessionID)
+	}
+	if singleReviewPayload.Review.Review.Summary == "" {
+		t.Fatal("expected saved playground review summary")
 	}
 }
 

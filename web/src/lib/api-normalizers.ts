@@ -1,4 +1,4 @@
-import type { AssignmentTimeline, Dashboard, Review, Tree } from './types'
+import type { AssignmentTimeline, Dashboard, PlaygroundReview, Review, Tree } from './types'
 
 export function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : []
@@ -58,5 +58,12 @@ export function normalizeAssignmentTimeline(timeline: AssignmentTimeline): Assig
       ...step,
       review: step.review ? normalizeReview(step.review) : undefined,
     })),
+  }
+}
+
+export function normalizePlaygroundReview(item: PlaygroundReview): PlaygroundReview {
+  return {
+    ...item,
+    review: normalizeReview(item.review),
   }
 }
