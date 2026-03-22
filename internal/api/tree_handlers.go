@@ -40,8 +40,16 @@ func (s Server) handleTreesList(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	publicBuiltIn := domain.PublicBuiltInTreeSlugs()
+	filtered := make([]domain.TGOTree, 0, len(trees))
+	for _, tree := range trees {
+		if _, isBuiltIn := domain.BuiltInTreeBySlug(tree.Slug); isBuiltIn && !publicBuiltIn[tree.Slug] {
+			continue
+		}
+		filtered = append(filtered, tree)
+	}
 	includeTGOs := r.URL.Query().Get("include_tgos") == "1"
-	writeJSON(w, http.StatusOK, map[string]any{"trees": s.toTreeResponses(r.Context(), trees, includeTGOs)})
+	writeJSON(w, http.StatusOK, map[string]any{"trees": s.toTreeResponses(r.Context(), filtered, includeTGOs)})
 }
 
 func (s Server) handleTreeCreate(w http.ResponseWriter, r *http.Request) {

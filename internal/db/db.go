@@ -41,13 +41,13 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 		INSERT INTO writer_profile (name, aesthetic_target)
 		SELECT ?, ?
 		WHERE NOT EXISTS (SELECT 1 FROM writer_profile)
-	`, writerName, domain.WriterTrackName+": epic tragedy in a mythopoeic mode with fantasy influences, disciplined by Herbert/Le Guin depth rather than imitation"); err != nil {
+	`, writerName, "Writing Coach: story craft across fiction, nonfiction, technical, academic, and professional writing."); err != nil {
 		return err
 	}
 
 	if _, err := s.SQL.ExecContext(ctx, `
 		INSERT INTO curriculum_state (id, current_focus, difficulty_level, updated_at)
-		SELECT 1, 'tragic inevitability', 2, CURRENT_TIMESTAMP
+		SELECT 1, 'narrative clarity', 2, CURRENT_TIMESTAMP
 		WHERE NOT EXISTS (SELECT 1 FROM curriculum_state WHERE id = 1)
 	`); err != nil {
 		return err
@@ -86,6 +86,9 @@ func (s *Store) EnsureSeedData(ctx context.Context, writerName string) error {
 		}
 	}
 	if err := s.SaveTreeDefinition(ctx, domain.GlobalSkillGraphDefinition()); err != nil {
+		return err
+	}
+	if err := s.runOneTimeDataMigrations(ctx); err != nil {
 		return err
 	}
 
@@ -560,13 +563,19 @@ func (s *Store) ActiveTGOs(ctx context.Context, enrollmentID int64) ([]domain.TG
 	var tgos []domain.TGO
 	for rows.Next() {
 		var tgo domain.TGO
-		var prereqsJSON string
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
+		var prereqsJSON sql.NullString
+		var masteryHint sql.NullString
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &tgo.ActiveSlot, &prereqsJSON, &masteryHint); err != nil {
 			return nil, err
 		}
-		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
-			return nil, err
+		if prereqsJSON.Valid {
+			if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON.String); err != nil {
+				return nil, err
+			}
+		} else {
+			tgo.Prerequisites = []string{}
 		}
+		tgo.MasteryHint = masteryHint.String
 		tgos = append(tgos, tgo)
 	}
 	return tgos, rows.Err()
@@ -589,13 +598,19 @@ func (s *Store) CompletedTGOs(ctx context.Context, enrollmentID int64) ([]domain
 	var tgos []domain.TGO
 	for rows.Next() {
 		var tgo domain.TGO
-		var prereqsJSON string
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &tgo.ActiveSlot, &prereqsJSON, &tgo.MasteryHint); err != nil {
+		var prereqsJSON sql.NullString
+		var masteryHint sql.NullString
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &tgo.ActiveSlot, &prereqsJSON, &masteryHint); err != nil {
 			return nil, err
 		}
-		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
-			return nil, err
+		if prereqsJSON.Valid {
+			if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON.String); err != nil {
+				return nil, err
+			}
+		} else {
+			tgo.Prerequisites = []string{}
 		}
+		tgo.MasteryHint = masteryHint.String
 		tgos = append(tgos, tgo)
 	}
 	return tgos, rows.Err()

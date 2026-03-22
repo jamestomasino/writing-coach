@@ -1,0 +1,165 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Academic Essay Track\n<color:#5C6773>academic-essay-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#E6FCF5> analysis | stage |
+|<back:#E9FAC8> research | stage |
+|<back:#F3E5F5> style | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (10)" #E8F5E9 {
+  rectangle "<b>Thesis Clarity</b>\n<size:10><color:#5C6773>academic-thesis-clarity</color></size>" as academic_thesis_clarity <<seed>> #E8F5E9
+  rectangle "<b>Essay Structure Basics</b>\n<size:10><color:#5C6773>academic-structure-basics</color></size>" as academic_structure_basics <<seed>> #E8F5E9
+  rectangle "<b>Evidence Basics</b>\n<size:10><color:#5C6773>academic-evidence-basics</color></size>" as academic_evidence_basics <<seed>> #E8F5E9
+  rectangle "Prompt Reading\n<size:10><color:#5C6773>academic-prompt-reading</color></size>" as academic_prompt_reading #E8F5E9
+  rectangle "Scope Control\n<size:10><color:#5C6773>academic-scope-control</color></size>" as academic_scope_control #E8F5E9
+  rectangle "Paragraph Focus\n<size:10><color:#5C6773>academic-paragraph-focus</color></size>" as academic_paragraph_focus #E8F5E9
+  rectangle "Topic Sentences\n<size:10><color:#5C6773>academic-topic-sentences</color></size>" as academic_topic_sentences #E8F5E9
+  rectangle "Quote Integration\n<size:10><color:#5C6773>academic-quote-integration</color></size>" as academic_quote_integration #E8F5E9
+  rectangle "Analysis Basics\n<size:10><color:#5C6773>academic-analysis-basics</color></size>" as academic_analysis_basics #E8F5E9
+  rectangle "Summary Restraint\n<size:10><color:#5C6773>academic-summary-restraint</color></size>" as academic_summary_restraint #E8F5E9
+}
+
+package "structure (6)" #E0F2F1 {
+  rectangle "Introduction Function\n<size:10><color:#5C6773>academic-introduction-function</color></size>" as academic_introduction_function #E0F2F1
+  rectangle "Conclusion Function\n<size:10><color:#5C6773>academic-conclusion-function</color></size>" as academic_conclusion_function #E0F2F1
+  rectangle "Section Order\n<size:10><color:#5C6773>academic-section-order</color></size>" as academic_section_order #E0F2F1
+  rectangle "Transitions\n<size:10><color:#5C6773>academic-transitions</color></size>" as academic_transitions #E0F2F1
+  rectangle "Claim Ladder\n<size:10><color:#5C6773>academic-claim-ladder</color></size>" as academic_claim_ladder #E0F2F1
+  rectangle "Counterreading\n<size:10><color:#5C6773>academic-counterreading</color></size>" as academic_counterreading #E0F2F1
+}
+
+package "analysis (8)" #E6FCF5 {
+  rectangle "Close Reading\n<size:10><color:#5C6773>academic-close-reading</color></size>" as academic_close_reading #E6FCF5
+  rectangle "Pattern Recognition\n<size:10><color:#5C6773>academic-pattern-recognition</color></size>" as academic_pattern_recognition #E6FCF5
+  rectangle "Concept Definition\n<size:10><color:#5C6773>academic-concept-definition</color></size>" as academic_concept_definition #E6FCF5
+  rectangle "Stakes Articulation\n<size:10><color:#5C6773>academic-stakes-articulation</color></size>" as academic_stakes_articulation #E6FCF5
+  rectangle "Context Use\n<size:10><color:#5C6773>academic-context-use</color></size>" as academic_context_use #E6FCF5
+  rectangle "Precision Diction\n<size:10><color:#5C6773>academic-precision-diction</color></size>" as academic_precision_diction #E6FCF5
+  rectangle "Sentence Control\n<size:10><color:#5C6773>academic-sentence-control</color></size>" as academic_sentence_control #E6FCF5
+  rectangle "Quotation Restraint\n<size:10><color:#5C6773>academic-quotation-restraint</color></size>" as academic_quotation_restraint #E6FCF5
+}
+
+package "research (9)" #E9FAC8 {
+  rectangle "Source Selection\n<size:10><color:#5C6773>academic-source-selection</color></size>" as academic_source_selection #E9FAC8
+  rectangle "Source Evaluation\n<size:10><color:#5C6773>academic-source-evaluation</color></size>" as academic_source_evaluation #E9FAC8
+  rectangle "Source Synthesis\n<size:10><color:#5C6773>academic-synthesis</color></size>" as academic_synthesis #E9FAC8
+  rectangle "Citation Discipline\n<size:10><color:#5C6773>academic-citation-discipline</color></size>" as academic_citation_discipline #E9FAC8
+  rectangle "Paraphrase Control\n<size:10><color:#5C6773>academic-paraphrase-control</color></size>" as academic_paraphrase_control #E9FAC8
+  rectangle "Literature Positioning\n<size:10><color:#5C6773>academic-literature-positioning</color></size>" as academic_literature_positioning #E9FAC8
+  rectangle "Method Signaling\n<size:10><color:#5C6773>academic-method-signaling</color></size>" as academic_method_signaling #E9FAC8
+  rectangle "Evidence Proportion\n<size:10><color:#5C6773>academic-evidence-proportion</color></size>" as academic_evidence_proportion #E9FAC8
+  rectangle "Footnote Judgment\n<size:10><color:#5C6773>academic-footnote-judgment</color></size>" as academic_footnote_judgment #E9FAC8
+}
+
+package "style (7)" #F3E5F5 {
+  rectangle "Style Consistency\n<size:10><color:#5C6773>academic-style-consistency</color></size>" as academic_style_consistency #F3E5F5
+  rectangle "Hedging Control\n<size:10><color:#5C6773>academic-hedging-control</color></size>" as academic_hedging_control #F3E5F5
+  rectangle "Active Voice Judgment\n<size:10><color:#5C6773>academic-active-voice</color></size>" as academic_active_voice #F3E5F5
+  rectangle "Abstract Noun Control\n<size:10><color:#5C6773>academic-abstract-noun-control</color></size>" as academic_abstract_noun_control #F3E5F5
+  rectangle "Academic Rhythm\n<size:10><color:#5C6773>academic-rhythm</color></size>" as academic_rhythm #F3E5F5
+  rectangle "Significance Lines\n<size:10><color:#5C6773>academic-significance-lines</color></size>" as academic_significance_lines #F3E5F5
+  rectangle "Pivot Control\n<size:10><color:#5C6773>academic-pivot-control</color></size>" as academic_pivot_control #F3E5F5
+}
+
+package "revision (12)" #ECEFF1 {
+  rectangle "Draft Outline\n<size:10><color:#5C6773>academic-draft-outline</color></size>" as academic_draft_outline #ECEFF1
+  rectangle "Revision Triage\n<size:10><color:#5C6773>academic-revision-triage</color></size>" as academic_revision_triage #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>academic-clarity-pass</color></size>" as academic_clarity_pass #ECEFF1
+  rectangle "Analysis Pass\n<size:10><color:#5C6773>academic-analysis-pass</color></size>" as academic_analysis_pass #ECEFF1
+  rectangle "Source Pass\n<size:10><color:#5C6773>academic-source-pass</color></size>" as academic_source_pass #ECEFF1
+  rectangle "Line Editing\n<size:10><color:#5C6773>academic-line-editing</color></size>" as academic_line_editing #ECEFF1
+  rectangle "Proofreading\n<size:10><color:#5C6773>academic-proofreading</color></size>" as academic_proofreading #ECEFF1
+  rectangle "Title Framing\n<size:10><color:#5C6773>academic-title-framing</color></size>" as academic_title_framing #ECEFF1
+  rectangle "Abstract Writing\n<size:10><color:#5C6773>academic-abstract-writing</color></size>" as academic_abstract_writing #ECEFF1
+  rectangle "Oral Defense Readiness\n<size:10><color:#5C6773>academic-oral-defense</color></size>" as academic_oral_defense #ECEFF1
+  rectangle "Final Resonance\n<size:10><color:#5C6773>academic-final-resonance</color></size>" as academic_final_resonance #ECEFF1
+  rectangle "Independent Voice\n<size:10><color:#5C6773>academic-independent-voice</color></size>" as academic_independent_voice #ECEFF1
+}
+
+academic_thesis_clarity -[#5C6773]-> academic_prompt_reading
+academic_thesis_clarity -[#5C6773]-> academic_scope_control
+academic_structure_basics -[#5C6773]-> academic_paragraph_focus
+academic_paragraph_focus -[#5C6773]-> academic_topic_sentences
+academic_evidence_basics -[#5C6773]-> academic_quote_integration
+academic_evidence_basics -[#5C6773]-> academic_analysis_basics
+academic_analysis_basics -[#5C6773]-> academic_summary_restraint
+academic_structure_basics -[#5C6773]-> academic_introduction_function
+academic_structure_basics -[#5C6773]-> academic_conclusion_function
+academic_topic_sentences -[#5C6773]-> academic_section_order
+academic_section_order -[#5C6773]-> academic_transitions
+academic_scope_control -[#5C6773]-> academic_claim_ladder
+academic_analysis_basics -[#5C6773]-> academic_claim_ladder
+academic_claim_ladder -[#5C6773]-> academic_counterreading
+academic_analysis_basics -[#5C6773]-> academic_close_reading
+academic_close_reading -[#5C6773]-> academic_pattern_recognition
+academic_thesis_clarity -[#5C6773]-> academic_concept_definition
+academic_introduction_function -[#5C6773]-> academic_stakes_articulation
+academic_concept_definition -[#5C6773]-> academic_context_use
+academic_summary_restraint -[#5C6773]-> academic_precision_diction
+academic_precision_diction -[#5C6773]-> academic_sentence_control
+academic_quote_integration -[#5C6773]-> academic_quotation_restraint
+academic_evidence_basics -[#5C6773]-> academic_source_selection
+academic_source_selection -[#5C6773]-> academic_source_evaluation
+academic_source_evaluation -[#5C6773]-> academic_synthesis
+academic_source_selection -[#5C6773]-> academic_citation_discipline
+academic_source_evaluation -[#5C6773]-> academic_paraphrase_control
+academic_synthesis -[#5C6773]-> academic_literature_positioning
+academic_introduction_function -[#5C6773]-> academic_method_signaling
+academic_close_reading -[#5C6773]-> academic_evidence_proportion
+academic_quotation_restraint -[#5C6773]-> academic_evidence_proportion
+academic_context_use -[#5C6773]-> academic_footnote_judgment
+academic_sentence_control -[#5C6773]-> academic_style_consistency
+academic_thesis_clarity -[#5C6773]-> academic_hedging_control
+academic_sentence_control -[#5C6773]-> academic_active_voice
+academic_precision_diction -[#5C6773]-> academic_abstract_noun_control
+academic_style_consistency -[#5C6773]-> academic_rhythm
+academic_stakes_articulation -[#5C6773]-> academic_significance_lines
+academic_transitions -[#5C6773]-> academic_pivot_control
+academic_section_order -[#5C6773]-> academic_draft_outline
+academic_draft_outline -[#5C6773]-> academic_revision_triage
+academic_revision_triage -[#5C6773]-> academic_clarity_pass
+academic_revision_triage -[#5C6773]-> academic_analysis_pass
+academic_revision_triage -[#5C6773]-> academic_source_pass
+academic_style_consistency -[#5C6773]-> academic_line_editing
+academic_revision_triage -[#5C6773]-> academic_line_editing
+academic_citation_discipline -[#5C6773]-> academic_proofreading
+academic_introduction_function -[#5C6773]-> academic_title_framing
+academic_thesis_clarity -[#5C6773]-> academic_abstract_writing
+academic_section_order -[#5C6773]-> academic_abstract_writing
+academic_counterreading -[#5C6773]-> academic_oral_defense
+academic_stakes_articulation -[#5C6773]-> academic_oral_defense
+academic_conclusion_function -[#5C6773]-> academic_final_resonance
+academic_stakes_articulation -[#5C6773]-> academic_final_resonance
+academic_synthesis -[#5C6773]-> academic_independent_voice
+academic_line_editing -[#5C6773]-> academic_independent_voice
+@enduml

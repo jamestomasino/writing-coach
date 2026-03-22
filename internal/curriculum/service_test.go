@@ -24,18 +24,18 @@ func TestSyncTGOsBlocksAdvancementWhenCompletedTGOSlips(t *testing.T) {
 	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	_, _, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "mythic-tragedy-apprenticeship")
+	_, _, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
 	if err != nil {
 		t.Fatalf("default user tree: %v", err)
 	}
-	if err := store.ReplaceActiveTGO(ctx, enrollmentID, 1, "causal-clarity", "emotional-compression"); err != nil {
+	if err := store.ReplaceActiveTGO(ctx, enrollmentID, 1, "story-causal-clarity", "emotional-compression"); err != nil {
 		t.Fatalf("replace active tgo: %v", err)
 	}
 
 	service := NewService()
-	recommendation, err := service.SyncTGOs(ctx, store, "mythic-tragedy-apprenticeship", enrollmentID, domain.Review{
+	recommendation, err := service.SyncTGOs(ctx, store, "story-craft-track", enrollmentID, domain.Review{
 		CompletedTGOChecks: []domain.TGOAssessment{
-			{TGOCode: "causal-clarity", Status: "slipping", Evidence: "Causality became hard to follow again."},
+			{TGOCode: "story-causal-clarity", Status: "slipping", Evidence: "Causality became hard to follow again."},
 		},
 		TGOAssessments: []domain.TGOAssessment{
 			{TGOCode: "emotional-compression", Status: "mastered", Evidence: "stable"},
@@ -51,7 +51,7 @@ func TestSyncTGOsBlocksAdvancementWhenCompletedTGOSlips(t *testing.T) {
 	if err != nil {
 		t.Fatalf("active tgos: %v", err)
 	}
-	if active[0].Code != "emotional-compression" {
+	if active[0].Code != "story-scene-architecture" {
 		t.Fatalf("unexpected promotion state: %q", active[0].Code)
 	}
 }
@@ -71,7 +71,7 @@ func TestSyncTGOsDoesNotRotateActiveSkillsMidChainAfterMastery(t *testing.T) {
 	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	userID, treeID, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "mythic-tragedy-apprenticeship")
+	userID, treeID, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
 	if err != nil {
 		t.Fatalf("default user tree: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestSyncTGOsDoesNotRotateActiveSkillsMidChainAfterMastery(t *testing.T) {
 	}
 
 	service := NewService()
-	recommendation, err := service.SyncTGOs(ctx, store, "mythic-tragedy-apprenticeship", enrollmentID, domain.Review{
+	recommendation, err := service.SyncTGOs(ctx, store, "story-craft-track", enrollmentID, domain.Review{
 		TGOAssessments: []domain.TGOAssessment{
 			{TGOCode: target.Code, Status: "mastered", Evidence: "stable mastery"},
 		},

@@ -160,6 +160,7 @@ func AllTGOs() []TGO {
 }
 
 func BuiltInTreeBySlug(slug string) (TGOTreeDefinition, bool) {
+	slug = NormalizeTreeSlug(slug)
 	for _, tree := range BuiltInTrees {
 		if tree.Slug == slug {
 			return tree, true
@@ -180,7 +181,7 @@ func TGOByCode(code string) (TGO, bool) {
 func SeedTGOs(treeSlug string) []string {
 	tree, ok := BuiltInTreeBySlug(treeSlug)
 	if !ok {
-		return mythicTragedyTree.SeedCodes
+		return storyCraftTree.SeedCodes
 	}
 	return SeedCodesForDefinition(tree)
 }
@@ -188,7 +189,7 @@ func SeedTGOs(treeSlug string) []string {
 func NextUnlockedTGOs(treeSlug string, completed map[string]bool, active map[string]bool, limit int) []TGO {
 	tree, ok := BuiltInTreeBySlug(treeSlug)
 	if !ok {
-		tree = mythicTragedyTree
+		tree = storyCraftTree
 	}
 	return NextUnlockedFromDefinition(tree, completed, active, limit)
 }

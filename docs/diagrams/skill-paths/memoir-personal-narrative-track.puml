@@ -1,0 +1,171 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Memoir and Personal Narrative Track\n<color:#5C6773>memoir-personal-narrative-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#FFF3E0> scene | stage |
+|<back:#FCE4EC> voice | stage |
+|<back:#FFF3E0> reflection | stage |
+|<back:#FBE9E7> character | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#F3E5F5> style | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (10)" #E8F5E9 {
+  rectangle "<b>Scene Grounding</b>\n<size:10><color:#5C6773>memoir-scene-grounding</color></size>" as memoir_scene_grounding <<seed>> #E8F5E9
+  rectangle "<b>Voice Presence</b>\n<size:10><color:#5C6773>memoir-voice-presence</color></size>" as memoir_voice_presence <<seed>> #E8F5E9
+  rectangle "<b>Reflection Basics</b>\n<size:10><color:#5C6773>memoir-reflection-basics</color></size>" as memoir_reflection_basics <<seed>> #E8F5E9
+  rectangle "Causal Thread\n<size:10><color:#5C6773>memoir-causal-thread</color></size>" as memoir_causal_thread #E8F5E9
+  rectangle "Selective Detail\n<size:10><color:#5C6773>memoir-selective-detail</color></size>" as memoir_selective_detail #E8F5E9
+  rectangle "Emotional Compression\n<size:10><color:#5C6773>memoir-emotional-compression</color></size>" as memoir_emotional_compression #E8F5E9
+  rectangle "Time Awareness\n<size:10><color:#5C6773>memoir-time-awareness</color></size>" as memoir_time_awareness #E8F5E9
+  rectangle "Memory Honesty\n<size:10><color:#5C6773>memoir-memory-honesty</color></size>" as memoir_memory_honesty #E8F5E9
+  rectangle "Scene vs Summary\n<size:10><color:#5C6773>memoir-scene-vs-summary</color></size>" as memoir_scene_vs_summary #E8F5E9
+  rectangle "Narrator Position\n<size:10><color:#5C6773>memoir-narrator-position</color></size>" as memoir_narrator_position #E8F5E9
+}
+
+package "scene (6)" #FFF3E0 {
+  rectangle "Scene Turn\n<size:10><color:#5C6773>memoir-scene-turn</color></size>" as memoir_scene_turn #FFF3E0
+  rectangle "Dialogue Use\n<size:10><color:#5C6773>memoir-dialogue-use</color></size>" as memoir_dialogue_use #FFF3E0
+  rectangle "Gesture as Subtext\n<size:10><color:#5C6773>memoir-gesture-subtext</color></size>" as memoir_gesture_subtext #FFF3E0
+  rectangle "Setting Pressure\n<size:10><color:#5C6773>memoir-setting-pressure</color></size>" as memoir_setting_pressure #FFF3E0
+  rectangle "Status Awareness\n<size:10><color:#5C6773>memoir-status-awareness</color></size>" as memoir_status_awareness #FFF3E0
+  rectangle "Scene Entry and Exit\n<size:10><color:#5C6773>memoir-scene-entry-exit</color></size>" as memoir_scene_entry_exit #FFF3E0
+}
+
+package "voice (6)" #FCE4EC {
+  rectangle "Voice Texture\n<size:10><color:#5C6773>memoir-voice-texture</color></size>" as memoir_voice_texture #FCE4EC
+  rectangle "Diction Precision\n<size:10><color:#5C6773>memoir-diction-precision</color></size>" as memoir_diction_precision #FCE4EC
+  rectangle "Rhythm\n<size:10><color:#5C6773>memoir-rhythm</color></size>" as memoir_rhythm #FCE4EC
+  rectangle "Humor Control\n<size:10><color:#5C6773>memoir-humor-control</color></size>" as memoir_humor_control #FCE4EC
+  rectangle "Vulnerability\n<size:10><color:#5C6773>memoir-vulnerability</color></size>" as memoir_vulnerability #FCE4EC
+  rectangle "Self-Myth Avoidance\n<size:10><color:#5C6773>memoir-self-myth-avoidance</color></size>" as memoir_self_myth_avoidance #FCE4EC
+}
+
+package "reflection (7)" #FFF3E0 {
+  rectangle "Reflection Depth\n<size:10><color:#5C6773>memoir-reflection-depth</color></size>" as memoir_reflection_depth #FFF3E0
+  rectangle "Question Holding\n<size:10><color:#5C6773>memoir-question-holding</color></size>" as memoir_question_holding #FFF3E0
+  rectangle "Pattern Linking\n<size:10><color:#5C6773>memoir-pattern-linking</color></size>" as memoir_pattern_linking #FFF3E0
+  rectangle "Present Insight\n<size:10><color:#5C6773>memoir-present-insight</color></size>" as memoir_present_insight #FFF3E0
+  rectangle "Theme Through Pressure\n<size:10><color:#5C6773>memoir-theme-pressure</color></size>" as memoir_theme_pressure #FFF3E0
+  rectangle "Fragment Handling\n<size:10><color:#5C6773>memoir-memory-fragment</color></size>" as memoir_memory_fragment #FFF3E0
+  rectangle "Metaphor Restraint\n<size:10><color:#5C6773>memoir-metaphor-restraint</color></size>" as memoir_metaphor_restraint #FFF3E0
+}
+
+package "character (7)" #FBE9E7 {
+  rectangle "Relationship Portraiture\n<size:10><color:#5C6773>memoir-relationship-portraiture</color></size>" as memoir_relationship_portraiture #FBE9E7
+  rectangle "Self Portraiture\n<size:10><color:#5C6773>memoir-self-portraiture</color></size>" as memoir_self_portraiture #FBE9E7
+  rectangle "Character Complexity\n<size:10><color:#5C6773>memoir-character-complexity</color></size>" as memoir_character_complexity #FBE9E7
+  rectangle "Dialogic Tension\n<size:10><color:#5C6773>memoir-dialogic-tension</color></size>" as memoir_dialogic_tension #FBE9E7
+  rectangle "Loyalty Pressure\n<size:10><color:#5C6773>memoir-loyalty-pressure</color></size>" as memoir_loyalty_pressure #FBE9E7
+  rectangle "Shame Handling\n<size:10><color:#5C6773>memoir-shame-handling</color></size>" as memoir_shame_handling #FBE9E7
+  rectangle "Body Awareness\n<size:10><color:#5C6773>memoir-body-awareness</color></size>" as memoir_body_awareness #FBE9E7
+}
+
+package "structure (6)" #E0F2F1 {
+  rectangle "Linear Structure\n<size:10><color:#5C6773>memoir-structure-linearity</color></size>" as memoir_structure_linearity #E0F2F1
+  rectangle "Braided Structure\n<size:10><color:#5C6773>memoir-structure-braiding</color></size>" as memoir_structure_braiding #E0F2F1
+  rectangle "Framing Device\n<size:10><color:#5C6773>memoir-structure-framing</color></size>" as memoir_structure_framing #E0F2F1
+  rectangle "Opening Pressure\n<size:10><color:#5C6773>memoir-opening-pressure</color></size>" as memoir_opening_pressure #E0F2F1
+  rectangle "Ending Resonance\n<size:10><color:#5C6773>memoir-ending-resonance</color></size>" as memoir_ending_resonance #E0F2F1
+  rectangle "Chapter Pressure\n<size:10><color:#5C6773>memoir-chapter-pressure</color></size>" as memoir_chapter_pressure #E0F2F1
+}
+
+package "style (4)" #F3E5F5 {
+  rectangle "Image Freshness\n<size:10><color:#5C6773>memoir-image-freshness</color></size>" as memoir_image_freshness #F3E5F5
+  rectangle "Summary Compression\n<size:10><color:#5C6773>memoir-summary-compression</color></size>" as memoir_summary_compression #F3E5F5
+  rectangle "Reflective Pivot\n<size:10><color:#5C6773>memoir-reflective-pivot</color></size>" as memoir_reflective_pivot #F3E5F5
+  rectangle "Repetition Control\n<size:10><color:#5C6773>memoir-repetition-control</color></size>" as memoir_repetition_control #F3E5F5
+}
+
+package "revision (6)" #ECEFF1 {
+  rectangle "Line Editing\n<size:10><color:#5C6773>memoir-line-editing</color></size>" as memoir_line_editing #ECEFF1
+  rectangle "Revision Triage\n<size:10><color:#5C6773>memoir-revision-triage</color></size>" as memoir_revision_triage #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>memoir-clarity-pass</color></size>" as memoir_clarity_pass #ECEFF1
+  rectangle "Reflection Pass\n<size:10><color:#5C6773>memoir-reflection-pass</color></size>" as memoir_reflection_pass #ECEFF1
+  rectangle "Ethical Pass\n<size:10><color:#5C6773>memoir-ethical-pass</color></size>" as memoir_ethical_pass #ECEFF1
+  rectangle "Final Shape\n<size:10><color:#5C6773>memoir-final-shape</color></size>" as memoir_final_shape #ECEFF1
+}
+
+memoir_scene_grounding -[#5C6773]-> memoir_causal_thread
+memoir_scene_grounding -[#5C6773]-> memoir_selective_detail
+memoir_scene_grounding -[#5C6773]-> memoir_emotional_compression
+memoir_causal_thread -[#5C6773]-> memoir_time_awareness
+memoir_voice_presence -[#5C6773]-> memoir_memory_honesty
+memoir_scene_grounding -[#5C6773]-> memoir_scene_vs_summary
+memoir_voice_presence -[#5C6773]-> memoir_narrator_position
+memoir_scene_vs_summary -[#5C6773]-> memoir_scene_turn
+memoir_scene_grounding -[#5C6773]-> memoir_dialogue_use
+memoir_emotional_compression -[#5C6773]-> memoir_gesture_subtext
+memoir_selective_detail -[#5C6773]-> memoir_setting_pressure
+memoir_scene_turn -[#5C6773]-> memoir_status_awareness
+memoir_scene_turn -[#5C6773]-> memoir_scene_entry_exit
+memoir_voice_presence -[#5C6773]-> memoir_voice_texture
+memoir_voice_texture -[#5C6773]-> memoir_diction_precision
+memoir_diction_precision -[#5C6773]-> memoir_rhythm
+memoir_voice_texture -[#5C6773]-> memoir_humor_control
+memoir_memory_honesty -[#5C6773]-> memoir_vulnerability
+memoir_vulnerability -[#5C6773]-> memoir_self_myth_avoidance
+memoir_reflection_basics -[#5C6773]-> memoir_reflection_depth
+memoir_memory_honesty -[#5C6773]-> memoir_question_holding
+memoir_reflection_depth -[#5C6773]-> memoir_pattern_linking
+memoir_narrator_position -[#5C6773]-> memoir_present_insight
+memoir_pattern_linking -[#5C6773]-> memoir_theme_pressure
+memoir_time_awareness -[#5C6773]-> memoir_memory_fragment
+memoir_memory_honesty -[#5C6773]-> memoir_memory_fragment
+memoir_selective_detail -[#5C6773]-> memoir_metaphor_restraint
+memoir_scene_turn -[#5C6773]-> memoir_relationship_portraiture
+memoir_narrator_position -[#5C6773]-> memoir_self_portraiture
+memoir_self_myth_avoidance -[#5C6773]-> memoir_character_complexity
+memoir_dialogue_use -[#5C6773]-> memoir_dialogic_tension
+memoir_relationship_portraiture -[#5C6773]-> memoir_loyalty_pressure
+memoir_vulnerability -[#5C6773]-> memoir_shame_handling
+memoir_gesture_subtext -[#5C6773]-> memoir_body_awareness
+memoir_time_awareness -[#5C6773]-> memoir_structure_linearity
+memoir_pattern_linking -[#5C6773]-> memoir_structure_braiding
+memoir_time_awareness -[#5C6773]-> memoir_structure_braiding
+memoir_present_insight -[#5C6773]-> memoir_structure_framing
+memoir_scene_grounding -[#5C6773]-> memoir_opening_pressure
+memoir_theme_pressure -[#5C6773]-> memoir_ending_resonance
+memoir_scene_entry_exit -[#5C6773]-> memoir_chapter_pressure
+memoir_selective_detail -[#5C6773]-> memoir_image_freshness
+memoir_scene_vs_summary -[#5C6773]-> memoir_summary_compression
+memoir_reflection_depth -[#5C6773]-> memoir_reflective_pivot
+memoir_voice_texture -[#5C6773]-> memoir_repetition_control
+memoir_rhythm -[#5C6773]-> memoir_line_editing
+memoir_structure_braiding -[#5C6773]-> memoir_revision_triage
+memoir_reflection_depth -[#5C6773]-> memoir_revision_triage
+memoir_revision_triage -[#5C6773]-> memoir_clarity_pass
+memoir_revision_triage -[#5C6773]-> memoir_reflection_pass
+memoir_character_complexity -[#5C6773]-> memoir_ethical_pass
+memoir_revision_triage -[#5C6773]-> memoir_ethical_pass
+memoir_ending_resonance -[#5C6773]-> memoir_final_shape
+memoir_line_editing -[#5C6773]-> memoir_final_shape
+@enduml

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/tomasino/writing-coach/internal/domain"
@@ -28,6 +29,7 @@ func (s *Store) EnsureAdminEmails(ctx context.Context, emails []string) error {
 }
 
 func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, treeSlug string) (int64, int64, int64, error) {
+	treeSlug = domain.NormalizeTreeSlug(treeSlug)
 	treeDef, err := s.TreeDefinitionBySlug(ctx, treeSlug)
 	if err != nil {
 		if IsNotFound(err) {
@@ -78,6 +80,9 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 			return 0, 0, 0, err
 		}
 	}
+	if err := s.reconcileEnrollmentSeedSet(ctx, enrollmentID, treeDef); err != nil {
+		return 0, 0, 0, err
+	}
 	if user.ActiveTreeSlug == "" {
 		if err := s.SetUserActiveTree(ctx, user.ID, treeSlug); err != nil {
 			return 0, 0, 0, err
@@ -85,6 +90,86 @@ func (s *Store) EnsureDefaultUserTree(ctx context.Context, userSlug, userName, t
 	}
 
 	return user.ID, tree.ID, enrollmentID, nil
+}
+
+func (s *Store) reconcileEnrollmentSeedSet(ctx context.Context, enrollmentID int64, treeDef domain.TGOTreeDefinition) error {
+	completed, err := s.CompletedTGOs(ctx, enrollmentID)
+	if err != nil {
+		return err
+	}
+	if len(completed) > 0 {
+		return nil
+	}
+
+	active, err := s.ActiveTGOs(ctx, enrollmentID)
+	if err != nil {
+		return err
+	}
+	if len(active) != len(treeDef.SeedCodes) {
+		return nil
+	}
+
+	currentCodes := make([]string, 0, len(active))
+	currentSet := make(map[string]bool, len(active))
+	for _, tgo := range active {
+		currentCodes = append(currentCodes, tgo.Code)
+		currentSet[tgo.Code] = true
+	}
+
+	desiredSet := make(map[string]bool, len(treeDef.SeedCodes))
+	var missing []string
+	for _, code := range treeDef.SeedCodes {
+		desiredSet[code] = true
+		if !currentSet[code] {
+			missing = append(missing, code)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+
+	type candidate struct {
+		index    int
+		percent  int
+		evidence int
+	}
+	var replaceable []candidate
+	for idx, tgo := range active {
+		if desiredSet[tgo.Code] {
+			continue
+		}
+		signal, err := s.TGOMasterySignal(ctx, enrollmentID, tgo, "")
+		if err != nil {
+			return err
+		}
+		replaceable = append(replaceable, candidate{
+			index:    idx,
+			percent:  signal.Percent,
+			evidence: signal.EvidenceCount,
+		})
+	}
+	if len(replaceable) == 0 {
+		return nil
+	}
+
+	slices.SortFunc(replaceable, func(a, b candidate) int {
+		if a.evidence != b.evidence {
+			return a.evidence - b.evidence
+		}
+		if a.percent != b.percent {
+			return a.percent - b.percent
+		}
+		return a.index - b.index
+	})
+
+	updated := append([]string(nil), currentCodes...)
+	for i, code := range missing {
+		if i >= len(replaceable) {
+			break
+		}
+		updated[replaceable[i].index] = code
+	}
+	return s.SetActiveTGOs(ctx, enrollmentID, updated)
 }
 
 func (s *Store) EnsureUser(ctx context.Context, userSlug, userName string) error {

@@ -243,7 +243,7 @@ func ensureDefaultTGOs(active []domain.TGO) []domain.TGO {
 		return active
 	}
 	var out []domain.TGO
-	for _, code := range []string{"causal-clarity", "scene-architecture", "prose-precision"} {
+	for _, code := range []string{"story-causal-clarity", "story-scene-architecture", "story-prose-precision"} {
 		if tgo, ok := domain.TGOByCode(code); ok {
 			out = append(out, tgo)
 		}

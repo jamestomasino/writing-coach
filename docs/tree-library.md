@@ -9,11 +9,7 @@ Users can also create generated practice paths from onboarding answers. Those ge
 
 ## Built-in Trees
 
-Current catalog:
-
-- `mythic-tragedy-apprenticeship`
-  - advanced mythic tragic fiction
-  - emphasis: tragic inevitability, symbolic control, mythic tone, scene architecture
+Current public catalog:
 
 - `story-craft-track`
   - general fiction and story craft
@@ -38,10 +34,6 @@ Current catalog:
 - `mystery-thriller-track`
   - mystery and thriller writing
   - emphasis: suspense control, clue handling, scene pressure, pacing
-
-- `youth-writing-foundations`
-  - early writing foundations
-  - emphasis: word choice, sentence clarity, paragraph control, sequencing, revision habits
 
 - `thought-leadership-track`
   - essays, analysis, and public-facing idea writing
@@ -87,6 +79,12 @@ Current catalog:
   - memoir, personal essays, and reflective narrative
   - emphasis: scene grounding, voice presence, reflection depth, emotional compression, memory handling
 
+## Internal Templates
+
+These are still used as internal curriculum templates, but they are not part of the public built-in track catalog exposed by the writing-type dropdown:
+
+- `youth-writing-foundations`
+
 ## Shared Constraints
 
 Across the built-in catalog:
@@ -96,6 +94,14 @@ Across the built-in catalog:
 - prerequisites stay explicit and tree-aware
 - trees are broad enough to support generated hybrids and onboarding-based selection
 - tree definitions are persisted and versioned for auditability
+
+## Visual UML
+
+The built-in paths also have generated UML source and rendered color diagrams for visual review:
+
+- [Skill Path UML](./skill-paths.md)
+
+That visual catalog is generated directly from `internal/domain/tree_catalog.go`, so the diagrams track the live tree definitions rather than a hand-maintained sketch.
 
 ## How Trees Are Used
 

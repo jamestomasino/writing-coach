@@ -1,0 +1,166 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Journalism and Reporting Track\n<color:#5C6773>journalism-reporting-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#F1F8E9> insight | stage |
+|<back:#E8F5E9> evidence | stage |
+|<back:#FCE4EC> voice | stage |
+|<back:#FFFDE7> audience | stage |
+|<back:#EDE7F6> advanced | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (8)" #E8F5E9 {
+  rectangle "<b>Claim Clarity</b>\n<size:10><color:#5C6773>journalism-claim-clarity</color></size>" as journalism_claim_clarity <<seed>> #E8F5E9
+  rectangle "<b>Audience Alignment</b>\n<size:10><color:#5C6773>journalism-audience-alignment</color></size>" as journalism_audience_alignment <<seed>> #E8F5E9
+  rectangle "<b>Sentence Economy</b>\n<size:10><color:#5C6773>journalism-sentence-economy</color></size>" as journalism_sentence_economy <<seed>> #E8F5E9
+  rectangle "Problem Framing\n<size:10><color:#5C6773>journalism-problem-framing</color></size>" as journalism_problem_framing #E8F5E9
+  rectangle "Stakes Articulation\n<size:10><color:#5C6773>journalism-stakes-articulation</color></size>" as journalism_stakes_articulation #E8F5E9
+  rectangle "Reader Pain Mapping\n<size:10><color:#5C6773>journalism-reader-pain-mapping</color></size>" as journalism_reader_pain_mapping #E8F5E9
+  rectangle "Terminology Discipline\n<size:10><color:#5C6773>journalism-terminology-discipline</color></size>" as journalism_terminology_discipline #E8F5E9
+  rectangle "Paragraph Focus\n<size:10><color:#5C6773>journalism-paragraph-focus</color></size>" as journalism_paragraph_focus #E8F5E9
+}
+
+package "structure (7)" #E0F2F1 {
+  rectangle "Structural Signposting\n<size:10><color:#5C6773>journalism-structural-signposting</color></size>" as journalism_structural_signposting #E0F2F1
+  rectangle "Opening Hook\n<size:10><color:#5C6773>journalism-opening-hook</color></size>" as journalism_opening_hook #E0F2F1
+  rectangle "Thesis Placement\n<size:10><color:#5C6773>journalism-thesis-placement</color></size>" as journalism_thesis_placement #E0F2F1
+  rectangle "Section Ordering\n<size:10><color:#5C6773>journalism-section-ordering</color></size>" as journalism_section_ordering #E0F2F1
+  rectangle "Bridge Sentences\n<size:10><color:#5C6773>journalism-bridge-sentences</color></size>" as journalism_bridge_sentences #E0F2F1
+  rectangle "Scaffolding Load\n<size:10><color:#5C6773>journalism-scaffolding-load</color></size>" as journalism_scaffolding_load #E0F2F1
+  rectangle "Ending That Lands\n<size:10><color:#5C6773>journalism-ending-that-lands</color></size>" as journalism_ending_that_lands #E0F2F1
+}
+
+package "insight (7)" #F1F8E9 {
+  rectangle "Insight Density\n<size:10><color:#5C6773>journalism-insight-density</color></size>" as journalism_insight_density #F1F8E9
+  rectangle "Novel Distinction\n<size:10><color:#5C6773>journalism-novel-distinction</color></size>" as journalism_novel_distinction #F1F8E9
+  rectangle "Conceptual Compression\n<size:10><color:#5C6773>journalism-conceptual-compression</color></size>" as journalism_conceptual_compression #F1F8E9
+  rectangle "Counterargument Handling\n<size:10><color:#5C6773>journalism-counterargument-handling</color></size>" as journalism_counterargument_handling #F1F8E9
+  rectangle "Analogy Selection\n<size:10><color:#5C6773>journalism-analogy-selection</color></size>" as journalism_analogy_selection #F1F8E9
+  rectangle "Framework Construction\n<size:10><color:#5C6773>journalism-framework-construction</color></size>" as journalism_framework_construction #F1F8E9
+  rectangle "Implication Expansion\n<size:10><color:#5C6773>journalism-implication-expansion</color></size>" as journalism_implication_expansion #F1F8E9
+}
+
+package "evidence (7)" #E8F5E9 {
+  rectangle "Evidence Integration\n<size:10><color:#5C6773>journalism-evidence-integration</color></size>" as journalism_evidence_integration #E8F5E9
+  rectangle "Example Selection\n<size:10><color:#5C6773>journalism-example-selection</color></size>" as journalism_example_selection #E8F5E9
+  rectangle "Quote Restraint\n<size:10><color:#5C6773>journalism-quote-restraint</color></size>" as journalism_quote_restraint #E8F5E9
+  rectangle "Data Interpretation\n<size:10><color:#5C6773>journalism-data-interpretation</color></size>" as journalism_data_interpretation #E8F5E9
+  rectangle "Case Study Use\n<size:10><color:#5C6773>journalism-case-study-use</color></size>" as journalism_case_study_use #E8F5E9
+  rectangle "Evidence Proportion\n<size:10><color:#5C6773>journalism-evidence-proportion</color></size>" as journalism_evidence_proportion #E8F5E9
+  rectangle "Source Framing\n<size:10><color:#5C6773>journalism-source-framing</color></size>" as journalism_source_framing #E8F5E9
+}
+
+package "voice (7)" #FCE4EC {
+  rectangle "Authority and Voice\n<size:10><color:#5C6773>journalism-authority-and-voice</color></size>" as journalism_authority_and_voice #FCE4EC
+  rectangle "Tone Calibration\n<size:10><color:#5C6773>journalism-tone-calibration-thought</color></size>" as journalism_tone_calibration_thought #FCE4EC
+  rectangle "Sentence Pressure\n<size:10><color:#5C6773>journalism-sentence-pressure</color></size>" as journalism_sentence_pressure #FCE4EC
+  rectangle "Cadence Variety\n<size:10><color:#5C6773>journalism-cadence-variety</color></size>" as journalism_cadence_variety #FCE4EC
+  rectangle "Verb-Forward Style\n<size:10><color:#5C6773>journalism-verb-forward-style</color></size>" as journalism_verb_forward_style #FCE4EC
+  rectangle "Opening That Frames\n<size:10><color:#5C6773>journalism-opening-that-frames</color></size>" as journalism_opening_that_frames #FCE4EC
+  rectangle "Ending That Opens\n<size:10><color:#5C6773>journalism-ending-that-opens</color></size>" as journalism_ending_that_opens #FCE4EC
+}
+
+package "audience (6)" #FFFDE7 {
+  rectangle "Platform Fit\n<size:10><color:#5C6773>journalism-platform-fit</color></size>" as journalism_platform_fit #FFFDE7
+  rectangle "Reader Objection Forecasting\n<size:10><color:#5C6773>journalism-reader-objection-forecasting</color></size>" as journalism_reader_objection_forecasting #FFFDE7
+  rectangle "Trust-Building Specificity\n<size:10><color:#5C6773>journalism-trust-building-specificity</color></size>" as journalism_trust_building_specificity #FFFDE7
+  rectangle "Actionable Insight\n<size:10><color:#5C6773>journalism-actionable-insight</color></size>" as journalism_actionable_insight #FFFDE7
+  rectangle "Audience Segmentation\n<size:10><color:#5C6773>journalism-audience-segmentation</color></size>" as journalism_audience_segmentation #FFFDE7
+  rectangle "Series Thinking\n<size:10><color:#5C6773>journalism-series-thinking</color></size>" as journalism_series_thinking #FFFDE7
+}
+
+package "advanced (4)" #EDE7F6 {
+  rectangle "Argument Arc\n<size:10><color:#5C6773>journalism-argument-arc</color></size>" as journalism_argument_arc #EDE7F6
+  rectangle "Strategic Repetition\n<size:10><color:#5C6773>journalism-strategic-repetition</color></size>" as journalism_strategic_repetition #EDE7F6
+  rectangle "Thought Contrast\n<size:10><color:#5C6773>journalism-thought-contrast</color></size>" as journalism_thought_contrast #EDE7F6
+  rectangle "Concept Bridging\n<size:10><color:#5C6773>journalism-concept-bridging</color></size>" as journalism_concept_bridging #EDE7F6
+}
+
+package "revision (6)" #ECEFF1 {
+  rectangle "Revision Triage\n<size:10><color:#5C6773>journalism-revision-triage-thought</color></size>" as journalism_revision_triage_thought #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>journalism-clarity-pass-thought</color></size>" as journalism_clarity_pass_thought #ECEFF1
+  rectangle "Evidence Pass\n<size:10><color:#5C6773>journalism-evidence-pass-thought</color></size>" as journalism_evidence_pass_thought #ECEFF1
+  rectangle "Voice Pass\n<size:10><color:#5C6773>journalism-voice-pass-thought</color></size>" as journalism_voice_pass_thought #ECEFF1
+  rectangle "Headline Framing\n<size:10><color:#5C6773>journalism-headline-framing</color></size>" as journalism_headline_framing #ECEFF1
+  rectangle "Portable Takeaway\n<size:10><color:#5C6773>journalism-portable-takeaway</color></size>" as journalism_portable_takeaway #ECEFF1
+}
+
+journalism_claim_clarity -[#5C6773]-> journalism_problem_framing
+journalism_problem_framing -[#5C6773]-> journalism_stakes_articulation
+journalism_audience_alignment -[#5C6773]-> journalism_reader_pain_mapping
+journalism_claim_clarity -[#5C6773]-> journalism_terminology_discipline
+journalism_sentence_economy -[#5C6773]-> journalism_paragraph_focus
+journalism_problem_framing -[#5C6773]-> journalism_structural_signposting
+journalism_reader_pain_mapping -[#5C6773]-> journalism_opening_hook
+journalism_stakes_articulation -[#5C6773]-> journalism_thesis_placement
+journalism_structural_signposting -[#5C6773]-> journalism_section_ordering
+journalism_section_ordering -[#5C6773]-> journalism_bridge_sentences
+journalism_paragraph_focus -[#5C6773]-> journalism_scaffolding_load
+journalism_thesis_placement -[#5C6773]-> journalism_ending_that_lands
+journalism_bridge_sentences -[#5C6773]-> journalism_insight_density
+journalism_insight_density -[#5C6773]-> journalism_novel_distinction
+journalism_novel_distinction -[#5C6773]-> journalism_conceptual_compression
+journalism_thesis_placement -[#5C6773]-> journalism_counterargument_handling
+journalism_conceptual_compression -[#5C6773]-> journalism_analogy_selection
+journalism_analogy_selection -[#5C6773]-> journalism_framework_construction
+journalism_framework_construction -[#5C6773]-> journalism_implication_expansion
+journalism_counterargument_handling -[#5C6773]-> journalism_evidence_integration
+journalism_evidence_integration -[#5C6773]-> journalism_example_selection
+journalism_example_selection -[#5C6773]-> journalism_quote_restraint
+journalism_quote_restraint -[#5C6773]-> journalism_data_interpretation
+journalism_data_interpretation -[#5C6773]-> journalism_case_study_use
+journalism_case_study_use -[#5C6773]-> journalism_evidence_proportion
+journalism_evidence_proportion -[#5C6773]-> journalism_source_framing
+journalism_opening_hook -[#5C6773]-> journalism_authority_and_voice
+journalism_authority_and_voice -[#5C6773]-> journalism_tone_calibration_thought
+journalism_paragraph_focus -[#5C6773]-> journalism_sentence_pressure
+journalism_sentence_pressure -[#5C6773]-> journalism_cadence_variety
+journalism_cadence_variety -[#5C6773]-> journalism_verb_forward_style
+journalism_tone_calibration_thought -[#5C6773]-> journalism_opening_that_frames
+journalism_ending_that_lands -[#5C6773]-> journalism_ending_that_opens
+journalism_tone_calibration_thought -[#5C6773]-> journalism_platform_fit
+journalism_counterargument_handling -[#5C6773]-> journalism_reader_objection_forecasting
+journalism_source_framing -[#5C6773]-> journalism_trust_building_specificity
+journalism_implication_expansion -[#5C6773]-> journalism_actionable_insight
+journalism_platform_fit -[#5C6773]-> journalism_audience_segmentation
+journalism_audience_segmentation -[#5C6773]-> journalism_series_thinking
+journalism_series_thinking -[#5C6773]-> journalism_argument_arc
+journalism_argument_arc -[#5C6773]-> journalism_strategic_repetition
+journalism_strategic_repetition -[#5C6773]-> journalism_thought_contrast
+journalism_thought_contrast -[#5C6773]-> journalism_concept_bridging
+journalism_concept_bridging -[#5C6773]-> journalism_revision_triage_thought
+journalism_revision_triage_thought -[#5C6773]-> journalism_clarity_pass_thought
+journalism_clarity_pass_thought -[#5C6773]-> journalism_evidence_pass_thought
+journalism_evidence_pass_thought -[#5C6773]-> journalism_voice_pass_thought
+journalism_opening_that_frames -[#5C6773]-> journalism_headline_framing
+journalism_voice_pass_thought -[#5C6773]-> journalism_portable_takeaway
+@enduml

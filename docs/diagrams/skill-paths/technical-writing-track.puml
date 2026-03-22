@@ -1,0 +1,162 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Technical Writing Track\n<color:#5C6773>technical-writing-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#E7F5FF> examples | stage |
+|<back:#F3F0FF> reference | stage |
+|<back:#FFF9DB> support | stage |
+|<back:#F3E5F5> style | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (10)" #E8F5E9 {
+  rectangle "<b>User Goal Alignment</b>\n<size:10><color:#5C6773>technical-user-goal</color></size>" as technical_user_goal <<seed>> #E8F5E9
+  rectangle "<b>Documentation Structure Basics</b>\n<size:10><color:#5C6773>technical-structure-basics</color></size>" as technical_structure_basics <<seed>> #E8F5E9
+  rectangle "<b>Step Clarity</b>\n<size:10><color:#5C6773>technical-step-clarity</color></size>" as technical_step_clarity <<seed>> #E8F5E9
+  rectangle "Prerequisite Clarity\n<size:10><color:#5C6773>technical-prereq-clarity</color></size>" as technical_prereq_clarity #E8F5E9
+  rectangle "Terminology Control\n<size:10><color:#5C6773>technical-term-control</color></size>" as technical_term_control #E8F5E9
+  rectangle "Scope Control\n<size:10><color:#5C6773>technical-scope-control</color></size>" as technical_scope_control #E8F5E9
+  rectangle "Sequence Control\n<size:10><color:#5C6773>technical-sequence-control</color></size>" as technical_sequence_control #E8F5E9
+  rectangle "Result Visibility\n<size:10><color:#5C6773>technical-result-visibility</color></size>" as technical_result_visibility #E8F5E9
+  rectangle "Error Prevention\n<size:10><color:#5C6773>technical-error-prevention</color></size>" as technical_error_prevention #E8F5E9
+  rectangle "Reader Context\n<size:10><color:#5C6773>technical-reader-context</color></size>" as technical_reader_context #E8F5E9
+}
+
+package "structure (9)" #E0F2F1 {
+  rectangle "Opening Summary\n<size:10><color:#5C6773>technical-opening-summary</color></size>" as technical_opening_summary #E0F2F1
+  rectangle "Section Order\n<size:10><color:#5C6773>technical-section-order</color></size>" as technical_section_order #E0F2F1
+  rectangle "Heading Discipline\n<size:10><color:#5C6773>technical-heading-discipline</color></size>" as technical_heading_discipline #E0F2F1
+  rectangle "Paragraph Economy\n<size:10><color:#5C6773>technical-paragraph-economy</color></size>" as technical_paragraph_economy #E0F2F1
+  rectangle "List Design\n<size:10><color:#5C6773>technical-list-design</color></size>" as technical_list_design #E0F2F1
+  rectangle "Cross-Link Judgment\n<size:10><color:#5C6773>technical-cross-links</color></size>" as technical_cross_links #E0F2F1
+  rectangle "Glossary Handling\n<size:10><color:#5C6773>technical-glossary-handling</color></size>" as technical_glossary_handling #E0F2F1
+  rectangle "Reference Layout\n<size:10><color:#5C6773>technical-reference-layout</color></size>" as technical_reference_layout #E0F2F1
+  rectangle "Task vs Reference Distinction\n<size:10><color:#5C6773>technical-task-vs-reference</color></size>" as technical_task_vs_reference #E0F2F1
+}
+
+package "examples (6)" #E7F5FF {
+  rectangle "Example Basics\n<size:10><color:#5C6773>technical-example-basics</color></size>" as technical_example_basics #E7F5FF
+  rectangle "Minimal Reproducible Examples\n<size:10><color:#5C6773>technical-example-minimality</color></size>" as technical_example_minimality #E7F5FF
+  rectangle "Example Realism\n<size:10><color:#5C6773>technical-example-realism</color></size>" as technical_example_realism #E7F5FF
+  rectangle "Input and Output Clarity\n<size:10><color:#5C6773>technical-input-output</color></size>" as technical_input_output #E7F5FF
+  rectangle "Code Comment Restraint\n<size:10><color:#5C6773>technical-code-comment-restraint</color></size>" as technical_code_comment_restraint #E7F5FF
+  rectangle "Edge Case Signaling\n<size:10><color:#5C6773>technical-edge-case-signaling</color></size>" as technical_edge_case_signaling #E7F5FF
+}
+
+package "reference (6)" #F3F0FF {
+  rectangle "API Surface Clarity\n<size:10><color:#5C6773>technical-api-surface-clarity</color></size>" as technical_api_surface_clarity #F3F0FF
+  rectangle "Parameter Documentation\n<size:10><color:#5C6773>technical-parameter-docs</color></size>" as technical_parameter_docs #F3F0FF
+  rectangle "State Model Explanation\n<size:10><color:#5C6773>technical-state-models</color></size>" as technical_state_models #F3F0FF
+  rectangle "Constraint Language\n<size:10><color:#5C6773>technical-constraint-language</color></size>" as technical_constraint_language #F3F0FF
+  rectangle "Versioning Signals\n<size:10><color:#5C6773>technical-versioning-signals</color></size>" as technical_versioning_signals #F3F0FF
+  rectangle "Deprecation Notes\n<size:10><color:#5C6773>technical-deprecation-notes</color></size>" as technical_deprecation_notes #F3F0FF
+}
+
+package "support (6)" #FFF9DB {
+  rectangle "Troubleshooting Basics\n<size:10><color:#5C6773>technical-troubleshooting-basics</color></size>" as technical_troubleshooting_basics #FFF9DB
+  rectangle "Symptom to Cause Mapping\n<size:10><color:#5C6773>technical-symptom-cause</color></size>" as technical_symptom_cause #FFF9DB
+  rectangle "Remediation Order\n<size:10><color:#5C6773>technical-remediation-order</color></size>" as technical_remediation_order #FFF9DB
+  rectangle "Logging Guidance\n<size:10><color:#5C6773>technical-logging-guidance</color></size>" as technical_logging_guidance #FFF9DB
+  rectangle "Compatibility Notes\n<size:10><color:#5C6773>technical-compatibility-notes</color></size>" as technical_compatibility_notes #FFF9DB
+  rectangle "Screenshot Judgment\n<size:10><color:#5C6773>technical-screenshot-judgment</color></size>" as technical_screenshot_judgment #FFF9DB
+}
+
+package "style (4)" #F3E5F5 {
+  rectangle "Technical Tone Control\n<size:10><color:#5C6773>technical-tone-control</color></size>" as technical_tone_control #F3E5F5
+  rectangle "Sentence Economy\n<size:10><color:#5C6773>technical-sentence-economy</color></size>" as technical_sentence_economy #F3E5F5
+  rectangle "Active Voice Judgment\n<size:10><color:#5C6773>technical-active-voice</color></size>" as technical_active_voice #F3E5F5
+  rectangle "Ambiguity Hunting\n<size:10><color:#5C6773>technical-ambiguity-hunting</color></size>" as technical_ambiguity_hunting #F3E5F5
+}
+
+package "revision (11)" #ECEFF1 {
+  rectangle "Consistency Pass\n<size:10><color:#5C6773>technical-consistency-pass</color></size>" as technical_consistency_pass #ECEFF1
+  rectangle "Accuracy Pass\n<size:10><color:#5C6773>technical-accuracy-pass</color></size>" as technical_accuracy_pass #ECEFF1
+  rectangle "User Walkthrough\n<size:10><color:#5C6773>technical-user-walkthrough</color></size>" as technical_user_walkthrough #ECEFF1
+  rectangle "Revision Triage\n<size:10><color:#5C6773>technical-triage</color></size>" as technical_triage #ECEFF1
+  rectangle "Shortening Pass\n<size:10><color:#5C6773>technical-shortening-pass</color></size>" as technical_shortening_pass #ECEFF1
+  rectangle "Example Pass\n<size:10><color:#5C6773>technical-example-pass</color></size>" as technical_example_pass #ECEFF1
+  rectangle "Support Pass\n<size:10><color:#5C6773>technical-support-pass</color></size>" as technical_support_pass #ECEFF1
+  rectangle "Navigation Pass\n<size:10><color:#5C6773>technical-navigation-pass</color></size>" as technical_navigation_pass #ECEFF1
+  rectangle "Release Note Discipline\n<size:10><color:#5C6773>technical-release-note-discipline</color></size>" as technical_release_note_discipline #ECEFF1
+  rectangle "Ownership Signals\n<size:10><color:#5C6773>technical-ownership-signals</color></size>" as technical_ownership_signals #ECEFF1
+  rectangle "Final Polish\n<size:10><color:#5C6773>technical-final-polish</color></size>" as technical_final_polish #ECEFF1
+}
+
+technical_user_goal -[#5C6773]-> technical_prereq_clarity
+technical_user_goal -[#5C6773]-> technical_term_control
+technical_user_goal -[#5C6773]-> technical_scope_control
+technical_step_clarity -[#5C6773]-> technical_sequence_control
+technical_step_clarity -[#5C6773]-> technical_result_visibility
+technical_prereq_clarity -[#5C6773]-> technical_error_prevention
+technical_scope_control -[#5C6773]-> technical_reader_context
+technical_structure_basics -[#5C6773]-> technical_opening_summary
+technical_opening_summary -[#5C6773]-> technical_section_order
+technical_section_order -[#5C6773]-> technical_heading_discipline
+technical_heading_discipline -[#5C6773]-> technical_paragraph_economy
+technical_paragraph_economy -[#5C6773]-> technical_list_design
+technical_scope_control -[#5C6773]-> technical_cross_links
+technical_term_control -[#5C6773]-> technical_glossary_handling
+technical_heading_discipline -[#5C6773]-> technical_reference_layout
+technical_reference_layout -[#5C6773]-> technical_task_vs_reference
+technical_user_goal -[#5C6773]-> technical_example_basics
+technical_example_basics -[#5C6773]-> technical_example_minimality
+technical_example_minimality -[#5C6773]-> technical_example_realism
+technical_result_visibility -[#5C6773]-> technical_input_output
+technical_input_output -[#5C6773]-> technical_code_comment_restraint
+technical_error_prevention -[#5C6773]-> technical_edge_case_signaling
+technical_reference_layout -[#5C6773]-> technical_api_surface_clarity
+technical_api_surface_clarity -[#5C6773]-> technical_parameter_docs
+technical_reader_context -[#5C6773]-> technical_state_models
+technical_api_surface_clarity -[#5C6773]-> technical_constraint_language
+technical_constraint_language -[#5C6773]-> technical_versioning_signals
+technical_versioning_signals -[#5C6773]-> technical_deprecation_notes
+technical_error_prevention -[#5C6773]-> technical_troubleshooting_basics
+technical_troubleshooting_basics -[#5C6773]-> technical_symptom_cause
+technical_symptom_cause -[#5C6773]-> technical_remediation_order
+technical_remediation_order -[#5C6773]-> technical_logging_guidance
+technical_versioning_signals -[#5C6773]-> technical_compatibility_notes
+technical_heading_discipline -[#5C6773]-> technical_screenshot_judgment
+technical_user_goal -[#5C6773]-> technical_tone_control
+technical_tone_control -[#5C6773]-> technical_sentence_economy
+technical_sentence_economy -[#5C6773]-> technical_active_voice
+technical_active_voice -[#5C6773]-> technical_ambiguity_hunting
+technical_ambiguity_hunting -[#5C6773]-> technical_consistency_pass
+technical_consistency_pass -[#5C6773]-> technical_accuracy_pass
+technical_accuracy_pass -[#5C6773]-> technical_user_walkthrough
+technical_user_walkthrough -[#5C6773]-> technical_triage
+technical_triage -[#5C6773]-> technical_shortening_pass
+technical_triage -[#5C6773]-> technical_example_pass
+technical_triage -[#5C6773]-> technical_support_pass
+technical_triage -[#5C6773]-> technical_navigation_pass
+technical_navigation_pass -[#5C6773]-> technical_release_note_discipline
+technical_release_note_discipline -[#5C6773]-> technical_ownership_signals
+technical_ownership_signals -[#5C6773]-> technical_final_polish
+@enduml

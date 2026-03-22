@@ -1,0 +1,174 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Content Marketing Track\n<color:#5C6773>content-marketing-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#FFF3E0> appeal | stage |
+|<back:#FFF3E0> objection | stage |
+|<back:#E8F5E9> evidence | stage |
+|<back:#F3E5F5> style | stage |
+|<back:#EDE7F6> advanced | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (10)" #E8F5E9 {
+  rectangle "<b>Claim Clarity</b>\n<size:10><color:#5C6773>content-persuasive-claim</color></size>" as content_persuasive_claim <<seed>> #E8F5E9
+  rectangle "<b>Audience Alignment</b>\n<size:10><color:#5C6773>content-persuasive-audience</color></size>" as content_persuasive_audience <<seed>> #E8F5E9
+  rectangle "<b>Reasoning Quality</b>\n<size:10><color:#5C6773>content-persuasive-reasoning</color></size>" as content_persuasive_reasoning <<seed>> #E8F5E9
+  rectangle "Stakes\n<size:10><color:#5C6773>content-persuasive-stakes</color></size>" as content_persuasive_stakes #E8F5E9
+  rectangle "Positioning\n<size:10><color:#5C6773>content-persuasive-positioning</color></size>" as content_persuasive_positioning #E8F5E9
+  rectangle "Thesis Narrowing\n<size:10><color:#5C6773>content-persuasive-thesis-narrowing</color></size>" as content_persuasive_thesis_narrowing #E8F5E9
+  rectangle "Reason Order\n<size:10><color:#5C6773>content-persuasive-reason-order</color></size>" as content_persuasive_reason_order #E8F5E9
+  rectangle "Evidence Basics\n<size:10><color:#5C6773>content-persuasive-evidence-basics</color></size>" as content_persuasive_evidence_basics #E8F5E9
+  rectangle "Tone Basics\n<size:10><color:#5C6773>content-persuasive-tone-basics</color></size>" as content_persuasive_tone_basics #E8F5E9
+  rectangle "Action Target\n<size:10><color:#5C6773>content-persuasive-action-target</color></size>" as content_persuasive_action_target #E8F5E9
+}
+
+package "structure (6)" #E0F2F1 {
+  rectangle "Opening Hook\n<size:10><color:#5C6773>content-persuasive-opening-hook</color></size>" as content_persuasive_opening_hook #E0F2F1
+  rectangle "Argument Structure\n<size:10><color:#5C6773>content-persuasive-structure</color></size>" as content_persuasive_structure #E0F2F1
+  rectangle "Transitions\n<size:10><color:#5C6773>content-persuasive-transitions</color></size>" as content_persuasive_transitions #E0F2F1
+  rectangle "Paragraph Unity\n<size:10><color:#5C6773>content-persuasive-paragraph-unity</color></size>" as content_persuasive_paragraph_unity #E0F2F1
+  rectangle "Conclusion\n<size:10><color:#5C6773>content-persuasive-conclusion</color></size>" as content_persuasive_conclusion #E0F2F1
+  rectangle "Reframing\n<size:10><color:#5C6773>content-persuasive-reframing</color></size>" as content_persuasive_reframing #E0F2F1
+}
+
+package "appeal (7)" #FFF3E0 {
+  rectangle "Ethos\n<size:10><color:#5C6773>content-persuasive-ethos</color></size>" as content_persuasive_ethos #FFF3E0
+  rectangle "Logos\n<size:10><color:#5C6773>content-persuasive-logos</color></size>" as content_persuasive_logos #FFF3E0
+  rectangle "Pathos\n<size:10><color:#5C6773>content-persuasive-pathos</color></size>" as content_persuasive_pathos #FFF3E0
+  rectangle "Example Selection\n<size:10><color:#5C6773>content-persuasive-example-selection</color></size>" as content_persuasive_example_selection #FFF3E0
+  rectangle "Analogy\n<size:10><color:#5C6773>content-persuasive-analogy</color></size>" as content_persuasive_analogy #FFF3E0
+  rectangle "Story Use\n<size:10><color:#5C6773>content-persuasive-story-use</color></size>" as content_persuasive_story_use #FFF3E0
+  rectangle "Sourced Authority\n<size:10><color:#5C6773>content-persuasive-sourced-authority</color></size>" as content_persuasive_sourced_authority #FFF3E0
+}
+
+package "objection (6)" #FFF3E0 {
+  rectangle "Objection Forecasting\n<size:10><color:#5C6773>content-persuasive-objection-forecast</color></size>" as content_persuasive_objection_forecast #FFF3E0
+  rectangle "Counterargument Handling\n<size:10><color:#5C6773>content-persuasive-counterargument</color></size>" as content_persuasive_counterargument #FFF3E0
+  rectangle "Concession\n<size:10><color:#5C6773>content-persuasive-concession</color></size>" as content_persuasive_concession #FFF3E0
+  rectangle "Tradeoffs\n<size:10><color:#5C6773>content-persuasive-tradeoffs</color></size>" as content_persuasive_tradeoffs #FFF3E0
+  rectangle "Fallacy Avoidance\n<size:10><color:#5C6773>content-persuasive-fallacy-avoidance</color></size>" as content_persuasive_fallacy_avoidance #FFF3E0
+  rectangle "Moral Language Control\n<size:10><color:#5C6773>content-persuasive-moral-language</color></size>" as content_persuasive_moral_language #FFF3E0
+}
+
+package "evidence (5)" #E8F5E9 {
+  rectangle "Data Use\n<size:10><color:#5C6773>content-persuasive-data-use</color></size>" as content_persuasive_data_use #E8F5E9
+  rectangle "Quote Restraint\n<size:10><color:#5C6773>content-persuasive-quote-restraint</color></size>" as content_persuasive_quote_restraint #E8F5E9
+  rectangle "Case Study\n<size:10><color:#5C6773>content-persuasive-case-study</color></size>" as content_persuasive_case_study #E8F5E9
+  rectangle "Comparison\n<size:10><color:#5C6773>content-persuasive-comparison</color></size>" as content_persuasive_comparison #E8F5E9
+  rectangle "Consequence Modeling\n<size:10><color:#5C6773>content-persuasive-consequence-modeling</color></size>" as content_persuasive_consequence_modeling #E8F5E9
+}
+
+package "style (6)" #F3E5F5 {
+  rectangle "Plainstyle\n<size:10><color:#5C6773>content-persuasive-plainstyle</color></size>" as content_persuasive_plainstyle #F3E5F5
+  rectangle "Cadence\n<size:10><color:#5C6773>content-persuasive-cadence</color></size>" as content_persuasive_cadence #F3E5F5
+  rectangle "Strategic Repetition\n<size:10><color:#5C6773>content-persuasive-repetition</color></size>" as content_persuasive_repetition #F3E5F5
+  rectangle "Slogan Restraint\n<size:10><color:#5C6773>content-persuasive-slogan-restraint</color></size>" as content_persuasive_slogan_restraint #F3E5F5
+  rectangle "Verb Force\n<size:10><color:#5C6773>content-persuasive-verb-force</color></size>" as content_persuasive_verb_force #F3E5F5
+  rectangle "Pivot Lines\n<size:10><color:#5C6773>content-persuasive-pivot-lines</color></size>" as content_persuasive_pivot_lines #F3E5F5
+}
+
+package "advanced (4)" #EDE7F6 {
+  rectangle "Audience Segmentation\n<size:10><color:#5C6773>content-persuasive-audience-segmentation</color></size>" as content_persuasive_audience_segmentation #EDE7F6
+  rectangle "Medium Fit\n<size:10><color:#5C6773>content-persuasive-medium-fit</color></size>" as content_persuasive_medium_fit #EDE7F6
+  rectangle "Campaign Thinking\n<size:10><color:#5C6773>content-persuasive-campaign-thinking</color></size>" as content_persuasive_campaign_thinking #EDE7F6
+  rectangle "Ethical Pressure\n<size:10><color:#5C6773>content-persuasive-ethical-pressure</color></size>" as content_persuasive_ethical_pressure #EDE7F6
+}
+
+package "revision (8)" #ECEFF1 {
+  rectangle "Revision Triage\n<size:10><color:#5C6773>content-persuasive-revision-triage</color></size>" as content_persuasive_revision_triage #ECEFF1
+  rectangle "Logic Pass\n<size:10><color:#5C6773>content-persuasive-logic-pass</color></size>" as content_persuasive_logic_pass #ECEFF1
+  rectangle "Objection Pass\n<size:10><color:#5C6773>content-persuasive-objection-pass</color></size>" as content_persuasive_objection_pass #ECEFF1
+  rectangle "Rhetoric Pass\n<size:10><color:#5C6773>content-persuasive-rhetoric-pass</color></size>" as content_persuasive_rhetoric_pass #ECEFF1
+  rectangle "Evidence Pass\n<size:10><color:#5C6773>content-persuasive-evidence-pass</color></size>" as content_persuasive_evidence_pass #ECEFF1
+  rectangle "Headline Framing\n<size:10><color:#5C6773>content-persuasive-headline</color></size>" as content_persuasive_headline #ECEFF1
+  rectangle "Call to Action\n<size:10><color:#5C6773>content-persuasive-call-to-action</color></size>" as content_persuasive_call_to_action #ECEFF1
+  rectangle "Memory Line\n<size:10><color:#5C6773>content-persuasive-memory-line</color></size>" as content_persuasive_memory_line #ECEFF1
+}
+
+content_persuasive_claim -[#5C6773]-> content_persuasive_stakes
+content_persuasive_audience -[#5C6773]-> content_persuasive_positioning
+content_persuasive_claim -[#5C6773]-> content_persuasive_thesis_narrowing
+content_persuasive_reasoning -[#5C6773]-> content_persuasive_reason_order
+content_persuasive_reasoning -[#5C6773]-> content_persuasive_evidence_basics
+content_persuasive_audience -[#5C6773]-> content_persuasive_tone_basics
+content_persuasive_stakes -[#5C6773]-> content_persuasive_action_target
+content_persuasive_stakes -[#5C6773]-> content_persuasive_opening_hook
+content_persuasive_reason_order -[#5C6773]-> content_persuasive_structure
+content_persuasive_structure -[#5C6773]-> content_persuasive_transitions
+content_persuasive_structure -[#5C6773]-> content_persuasive_paragraph_unity
+content_persuasive_action_target -[#5C6773]-> content_persuasive_conclusion
+content_persuasive_positioning -[#5C6773]-> content_persuasive_reframing
+content_persuasive_tone_basics -[#5C6773]-> content_persuasive_ethos
+content_persuasive_reasoning -[#5C6773]-> content_persuasive_logos
+content_persuasive_stakes -[#5C6773]-> content_persuasive_pathos
+content_persuasive_evidence_basics -[#5C6773]-> content_persuasive_example_selection
+content_persuasive_logos -[#5C6773]-> content_persuasive_analogy
+content_persuasive_pathos -[#5C6773]-> content_persuasive_story_use
+content_persuasive_ethos -[#5C6773]-> content_persuasive_sourced_authority
+content_persuasive_evidence_basics -[#5C6773]-> content_persuasive_sourced_authority
+content_persuasive_audience -[#5C6773]-> content_persuasive_objection_forecast
+content_persuasive_logos -[#5C6773]-> content_persuasive_objection_forecast
+content_persuasive_objection_forecast -[#5C6773]-> content_persuasive_counterargument
+content_persuasive_counterargument -[#5C6773]-> content_persuasive_concession
+content_persuasive_concession -[#5C6773]-> content_persuasive_tradeoffs
+content_persuasive_counterargument -[#5C6773]-> content_persuasive_fallacy_avoidance
+content_persuasive_pathos -[#5C6773]-> content_persuasive_moral_language
+content_persuasive_evidence_basics -[#5C6773]-> content_persuasive_data_use
+content_persuasive_sourced_authority -[#5C6773]-> content_persuasive_quote_restraint
+content_persuasive_example_selection -[#5C6773]-> content_persuasive_case_study
+content_persuasive_tradeoffs -[#5C6773]-> content_persuasive_comparison
+content_persuasive_stakes -[#5C6773]-> content_persuasive_consequence_modeling
+content_persuasive_comparison -[#5C6773]-> content_persuasive_consequence_modeling
+content_persuasive_tone_basics -[#5C6773]-> content_persuasive_plainstyle
+content_persuasive_plainstyle -[#5C6773]-> content_persuasive_cadence
+content_persuasive_cadence -[#5C6773]-> content_persuasive_repetition
+content_persuasive_repetition -[#5C6773]-> content_persuasive_slogan_restraint
+content_persuasive_plainstyle -[#5C6773]-> content_persuasive_verb_force
+content_persuasive_transitions -[#5C6773]-> content_persuasive_pivot_lines
+content_persuasive_audience -[#5C6773]-> content_persuasive_audience_segmentation
+content_persuasive_objection_forecast -[#5C6773]-> content_persuasive_audience_segmentation
+content_persuasive_positioning -[#5C6773]-> content_persuasive_medium_fit
+content_persuasive_action_target -[#5C6773]-> content_persuasive_campaign_thinking
+content_persuasive_medium_fit -[#5C6773]-> content_persuasive_campaign_thinking
+content_persuasive_moral_language -[#5C6773]-> content_persuasive_ethical_pressure
+content_persuasive_concession -[#5C6773]-> content_persuasive_ethical_pressure
+content_persuasive_structure -[#5C6773]-> content_persuasive_revision_triage
+content_persuasive_revision_triage -[#5C6773]-> content_persuasive_logic_pass
+content_persuasive_revision_triage -[#5C6773]-> content_persuasive_objection_pass
+content_persuasive_revision_triage -[#5C6773]-> content_persuasive_rhetoric_pass
+content_persuasive_revision_triage -[#5C6773]-> content_persuasive_evidence_pass
+content_persuasive_opening_hook -[#5C6773]-> content_persuasive_headline
+content_persuasive_conclusion -[#5C6773]-> content_persuasive_call_to_action
+content_persuasive_action_target -[#5C6773]-> content_persuasive_call_to_action
+content_persuasive_rhetoric_pass -[#5C6773]-> content_persuasive_memory_line
+content_persuasive_call_to_action -[#5C6773]-> content_persuasive_memory_line
+@enduml

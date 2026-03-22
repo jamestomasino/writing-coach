@@ -1,0 +1,172 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Fantasy Track\n<color:#5C6773>fantasy-fiction-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#FFF3E0> scene | stage |
+|<back:#FBE9E7> character | stage |
+|<back:#E8EAF6> world | stage |
+|<back:#F3E5F5> style | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (9)" #E8F5E9 {
+  rectangle "<b>Causal Clarity</b>\n<size:10><color:#5C6773>fantasy-story-causal-clarity</color></size>" as fantasy_story_causal_clarity <<seed>> #E8F5E9
+  rectangle "<b>Scene Architecture</b>\n<size:10><color:#5C6773>fantasy-story-scene-architecture</color></size>" as fantasy_story_scene_architecture <<seed>> #E8F5E9
+  rectangle "<b>Prose Precision</b>\n<size:10><color:#5C6773>fantasy-story-prose-precision</color></size>" as fantasy_story_prose_precision <<seed>> #E8F5E9
+  rectangle "Point of View Control\n<size:10><color:#5C6773>fantasy-story-point-of-view</color></size>" as fantasy_story_point_of_view #E8F5E9
+  rectangle "Tension Growth\n<size:10><color:#5C6773>fantasy-story-tension-growth</color></size>" as fantasy_story_tension_growth #E8F5E9
+  rectangle "Transition Flow\n<size:10><color:#5C6773>fantasy-story-transition-flow</color></size>" as fantasy_story_transition_flow #E8F5E9
+  rectangle "Subtext Basics\n<size:10><color:#5C6773>fantasy-story-subtext-basics</color></size>" as fantasy_story_subtext_basics #E8F5E9
+  rectangle "Emotional Compression\n<size:10><color:#5C6773>fantasy-story-emotional-compression</color></size>" as fantasy_story_emotional_compression #E8F5E9
+  rectangle "Description Focus\n<size:10><color:#5C6773>fantasy-story-description-focus</color></size>" as fantasy_story_description_focus #E8F5E9
+}
+
+package "scene (7)" #FFF3E0 {
+  rectangle "Conflict Design\n<size:10><color:#5C6773>fantasy-story-conflict-design</color></size>" as fantasy_story_conflict_design #FFF3E0
+  rectangle "Reversal Construction\n<size:10><color:#5C6773>fantasy-story-reversal</color></size>" as fantasy_story_reversal #FFF3E0
+  rectangle "Spatial Legibility\n<size:10><color:#5C6773>fantasy-story-spatial-legibility</color></size>" as fantasy_story_spatial_legibility #FFF3E0
+  rectangle "Status Dynamics\n<size:10><color:#5C6773>fantasy-story-status-dynamics</color></size>" as fantasy_story_status_dynamics #FFF3E0
+  rectangle "Silence and Omission\n<size:10><color:#5C6773>fantasy-story-silence</color></size>" as fantasy_story_silence #FFF3E0
+  rectangle "Entrance and Exit Design\n<size:10><color:#5C6773>fantasy-story-entrance-exit</color></size>" as fantasy_story_entrance_exit #FFF3E0
+  rectangle "Object Handling\n<size:10><color:#5C6773>fantasy-story-object-handling</color></size>" as fantasy_story_object_handling #FFF3E0
+}
+
+package "character (8)" #FBE9E7 {
+  rectangle "Character Goal\n<size:10><color:#5C6773>fantasy-story-character-goal</color></size>" as fantasy_story_character_goal #FBE9E7
+  rectangle "Character Need\n<size:10><color:#5C6773>fantasy-story-character-need</color></size>" as fantasy_story_character_need #FBE9E7
+  rectangle "Character Contradiction\n<size:10><color:#5C6773>fantasy-story-contradiction</color></size>" as fantasy_story_contradiction #FBE9E7
+  rectangle "Voice Difference\n<size:10><color:#5C6773>fantasy-story-voice-difference</color></size>" as fantasy_story_voice_difference #FBE9E7
+  rectangle "Backstory Restraint\n<size:10><color:#5C6773>fantasy-story-backstory-restraint</color></size>" as fantasy_story_backstory_restraint #FBE9E7
+  rectangle "Relationship Pressure\n<size:10><color:#5C6773>fantasy-story-relationship-pressure</color></size>" as fantasy_story_relationship_pressure #FBE9E7
+  rectangle "Wound Pattern\n<size:10><color:#5C6773>fantasy-story-wound-pattern</color></size>" as fantasy_story_wound_pattern #FBE9E7
+  rectangle "Change Arc\n<size:10><color:#5C6773>fantasy-story-change-arc</color></size>" as fantasy_story_change_arc #FBE9E7
+}
+
+package "world (6)" #E8EAF6 {
+  rectangle "Setting Pressure\n<size:10><color:#5C6773>fantasy-story-setting-pressure</color></size>" as fantasy_story_setting_pressure #E8EAF6
+  rectangle "Worldbuilding Economy\n<size:10><color:#5C6773>fantasy-story-worldbuilding-economy</color></size>" as fantasy_story_worldbuilding_economy #E8EAF6
+  rectangle "Social Structure\n<size:10><color:#5C6773>fantasy-story-social-structure</color></size>" as fantasy_story_social_structure #E8EAF6
+  rectangle "History Pressure\n<size:10><color:#5C6773>fantasy-story-history-pressure</color></size>" as fantasy_story_history_pressure #E8EAF6
+  rectangle "Sensory Balance\n<size:10><color:#5C6773>fantasy-story-sensory-balance</color></size>" as fantasy_story_sensory_balance #E8EAF6
+  rectangle "Atmosphere Control\n<size:10><color:#5C6773>fantasy-story-atmosphere</color></size>" as fantasy_story_atmosphere #E8EAF6
+}
+
+package "style (7)" #F3E5F5 {
+  rectangle "Image Freshness\n<size:10><color:#5C6773>fantasy-story-image-freshness</color></size>" as fantasy_story_image_freshness #F3E5F5
+  rectangle "Metaphor Restraint\n<size:10><color:#5C6773>fantasy-story-metaphor-restraint</color></size>" as fantasy_story_metaphor_restraint #F3E5F5
+  rectangle "Rhythm Control\n<size:10><color:#5C6773>fantasy-story-rhythm-control</color></size>" as fantasy_story_rhythm_control #F3E5F5
+  rectangle "Paragraph Momentum\n<size:10><color:#5C6773>fantasy-story-paragraph-momentum</color></size>" as fantasy_story_paragraph_momentum #F3E5F5
+  rectangle "Exposition Control\n<size:10><color:#5C6773>fantasy-story-exposition-control</color></size>" as fantasy_story_exposition_control #F3E5F5
+  rectangle "Dialogue Under Strain\n<size:10><color:#5C6773>fantasy-story-dialogue-under-strain</color></size>" as fantasy_story_dialogue_under_strain #F3E5F5
+  rectangle "Motif Weaving\n<size:10><color:#5C6773>fantasy-story-motif</color></size>" as fantasy_story_motif #F3E5F5
+}
+
+package "structure (6)" #E0F2F1 {
+  rectangle "Theme Through Pressure\n<size:10><color:#5C6773>fantasy-story-theme-pressure</color></size>" as fantasy_story_theme_pressure #E0F2F1
+  rectangle "Plot Escalation\n<size:10><color:#5C6773>fantasy-story-plot-escalation</color></size>" as fantasy_story_plot_escalation #E0F2F1
+  rectangle "Subplot Use\n<size:10><color:#5C6773>fantasy-story-subplot-use</color></size>" as fantasy_story_subplot_use #E0F2F1
+  rectangle "Middle Management\n<size:10><color:#5C6773>fantasy-story-middle-management</color></size>" as fantasy_story_middle_management #E0F2F1
+  rectangle "Climax Construction\n<size:10><color:#5C6773>fantasy-story-climax-construction</color></size>" as fantasy_story_climax_construction #E0F2F1
+  rectangle "Ending Payoff\n<size:10><color:#5C6773>fantasy-story-ending-payoff</color></size>" as fantasy_story_ending_payoff #E0F2F1
+}
+
+package "revision (9)" #ECEFF1 {
+  rectangle "Revision Triage\n<size:10><color:#5C6773>fantasy-story-revision-triage</color></size>" as fantasy_story_revision_triage #ECEFF1
+  rectangle "Scene Cutting\n<size:10><color:#5C6773>fantasy-story-scene-cutting</color></size>" as fantasy_story_scene_cutting #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>fantasy-story-clarity-pass</color></size>" as fantasy_story_clarity_pass #ECEFF1
+  rectangle "Language Pass\n<size:10><color:#5C6773>fantasy-story-language-pass</color></size>" as fantasy_story_language_pass #ECEFF1
+  rectangle "Reader Awareness\n<size:10><color:#5C6773>fantasy-story-beta-awareness</color></size>" as fantasy_story_beta_awareness #ECEFF1
+  rectangle "Opening Grip\n<size:10><color:#5C6773>fantasy-story-opening-grip</color></size>" as fantasy_story_opening_grip #ECEFF1
+  rectangle "Scene Sequencing\n<size:10><color:#5C6773>fantasy-story-scene-sequencing</color></size>" as fantasy_story_scene_sequencing #ECEFF1
+  rectangle "Emotional Arc\n<size:10><color:#5C6773>fantasy-story-emotional-arc</color></size>" as fantasy_story_emotional_arc #ECEFF1
+  rectangle "Final Resonance\n<size:10><color:#5C6773>fantasy-story-final-resonance</color></size>" as fantasy_story_final_resonance #ECEFF1
+}
+
+fantasy_story_causal_clarity -[#5C6773]-> fantasy_story_point_of_view
+fantasy_story_scene_architecture -[#5C6773]-> fantasy_story_tension_growth
+fantasy_story_scene_architecture -[#5C6773]-> fantasy_story_transition_flow
+fantasy_story_prose_precision -[#5C6773]-> fantasy_story_subtext_basics
+fantasy_story_causal_clarity -[#5C6773]-> fantasy_story_emotional_compression
+fantasy_story_prose_precision -[#5C6773]-> fantasy_story_description_focus
+fantasy_story_tension_growth -[#5C6773]-> fantasy_story_conflict_design
+fantasy_story_conflict_design -[#5C6773]-> fantasy_story_reversal
+fantasy_story_scene_architecture -[#5C6773]-> fantasy_story_spatial_legibility
+fantasy_story_conflict_design -[#5C6773]-> fantasy_story_status_dynamics
+fantasy_story_subtext_basics -[#5C6773]-> fantasy_story_silence
+fantasy_story_reversal -[#5C6773]-> fantasy_story_entrance_exit
+fantasy_story_spatial_legibility -[#5C6773]-> fantasy_story_object_handling
+fantasy_story_causal_clarity -[#5C6773]-> fantasy_story_character_goal
+fantasy_story_character_goal -[#5C6773]-> fantasy_story_character_need
+fantasy_story_character_need -[#5C6773]-> fantasy_story_contradiction
+fantasy_story_subtext_basics -[#5C6773]-> fantasy_story_voice_difference
+fantasy_story_point_of_view -[#5C6773]-> fantasy_story_backstory_restraint
+fantasy_story_character_need -[#5C6773]-> fantasy_story_relationship_pressure
+fantasy_story_emotional_compression -[#5C6773]-> fantasy_story_wound_pattern
+fantasy_story_contradiction -[#5C6773]-> fantasy_story_change_arc
+fantasy_story_relationship_pressure -[#5C6773]-> fantasy_story_change_arc
+fantasy_story_description_focus -[#5C6773]-> fantasy_story_setting_pressure
+fantasy_story_setting_pressure -[#5C6773]-> fantasy_story_worldbuilding_economy
+fantasy_story_worldbuilding_economy -[#5C6773]-> fantasy_story_social_structure
+fantasy_story_worldbuilding_economy -[#5C6773]-> fantasy_story_history_pressure
+fantasy_story_description_focus -[#5C6773]-> fantasy_story_sensory_balance
+fantasy_story_sensory_balance -[#5C6773]-> fantasy_story_atmosphere
+fantasy_story_description_focus -[#5C6773]-> fantasy_story_image_freshness
+fantasy_story_prose_precision -[#5C6773]-> fantasy_story_metaphor_restraint
+fantasy_story_prose_precision -[#5C6773]-> fantasy_story_rhythm_control
+fantasy_story_rhythm_control -[#5C6773]-> fantasy_story_paragraph_momentum
+fantasy_story_backstory_restraint -[#5C6773]-> fantasy_story_exposition_control
+fantasy_story_subtext_basics -[#5C6773]-> fantasy_story_dialogue_under_strain
+fantasy_story_status_dynamics -[#5C6773]-> fantasy_story_dialogue_under_strain
+fantasy_story_image_freshness -[#5C6773]-> fantasy_story_motif
+fantasy_story_change_arc -[#5C6773]-> fantasy_story_theme_pressure
+fantasy_story_worldbuilding_economy -[#5C6773]-> fantasy_story_theme_pressure
+fantasy_story_change_arc -[#5C6773]-> fantasy_story_plot_escalation
+fantasy_story_reversal -[#5C6773]-> fantasy_story_plot_escalation
+fantasy_story_plot_escalation -[#5C6773]-> fantasy_story_subplot_use
+fantasy_story_plot_escalation -[#5C6773]-> fantasy_story_middle_management
+fantasy_story_middle_management -[#5C6773]-> fantasy_story_climax_construction
+fantasy_story_theme_pressure -[#5C6773]-> fantasy_story_climax_construction
+fantasy_story_climax_construction -[#5C6773]-> fantasy_story_ending_payoff
+fantasy_story_climax_construction -[#5C6773]-> fantasy_story_revision_triage
+fantasy_story_revision_triage -[#5C6773]-> fantasy_story_scene_cutting
+fantasy_story_revision_triage -[#5C6773]-> fantasy_story_clarity_pass
+fantasy_story_rhythm_control -[#5C6773]-> fantasy_story_language_pass
+fantasy_story_revision_triage -[#5C6773]-> fantasy_story_language_pass
+fantasy_story_clarity_pass -[#5C6773]-> fantasy_story_beta_awareness
+fantasy_story_character_goal -[#5C6773]-> fantasy_story_opening_grip
+fantasy_story_setting_pressure -[#5C6773]-> fantasy_story_opening_grip
+fantasy_story_transition_flow -[#5C6773]-> fantasy_story_scene_sequencing
+fantasy_story_middle_management -[#5C6773]-> fantasy_story_scene_sequencing
+fantasy_story_emotional_compression -[#5C6773]-> fantasy_story_emotional_arc
+fantasy_story_change_arc -[#5C6773]-> fantasy_story_emotional_arc
+fantasy_story_ending_payoff -[#5C6773]-> fantasy_story_final_resonance
+fantasy_story_motif -[#5C6773]-> fantasy_story_final_resonance
+@enduml

@@ -238,7 +238,7 @@ func ensureReviewTGOs(active []domain.TGO) []domain.TGO {
 		return active
 	}
 	var out []domain.TGO
-	for _, code := range []string{"causal-clarity", "scene-architecture", "prose-precision"} {
+	for _, code := range []string{"story-causal-clarity", "story-scene-architecture", "story-prose-precision"} {
 		if tgo, ok := domain.TGOByCode(code); ok {
 			out = append(out, tgo)
 		}
@@ -487,18 +487,16 @@ func shortQuote(sentence string) string {
 
 func annotationCategoryForTGO(code string) string {
 	switch code {
-	case "causal-clarity", "claim-clarity", "objective-clarity", "sentence-clarity":
+	case "story-causal-clarity", "claim-clarity", "objective-clarity", "sentence-clarity":
 		return "clarity"
-	case "scene-architecture", "paragraph-control", "structural-signposting", "narrative-sequencing":
+	case "story-scene-architecture", "paragraph-control", "structural-signposting", "narrative-sequencing":
 		return "structure"
-	case "mythic-register", "tone-calibration", "authority-and-voice":
+	case "tone-calibration", "authority-and-voice":
 		return "tone"
 	case "image-freshness", "descriptive-specificity", "word-choice":
 		return "imagery"
 	case "dialogue-under-strain", "dialogue-basics":
 		return "dialogue"
-	case "symbolic-discipline":
-		return "symbolism"
 	default:
 		return "revision"
 	}

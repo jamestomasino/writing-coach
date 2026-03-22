@@ -1,0 +1,166 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Marketing Writing Track\n<color:#5C6773>marketing-writing-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#F1F8E9> insight | stage |
+|<back:#E8F5E9> evidence | stage |
+|<back:#FCE4EC> voice | stage |
+|<back:#FFFDE7> audience | stage |
+|<back:#EDE7F6> advanced | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (8)" #E8F5E9 {
+  rectangle "<b>Claim Clarity</b>\n<size:10><color:#5C6773>marketing-claim-clarity</color></size>" as marketing_claim_clarity <<seed>> #E8F5E9
+  rectangle "<b>Audience Alignment</b>\n<size:10><color:#5C6773>marketing-audience-alignment</color></size>" as marketing_audience_alignment <<seed>> #E8F5E9
+  rectangle "<b>Sentence Economy</b>\n<size:10><color:#5C6773>marketing-sentence-economy</color></size>" as marketing_sentence_economy <<seed>> #E8F5E9
+  rectangle "Problem Framing\n<size:10><color:#5C6773>marketing-problem-framing</color></size>" as marketing_problem_framing #E8F5E9
+  rectangle "Stakes Articulation\n<size:10><color:#5C6773>marketing-stakes-articulation</color></size>" as marketing_stakes_articulation #E8F5E9
+  rectangle "Reader Pain Mapping\n<size:10><color:#5C6773>marketing-reader-pain-mapping</color></size>" as marketing_reader_pain_mapping #E8F5E9
+  rectangle "Terminology Discipline\n<size:10><color:#5C6773>marketing-terminology-discipline</color></size>" as marketing_terminology_discipline #E8F5E9
+  rectangle "Paragraph Focus\n<size:10><color:#5C6773>marketing-paragraph-focus</color></size>" as marketing_paragraph_focus #E8F5E9
+}
+
+package "structure (7)" #E0F2F1 {
+  rectangle "Structural Signposting\n<size:10><color:#5C6773>marketing-structural-signposting</color></size>" as marketing_structural_signposting #E0F2F1
+  rectangle "Opening Hook\n<size:10><color:#5C6773>marketing-opening-hook</color></size>" as marketing_opening_hook #E0F2F1
+  rectangle "Thesis Placement\n<size:10><color:#5C6773>marketing-thesis-placement</color></size>" as marketing_thesis_placement #E0F2F1
+  rectangle "Section Ordering\n<size:10><color:#5C6773>marketing-section-ordering</color></size>" as marketing_section_ordering #E0F2F1
+  rectangle "Bridge Sentences\n<size:10><color:#5C6773>marketing-bridge-sentences</color></size>" as marketing_bridge_sentences #E0F2F1
+  rectangle "Scaffolding Load\n<size:10><color:#5C6773>marketing-scaffolding-load</color></size>" as marketing_scaffolding_load #E0F2F1
+  rectangle "Ending That Lands\n<size:10><color:#5C6773>marketing-ending-that-lands</color></size>" as marketing_ending_that_lands #E0F2F1
+}
+
+package "insight (7)" #F1F8E9 {
+  rectangle "Insight Density\n<size:10><color:#5C6773>marketing-insight-density</color></size>" as marketing_insight_density #F1F8E9
+  rectangle "Novel Distinction\n<size:10><color:#5C6773>marketing-novel-distinction</color></size>" as marketing_novel_distinction #F1F8E9
+  rectangle "Conceptual Compression\n<size:10><color:#5C6773>marketing-conceptual-compression</color></size>" as marketing_conceptual_compression #F1F8E9
+  rectangle "Counterargument Handling\n<size:10><color:#5C6773>marketing-counterargument-handling</color></size>" as marketing_counterargument_handling #F1F8E9
+  rectangle "Analogy Selection\n<size:10><color:#5C6773>marketing-analogy-selection</color></size>" as marketing_analogy_selection #F1F8E9
+  rectangle "Framework Construction\n<size:10><color:#5C6773>marketing-framework-construction</color></size>" as marketing_framework_construction #F1F8E9
+  rectangle "Implication Expansion\n<size:10><color:#5C6773>marketing-implication-expansion</color></size>" as marketing_implication_expansion #F1F8E9
+}
+
+package "evidence (7)" #E8F5E9 {
+  rectangle "Evidence Integration\n<size:10><color:#5C6773>marketing-evidence-integration</color></size>" as marketing_evidence_integration #E8F5E9
+  rectangle "Example Selection\n<size:10><color:#5C6773>marketing-example-selection</color></size>" as marketing_example_selection #E8F5E9
+  rectangle "Quote Restraint\n<size:10><color:#5C6773>marketing-quote-restraint</color></size>" as marketing_quote_restraint #E8F5E9
+  rectangle "Data Interpretation\n<size:10><color:#5C6773>marketing-data-interpretation</color></size>" as marketing_data_interpretation #E8F5E9
+  rectangle "Case Study Use\n<size:10><color:#5C6773>marketing-case-study-use</color></size>" as marketing_case_study_use #E8F5E9
+  rectangle "Evidence Proportion\n<size:10><color:#5C6773>marketing-evidence-proportion</color></size>" as marketing_evidence_proportion #E8F5E9
+  rectangle "Source Framing\n<size:10><color:#5C6773>marketing-source-framing</color></size>" as marketing_source_framing #E8F5E9
+}
+
+package "voice (7)" #FCE4EC {
+  rectangle "Authority and Voice\n<size:10><color:#5C6773>marketing-authority-and-voice</color></size>" as marketing_authority_and_voice #FCE4EC
+  rectangle "Tone Calibration\n<size:10><color:#5C6773>marketing-tone-calibration-thought</color></size>" as marketing_tone_calibration_thought #FCE4EC
+  rectangle "Sentence Pressure\n<size:10><color:#5C6773>marketing-sentence-pressure</color></size>" as marketing_sentence_pressure #FCE4EC
+  rectangle "Cadence Variety\n<size:10><color:#5C6773>marketing-cadence-variety</color></size>" as marketing_cadence_variety #FCE4EC
+  rectangle "Verb-Forward Style\n<size:10><color:#5C6773>marketing-verb-forward-style</color></size>" as marketing_verb_forward_style #FCE4EC
+  rectangle "Opening That Frames\n<size:10><color:#5C6773>marketing-opening-that-frames</color></size>" as marketing_opening_that_frames #FCE4EC
+  rectangle "Ending That Opens\n<size:10><color:#5C6773>marketing-ending-that-opens</color></size>" as marketing_ending_that_opens #FCE4EC
+}
+
+package "audience (6)" #FFFDE7 {
+  rectangle "Platform Fit\n<size:10><color:#5C6773>marketing-platform-fit</color></size>" as marketing_platform_fit #FFFDE7
+  rectangle "Reader Objection Forecasting\n<size:10><color:#5C6773>marketing-reader-objection-forecasting</color></size>" as marketing_reader_objection_forecasting #FFFDE7
+  rectangle "Trust-Building Specificity\n<size:10><color:#5C6773>marketing-trust-building-specificity</color></size>" as marketing_trust_building_specificity #FFFDE7
+  rectangle "Actionable Insight\n<size:10><color:#5C6773>marketing-actionable-insight</color></size>" as marketing_actionable_insight #FFFDE7
+  rectangle "Audience Segmentation\n<size:10><color:#5C6773>marketing-audience-segmentation</color></size>" as marketing_audience_segmentation #FFFDE7
+  rectangle "Series Thinking\n<size:10><color:#5C6773>marketing-series-thinking</color></size>" as marketing_series_thinking #FFFDE7
+}
+
+package "advanced (4)" #EDE7F6 {
+  rectangle "Argument Arc\n<size:10><color:#5C6773>marketing-argument-arc</color></size>" as marketing_argument_arc #EDE7F6
+  rectangle "Strategic Repetition\n<size:10><color:#5C6773>marketing-strategic-repetition</color></size>" as marketing_strategic_repetition #EDE7F6
+  rectangle "Thought Contrast\n<size:10><color:#5C6773>marketing-thought-contrast</color></size>" as marketing_thought_contrast #EDE7F6
+  rectangle "Concept Bridging\n<size:10><color:#5C6773>marketing-concept-bridging</color></size>" as marketing_concept_bridging #EDE7F6
+}
+
+package "revision (6)" #ECEFF1 {
+  rectangle "Revision Triage\n<size:10><color:#5C6773>marketing-revision-triage-thought</color></size>" as marketing_revision_triage_thought #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>marketing-clarity-pass-thought</color></size>" as marketing_clarity_pass_thought #ECEFF1
+  rectangle "Evidence Pass\n<size:10><color:#5C6773>marketing-evidence-pass-thought</color></size>" as marketing_evidence_pass_thought #ECEFF1
+  rectangle "Voice Pass\n<size:10><color:#5C6773>marketing-voice-pass-thought</color></size>" as marketing_voice_pass_thought #ECEFF1
+  rectangle "Headline Framing\n<size:10><color:#5C6773>marketing-headline-framing</color></size>" as marketing_headline_framing #ECEFF1
+  rectangle "Portable Takeaway\n<size:10><color:#5C6773>marketing-portable-takeaway</color></size>" as marketing_portable_takeaway #ECEFF1
+}
+
+marketing_claim_clarity -[#5C6773]-> marketing_problem_framing
+marketing_problem_framing -[#5C6773]-> marketing_stakes_articulation
+marketing_audience_alignment -[#5C6773]-> marketing_reader_pain_mapping
+marketing_claim_clarity -[#5C6773]-> marketing_terminology_discipline
+marketing_sentence_economy -[#5C6773]-> marketing_paragraph_focus
+marketing_problem_framing -[#5C6773]-> marketing_structural_signposting
+marketing_reader_pain_mapping -[#5C6773]-> marketing_opening_hook
+marketing_stakes_articulation -[#5C6773]-> marketing_thesis_placement
+marketing_structural_signposting -[#5C6773]-> marketing_section_ordering
+marketing_section_ordering -[#5C6773]-> marketing_bridge_sentences
+marketing_paragraph_focus -[#5C6773]-> marketing_scaffolding_load
+marketing_thesis_placement -[#5C6773]-> marketing_ending_that_lands
+marketing_bridge_sentences -[#5C6773]-> marketing_insight_density
+marketing_insight_density -[#5C6773]-> marketing_novel_distinction
+marketing_novel_distinction -[#5C6773]-> marketing_conceptual_compression
+marketing_thesis_placement -[#5C6773]-> marketing_counterargument_handling
+marketing_conceptual_compression -[#5C6773]-> marketing_analogy_selection
+marketing_analogy_selection -[#5C6773]-> marketing_framework_construction
+marketing_framework_construction -[#5C6773]-> marketing_implication_expansion
+marketing_counterargument_handling -[#5C6773]-> marketing_evidence_integration
+marketing_evidence_integration -[#5C6773]-> marketing_example_selection
+marketing_example_selection -[#5C6773]-> marketing_quote_restraint
+marketing_quote_restraint -[#5C6773]-> marketing_data_interpretation
+marketing_data_interpretation -[#5C6773]-> marketing_case_study_use
+marketing_case_study_use -[#5C6773]-> marketing_evidence_proportion
+marketing_evidence_proportion -[#5C6773]-> marketing_source_framing
+marketing_opening_hook -[#5C6773]-> marketing_authority_and_voice
+marketing_authority_and_voice -[#5C6773]-> marketing_tone_calibration_thought
+marketing_paragraph_focus -[#5C6773]-> marketing_sentence_pressure
+marketing_sentence_pressure -[#5C6773]-> marketing_cadence_variety
+marketing_cadence_variety -[#5C6773]-> marketing_verb_forward_style
+marketing_tone_calibration_thought -[#5C6773]-> marketing_opening_that_frames
+marketing_ending_that_lands -[#5C6773]-> marketing_ending_that_opens
+marketing_tone_calibration_thought -[#5C6773]-> marketing_platform_fit
+marketing_counterargument_handling -[#5C6773]-> marketing_reader_objection_forecasting
+marketing_source_framing -[#5C6773]-> marketing_trust_building_specificity
+marketing_implication_expansion -[#5C6773]-> marketing_actionable_insight
+marketing_platform_fit -[#5C6773]-> marketing_audience_segmentation
+marketing_audience_segmentation -[#5C6773]-> marketing_series_thinking
+marketing_series_thinking -[#5C6773]-> marketing_argument_arc
+marketing_argument_arc -[#5C6773]-> marketing_strategic_repetition
+marketing_strategic_repetition -[#5C6773]-> marketing_thought_contrast
+marketing_thought_contrast -[#5C6773]-> marketing_concept_bridging
+marketing_concept_bridging -[#5C6773]-> marketing_revision_triage_thought
+marketing_revision_triage_thought -[#5C6773]-> marketing_clarity_pass_thought
+marketing_clarity_pass_thought -[#5C6773]-> marketing_evidence_pass_thought
+marketing_evidence_pass_thought -[#5C6773]-> marketing_voice_pass_thought
+marketing_opening_that_frames -[#5C6773]-> marketing_headline_framing
+marketing_voice_pass_thought -[#5C6773]-> marketing_portable_takeaway
+@enduml

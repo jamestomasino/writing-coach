@@ -293,7 +293,7 @@ func (s Server) logAIProviderEvent(event, provider string, userID int64, fields 
 	for _, key := range keys {
 		parts = append(parts, fmt.Sprintf("%s=%v", key, fields[key]))
 	}
-	log.Printf(strings.Join(parts, " "))
+	log.Print(strings.Join(parts, " "))
 
 	if s.Store == nil || userID <= 0 {
 		return

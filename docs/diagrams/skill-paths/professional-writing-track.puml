@@ -1,0 +1,166 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Professional Writing Track\n<color:#5C6773>professional-writing-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#FDE2E4> tone | stage |
+|<back:#E0F7FA> forms | stage |
+|<back:#E6FCF5> analysis | stage |
+|<back:#FFF1E6> scanning | stage |
+|<back:#EDE7F6> advanced | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (9)" #E8F5E9 {
+  rectangle "<b>Objective Clarity</b>\n<size:10><color:#5C6773>objective-clarity</color></size>" as objective_clarity <<seed>> #E8F5E9
+  rectangle "<b>Audience Alignment</b>\n<size:10><color:#5C6773>professional-audience-alignment</color></size>" as professional_audience_alignment <<seed>> #E8F5E9
+  rectangle "<b>Sentence Economy</b>\n<size:10><color:#5C6773>professional-sentence-economy</color></size>" as professional_sentence_economy <<seed>> #E8F5E9
+  rectangle "Context First\n<size:10><color:#5C6773>context-first</color></size>" as context_first #E8F5E9
+  rectangle "Ask Visibility\n<size:10><color:#5C6773>ask-visibility</color></size>" as ask_visibility #E8F5E9
+  rectangle "Deadline Clarity\n<size:10><color:#5C6773>deadline-clarity</color></size>" as deadline_clarity #E8F5E9
+  rectangle "Ownership Clarity\n<size:10><color:#5C6773>ownership-clarity</color></size>" as ownership_clarity #E8F5E9
+  rectangle "Terminology Consistency\n<size:10><color:#5C6773>terminology-consistency</color></size>" as terminology_consistency #E8F5E9
+  rectangle "Reader Load Control\n<size:10><color:#5C6773>reader-load-control</color></size>" as reader_load_control #E8F5E9
+}
+
+package "structure (8)" #E0F2F1 {
+  rectangle "Structural Signposting\n<size:10><color:#5C6773>professional-structural-signposting</color></size>" as professional_structural_signposting #E0F2F1
+  rectangle "Front-Loaded Summary\n<size:10><color:#5C6773>front-loaded-summary</color></size>" as front_loaded_summary #E0F2F1
+  rectangle "Bullet Discipline\n<size:10><color:#5C6773>bullet-discipline</color></size>" as bullet_discipline #E0F2F1
+  rectangle "Section Order\n<size:10><color:#5C6773>section-order</color></size>" as section_order #E0F2F1
+  rectangle "Bridge Lines\n<size:10><color:#5C6773>bridge-lines</color></size>" as bridge_lines #E0F2F1
+  rectangle "Summary and Detail Balance\n<size:10><color:#5C6773>summary-vs-detail-balance</color></size>" as summary_vs_detail_balance #E0F2F1
+  rectangle "Document Openings\n<size:10><color:#5C6773>document-openings</color></size>" as document_openings #E0F2F1
+  rectangle "Document Closings\n<size:10><color:#5C6773>document-closings</color></size>" as document_closings #E0F2F1
+}
+
+package "tone (7)" #FDE2E4 {
+  rectangle "Tone Calibration\n<size:10><color:#5C6773>professional-tone-calibration</color></size>" as professional_tone_calibration #FDE2E4
+  rectangle "Directness with Respect\n<size:10><color:#5C6773>directness-with-respect</color></size>" as directness_with_respect #FDE2E4
+  rectangle "Confidence Without Overclaiming\n<size:10><color:#5C6773>confidence-without-overclaiming</color></size>" as confidence_without_overclaiming #FDE2E4
+  rectangle "Bad News Delivery\n<size:10><color:#5C6773>bad-news-delivery</color></size>" as bad_news_delivery #FDE2E4
+  rectangle "Stakeholder Sensitivity\n<size:10><color:#5C6773>stakeholder-sensitivity</color></size>" as stakeholder_sensitivity #FDE2E4
+  rectangle "Decision Language\n<size:10><color:#5C6773>decision-language</color></size>" as decision_language #FDE2E4
+  rectangle "Active Voice Control\n<size:10><color:#5C6773>active-voice-control</color></size>" as active_voice_control #FDE2E4
+}
+
+package "forms (5)" #E0F7FA {
+  rectangle "Meeting Note Clarity\n<size:10><color:#5C6773>meeting-note-clarity</color></size>" as meeting_note_clarity #E0F7FA
+  rectangle "Status Update Control\n<size:10><color:#5C6773>status-update-control</color></size>" as status_update_control #E0F7FA
+  rectangle "Proposal Structure\n<size:10><color:#5C6773>proposal-structure</color></size>" as proposal_structure #E0F7FA
+  rectangle "Email Thread Discipline\n<size:10><color:#5C6773>email-thread-discipline</color></size>" as email_thread_discipline #E0F7FA
+  rectangle "Spec Clarity\n<size:10><color:#5C6773>spec-clarity</color></size>" as spec_clarity #E0F7FA
+}
+
+package "analysis (7)" #E6FCF5 {
+  rectangle "Supporting Rationale\n<size:10><color:#5C6773>supporting-rationale</color></size>" as supporting_rationale #E6FCF5
+  rectangle "Evidence Integration\n<size:10><color:#5C6773>professional-evidence-integration</color></size>" as professional_evidence_integration #E6FCF5
+  rectangle "Risk Articulation\n<size:10><color:#5C6773>risk-articulation</color></size>" as risk_articulation #E6FCF5
+  rectangle "Assumption Marking\n<size:10><color:#5C6773>assumption-marking</color></size>" as assumption_marking #E6FCF5
+  rectangle "Decision Framing\n<size:10><color:#5C6773>decision-framing</color></size>" as decision_framing #E6FCF5
+  rectangle "Tradeoff Language\n<size:10><color:#5C6773>tradeoff-language</color></size>" as tradeoff_language #E6FCF5
+  rectangle "Quantification Basics\n<size:10><color:#5C6773>quantification-basics</color></size>" as quantification_basics #E6FCF5
+}
+
+package "scanning (5)" #FFF1E6 {
+  rectangle "Scannability\n<size:10><color:#5C6773>professional-scannability</color></size>" as professional_scannability #FFF1E6
+  rectangle "Heading Discipline\n<size:10><color:#5C6773>heading-discipline</color></size>" as heading_discipline #FFF1E6
+  rectangle "Visual Grouping\n<size:10><color:#5C6773>visual-grouping</color></size>" as visual_grouping #FFF1E6
+  rectangle "Table Use\n<size:10><color:#5C6773>table-use</color></size>" as table_use #FFF1E6
+  rectangle "Annotation Restraint\n<size:10><color:#5C6773>annotation-restraint</color></size>" as annotation_restraint #FFF1E6
+}
+
+package "advanced (5)" #EDE7F6 {
+  rectangle "Executive Briefing Style\n<size:10><color:#5C6773>executive-briefing-style</color></size>" as executive_briefing_style #EDE7F6
+  rectangle "Cross-Functional Translation\n<size:10><color:#5C6773>cross-functional-translation</color></size>" as cross_functional_translation #EDE7F6
+  rectangle "Persuasion with Restraint\n<size:10><color:#5C6773>persuasion-with-restraint</color></size>" as persuasion_with_restraint #EDE7F6
+  rectangle "Conflict De-Escalation\n<size:10><color:#5C6773>conflict-de-escalation</color></size>" as conflict_de_escalation #EDE7F6
+  rectangle "Alignment Language\n<size:10><color:#5C6773>alignment-language</color></size>" as alignment_language #EDE7F6
+}
+
+package "revision (6)" #ECEFF1 {
+  rectangle "Revision Triage\n<size:10><color:#5C6773>revision-triage-professional</color></size>" as revision_triage_professional #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>clarity-pass-professional</color></size>" as clarity_pass_professional #ECEFF1
+  rectangle "Tone Pass\n<size:10><color:#5C6773>tone-pass-professional</color></size>" as tone_pass_professional #ECEFF1
+  rectangle "Format Pass\n<size:10><color:#5C6773>format-pass-professional</color></size>" as format_pass_professional #ECEFF1
+  rectangle "Proof of Action\n<size:10><color:#5C6773>proof-of-action</color></size>" as proof_of_action #ECEFF1
+  rectangle "Reusable Template Thinking\n<size:10><color:#5C6773>reusable-template-thinking</color></size>" as reusable_template_thinking #ECEFF1
+}
+
+objective_clarity -[#5C6773]-> context_first
+objective_clarity -[#5C6773]-> ask_visibility
+ask_visibility -[#5C6773]-> deadline_clarity
+ask_visibility -[#5C6773]-> ownership_clarity
+objective_clarity -[#5C6773]-> terminology_consistency
+professional_sentence_economy -[#5C6773]-> reader_load_control
+objective_clarity -[#5C6773]-> professional_structural_signposting
+professional_structural_signposting -[#5C6773]-> front_loaded_summary
+front_loaded_summary -[#5C6773]-> bullet_discipline
+front_loaded_summary -[#5C6773]-> section_order
+section_order -[#5C6773]-> bridge_lines
+bridge_lines -[#5C6773]-> summary_vs_detail_balance
+front_loaded_summary -[#5C6773]-> document_openings
+ownership_clarity -[#5C6773]-> document_closings
+professional_audience_alignment -[#5C6773]-> professional_tone_calibration
+professional_tone_calibration -[#5C6773]-> directness_with_respect
+directness_with_respect -[#5C6773]-> confidence_without_overclaiming
+directness_with_respect -[#5C6773]-> bad_news_delivery
+professional_tone_calibration -[#5C6773]-> stakeholder_sensitivity
+ask_visibility -[#5C6773]-> decision_language
+professional_sentence_economy -[#5C6773]-> active_voice_control
+document_closings -[#5C6773]-> meeting_note_clarity
+meeting_note_clarity -[#5C6773]-> status_update_control
+decision_language -[#5C6773]-> proposal_structure
+bullet_discipline -[#5C6773]-> email_thread_discipline
+terminology_consistency -[#5C6773]-> spec_clarity
+ask_visibility -[#5C6773]-> supporting_rationale
+supporting_rationale -[#5C6773]-> professional_evidence_integration
+confidence_without_overclaiming -[#5C6773]-> risk_articulation
+risk_articulation -[#5C6773]-> assumption_marking
+supporting_rationale -[#5C6773]-> decision_framing
+decision_framing -[#5C6773]-> tradeoff_language
+professional_evidence_integration -[#5C6773]-> quantification_basics
+summary_vs_detail_balance -[#5C6773]-> professional_scannability
+professional_scannability -[#5C6773]-> heading_discipline
+professional_scannability -[#5C6773]-> visual_grouping
+visual_grouping -[#5C6773]-> table_use
+visual_grouping -[#5C6773]-> annotation_restraint
+decision_language -[#5C6773]-> executive_briefing_style
+stakeholder_sensitivity -[#5C6773]-> cross_functional_translation
+professional_evidence_integration -[#5C6773]-> persuasion_with_restraint
+bad_news_delivery -[#5C6773]-> conflict_de_escalation
+status_update_control -[#5C6773]-> alignment_language
+decision_framing -[#5C6773]-> revision_triage_professional
+revision_triage_professional -[#5C6773]-> clarity_pass_professional
+clarity_pass_professional -[#5C6773]-> tone_pass_professional
+tone_pass_professional -[#5C6773]-> format_pass_professional
+format_pass_professional -[#5C6773]-> proof_of_action
+proof_of_action -[#5C6773]-> reusable_template_thinking
+@enduml
