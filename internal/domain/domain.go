@@ -183,6 +183,26 @@ type SkillScore struct {
 	Score        int
 }
 
+type AIJob struct {
+	ID           int64
+	UserID       int64
+	TreeID       int64
+	EnrollmentID int64
+	Kind         string
+	ResourceKey  string
+	ExerciseID   int64
+	SubmissionID int64
+	ReviewID     int64
+	Status       string
+	AttemptCount int
+	MaxAttempts  int
+	LastError    string
+	PayloadJSON  string
+	ResultJSON   string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
 type ReviewJob struct {
 	ID           int64
 	UserID       int64

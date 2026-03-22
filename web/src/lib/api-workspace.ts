@@ -1,6 +1,6 @@
 import { request } from './api-core'
 import { arrayOrEmpty, normalizeAssignmentTimeline, normalizeDashboard, normalizeReview, normalizeTree } from './api-normalizers'
-import type { AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundReviewInput, Review, ReviewJob, Submission, Tree } from './types'
+import type { AIJob, AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundReviewInput, Review, Submission, Tree } from './types'
 
 export function getDashboard() {
   return request<Dashboard>('/api/dashboard').then(normalizeDashboard)
@@ -58,11 +58,11 @@ export async function getComparison(submissionId: number, against?: number) {
 }
 
 export async function createAssignment(tgoCodes?: string[]) {
-  const payload = await request<{ exercise: Exercise }>('/api/prompts/next', {
+  const payload = await request<{ job: AIJob }>('/api/prompts/next', {
     method: 'POST',
     body: JSON.stringify(tgoCodes && tgoCodes.length > 0 ? { tgo_codes: tgoCodes } : {}),
   })
-  return payload.exercise
+  return payload.job
 }
 
 export async function acceptAssignment(exercise: Exercise) {
@@ -83,11 +83,11 @@ export async function acceptAssignment(exercise: Exercise) {
 }
 
 export async function createRevisionAssignment(submissionId: number) {
-  const payload = await request<{ exercise: Exercise }>('/api/prompts/revise', {
+  const payload = await request<{ job: AIJob }>('/api/prompts/revise', {
     method: 'POST',
     body: JSON.stringify({ submission_id: submissionId }),
   })
-  return payload.exercise
+  return payload.job
 }
 
 export async function closeAssignment(exerciseId: number) {
@@ -110,7 +110,7 @@ export async function submitDraft(input: { exerciseId: number; content: string; 
 }
 
 export async function reviewSubmission(submissionId: number) {
-  const payload = await request<{ job: ReviewJob }>('/api/reviews', {
+  const payload = await request<{ job: AIJob }>('/api/reviews', {
     method: 'POST',
     body: JSON.stringify({ submission_id: submissionId }),
   })
@@ -118,12 +118,12 @@ export async function reviewSubmission(submissionId: number) {
 }
 
 export async function getReviewJob(submissionId: number) {
-  const payload = await request<{ job: ReviewJob }>(`/api/review-jobs?submission_id=${submissionId}`)
+  const payload = await request<{ job: AIJob }>(`/api/review-jobs?submission_id=${submissionId}`)
   return payload.job
 }
 
 export async function createPlaygroundReview(input: PlaygroundReviewInput) {
-  const payload = await request<{ review: Review }>('/api/playground/review', {
+  const payload = await request<{ job: AIJob }>('/api/playground/review', {
     method: 'POST',
     body: JSON.stringify({
       content: input.content,
@@ -133,5 +133,19 @@ export async function createPlaygroundReview(input: PlaygroundReviewInput) {
       coaching_brief: input.coaching_brief ?? '',
     }),
   })
-  return normalizeReview(payload.review)
+  return payload.job
+}
+
+export async function getAIJob(jobId: number) {
+  const payload = await request<{ job: AIJob }>(`/api/jobs/${jobId}`)
+  const job = payload.job
+  return {
+    ...job,
+    result: job.result
+      ? {
+          exercise: job.result.exercise,
+          review: job.result.review ? normalizeReview(job.result.review) : undefined,
+        }
+      : undefined,
+  }
 }

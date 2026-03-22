@@ -115,5 +115,5 @@ func (s *Server) startBackgroundWorkers(ctx context.Context) {
 		s.eventRecorder = newAIProviderEventRecorder(s.Store, s.Config)
 	}
 	s.eventRecorder.start(ctx)
-	go s.runReviewWorker(ctx)
+	go s.runAIJobWorker(ctx)
 }

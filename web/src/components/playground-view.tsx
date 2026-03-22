@@ -12,9 +12,9 @@ import { AppErrorState, LoadingState, TaskProgressState } from '@/components/sta
 import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { WorkspaceCard } from '@/components/workspace-card'
-import { createPlaygroundReview } from '@/lib/api'
+import { createPlaygroundReview, getAIJob } from '@/lib/api'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
-import type { PlaygroundReviewInput, Review } from '@/lib/types'
+import type { AIJob, PlaygroundReviewInput, Review } from '@/lib/types'
 import { useTranslations } from 'next-intl'
 import { FormEvent, useState } from 'react'
 
@@ -41,6 +41,23 @@ export function PlaygroundView() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  async function waitForReview(job: AIJob) {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const nextJob = attempt === 0 ? job : await getAIJob(job.id)
+      if (nextJob.status === 'completed') {
+        if (nextJob.result?.review) {
+          return nextJob.result.review
+        }
+        throw new Error(t('reviewError'))
+      }
+      if (nextJob.status === 'failed') {
+        throw new Error(nextJob.last_error || t('reviewError'))
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 1500))
+    }
+    throw new Error(t('reviewError'))
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting) {
@@ -49,7 +66,8 @@ export function PlaygroundView() {
     setSubmitting(true)
     setError(null)
     try {
-      const nextReview = await createPlaygroundReview(form)
+      const job = await createPlaygroundReview(form)
+      const nextReview = await waitForReview(job)
       setReview(nextReview)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('reviewError'))
@@ -73,11 +91,6 @@ export function PlaygroundView() {
         eyebrow={t('eyebrow')}
         title={t('title')}
         intro={t('intro')}
-        actions={
-          <Button href="/about" plain>
-            {t('openAbout')}
-          </Button>
-        }
       />
 
       {submitting ? (
@@ -88,116 +101,105 @@ export function PlaygroundView() {
         />
       ) : null}
 
-      <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
-        <WorkspaceCard>
-          <CardHeader
-            eyebrow={t('inputEyebrow')}
-            title={t('inputTitle')}
-            description={t('inputDescription')}
-          />
-          <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-            <Fieldset>
-              <FieldGroup>
+      <WorkspaceCard>
+        <CardHeader
+          eyebrow={t('inputEyebrow')}
+          title={t('inputTitle')}
+          description={t('inputDescription')}
+        />
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+          <Fieldset>
+            <FieldGroup>
+              <Field>
+                <Label>{t('contentLabel')}</Label>
+                <Description>{t('contentHelp')}</Description>
+                <Textarea
+                  name="content"
+                  rows={18}
+                  value={form.content}
+                  placeholder={t('contentPlaceholder')}
+                  onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
+                />
+              </Field>
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <Field>
-                  <Label>{t('contentLabel')}</Label>
-                  <Description>{t('contentHelp')}</Description>
-                  <Textarea
-                    name="content"
-                    rows={18}
-                    value={form.content}
-                    placeholder={t('contentPlaceholder')}
-                    onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
+                  <Label>{t('writingTypeLabel')}</Label>
+                  <Description>{t('writingTypeHelp')}</Description>
+                  <Input
+                    name="writing_type"
+                    value={form.writing_type ?? ''}
+                    placeholder={t('writingTypePlaceholder')}
+                    onChange={(event) => setForm((current) => ({ ...current, writing_type: event.target.value }))}
                   />
                 </Field>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field>
-                    <Label>{t('writingTypeLabel')}</Label>
-                    <Description>{t('writingTypeHelp')}</Description>
-                    <Input
-                      name="writing_type"
-                      value={form.writing_type ?? ''}
-                      placeholder={t('writingTypePlaceholder')}
-                      onChange={(event) => setForm((current) => ({ ...current, writing_type: event.target.value }))}
-                    />
-                  </Field>
-                  <Field>
-                    <Label>{t('formatLabel')}</Label>
-                    <Description>{t('formatHelp')}</Description>
-                    <Input
-                      name="assignment_format"
-                      value={form.assignment_format ?? ''}
-                      placeholder={t('formatPlaceholder')}
-                      onChange={(event) => setForm((current) => ({ ...current, assignment_format: event.target.value }))}
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-[0.35fr_1fr]">
-                  <Field>
-                    <Label>{t('languageLabel')}</Label>
-                    <Description>{t('languageHelp')}</Description>
-                    <Input
-                      name="writing_language"
-                      value={form.writing_language ?? ''}
-                      placeholder={t('languagePlaceholder')}
-                      onChange={(event) => setForm((current) => ({ ...current, writing_language: event.target.value }))}
-                    />
-                  </Field>
-                  <Field>
-                    <Label>{t('briefLabel')}</Label>
-                    <Description>{t('briefHelp')}</Description>
-                    <Input
-                      name="coaching_brief"
-                      value={form.coaching_brief ?? ''}
-                      placeholder={t('briefPlaceholder')}
-                      onChange={(event) => setForm((current) => ({ ...current, coaching_brief: event.target.value }))}
-                    />
-                  </Field>
-                </div>
-              </FieldGroup>
-            </Fieldset>
-
-            {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
-                {error}
+                <Field>
+                  <Label>{t('formatLabel')}</Label>
+                  <Description>{t('formatHelp')}</Description>
+                  <Input
+                    name="assignment_format"
+                    value={form.assignment_format ?? ''}
+                    placeholder={t('formatPlaceholder')}
+                    onChange={(event) => setForm((current) => ({ ...current, assignment_format: event.target.value }))}
+                  />
+                </Field>
               </div>
-            ) : null}
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-white/10">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                <Badge color="zinc">{t('wordCount', { count: wordCount })}</Badge>
-                {form.content.trim() ? null : <span>{t('emptyHint')}</span>}
+              <div className="grid gap-4 md:grid-cols-[0.35fr_1fr]">
+                <Field>
+                  <Label>{t('languageLabel')}</Label>
+                  <Description>{t('languageHelp')}</Description>
+                  <Input
+                    name="writing_language"
+                    value={form.writing_language ?? ''}
+                    placeholder={t('languagePlaceholder')}
+                    onChange={(event) => setForm((current) => ({ ...current, writing_language: event.target.value }))}
+                  />
+                </Field>
+                <Field>
+                  <Label>{t('briefLabel')}</Label>
+                  <Description>{t('briefHelp')}</Description>
+                  <Input
+                    name="coaching_brief"
+                    value={form.coaching_brief ?? ''}
+                    placeholder={t('briefPlaceholder')}
+                    onChange={(event) => setForm((current) => ({ ...current, coaching_brief: event.target.value }))}
+                  />
+                </Field>
               </div>
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  outline
-                  onClick={() => {
-                    setForm(initialForm)
-                    setError(null)
-                  }}
-                  disabled={submitting}
-                >
-                  {t('reset')}
-                </Button>
-                <Button color="dark/zinc" type="submit" disabled={submitting || form.content.trim() === ''}>
-                  {submitting ? t('reviewing') : t('review')}
-                </Button>
-              </div>
+            </FieldGroup>
+          </Fieldset>
+
+          {error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
+              {error}
             </div>
-          </form>
-        </WorkspaceCard>
+          ) : null}
 
-        <WorkspaceCard className="border-stone-200/80 bg-linear-to-br from-stone-50 via-white to-sky-50 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/30">
-          <CardHeader eyebrow={t('tipsEyebrow')} title={t('tipsTitle')} />
-          <div className="mt-4 space-y-4">
-            <Text>{t('tipsBody1')}</Text>
-            <Text>{t('tipsBody2')}</Text>
-            <Text>{t('tipsBody3')}</Text>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-white/10">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+              <Badge color="zinc">{t('wordCount', { count: wordCount })}</Badge>
+              {form.content.trim() ? null : <span>{t('emptyHint')}</span>}
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                outline
+                onClick={() => {
+                  setForm(initialForm)
+                  setError(null)
+                }}
+                disabled={submitting}
+              >
+                {t('reset')}
+              </Button>
+              <Button color="dark/zinc" type="submit" disabled={submitting || form.content.trim() === ''}>
+                {submitting ? t('reviewing') : t('review')}
+              </Button>
+            </div>
           </div>
-        </WorkspaceCard>
-      </div>
+        </form>
+      </WorkspaceCard>
 
       {!review ? (
         <WorkspaceCard>

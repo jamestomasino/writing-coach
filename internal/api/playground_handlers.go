@@ -5,10 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tomasino/writing-coach/internal/analyzer"
-	"github.com/tomasino/writing-coach/internal/db"
 	"github.com/tomasino/writing-coach/internal/domain"
-	"github.com/tomasino/writing-coach/internal/review"
 )
 
 func (s Server) handlePlaygroundReview(w http.ResponseWriter, r *http.Request) {
@@ -36,41 +33,28 @@ func (s Server) handlePlaygroundReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	runtime, err := s.resolveLLMRuntime(r.Context(), appContext.UserID)
+	job, err := s.Store.EnqueueAIJob(r.Context(), domain.AIJob{
+		UserID:       appContext.UserID,
+		TreeID:       appContext.TreeID,
+		EnrollmentID: appContext.EnrollmentID,
+		Kind:         aiJobKindPlaygroundReview,
+		MaxAttempts:  3,
+		PayloadJSON: mustJSON(playgroundReviewJobPayload{
+			Content:          content,
+			WritingLanguage:  payload.WritingLanguage,
+			WritingType:      payload.WritingType,
+			AssignmentFormat: payload.AssignmentFormat,
+			CoachingBrief:    strings.TrimSpace(payload.CoachingBrief),
+		}),
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	result := s.Reviews.WithClient(runtime.Client, runtime.ProviderKind).ReviewSubmissionDetailedWithOptions(r.Context(), domain.Submission{
-		UserID:    appContext.UserID,
-		TreeID:    appContext.TreeID,
-		Content:   content,
-		WordCount: db.CountWords(content),
-	}, nil, nil, review.Options{
-		AnalyzerContext: analyzer.ContextOptions{
-			WritingLanguage:  payload.WritingLanguage,
-			WritingType:      payload.WritingType,
-			AssignmentFormat: payload.AssignmentFormat,
-		},
-		CoachingBrief: strings.TrimSpace(payload.CoachingBrief),
-		AllowUnscoped: true,
-	})
-
-	if result.Review.ReviewKind == runtime.ProviderKind {
-		result.Review.ProviderNote = formatProviderNote(runtime.ProviderKind, runtime.ReviewModel)
-	}
-	if result.Review.ReviewKind == "deterministic-fallback" {
-		s.logAIProviderEvent("generation_fallback", runtime.ProviderKind, appContext.UserID, map[string]any{
-			"artifact": "playground_review",
-			"reason":   strings.TrimSpace(result.Review.ProviderNote),
-		})
-	}
-	result.Review.SkillScores = append([]domain.SkillScore(nil), result.Scores...)
-
-	writeJSON(w, http.StatusOK, map[string]any{
+	writeJSON(w, http.StatusAccepted, map[string]any{
 		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
-		"review":  toReviewResponse(result.Review),
+		"job":     s.toAIJobResponse(r.Context(), job),
 	})
 }
 

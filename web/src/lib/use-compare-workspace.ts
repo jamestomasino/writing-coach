@@ -1,6 +1,6 @@
 'use client'
 
-import { createRevisionAssignment, getAssignmentTimeline, getComparison, getReviews, getSubmission } from '@/lib/api'
+import { createRevisionAssignment, getAIJob, getAssignmentTimeline, getComparison, getReviews, getSubmission } from '@/lib/api'
 import type { Comparison, Review, Submission } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { useEffect, useState } from 'react'
@@ -62,7 +62,18 @@ export function useCompareWorkspace(submissionId: number) {
     }
     try {
       setPreparingRevision(true)
-      return await createRevisionAssignment(submission.id)
+      const job = await createRevisionAssignment(submission.id)
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        const nextJob = attempt === 0 ? job : await getAIJob(job.id)
+        if (nextJob.status === 'completed') {
+          return nextJob.result?.exercise ?? null
+        }
+        if (nextJob.status === 'failed') {
+          throw new Error(nextJob.last_error || 'Could not create revision prompt')
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1500))
+      }
+      throw new Error('Could not create revision prompt')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create revision prompt')
       return null
