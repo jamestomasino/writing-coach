@@ -3,8 +3,8 @@ package domain
 import "testing"
 
 func TestBuiltInTreesHaveDepthAndSeeds(t *testing.T) {
-	if len(BuiltInTrees) < 19 {
-		t.Fatalf("expected at least 19 built-in trees, got %d", len(BuiltInTrees))
+	if len(BuiltInTrees) < 18 {
+		t.Fatalf("expected at least 18 built-in trees, got %d", len(BuiltInTrees))
 	}
 	for _, tree := range BuiltInTrees {
 		if len(tree.TGOs) < 50 {
@@ -15,6 +15,63 @@ func TestBuiltInTreesHaveDepthAndSeeds(t *testing.T) {
 		}
 		if len(tree.PrioritySkills) < 6 {
 			t.Fatalf("tree %s should expose a richer priority skill list", tree.Slug)
+		}
+	}
+}
+
+func TestPublicBuiltInTreesMatchWritingDomains(t *testing.T) {
+	options := AvailableOnboardingOptions()
+	publicBySlug := PublicBuiltInTreeSlugs()
+	if len(PublicBuiltInTrees) != len(options.WritingDomains)-1 {
+		t.Fatalf("public built-in tree count = %d, want %d", len(PublicBuiltInTrees), len(options.WritingDomains)-1)
+	}
+
+	expected := []string{
+		storyCraftTree.Slug,
+		fantasyFictionTree.Slug,
+		scienceFictionTree.Slug,
+		romanceFictionTree.Slug,
+		literaryFictionTree.Slug,
+		mysteryThrillerTree.Slug,
+		thoughtLeadershipTree.Slug,
+		professionalWritingTree.Slug,
+		marketingWritingTree.Slug,
+		contentMarketingTree.Slug,
+		journalismReportingTree.Slug,
+		educationalWritingTree.Slug,
+		grantWritingTree.Slug,
+		academicEssayTree.Slug,
+		technicalWritingTree.Slug,
+		persuasiveWritingTree.Slug,
+		memoirNarrativeTree.Slug,
+	}
+	for _, slug := range expected {
+		if !publicBySlug[slug] {
+			t.Fatalf("public built-in trees missing %s", slug)
+		}
+	}
+	if publicBySlug[youthFoundationsTree.Slug] {
+		t.Fatalf("youth foundations should not be public")
+	}
+}
+
+func TestPublicBuiltInTreesStartWithTwoCoreAndOneDomainSeed(t *testing.T) {
+	for _, tree := range PublicBuiltInTrees {
+		coreCount := 0
+		domainCount := 0
+		for _, code := range tree.SeedCodes {
+			tier := SkillTierForName(TGOCodeToSkill[code])
+			switch tier {
+			case SkillTierCore:
+				coreCount++
+			case SkillTierDomain:
+				domainCount++
+			default:
+				t.Fatalf("tree %s seed %s has unsupported seed tier %q", tree.Slug, code, tier)
+			}
+		}
+		if coreCount != 2 || domainCount != 1 {
+			t.Fatalf("tree %s seeds = %#v, want 2 core and 1 domain", tree.Slug, tree.SeedCodes)
 		}
 	}
 }
@@ -48,6 +105,32 @@ func TestBuiltInTreesHaveUniqueCodesAndValidPrerequisites(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestBuiltInTreesValidateAsReachableDAGs(t *testing.T) {
+	if err := ValidateBuiltInTrees(); err != nil {
+		t.Fatalf("validate built-in trees: %v", err)
+	}
+}
+
+func TestBuiltInTreesCanBeCheckedForPlanarity(t *testing.T) {
+	checked := 0
+	var nonPlanar []string
+	for _, tree := range BuiltInTrees {
+		if !TreeIsPlanar(tree) {
+			nonPlanar = append(nonPlanar, tree.Slug)
+		}
+		checked++
+	}
+	if !TreeIsPlanar(GlobalSkillGraphDefinition()) {
+		nonPlanar = append(nonPlanar, GlobalSkillGraphSlug)
+	}
+	if checked != len(BuiltInTrees) {
+		t.Fatalf("checked %d trees, want %d", checked, len(BuiltInTrees))
+	}
+	if len(nonPlanar) > 0 {
+		t.Logf("non-planar trees: %v", nonPlanar)
 	}
 }
 
@@ -196,5 +279,87 @@ func TestRecommendedStarterCodesForExpandedNonfictionTemplates(t *testing.T) {
 	regions := RecommendedRegionSlugs(profile)
 	if len(regions) == 0 || regions[0] != marketingWritingTree.Slug {
 		t.Fatalf("regions = %#v", regions)
+	}
+}
+
+func TestEveryWritingTypeMapsToAlignedTemplate(t *testing.T) {
+	cases := []struct {
+		writingType  string
+		templateKey  string
+		baseTreeSlug string
+	}{
+		{writingType: "fiction", templateKey: "story-craft", baseTreeSlug: storyCraftTree.Slug},
+		{writingType: "fantasy fiction", templateKey: "fantasy-fiction", baseTreeSlug: fantasyFictionTree.Slug},
+		{writingType: "science fiction", templateKey: "science-fiction", baseTreeSlug: scienceFictionTree.Slug},
+		{writingType: "romance", templateKey: "romance-fiction", baseTreeSlug: romanceFictionTree.Slug},
+		{writingType: "literary fiction", templateKey: "literary-fiction", baseTreeSlug: literaryFictionTree.Slug},
+		{writingType: "mystery", templateKey: "mystery-thriller", baseTreeSlug: mysteryThrillerTree.Slug},
+		{writingType: "thought leadership", templateKey: "thought-leadership", baseTreeSlug: thoughtLeadershipTree.Slug},
+		{writingType: "professional writing", templateKey: "professional-writing", baseTreeSlug: professionalWritingTree.Slug},
+		{writingType: "marketing writing", templateKey: "marketing-writing", baseTreeSlug: marketingWritingTree.Slug},
+		{writingType: "content marketing", templateKey: "content-marketing", baseTreeSlug: contentMarketingTree.Slug},
+		{writingType: "journalism", templateKey: "journalism-reporting", baseTreeSlug: journalismReportingTree.Slug},
+		{writingType: "educational writing", templateKey: "educational-writing", baseTreeSlug: educationalWritingTree.Slug},
+		{writingType: "grant writing", templateKey: "grant-writing", baseTreeSlug: grantWritingTree.Slug},
+		{writingType: "academic writing", templateKey: "academic-essay", baseTreeSlug: academicEssayTree.Slug},
+		{writingType: "technical writing", templateKey: "technical-writing", baseTreeSlug: technicalWritingTree.Slug},
+		{writingType: "persuasive writing", templateKey: "persuasive-writing", baseTreeSlug: persuasiveWritingTree.Slug},
+		{writingType: "memoir", templateKey: "memoir-personal-narrative", baseTreeSlug: memoirNarrativeTree.Slug},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.writingType, func(t *testing.T) {
+			profile := OnboardingProfile{
+				WritingType:         tc.writingType,
+				AssignmentFormat:    "essay",
+				TargetAudience:      "readers",
+				SubjectMatter:       "real work",
+				ExperienceLevel:     "intermediate",
+				DesiredTone:         "clear",
+				BiggestWeaknesses:   []string{"structure"},
+				DesiredOutcomes:     []string{"stronger writing"},
+				DifficultyIntensity: "steady",
+				WritingGoals:        "improve craft",
+			}
+
+			if tc.writingType == "fiction" {
+				profile.AssignmentFormat = "scene"
+			}
+
+			if got := TemplateKeyForProfile(profile); got != tc.templateKey {
+				t.Fatalf("template key = %q, want %q", got, tc.templateKey)
+			}
+
+			base := treeForTemplateKey(tc.templateKey)
+			if base.Slug != tc.baseTreeSlug {
+				t.Fatalf("base tree slug = %q, want %q", base.Slug, tc.baseTreeSlug)
+			}
+
+			generated := GenerateTreeDefinition("writer", "Writer", profile)
+			if len(generated.TGOs) != len(base.TGOs) {
+				t.Fatalf("generated tree size = %d, want %d", len(generated.TGOs), len(base.TGOs))
+			}
+			if len(generated.SeedCodes) != len(base.SeedCodes) {
+				t.Fatalf("generated seed count = %d, want %d", len(generated.SeedCodes), len(base.SeedCodes))
+			}
+			for i, seed := range base.SeedCodes {
+				if generated.SeedCodes[i] != seed {
+					t.Fatalf("generated seed %d = %q, want %q", i, generated.SeedCodes[i], seed)
+				}
+			}
+			if len(generated.PrioritySkills) != len(base.PrioritySkills) {
+				t.Fatalf("generated priority skill count = %d, want %d", len(generated.PrioritySkills), len(base.PrioritySkills))
+			}
+			for i, skill := range base.PrioritySkills {
+				if generated.PrioritySkills[i] != skill {
+					t.Fatalf("generated priority skill %d = %q, want %q", i, generated.PrioritySkills[i], skill)
+				}
+			}
+
+			regions := RecommendedRegionSlugs(profile)
+			if len(regions) == 0 || regions[0] != tc.baseTreeSlug {
+				t.Fatalf("recommended regions = %#v, want first region %q", regions, tc.baseTreeSlug)
+			}
+		})
 	}
 }

@@ -1,0 +1,172 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Youth Writing Foundations\n<color:#5C6773>youth-writing-foundations</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E3F2FD> foundation | stage |
+|<back:#FFF8E1> paragraph | stage |
+|<back:#FCE4EC> story | stage |
+|<back:#F3E5F5> dialogue | stage |
+|<back:#E0F7FA> forms | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "foundation (10)" #E3F2FD {
+  rectangle "<b>Word Choice</b>\n<size:10><color:#5C6773>word-choice</color></size>" as word_choice <<seed>> #E3F2FD
+  rectangle "<b>Sentence Variety</b>\n<size:10><color:#5C6773>sentence-variety</color></size>" as sentence_variety <<seed>> #E3F2FD
+  rectangle "<b>Sentence Clarity</b>\n<size:10><color:#5C6773>sentence-clarity</color></size>" as sentence_clarity <<seed>> #E3F2FD
+  rectangle "Capitalization Control\n<size:10><color:#5C6773>capitalization-control</color></size>" as capitalization_control #E3F2FD
+  rectangle "Punctuation Basics\n<size:10><color:#5C6773>punctuation-basics</color></size>" as punctuation_basics #E3F2FD
+  rectangle "Subject-Verb Agreement\n<size:10><color:#5C6773>subject-verb-agreement</color></size>" as subject_verb_agreement #E3F2FD
+  rectangle "Complete Sentences\n<size:10><color:#5C6773>complete-sentences</color></size>" as complete_sentences #E3F2FD
+  rectangle "Simple Transitions\n<size:10><color:#5C6773>simple-transitions</color></size>" as simple_transitions #E3F2FD
+  rectangle "Detail Selection\n<size:10><color:#5C6773>detail-selection</color></size>" as detail_selection #E3F2FD
+  rectangle "Paragraph Control\n<size:10><color:#5C6773>paragraph-control</color></size>" as paragraph_control #E3F2FD
+}
+
+package "paragraph (8)" #FFF8E1 {
+  rectangle "Topic Sentence Basics\n<size:10><color:#5C6773>topic-sentence-basics</color></size>" as topic_sentence_basics #FFF8E1
+  rectangle "Supporting Detail Balance\n<size:10><color:#5C6773>supporting-detail-balance</color></size>" as supporting_detail_balance #FFF8E1
+  rectangle "Paragraph Order\n<size:10><color:#5C6773>paragraph-order</color></size>" as paragraph_order #FFF8E1
+  rectangle "Sentence Complexity\n<size:10><color:#5C6773>sentence-complexity</color></size>" as sentence_complexity #FFF8E1
+  rectangle "Pronoun Clarity\n<size:10><color:#5C6773>pronoun-clarity</color></size>" as pronoun_clarity #FFF8E1
+  rectangle "List Control\n<size:10><color:#5C6773>list-control</color></size>" as list_control #FFF8E1
+  rectangle "Opening Focus\n<size:10><color:#5C6773>opening-focus</color></size>" as opening_focus #FFF8E1
+  rectangle "Closing Sense\n<size:10><color:#5C6773>closing-sense</color></size>" as closing_sense #FFF8E1
+}
+
+package "story (10)" #FCE4EC {
+  rectangle "Narrative Sequencing\n<size:10><color:#5C6773>narrative-sequencing</color></size>" as narrative_sequencing #FCE4EC
+  rectangle "Beginning, Middle, End\n<size:10><color:#5C6773>beginning-middle-end</color></size>" as beginning_middle_end #FCE4EC
+  rectangle "Character Goal Basics\n<size:10><color:#5C6773>character-goal-basics</color></size>" as character_goal_basics #FCE4EC
+  rectangle "Problem and Solution\n<size:10><color:#5C6773>problem-and-solution</color></size>" as problem_and_solution #FCE4EC
+  rectangle "Cause and Effect\n<size:10><color:#5C6773>cause-and-effect</color></size>" as cause_and_effect #FCE4EC
+  rectangle "Scene Setting Basics\n<size:10><color:#5C6773>scene-setting-basics</color></size>" as scene_setting_basics #FCE4EC
+  rectangle "Character Description\n<size:10><color:#5C6773>character-description</color></size>" as character_description #FCE4EC
+  rectangle "Descriptive Specificity\n<size:10><color:#5C6773>descriptive-specificity</color></size>" as descriptive_specificity #FCE4EC
+  rectangle "Showing Action\n<size:10><color:#5C6773>showing-action</color></size>" as showing_action #FCE4EC
+  rectangle "Emotion Through Action\n<size:10><color:#5C6773>emotion-through-action</color></size>" as emotion_through_action #FCE4EC
+}
+
+package "dialogue (6)" #F3E5F5 {
+  rectangle "Dialogue Basics\n<size:10><color:#5C6773>dialogue-basics</color></size>" as dialogue_basics #F3E5F5
+  rectangle "Speaker Tracking\n<size:10><color:#5C6773>speaker-tracking</color></size>" as speaker_tracking #F3E5F5
+  rectangle "Dialogue Punctuation\n<size:10><color:#5C6773>dialogue-punctuation</color></size>" as dialogue_punctuation #F3E5F5
+  rectangle "Dialogue Purpose\n<size:10><color:#5C6773>dialogue-purpose</color></size>" as dialogue_purpose #F3E5F5
+  rectangle "Voice Difference\n<size:10><color:#5C6773>voice-difference</color></size>" as voice_difference #F3E5F5
+  rectangle "Question Use\n<size:10><color:#5C6773>question-use</color></size>" as question_use #F3E5F5
+}
+
+package "forms (6)" #E0F7FA {
+  rectangle "Informational Writing Basics\n<size:10><color:#5C6773>informational-writing-basics</color></size>" as informational_writing_basics #E0F7FA
+  rectangle "Opinion Writing Basics\n<size:10><color:#5C6773>opinion-writing-basics</color></size>" as opinion_writing_basics #E0F7FA
+  rectangle "Letter Structure\n<size:10><color:#5C6773>letter-structure</color></size>" as letter_structure #E0F7FA
+  rectangle "Instructions Clarity\n<size:10><color:#5C6773>instructions-clarity</color></size>" as instructions_clarity #E0F7FA
+  rectangle "Summary Basics\n<size:10><color:#5C6773>summary-basics</color></size>" as summary_basics #E0F7FA
+  rectangle "Evidence Basics\n<size:10><color:#5C6773>evidence-basics</color></size>" as evidence_basics #E0F7FA
+}
+
+package "revision (12)" #ECEFF1 {
+  rectangle "Revision Rereading\n<size:10><color:#5C6773>revision-rereading</color></size>" as revision_rereading #ECEFF1
+  rectangle "Revision Cutting\n<size:10><color:#5C6773>revision-cutting</color></size>" as revision_cutting #ECEFF1
+  rectangle "Revision Adding\n<size:10><color:#5C6773>revision-adding</color></size>" as revision_adding #ECEFF1
+  rectangle "Proofreading Basics\n<size:10><color:#5C6773>proofreading-basics</color></size>" as proofreading_basics #ECEFF1
+  rectangle "Spelling Patterns\n<size:10><color:#5C6773>spelling-patterns</color></size>" as spelling_patterns #ECEFF1
+  rectangle "Tense Consistency\n<size:10><color:#5C6773>tense-consistency</color></size>" as tense_consistency #ECEFF1
+  rectangle "Comma Control\n<size:10><color:#5C6773>comma-control</color></size>" as comma_control #ECEFF1
+  rectangle "Audience Awareness\n<size:10><color:#5C6773>audience-awareness</color></size>" as audience_awareness #ECEFF1
+  rectangle "Tone Awareness\n<size:10><color:#5C6773>tone-awareness</color></size>" as tone_awareness #ECEFF1
+  rectangle "Focus Under Length\n<size:10><color:#5C6773>focus-under-length</color></size>" as focus_under_length #ECEFF1
+  rectangle "Creative Risk Taking\n<size:10><color:#5C6773>creative-risk-taking</color></size>" as creative_risk_taking #ECEFF1
+  rectangle "Independent Self-Check\n<size:10><color:#5C6773>independent-self-check</color></size>" as independent_self_check #ECEFF1
+}
+
+sentence_clarity -[#5C6773]-> capitalization_control
+sentence_clarity -[#5C6773]-> punctuation_basics
+sentence_clarity -[#5C6773]-> subject_verb_agreement
+sentence_clarity -[#5C6773]-> complete_sentences
+sentence_clarity -[#5C6773]-> simple_transitions
+word_choice -[#5C6773]-> detail_selection
+sentence_clarity -[#5C6773]-> paragraph_control
+paragraph_control -[#5C6773]-> topic_sentence_basics
+paragraph_control -[#5C6773]-> supporting_detail_balance
+paragraph_control -[#5C6773]-> paragraph_order
+simple_transitions -[#5C6773]-> paragraph_order
+sentence_variety -[#5C6773]-> sentence_complexity
+sentence_clarity -[#5C6773]-> sentence_complexity
+sentence_clarity -[#5C6773]-> pronoun_clarity
+paragraph_order -[#5C6773]-> list_control
+topic_sentence_basics -[#5C6773]-> opening_focus
+paragraph_order -[#5C6773]-> closing_sense
+sentence_clarity -[#5C6773]-> narrative_sequencing
+paragraph_control -[#5C6773]-> narrative_sequencing
+narrative_sequencing -[#5C6773]-> beginning_middle_end
+narrative_sequencing -[#5C6773]-> character_goal_basics
+character_goal_basics -[#5C6773]-> problem_and_solution
+narrative_sequencing -[#5C6773]-> cause_and_effect
+detail_selection -[#5C6773]-> scene_setting_basics
+detail_selection -[#5C6773]-> character_description
+word_choice -[#5C6773]-> descriptive_specificity
+cause_and_effect -[#5C6773]-> showing_action
+showing_action -[#5C6773]-> emotion_through_action
+sentence_clarity -[#5C6773]-> dialogue_basics
+dialogue_basics -[#5C6773]-> speaker_tracking
+dialogue_basics -[#5C6773]-> dialogue_punctuation
+punctuation_basics -[#5C6773]-> dialogue_punctuation
+dialogue_basics -[#5C6773]-> dialogue_purpose
+dialogue_purpose -[#5C6773]-> voice_difference
+dialogue_purpose -[#5C6773]-> question_use
+topic_sentence_basics -[#5C6773]-> informational_writing_basics
+supporting_detail_balance -[#5C6773]-> informational_writing_basics
+topic_sentence_basics -[#5C6773]-> opinion_writing_basics
+paragraph_control -[#5C6773]-> letter_structure
+paragraph_order -[#5C6773]-> instructions_clarity
+list_control -[#5C6773]-> instructions_clarity
+opening_focus -[#5C6773]-> summary_basics
+closing_sense -[#5C6773]-> summary_basics
+sentence_clarity -[#5C6773]-> revision_rereading
+revision_rereading -[#5C6773]-> revision_cutting
+revision_rereading -[#5C6773]-> revision_adding
+capitalization_control -[#5C6773]-> proofreading_basics
+punctuation_basics -[#5C6773]-> proofreading_basics
+proofreading_basics -[#5C6773]-> spelling_patterns
+subject_verb_agreement -[#5C6773]-> tense_consistency
+narrative_sequencing -[#5C6773]-> tense_consistency
+punctuation_basics -[#5C6773]-> comma_control
+sentence_complexity -[#5C6773]-> comma_control
+opening_focus -[#5C6773]-> audience_awareness
+audience_awareness -[#5C6773]-> tone_awareness
+supporting_detail_balance -[#5C6773]-> focus_under_length
+paragraph_order -[#5C6773]-> focus_under_length
+opinion_writing_basics -[#5C6773]-> evidence_basics
+informational_writing_basics -[#5C6773]-> evidence_basics
+descriptive_specificity -[#5C6773]-> creative_risk_taking
+voice_difference -[#5C6773]-> creative_risk_taking
+revision_rereading -[#5C6773]-> independent_self_check
+proofreading_basics -[#5C6773]-> independent_self_check
+@enduml

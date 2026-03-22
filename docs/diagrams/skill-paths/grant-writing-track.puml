@@ -1,0 +1,166 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Grant Writing Track\n<color:#5C6773>grant-writing-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#FDE2E4> tone | stage |
+|<back:#E0F7FA> forms | stage |
+|<back:#E6FCF5> analysis | stage |
+|<back:#FFF1E6> scanning | stage |
+|<back:#EDE7F6> advanced | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (9)" #E8F5E9 {
+  rectangle "<b>Objective Clarity</b>\n<size:10><color:#5C6773>grant-objective-clarity</color></size>" as grant_objective_clarity <<seed>> #E8F5E9
+  rectangle "<b>Audience Alignment</b>\n<size:10><color:#5C6773>grant-professional-audience-alignment</color></size>" as grant_professional_audience_alignment <<seed>> #E8F5E9
+  rectangle "<b>Sentence Economy</b>\n<size:10><color:#5C6773>grant-professional-sentence-economy</color></size>" as grant_professional_sentence_economy <<seed>> #E8F5E9
+  rectangle "Context First\n<size:10><color:#5C6773>grant-context-first</color></size>" as grant_context_first #E8F5E9
+  rectangle "Ask Visibility\n<size:10><color:#5C6773>grant-ask-visibility</color></size>" as grant_ask_visibility #E8F5E9
+  rectangle "Deadline Clarity\n<size:10><color:#5C6773>grant-deadline-clarity</color></size>" as grant_deadline_clarity #E8F5E9
+  rectangle "Ownership Clarity\n<size:10><color:#5C6773>grant-ownership-clarity</color></size>" as grant_ownership_clarity #E8F5E9
+  rectangle "Terminology Consistency\n<size:10><color:#5C6773>grant-terminology-consistency</color></size>" as grant_terminology_consistency #E8F5E9
+  rectangle "Reader Load Control\n<size:10><color:#5C6773>grant-reader-load-control</color></size>" as grant_reader_load_control #E8F5E9
+}
+
+package "structure (8)" #E0F2F1 {
+  rectangle "Structural Signposting\n<size:10><color:#5C6773>grant-professional-structural-signposting</color></size>" as grant_professional_structural_signposting #E0F2F1
+  rectangle "Front-Loaded Summary\n<size:10><color:#5C6773>grant-front-loaded-summary</color></size>" as grant_front_loaded_summary #E0F2F1
+  rectangle "Bullet Discipline\n<size:10><color:#5C6773>grant-bullet-discipline</color></size>" as grant_bullet_discipline #E0F2F1
+  rectangle "Section Order\n<size:10><color:#5C6773>grant-section-order</color></size>" as grant_section_order #E0F2F1
+  rectangle "Bridge Lines\n<size:10><color:#5C6773>grant-bridge-lines</color></size>" as grant_bridge_lines #E0F2F1
+  rectangle "Summary and Detail Balance\n<size:10><color:#5C6773>grant-summary-vs-detail-balance</color></size>" as grant_summary_vs_detail_balance #E0F2F1
+  rectangle "Document Openings\n<size:10><color:#5C6773>grant-document-openings</color></size>" as grant_document_openings #E0F2F1
+  rectangle "Document Closings\n<size:10><color:#5C6773>grant-document-closings</color></size>" as grant_document_closings #E0F2F1
+}
+
+package "tone (7)" #FDE2E4 {
+  rectangle "Tone Calibration\n<size:10><color:#5C6773>grant-professional-tone-calibration</color></size>" as grant_professional_tone_calibration #FDE2E4
+  rectangle "Directness with Respect\n<size:10><color:#5C6773>grant-directness-with-respect</color></size>" as grant_directness_with_respect #FDE2E4
+  rectangle "Confidence Without Overclaiming\n<size:10><color:#5C6773>grant-confidence-without-overclaiming</color></size>" as grant_confidence_without_overclaiming #FDE2E4
+  rectangle "Bad News Delivery\n<size:10><color:#5C6773>grant-bad-news-delivery</color></size>" as grant_bad_news_delivery #FDE2E4
+  rectangle "Stakeholder Sensitivity\n<size:10><color:#5C6773>grant-stakeholder-sensitivity</color></size>" as grant_stakeholder_sensitivity #FDE2E4
+  rectangle "Decision Language\n<size:10><color:#5C6773>grant-decision-language</color></size>" as grant_decision_language #FDE2E4
+  rectangle "Active Voice Control\n<size:10><color:#5C6773>grant-active-voice-control</color></size>" as grant_active_voice_control #FDE2E4
+}
+
+package "forms (5)" #E0F7FA {
+  rectangle "Meeting Note Clarity\n<size:10><color:#5C6773>grant-meeting-note-clarity</color></size>" as grant_meeting_note_clarity #E0F7FA
+  rectangle "Status Update Control\n<size:10><color:#5C6773>grant-status-update-control</color></size>" as grant_status_update_control #E0F7FA
+  rectangle "Proposal Structure\n<size:10><color:#5C6773>grant-proposal-structure</color></size>" as grant_proposal_structure #E0F7FA
+  rectangle "Email Thread Discipline\n<size:10><color:#5C6773>grant-email-thread-discipline</color></size>" as grant_email_thread_discipline #E0F7FA
+  rectangle "Spec Clarity\n<size:10><color:#5C6773>grant-spec-clarity</color></size>" as grant_spec_clarity #E0F7FA
+}
+
+package "analysis (7)" #E6FCF5 {
+  rectangle "Supporting Rationale\n<size:10><color:#5C6773>grant-supporting-rationale</color></size>" as grant_supporting_rationale #E6FCF5
+  rectangle "Evidence Integration\n<size:10><color:#5C6773>grant-professional-evidence-integration</color></size>" as grant_professional_evidence_integration #E6FCF5
+  rectangle "Risk Articulation\n<size:10><color:#5C6773>grant-risk-articulation</color></size>" as grant_risk_articulation #E6FCF5
+  rectangle "Assumption Marking\n<size:10><color:#5C6773>grant-assumption-marking</color></size>" as grant_assumption_marking #E6FCF5
+  rectangle "Decision Framing\n<size:10><color:#5C6773>grant-decision-framing</color></size>" as grant_decision_framing #E6FCF5
+  rectangle "Tradeoff Language\n<size:10><color:#5C6773>grant-tradeoff-language</color></size>" as grant_tradeoff_language #E6FCF5
+  rectangle "Quantification Basics\n<size:10><color:#5C6773>grant-quantification-basics</color></size>" as grant_quantification_basics #E6FCF5
+}
+
+package "scanning (5)" #FFF1E6 {
+  rectangle "Scannability\n<size:10><color:#5C6773>grant-professional-scannability</color></size>" as grant_professional_scannability #FFF1E6
+  rectangle "Heading Discipline\n<size:10><color:#5C6773>grant-heading-discipline</color></size>" as grant_heading_discipline #FFF1E6
+  rectangle "Visual Grouping\n<size:10><color:#5C6773>grant-visual-grouping</color></size>" as grant_visual_grouping #FFF1E6
+  rectangle "Table Use\n<size:10><color:#5C6773>grant-table-use</color></size>" as grant_table_use #FFF1E6
+  rectangle "Annotation Restraint\n<size:10><color:#5C6773>grant-annotation-restraint</color></size>" as grant_annotation_restraint #FFF1E6
+}
+
+package "advanced (5)" #EDE7F6 {
+  rectangle "Executive Briefing Style\n<size:10><color:#5C6773>grant-executive-briefing-style</color></size>" as grant_executive_briefing_style #EDE7F6
+  rectangle "Cross-Functional Translation\n<size:10><color:#5C6773>grant-cross-functional-translation</color></size>" as grant_cross_functional_translation #EDE7F6
+  rectangle "Persuasion with Restraint\n<size:10><color:#5C6773>grant-persuasion-with-restraint</color></size>" as grant_persuasion_with_restraint #EDE7F6
+  rectangle "Conflict De-Escalation\n<size:10><color:#5C6773>grant-conflict-de-escalation</color></size>" as grant_conflict_de_escalation #EDE7F6
+  rectangle "Alignment Language\n<size:10><color:#5C6773>grant-alignment-language</color></size>" as grant_alignment_language #EDE7F6
+}
+
+package "revision (6)" #ECEFF1 {
+  rectangle "Revision Triage\n<size:10><color:#5C6773>grant-revision-triage-professional</color></size>" as grant_revision_triage_professional #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>grant-clarity-pass-professional</color></size>" as grant_clarity_pass_professional #ECEFF1
+  rectangle "Tone Pass\n<size:10><color:#5C6773>grant-tone-pass-professional</color></size>" as grant_tone_pass_professional #ECEFF1
+  rectangle "Format Pass\n<size:10><color:#5C6773>grant-format-pass-professional</color></size>" as grant_format_pass_professional #ECEFF1
+  rectangle "Proof of Action\n<size:10><color:#5C6773>grant-proof-of-action</color></size>" as grant_proof_of_action #ECEFF1
+  rectangle "Reusable Template Thinking\n<size:10><color:#5C6773>grant-reusable-template-thinking</color></size>" as grant_reusable_template_thinking #ECEFF1
+}
+
+grant_objective_clarity -[#5C6773]-> grant_context_first
+grant_objective_clarity -[#5C6773]-> grant_ask_visibility
+grant_ask_visibility -[#5C6773]-> grant_deadline_clarity
+grant_ask_visibility -[#5C6773]-> grant_ownership_clarity
+grant_objective_clarity -[#5C6773]-> grant_terminology_consistency
+grant_professional_sentence_economy -[#5C6773]-> grant_reader_load_control
+grant_objective_clarity -[#5C6773]-> grant_professional_structural_signposting
+grant_professional_structural_signposting -[#5C6773]-> grant_front_loaded_summary
+grant_front_loaded_summary -[#5C6773]-> grant_bullet_discipline
+grant_front_loaded_summary -[#5C6773]-> grant_section_order
+grant_section_order -[#5C6773]-> grant_bridge_lines
+grant_bridge_lines -[#5C6773]-> grant_summary_vs_detail_balance
+grant_front_loaded_summary -[#5C6773]-> grant_document_openings
+grant_ownership_clarity -[#5C6773]-> grant_document_closings
+grant_professional_audience_alignment -[#5C6773]-> grant_professional_tone_calibration
+grant_professional_tone_calibration -[#5C6773]-> grant_directness_with_respect
+grant_directness_with_respect -[#5C6773]-> grant_confidence_without_overclaiming
+grant_directness_with_respect -[#5C6773]-> grant_bad_news_delivery
+grant_professional_tone_calibration -[#5C6773]-> grant_stakeholder_sensitivity
+grant_ask_visibility -[#5C6773]-> grant_decision_language
+grant_professional_sentence_economy -[#5C6773]-> grant_active_voice_control
+grant_document_closings -[#5C6773]-> grant_meeting_note_clarity
+grant_meeting_note_clarity -[#5C6773]-> grant_status_update_control
+grant_decision_language -[#5C6773]-> grant_proposal_structure
+grant_bullet_discipline -[#5C6773]-> grant_email_thread_discipline
+grant_terminology_consistency -[#5C6773]-> grant_spec_clarity
+grant_ask_visibility -[#5C6773]-> grant_supporting_rationale
+grant_supporting_rationale -[#5C6773]-> grant_professional_evidence_integration
+grant_confidence_without_overclaiming -[#5C6773]-> grant_risk_articulation
+grant_risk_articulation -[#5C6773]-> grant_assumption_marking
+grant_supporting_rationale -[#5C6773]-> grant_decision_framing
+grant_decision_framing -[#5C6773]-> grant_tradeoff_language
+grant_professional_evidence_integration -[#5C6773]-> grant_quantification_basics
+grant_summary_vs_detail_balance -[#5C6773]-> grant_professional_scannability
+grant_professional_scannability -[#5C6773]-> grant_heading_discipline
+grant_professional_scannability -[#5C6773]-> grant_visual_grouping
+grant_visual_grouping -[#5C6773]-> grant_table_use
+grant_visual_grouping -[#5C6773]-> grant_annotation_restraint
+grant_decision_language -[#5C6773]-> grant_executive_briefing_style
+grant_stakeholder_sensitivity -[#5C6773]-> grant_cross_functional_translation
+grant_professional_evidence_integration -[#5C6773]-> grant_persuasion_with_restraint
+grant_bad_news_delivery -[#5C6773]-> grant_conflict_de_escalation
+grant_status_update_control -[#5C6773]-> grant_alignment_language
+grant_decision_framing -[#5C6773]-> grant_revision_triage_professional
+grant_revision_triage_professional -[#5C6773]-> grant_clarity_pass_professional
+grant_clarity_pass_professional -[#5C6773]-> grant_tone_pass_professional
+grant_tone_pass_professional -[#5C6773]-> grant_format_pass_professional
+grant_format_pass_professional -[#5C6773]-> grant_proof_of_action
+grant_proof_of_action -[#5C6773]-> grant_reusable_template_thinking
+@enduml

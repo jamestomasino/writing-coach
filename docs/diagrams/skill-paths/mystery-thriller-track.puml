@@ -1,0 +1,172 @@
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam dpi 150
+skinparam ArrowColor #5C6773
+skinparam ArrowThickness 1.4
+skinparam package {
+  BorderColor #D5DCE3
+  FontColor #2C3E50
+  FontStyle bold
+}
+skinparam rectangle {
+  RoundCorner 10
+  BorderColor #5C6773
+  FontColor #1F2933
+}
+skinparam rectangle<<seed>> {
+  BorderColor #A61E4D
+  BorderThickness 3
+}
+hide stereotype
+
+title Mystery and Thriller Track\n<color:#5C6773>mystery-thriller-track</color>
+
+legend left
+|= Marker |= Meaning |
+| thicker border | seed node |
+|<back:#E8F5E9> core | stage |
+|<back:#FFF3E0> scene | stage |
+|<back:#FBE9E7> character | stage |
+|<back:#E8EAF6> world | stage |
+|<back:#F3E5F5> style | stage |
+|<back:#E0F2F1> structure | stage |
+|<back:#ECEFF1> revision | stage |
+endlegend
+
+package "core (9)" #E8F5E9 {
+  rectangle "<b>Causal Clarity</b>\n<size:10><color:#5C6773>thriller-story-causal-clarity</color></size>" as thriller_story_causal_clarity <<seed>> #E8F5E9
+  rectangle "<b>Scene Architecture</b>\n<size:10><color:#5C6773>thriller-story-scene-architecture</color></size>" as thriller_story_scene_architecture <<seed>> #E8F5E9
+  rectangle "<b>Prose Precision</b>\n<size:10><color:#5C6773>thriller-story-prose-precision</color></size>" as thriller_story_prose_precision <<seed>> #E8F5E9
+  rectangle "Point of View Control\n<size:10><color:#5C6773>thriller-story-point-of-view</color></size>" as thriller_story_point_of_view #E8F5E9
+  rectangle "Tension Growth\n<size:10><color:#5C6773>thriller-story-tension-growth</color></size>" as thriller_story_tension_growth #E8F5E9
+  rectangle "Transition Flow\n<size:10><color:#5C6773>thriller-story-transition-flow</color></size>" as thriller_story_transition_flow #E8F5E9
+  rectangle "Subtext Basics\n<size:10><color:#5C6773>thriller-story-subtext-basics</color></size>" as thriller_story_subtext_basics #E8F5E9
+  rectangle "Emotional Compression\n<size:10><color:#5C6773>thriller-story-emotional-compression</color></size>" as thriller_story_emotional_compression #E8F5E9
+  rectangle "Description Focus\n<size:10><color:#5C6773>thriller-story-description-focus</color></size>" as thriller_story_description_focus #E8F5E9
+}
+
+package "scene (7)" #FFF3E0 {
+  rectangle "Conflict Design\n<size:10><color:#5C6773>thriller-story-conflict-design</color></size>" as thriller_story_conflict_design #FFF3E0
+  rectangle "Reversal Construction\n<size:10><color:#5C6773>thriller-story-reversal</color></size>" as thriller_story_reversal #FFF3E0
+  rectangle "Spatial Legibility\n<size:10><color:#5C6773>thriller-story-spatial-legibility</color></size>" as thriller_story_spatial_legibility #FFF3E0
+  rectangle "Status Dynamics\n<size:10><color:#5C6773>thriller-story-status-dynamics</color></size>" as thriller_story_status_dynamics #FFF3E0
+  rectangle "Silence and Omission\n<size:10><color:#5C6773>thriller-story-silence</color></size>" as thriller_story_silence #FFF3E0
+  rectangle "Entrance and Exit Design\n<size:10><color:#5C6773>thriller-story-entrance-exit</color></size>" as thriller_story_entrance_exit #FFF3E0
+  rectangle "Object Handling\n<size:10><color:#5C6773>thriller-story-object-handling</color></size>" as thriller_story_object_handling #FFF3E0
+}
+
+package "character (8)" #FBE9E7 {
+  rectangle "Character Goal\n<size:10><color:#5C6773>thriller-story-character-goal</color></size>" as thriller_story_character_goal #FBE9E7
+  rectangle "Character Need\n<size:10><color:#5C6773>thriller-story-character-need</color></size>" as thriller_story_character_need #FBE9E7
+  rectangle "Character Contradiction\n<size:10><color:#5C6773>thriller-story-contradiction</color></size>" as thriller_story_contradiction #FBE9E7
+  rectangle "Voice Difference\n<size:10><color:#5C6773>thriller-story-voice-difference</color></size>" as thriller_story_voice_difference #FBE9E7
+  rectangle "Backstory Restraint\n<size:10><color:#5C6773>thriller-story-backstory-restraint</color></size>" as thriller_story_backstory_restraint #FBE9E7
+  rectangle "Relationship Pressure\n<size:10><color:#5C6773>thriller-story-relationship-pressure</color></size>" as thriller_story_relationship_pressure #FBE9E7
+  rectangle "Wound Pattern\n<size:10><color:#5C6773>thriller-story-wound-pattern</color></size>" as thriller_story_wound_pattern #FBE9E7
+  rectangle "Change Arc\n<size:10><color:#5C6773>thriller-story-change-arc</color></size>" as thriller_story_change_arc #FBE9E7
+}
+
+package "world (6)" #E8EAF6 {
+  rectangle "Setting Pressure\n<size:10><color:#5C6773>thriller-story-setting-pressure</color></size>" as thriller_story_setting_pressure #E8EAF6
+  rectangle "Worldbuilding Economy\n<size:10><color:#5C6773>thriller-story-worldbuilding-economy</color></size>" as thriller_story_worldbuilding_economy #E8EAF6
+  rectangle "Social Structure\n<size:10><color:#5C6773>thriller-story-social-structure</color></size>" as thriller_story_social_structure #E8EAF6
+  rectangle "History Pressure\n<size:10><color:#5C6773>thriller-story-history-pressure</color></size>" as thriller_story_history_pressure #E8EAF6
+  rectangle "Sensory Balance\n<size:10><color:#5C6773>thriller-story-sensory-balance</color></size>" as thriller_story_sensory_balance #E8EAF6
+  rectangle "Atmosphere Control\n<size:10><color:#5C6773>thriller-story-atmosphere</color></size>" as thriller_story_atmosphere #E8EAF6
+}
+
+package "style (7)" #F3E5F5 {
+  rectangle "Image Freshness\n<size:10><color:#5C6773>thriller-story-image-freshness</color></size>" as thriller_story_image_freshness #F3E5F5
+  rectangle "Metaphor Restraint\n<size:10><color:#5C6773>thriller-story-metaphor-restraint</color></size>" as thriller_story_metaphor_restraint #F3E5F5
+  rectangle "Rhythm Control\n<size:10><color:#5C6773>thriller-story-rhythm-control</color></size>" as thriller_story_rhythm_control #F3E5F5
+  rectangle "Paragraph Momentum\n<size:10><color:#5C6773>thriller-story-paragraph-momentum</color></size>" as thriller_story_paragraph_momentum #F3E5F5
+  rectangle "Exposition Control\n<size:10><color:#5C6773>thriller-story-exposition-control</color></size>" as thriller_story_exposition_control #F3E5F5
+  rectangle "Dialogue Under Strain\n<size:10><color:#5C6773>thriller-story-dialogue-under-strain</color></size>" as thriller_story_dialogue_under_strain #F3E5F5
+  rectangle "Motif Weaving\n<size:10><color:#5C6773>thriller-story-motif</color></size>" as thriller_story_motif #F3E5F5
+}
+
+package "structure (6)" #E0F2F1 {
+  rectangle "Theme Through Pressure\n<size:10><color:#5C6773>thriller-story-theme-pressure</color></size>" as thriller_story_theme_pressure #E0F2F1
+  rectangle "Plot Escalation\n<size:10><color:#5C6773>thriller-story-plot-escalation</color></size>" as thriller_story_plot_escalation #E0F2F1
+  rectangle "Subplot Use\n<size:10><color:#5C6773>thriller-story-subplot-use</color></size>" as thriller_story_subplot_use #E0F2F1
+  rectangle "Middle Management\n<size:10><color:#5C6773>thriller-story-middle-management</color></size>" as thriller_story_middle_management #E0F2F1
+  rectangle "Climax Construction\n<size:10><color:#5C6773>thriller-story-climax-construction</color></size>" as thriller_story_climax_construction #E0F2F1
+  rectangle "Ending Payoff\n<size:10><color:#5C6773>thriller-story-ending-payoff</color></size>" as thriller_story_ending_payoff #E0F2F1
+}
+
+package "revision (9)" #ECEFF1 {
+  rectangle "Revision Triage\n<size:10><color:#5C6773>thriller-story-revision-triage</color></size>" as thriller_story_revision_triage #ECEFF1
+  rectangle "Scene Cutting\n<size:10><color:#5C6773>thriller-story-scene-cutting</color></size>" as thriller_story_scene_cutting #ECEFF1
+  rectangle "Clarity Pass\n<size:10><color:#5C6773>thriller-story-clarity-pass</color></size>" as thriller_story_clarity_pass #ECEFF1
+  rectangle "Language Pass\n<size:10><color:#5C6773>thriller-story-language-pass</color></size>" as thriller_story_language_pass #ECEFF1
+  rectangle "Reader Awareness\n<size:10><color:#5C6773>thriller-story-beta-awareness</color></size>" as thriller_story_beta_awareness #ECEFF1
+  rectangle "Opening Grip\n<size:10><color:#5C6773>thriller-story-opening-grip</color></size>" as thriller_story_opening_grip #ECEFF1
+  rectangle "Scene Sequencing\n<size:10><color:#5C6773>thriller-story-scene-sequencing</color></size>" as thriller_story_scene_sequencing #ECEFF1
+  rectangle "Emotional Arc\n<size:10><color:#5C6773>thriller-story-emotional-arc</color></size>" as thriller_story_emotional_arc #ECEFF1
+  rectangle "Final Resonance\n<size:10><color:#5C6773>thriller-story-final-resonance</color></size>" as thriller_story_final_resonance #ECEFF1
+}
+
+thriller_story_causal_clarity -[#5C6773]-> thriller_story_point_of_view
+thriller_story_scene_architecture -[#5C6773]-> thriller_story_tension_growth
+thriller_story_scene_architecture -[#5C6773]-> thriller_story_transition_flow
+thriller_story_prose_precision -[#5C6773]-> thriller_story_subtext_basics
+thriller_story_causal_clarity -[#5C6773]-> thriller_story_emotional_compression
+thriller_story_prose_precision -[#5C6773]-> thriller_story_description_focus
+thriller_story_tension_growth -[#5C6773]-> thriller_story_conflict_design
+thriller_story_conflict_design -[#5C6773]-> thriller_story_reversal
+thriller_story_scene_architecture -[#5C6773]-> thriller_story_spatial_legibility
+thriller_story_conflict_design -[#5C6773]-> thriller_story_status_dynamics
+thriller_story_subtext_basics -[#5C6773]-> thriller_story_silence
+thriller_story_reversal -[#5C6773]-> thriller_story_entrance_exit
+thriller_story_spatial_legibility -[#5C6773]-> thriller_story_object_handling
+thriller_story_causal_clarity -[#5C6773]-> thriller_story_character_goal
+thriller_story_character_goal -[#5C6773]-> thriller_story_character_need
+thriller_story_character_need -[#5C6773]-> thriller_story_contradiction
+thriller_story_subtext_basics -[#5C6773]-> thriller_story_voice_difference
+thriller_story_point_of_view -[#5C6773]-> thriller_story_backstory_restraint
+thriller_story_character_need -[#5C6773]-> thriller_story_relationship_pressure
+thriller_story_emotional_compression -[#5C6773]-> thriller_story_wound_pattern
+thriller_story_contradiction -[#5C6773]-> thriller_story_change_arc
+thriller_story_relationship_pressure -[#5C6773]-> thriller_story_change_arc
+thriller_story_description_focus -[#5C6773]-> thriller_story_setting_pressure
+thriller_story_setting_pressure -[#5C6773]-> thriller_story_worldbuilding_economy
+thriller_story_worldbuilding_economy -[#5C6773]-> thriller_story_social_structure
+thriller_story_worldbuilding_economy -[#5C6773]-> thriller_story_history_pressure
+thriller_story_description_focus -[#5C6773]-> thriller_story_sensory_balance
+thriller_story_sensory_balance -[#5C6773]-> thriller_story_atmosphere
+thriller_story_description_focus -[#5C6773]-> thriller_story_image_freshness
+thriller_story_prose_precision -[#5C6773]-> thriller_story_metaphor_restraint
+thriller_story_prose_precision -[#5C6773]-> thriller_story_rhythm_control
+thriller_story_rhythm_control -[#5C6773]-> thriller_story_paragraph_momentum
+thriller_story_backstory_restraint -[#5C6773]-> thriller_story_exposition_control
+thriller_story_subtext_basics -[#5C6773]-> thriller_story_dialogue_under_strain
+thriller_story_status_dynamics -[#5C6773]-> thriller_story_dialogue_under_strain
+thriller_story_image_freshness -[#5C6773]-> thriller_story_motif
+thriller_story_change_arc -[#5C6773]-> thriller_story_theme_pressure
+thriller_story_worldbuilding_economy -[#5C6773]-> thriller_story_theme_pressure
+thriller_story_change_arc -[#5C6773]-> thriller_story_plot_escalation
+thriller_story_reversal -[#5C6773]-> thriller_story_plot_escalation
+thriller_story_plot_escalation -[#5C6773]-> thriller_story_subplot_use
+thriller_story_plot_escalation -[#5C6773]-> thriller_story_middle_management
+thriller_story_middle_management -[#5C6773]-> thriller_story_climax_construction
+thriller_story_theme_pressure -[#5C6773]-> thriller_story_climax_construction
+thriller_story_climax_construction -[#5C6773]-> thriller_story_ending_payoff
+thriller_story_climax_construction -[#5C6773]-> thriller_story_revision_triage
+thriller_story_revision_triage -[#5C6773]-> thriller_story_scene_cutting
+thriller_story_revision_triage -[#5C6773]-> thriller_story_clarity_pass
+thriller_story_rhythm_control -[#5C6773]-> thriller_story_language_pass
+thriller_story_revision_triage -[#5C6773]-> thriller_story_language_pass
+thriller_story_clarity_pass -[#5C6773]-> thriller_story_beta_awareness
+thriller_story_character_goal -[#5C6773]-> thriller_story_opening_grip
+thriller_story_setting_pressure -[#5C6773]-> thriller_story_opening_grip
+thriller_story_transition_flow -[#5C6773]-> thriller_story_scene_sequencing
+thriller_story_middle_management -[#5C6773]-> thriller_story_scene_sequencing
+thriller_story_emotional_compression -[#5C6773]-> thriller_story_emotional_arc
+thriller_story_change_arc -[#5C6773]-> thriller_story_emotional_arc
+thriller_story_ending_payoff -[#5C6773]-> thriller_story_final_resonance
+thriller_story_motif -[#5C6773]-> thriller_story_final_resonance
+@enduml

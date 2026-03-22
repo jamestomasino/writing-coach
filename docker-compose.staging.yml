@@ -1,0 +1,31 @@
+services:
+  web:
+    container_name: writing-coach-staging-web
+
+  app:
+    container_name: writing-coach-staging-app
+
+  languagetool:
+    container_name: writing-coach-staging-languagetool
+
+  nlp-analyzer:
+    container_name: writing-coach-staging-nlp-analyzer
+
+  kratos-migrate:
+    container_name: writing-coach-staging-kratos-migrate
+    environment:
+      COACH_PUBLIC_URL: "${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}"
+      KRATOS_PUBLIC_BASE_URL: "${STAGING_KRATOS_PUBLIC_BASE_URL:-${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}/.ory/kratos/public}"
+      KRATOS_UI_PUBLIC_URL: "${STAGING_KRATOS_UI_PUBLIC_URL:-${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}}"
+      KRATOS_ALLOWED_RETURN_URLS: "${STAGING_KRATOS_ALLOWED_RETURN_URLS:-${STAGING_COACH_PUBLIC_URL:-http://localhost:12234},${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}/login,${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}/register}"
+
+  kratos:
+    container_name: writing-coach-staging-kratos
+    environment:
+      COACH_PUBLIC_URL: "${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}"
+      KRATOS_PUBLIC_BASE_URL: "${STAGING_KRATOS_PUBLIC_BASE_URL:-${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}/.ory/kratos/public}"
+      KRATOS_UI_PUBLIC_URL: "${STAGING_KRATOS_UI_PUBLIC_URL:-${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}}"
+      KRATOS_ALLOWED_RETURN_URLS: "${STAGING_KRATOS_ALLOWED_RETURN_URLS:-${STAGING_COACH_PUBLIC_URL:-http://localhost:12234},${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}/login,${STAGING_COACH_PUBLIC_URL:-http://localhost:12234}/register}"
+
+  mailslurper:
+    container_name: writing-coach-staging-mailslurper

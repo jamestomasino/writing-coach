@@ -11,6 +11,7 @@ import (
 )
 
 func (s *Store) TreeBySlug(ctx context.Context, slug string) (domain.TGOTree, error) {
+	slug = domain.NormalizeTreeSlug(slug)
 	var tree domain.TGOTree
 	err := s.SQL.QueryRowContext(ctx, `
 		SELECT id, slug, title, description, created_at FROM tgo_trees WHERE slug = ?
@@ -19,6 +20,7 @@ func (s *Store) TreeBySlug(ctx context.Context, slug string) (domain.TGOTree, er
 }
 
 func (s *Store) TreeDefinitionBySlug(ctx context.Context, slug string) (domain.TGOTreeDefinition, error) {
+	slug = domain.NormalizeTreeSlug(slug)
 	var def domain.TGOTreeDefinition
 	var seedCodesJSON, prioritySkillsJSON string
 	err := s.SQL.QueryRowContext(ctx, `
@@ -50,12 +52,14 @@ func (s *Store) TreeDefinitionBySlug(ctx context.Context, slug string) (domain.T
 	for rows.Next() {
 		var tgo domain.TGO
 		var prereqsJSON string
-		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &prereqsJSON, &tgo.MasteryHint); err != nil {
+		var masteryHint sql.NullString
+		if err := rows.Scan(&tgo.ID, &tgo.Code, &tgo.Title, &tgo.Description, &tgo.Stage, &tgo.StageOrder, &tgo.ProgressMode, &prereqsJSON, &masteryHint); err != nil {
 			return domain.TGOTreeDefinition{}, err
 		}
 		if tgo.Prerequisites, err = DecodeStringSlice(prereqsJSON); err != nil {
 			return domain.TGOTreeDefinition{}, err
 		}
+		tgo.MasteryHint = masteryHint.String
 		def.TGOs = append(def.TGOs, tgo)
 	}
 	return def, rows.Err()

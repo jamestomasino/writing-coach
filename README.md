@@ -66,6 +66,8 @@ Default localhost binding from `.env.example`:
 
 - `127.0.0.1:11234:3000`
 
+For a safer production release flow with copied-data staging and rollback scripts, see [docs/deployment-staging.md](/home/tomasino/writing-coach/docs/deployment-staging.md).
+
 The web container proxies `/api` and `/.ory/kratos/public` internally, so host `nginx` only needs one upstream:
 
 ```nginx
@@ -318,6 +320,8 @@ The repository currently includes:
 ## Deployment References
 
 - [deploy/docker-compose.example.yml](/home/tomasino/writing-coach/deploy/docker-compose.example.yml)
+- [docker-compose.staging.yml](/home/tomasino/writing-coach/docker-compose.staging.yml)
+- [docs/deployment-staging.md](/home/tomasino/writing-coach/docs/deployment-staging.md)
 - [deploy/nginx.example.conf](/home/tomasino/writing-coach/deploy/nginx.example.conf)
 - [deploy/kratos/kratos.yml.tmpl](/home/tomasino/writing-coach/deploy/kratos/kratos.yml.tmpl)
 - [deploy/kratos/render-config.sh](/home/tomasino/writing-coach/deploy/kratos/render-config.sh)

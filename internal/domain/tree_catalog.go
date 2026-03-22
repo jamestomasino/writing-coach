@@ -29,7 +29,7 @@ type SkillGraph struct {
 	Nodes       []SkillGraphNode
 }
 
-func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, []TGOTreeDefinition, map[string]string) {
+func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, []TGOTreeDefinition, map[string]string) {
 	skillMap := map[string]string{}
 	node := func(code, title, skill, description, stage string, order int, mastery string, prerequisites ...string) TGO {
 		skillMap[code] = skill
@@ -43,71 +43,6 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 			MasteryHint:   mastery,
 			ProgressMode:  InferProgressMode(skill),
 		}
-	}
-
-	mythic := TGOTreeDefinition{
-		Slug:           "mythic-tragedy-apprenticeship",
-		Title:          WriterTrackName,
-		Description:    "Advanced mythopoeic tragic fiction track.",
-		SeedCodes:      []string{"causal-clarity", "scene-architecture", "prose-precision"},
-		PrioritySkills: []string{"tragic inevitability", "symbolic control", "mythic tone", "emotional compression", "scene architecture", "narrative clarity", "prose precision", "worldbuilding economy", "dialogue intelligence", "image freshness"},
-		TGOs: []TGO{
-			node("causal-clarity", "Causal Clarity", "narrative clarity", "Make action and consequence legible beat by beat.", "core", 1, "Readers can follow each decision and its immediate consequence without backtracking."),
-			node("scene-architecture", "Scene Architecture", "scene architecture", "Stage turns, entrances, exits, and power shifts cleanly.", "core", 2, "Scenes remain spatially and dramatically legible even under pressure."),
-			node("prose-precision", "Prose Precision", "prose precision", "Replace soft modifiers with exact nouns and verbs.", "core", 3, "Line-level revision consistently sharpens verbs, nouns, and cadence without puffing the diction."),
-			node("emotional-compression", "Emotional Compression", "emotional compression", "Condense feeling into image, gesture, and consequence.", "core", 4, "Feeling arrives through action and image rather than named emotion.", "causal-clarity"),
-			node("tension-escalation", "Tension Escalation", "scene architecture", "Increase pressure within a scene rather than restating stakes.", "core", 5, "Each beat leaves the scene tighter than before.", "scene-architecture"),
-			node("point-of-view-discipline", "Point of View Discipline", "narrative clarity", "Hold a stable lens so emotional and causal information lands cleanly.", "core", 6, "The narrative lens stays coherent and the reader always knows whose pressure is primary.", "causal-clarity"),
-			node("gesture-as-subtext", "Gesture as Subtext", "emotional compression", "Use movement and physical response to carry what characters cannot say.", "core", 7, "Gesture consistently reveals the pressure beneath speech.", "emotional-compression"),
-			node("motivation-pressure", "Motivation Pressure", "tragic inevitability", "Make motives force decisions rather than merely explain them.", "core", 8, "Choices feel driven from within the character's need structure.", "causal-clarity"),
-			node("consequence-memory", "Consequence Memory", "narrative clarity", "Carry forward the effects of prior scenes instead of resetting the emotional field.", "core", 9, "Earlier consequences continue to shape later action.", "causal-clarity"),
-			node("line-level-rhythm", "Line-Level Rhythm", "prose precision", "Control cadence so the prose can tighten or broaden intentionally.", "core", 10, "Sentence movement supports tension rather than floating at one tempo.", "prose-precision"),
-			node("transition-pressure", "Transition Pressure", "scene architecture", "Move between scenes without losing momentum or causal force.", "core", 11, "Transitions carry forward pressure instead of draining it.", "scene-architecture"),
-			node("conflict-triangulation", "Conflict Triangulation", "scene architecture", "Layer at least two competing pressures into a scene so conflict deepens instead of repeating.", "scene", 12, "Scenes carry intersecting pressures rather than a single flat disagreement.", "tension-escalation", "motivation-pressure"),
-			node("entrance-exit-weight", "Entrance and Exit Weight", "scene architecture", "Make arrivals and departures alter the emotional and power balance.", "scene", 13, "Beginnings and endings of scenes create a felt shift in force.", "scene-architecture"),
-			node("spatial-legibility", "Spatial Legibility", "scene architecture", "Keep bodies, objects, and thresholds clear enough that ritual and conflict remain trackable.", "scene", 14, "The reader never loses where power is staged in the room.", "scene-architecture"),
-			node("status-turns", "Status Turns", "dialogue intelligence", "Track shifts in rank or leverage as scenes progress.", "scene", 15, "Power changes become visible through action and speech rather than explanation.", "tension-escalation"),
-			node("withheld-information-control", "Withheld Information Control", "narrative clarity", "Delay information deliberately without confusing the reader.", "scene", 16, "Mystery creates pressure without muddying comprehension.", "point-of-view-discipline"),
-			node("reversal-construction", "Reversal Construction", "scene architecture", "Build reversals that arise from choice and pressure instead of arbitrary surprise.", "scene", 17, "Turns feel both surprising and inevitable in retrospect.", "conflict-triangulation"),
-			node("dialogue-under-strain", "Dialogue Under Strain", "dialogue intelligence", "Use speech to reveal rank, fracture, and motive under pressure.", "scene", 18, "Dialogue carries conflict and hierarchy without flattening into exposition.", "scene-architecture", "prose-precision"),
-			node("silence-deployment", "Silence Deployment", "dialogue intelligence", "Use silence, omission, and interruption as active dramatic tools.", "scene", 19, "Gaps in speech do visible work in the conflict.", "dialogue-under-strain"),
-			node("ritualized-action", "Ritualized Action", "mythic tone", "Let repeated actions build sacred or historical weight.", "scene", 20, "Ritual action gathers pressure instead of reading like decorative repetition.", "spatial-legibility", "gesture-as-subtext"),
-			node("desire-contradiction", "Desire Contradiction", "tragic inevitability", "Give characters conflicting wants that force self-wounding choices.", "character", 21, "The strongest choices satisfy one value by betraying another.", "motivation-pressure"),
-			node("flaw-leverage", "Flaw Leverage", "tragic inevitability", "Turn weakness into a force that changes events rather than a personality label.", "character", 22, "The flaw actively alters what the character does under stress.", "desire-contradiction"),
-			node("mask-and-reveal", "Mask and Reveal", "dialogue intelligence", "Let self-presentation crack under pressure in visible increments.", "character", 23, "The reader can feel the gap between persona and need tightening.", "dialogue-under-strain"),
-			node("loyalty-pressure", "Loyalty Pressure", "tragic inevitability", "Use bonds and duties to intensify difficult choices.", "character", 24, "Relationships complicate decisions rather than merely softening them.", "desire-contradiction"),
-			node("inner-logic-coherence", "Inner Logic Coherence", "narrative clarity", "Make even destructive choices understandable from the character's value system.", "character", 25, "The reader may disagree with the choice but understands why it happened.", "motivation-pressure"),
-			node("wound-recurrence", "Wound Recurrence", "emotional compression", "Let recurring injury patterns shape reaction without overexplaining backstory.", "character", 26, "Past wounds manifest through pattern rather than lecture.", "emotional-compression"),
-			node("sacrificial-costing", "Sacrificial Costing", "tragic inevitability", "Make sacrifice expensive, specific, and irreversible.", "character", 27, "The loss feels concrete and cannot be hand-waved away later.", "loyalty-pressure", "consequence-memory"),
-			node("descriptive-hierarchy", "Descriptive Hierarchy", "image freshness", "Choose details according to dramatic importance rather than equal decorative weight.", "world", 28, "Description highlights the details that carry pressure in the scene.", "prose-precision"),
-			node("worldbuilding-economy", "Worldbuilding Economy", "worldbuilding economy", "Imply history through pressure, not exposition.", "world", 29, "Setting, history, and politics arrive through conflict-bearing details.", "scene-architecture"),
-			node("institutional-pressure", "Institutional Pressure", "worldbuilding economy", "Let laws, rites, and structures push on the characters.", "world", 30, "The world acts on the scene instead of sitting inert behind it.", "worldbuilding-economy"),
-			node("historical-shadow", "Historical Shadow", "worldbuilding economy", "Make prior events haunt the present action without summarizing the timeline.", "world", 31, "History is felt as pressure, taboo, or memory in the present scene.", "worldbuilding-economy"),
-			node("cosmology-restraint", "Cosmology Restraint", "mythic tone", "Treat metaphysical material with gravity and limitation instead of lore-sprawl.", "world", 32, "The sacred or cosmic dimension deepens the narrative without flooding it.", "worldbuilding-economy", "mythic-register"),
-			node("setting-as-fate", "Setting as Fate", "tragic inevitability", "Use place to narrow choices and reinforce doom.", "world", 33, "Place actively limits what characters can do or become.", "institutional-pressure"),
-			node("object-recurrence", "Object Recurrence", "symbolic control", "Repeat charged objects with increasing pressure and altered context.", "symbol", 34, "Objects gain force through recurrence rather than explanation.", "prose-precision", "emotional-compression"),
-			node("symbolic-discipline", "Symbolic Discipline", "symbolic control", "Let objects carry fate without direct explanation.", "symbol", 35, "Symbols recur with pressure and coherence without being glossed for the reader.", "prose-precision", "emotional-compression"),
-			node("metaphor-restraint", "Metaphor Restraint", "prose precision", "Keep figurative language selective enough that symbolic pressure stays readable.", "symbol", 36, "Metaphor sharpens the scene instead of fogging it.", "prose-precision"),
-			node("mythic-register", "Mythic Register", "mythic tone", "Sustain gravity without inflated diction or pastiche.", "symbol", 37, "The prose feels elevated and disciplined rather than imitative or overwritten.", "symbolic-discipline", "prose-precision"),
-			node("prophetic-ambiguity", "Prophetic Ambiguity", "symbolic control", "Handle prophecy or omen so it intensifies choice instead of dictating plot mechanically.", "symbol", 38, "Omen deepens dread without making character agency irrelevant.", "symbolic-discipline", "withheld-information-control"),
-			node("image-freshness", "Image Freshness", "image freshness", "Prefer singular earned imagery over fantasy stock language.", "symbol", 39, "Images feel specific to the scene rather than drawn from generic fantasy vocabulary.", "mythic-register"),
-			node("motif-weaving", "Motif Weaving", "symbolic control", "Thread recurring images across scenes so they accumulate meaning.", "symbol", 40, "Motifs echo across the draft without becoming heavy-handed.", "object-recurrence", "image-freshness"),
-			node("fate-vs-choice-balance", "Fate and Choice Balance", "tragic inevitability", "Let destiny intensify decisions instead of replacing them.", "tragedy", 41, "The characters remain morally and causally responsible inside a fated frame.", "prophetic-ambiguity", "motivation-pressure"),
-			node("tragic-inevitability", "Tragic Inevitability", "tragic inevitability", "Make choices close futures rather than open them.", "tragedy", 42, "The ending feels sealed by prior choices, not imposed by authorial summary.", "causal-clarity", "scene-architecture"),
-			node("doom-acceleration", "Doom Acceleration", "tragic inevitability", "Make later choices shrink options faster than earlier ones.", "tragedy", 43, "The field of possible rescue narrows visibly over time.", "tragic-inevitability"),
-			node("mercy-denial", "Mercy Denial", "tragic inevitability", "Withhold easy relief unless it costs something else essential.", "tragedy", 44, "Moments that might save the character carry real counter-costs.", "tragic-inevitability"),
-			node("consequence-irrevocability", "Consequence Irrevocability", "tragic inevitability", "Prevent late-stage reversals from undoing earned damage.", "tragedy", 45, "The final costs remain binding.", "sacrificial-costing", "doom-acceleration"),
-			node("catastrophic-reversal", "Catastrophic Reversal", "tragic inevitability", "Build the final turn so it arises from the story's own pressure system.", "tragedy", 46, "The collapse feels prepared, not sprung.", "reversal-construction", "consequence-irrevocability"),
-			node("lament-with-restraint", "Lament with Restraint", "emotional compression", "Allow grief to become audible without turning the prose slack or melodramatic.", "tragedy", 47, "Grief lands hard without overstatement.", "emotional-compression", "catastrophic-reversal"),
-			node("chapter-pressure", "Chapter Pressure", "scene architecture", "End larger units on consequential instability rather than generic cliffhangers.", "structure", 48, "Chapter breaks intensify onward movement.", "transition-pressure"),
-			node("parallel-scene-design", "Parallel Scene Design", "scene architecture", "Echo and invert scene structures so the arc gains formal force.", "structure", 49, "Repeated scene shapes create visible development rather than repetition.", "chapter-pressure"),
-			node("subplot-convergence", "Subplot Convergence", "narrative clarity", "Bring secondary threads into the main fatal pressure instead of leaving them ornamental.", "structure", 50, "Subplots resolve by feeding the central conflict.", "consequence-memory", "chapter-pressure"),
-			node("ensemble-balance", "Ensemble Balance", "scene architecture", "Distribute attention across multiple important figures without dissolving focus.", "structure", 51, "Secondary figures matter without stealing the story's center.", "status-turns", "point-of-view-discipline"),
-			node("revision-triage", "Revision Triage", "prose precision", "Prioritize the revisions that improve force rather than endlessly polishing surfaces.", "revision", 52, "Later drafts improve structural force before cosmetic flourish.", "line-level-rhythm", "chapter-pressure"),
-			node("density-with-breath", "Density with Breath", "mythic tone", "Control compression so the prose feels rich rather than clogged.", "revision", 53, "Dense passages remain readable because release valves are placed intentionally.", "line-level-rhythm", "mythic-register"),
-			node("anti-pastiche-control", "Anti-Pastiche Control", "mythic tone", "Keep influence visible only as depth of craft, not imitation of voice or phrase.", "revision", 54, "The prose feels owned rather than borrowed.", "mythic-register", "image-freshness"),
-			node("ending-resonance", "Ending Resonance", "symbolic control", "Close on an image or action that carries the whole tragic field without explaining it.", "revision", 55, "The ending resonates outward through prior motifs and consequences.", "motif-weaving", "lament-with-restraint"),
-		},
 	}
 
 	youth := TGOTreeDefinition{
@@ -249,50 +184,50 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 			node("reader-pain-mapping", "Reader Pain Mapping", "audience alignment", "Name the friction or uncertainty your audience actually feels.", "core", 6, "The piece meets a real reader need instead of an imagined generic one.", "audience-alignment"),
 			node("terminology-discipline", "Terminology Discipline", "clarity and coherence", "Use key terms consistently and define them when needed.", "core", 7, "Important terms keep the same meaning across the piece.", "claim-clarity"),
 			node("paragraph-focus", "Paragraph Focus", "clarity and coherence", "Make each paragraph serve one argumentative function.", "core", 8, "Paragraphs do one job well instead of several badly.", "sentence-economy"),
-			node("structural-signposting", "Structural Signposting", "structural signposting", "Guide the reader through the argument with clear sectional moves.", "structure", 9, "Major turns in the argument are easy to follow.", "claim-clarity"),
-			node("opening-hook", "Opening Hook", "authority and voice", "Open with tension, surprise, or consequence rather than generic introduction.", "structure", 10, "The opening earns attention and frames the piece's purpose.", "audience-alignment"),
-			node("thesis-placement", "Thesis Placement", "claim clarity", "Place the main claim where the reader can use it.", "structure", 11, "The argument's center is discoverable early enough to guide reading.", "claim-clarity"),
+			node("structural-signposting", "Structural Signposting", "structural signposting", "Guide the reader through the argument with clear sectional moves.", "structure", 9, "Major turns in the argument are easy to follow.", "problem-framing"),
+			node("opening-hook", "Opening Hook", "authority and voice", "Open with tension, surprise, or consequence rather than generic introduction.", "structure", 10, "The opening earns attention and frames the piece's purpose.", "reader-pain-mapping"),
+			node("thesis-placement", "Thesis Placement", "claim clarity", "Place the main claim where the reader can use it.", "structure", 11, "The argument's center is discoverable early enough to guide reading.", "stakes-articulation"),
 			node("section-ordering", "Section Ordering", "structural signposting", "Arrange sections so the reasoning compounds instead of repeating.", "structure", 12, "The order of sections feels necessary rather than arbitrary.", "structural-signposting"),
 			node("bridge-sentences", "Bridge Sentences", "structural signposting", "Use transitions that connect the logic between sections.", "structure", 13, "The reader sees why the next section follows the last.", "section-ordering"),
-			node("scaffolding-load", "Scaffolding Load", "clarity and coherence", "Provide enough setup for the reader without overexplaining the obvious.", "structure", 14, "Supportive framing helps rather than slows the piece.", "reader-pain-mapping"),
-			node("ending-that-lands", "Ending That Lands", "authority and voice", "Close with consequence, implication, or next move rather than vague summary.", "structure", 15, "The conclusion sharpens the piece's aftereffect.", "stakes-articulation"),
-			node("insight-density", "Insight Density", "insight density", "Favor original value over generic summary.", "insight", 16, "Paragraphs deliver actual insight, not only competent explanation.", "claim-clarity", "audience-alignment"),
+			node("scaffolding-load", "Scaffolding Load", "clarity and coherence", "Provide enough setup for the reader without overexplaining the obvious.", "structure", 14, "Supportive framing helps rather than slows the piece.", "paragraph-focus"),
+			node("ending-that-lands", "Ending That Lands", "authority and voice", "Close with consequence, implication, or next move rather than vague summary.", "structure", 15, "The conclusion sharpens the piece's aftereffect.", "thesis-placement"),
+			node("insight-density", "Insight Density", "insight density", "Favor original value over generic summary.", "insight", 16, "Paragraphs deliver actual insight, not only competent explanation.", "bridge-sentences"),
 			node("novel-distinction", "Novel Distinction", "insight density", "State what your view adds, changes, or sees differently.", "insight", 17, "The piece distinguishes itself from common takes.", "insight-density"),
-			node("conceptual-compression", "Conceptual Compression", "insight density", "Express complicated reasoning with as little waste as possible.", "insight", 18, "The argument becomes easier to remember and share.", "sentence-economy", "insight-density"),
-			node("counterargument-handling", "Counterargument Handling", "claim clarity", "Represent the strongest alternative view fairly before responding.", "insight", 19, "The piece grows more credible because it meets resistance honestly.", "claim-clarity", "section-ordering"),
-			node("analogy-selection", "Analogy Selection", "evidence integration", "Use analogies that actually clarify the reasoning.", "insight", 20, "Analogies simplify without distorting the argument.", "insight-density"),
-			node("framework-construction", "Framework Construction", "insight density", "Offer a model, lens, or structure the reader can reuse.", "insight", 21, "The piece gives the reader a durable way to think.", "novel-distinction", "conceptual-compression"),
-			node("implication-expansion", "Implication Expansion", "insight density", "Follow the argument outward into meaningful consequences.", "insight", 22, "The reader sees why the insight changes decisions or interpretation.", "stakes-articulation", "framework-construction"),
-			node("evidence-integration", "Evidence Integration", "evidence integration", "Use examples and evidence to sharpen the claim instead of decorating it.", "evidence", 23, "Evidence advances the reasoning instead of merely appearing beside it.", "structural-signposting"),
+			node("conceptual-compression", "Conceptual Compression", "insight density", "Express complicated reasoning with as little waste as possible.", "insight", 18, "The argument becomes easier to remember and share.", "novel-distinction"),
+			node("counterargument-handling", "Counterargument Handling", "claim clarity", "Represent the strongest alternative view fairly before responding.", "insight", 19, "The piece grows more credible because it meets resistance honestly.", "thesis-placement"),
+			node("analogy-selection", "Analogy Selection", "evidence integration", "Use analogies that actually clarify the reasoning.", "insight", 20, "Analogies simplify without distorting the argument.", "conceptual-compression"),
+			node("framework-construction", "Framework Construction", "insight density", "Offer a model, lens, or structure the reader can reuse.", "insight", 21, "The piece gives the reader a durable way to think.", "analogy-selection"),
+			node("implication-expansion", "Implication Expansion", "insight density", "Follow the argument outward into meaningful consequences.", "insight", 22, "The reader sees why the insight changes decisions or interpretation.", "framework-construction"),
+			node("evidence-integration", "Evidence Integration", "evidence integration", "Use examples and evidence to sharpen the claim instead of decorating it.", "evidence", 23, "Evidence advances the reasoning instead of merely appearing beside it.", "counterargument-handling"),
 			node("example-selection", "Example Selection", "evidence integration", "Choose examples that illuminate the exact claim being made.", "evidence", 24, "Examples feel precise, not merely available.", "evidence-integration"),
-			node("quote-restraint", "Quote Restraint", "evidence integration", "Quote only what the reader needs and do the interpretive work yourself.", "evidence", 25, "Quoted material supports the author's reasoning instead of replacing it.", "evidence-integration"),
-			node("data-interpretation", "Data Interpretation", "evidence integration", "Explain what data means rather than assuming the number speaks for itself.", "evidence", 26, "Evidence arrives with interpretation and relevance.", "evidence-integration"),
-			node("case-study-use", "Case Study Use", "evidence integration", "Use specific cases to deepen understanding without losing the general claim.", "evidence", 27, "Case studies serve the argument rather than becoming detours.", "example-selection"),
-			node("evidence-proportion", "Evidence Proportion", "evidence integration", "Balance support so the piece is neither under-argued nor overburdened with proof.", "evidence", 28, "Support feels sufficient and proportionate to the claim.", "data-interpretation", "quote-restraint"),
-			node("source-framing", "Source Framing", "authority and voice", "Introduce outside sources in a way that clarifies why they matter.", "evidence", 29, "References feel selected and interpreted, not pasted in.", "evidence-integration"),
-			node("authority-and-voice", "Authority and Voice", "authority and voice", "Sound decisive without becoming inflated or vague.", "voice", 30, "The voice feels credible, direct, and earned.", "sentence-economy"),
-			node("tone-calibration-thought", "Tone Calibration", "tone calibration", "Match tone to audience and platform without flattening your point of view.", "voice", 31, "The tone earns trust instead of distance or overfamiliarity.", "audience-alignment"),
-			node("sentence-pressure", "Sentence Pressure", "sentence economy", "Keep individual sentences moving toward a point instead of idling.", "voice", 32, "Sentences feel driven by thought instead of filler.", "sentence-economy"),
+			node("quote-restraint", "Quote Restraint", "evidence integration", "Quote only what the reader needs and do the interpretive work yourself.", "evidence", 25, "Quoted material supports the author's reasoning instead of replacing it.", "example-selection"),
+			node("data-interpretation", "Data Interpretation", "evidence integration", "Explain what data means rather than assuming the number speaks for itself.", "evidence", 26, "Evidence arrives with interpretation and relevance.", "quote-restraint"),
+			node("case-study-use", "Case Study Use", "evidence integration", "Use specific cases to deepen understanding without losing the general claim.", "evidence", 27, "Case studies serve the argument rather than becoming detours.", "data-interpretation"),
+			node("evidence-proportion", "Evidence Proportion", "evidence integration", "Balance support so the piece is neither under-argued nor overburdened with proof.", "evidence", 28, "Support feels sufficient and proportionate to the claim.", "case-study-use"),
+			node("source-framing", "Source Framing", "authority and voice", "Introduce outside sources in a way that clarifies why they matter.", "evidence", 29, "References feel selected and interpreted, not pasted in.", "evidence-proportion"),
+			node("authority-and-voice", "Authority and Voice", "authority and voice", "Sound decisive without becoming inflated or vague.", "voice", 30, "The voice feels credible, direct, and earned.", "opening-hook"),
+			node("tone-calibration-thought", "Tone Calibration", "tone calibration", "Match tone to audience and platform without flattening your point of view.", "voice", 31, "The tone earns trust instead of distance or overfamiliarity.", "authority-and-voice"),
+			node("sentence-pressure", "Sentence Pressure", "sentence economy", "Keep individual sentences moving toward a point instead of idling.", "voice", 32, "Sentences feel driven by thought instead of filler.", "paragraph-focus"),
 			node("cadence-variety", "Cadence Variety", "authority and voice", "Vary sentence rhythm so the prose sounds deliberate rather than monotonous.", "voice", 33, "The prose has audible shape and emphasis.", "sentence-pressure"),
-			node("verb-forward-style", "Verb-Forward Style", "sentence economy", "Favor active, decision-carrying verbs over inert abstractions.", "voice", 34, "The prose sounds more direct and forceful.", "sentence-economy"),
-			node("opening-that-frames", "Opening That Frames", "authority and voice", "Frame the piece with the right tension, question, or contradiction.", "voice", 35, "The beginning establishes the intellectual field quickly.", "opening-hook", "problem-framing"),
-			node("ending-that-opens", "Ending That Opens", "authority and voice", "End in a way that points the reader toward consequence or application.", "voice", 36, "The ending feels like an earned next step.", "ending-that-lands", "implication-expansion"),
+			node("verb-forward-style", "Verb-Forward Style", "sentence economy", "Favor active, decision-carrying verbs over inert abstractions.", "voice", 34, "The prose sounds more direct and forceful.", "cadence-variety"),
+			node("opening-that-frames", "Opening That Frames", "authority and voice", "Frame the piece with the right tension, question, or contradiction.", "voice", 35, "The beginning establishes the intellectual field quickly.", "tone-calibration-thought"),
+			node("ending-that-opens", "Ending That Opens", "authority and voice", "End in a way that points the reader toward consequence or application.", "voice", 36, "The ending feels like an earned next step.", "ending-that-lands"),
 			node("platform-fit", "Platform Fit", "audience alignment", "Shape density, format, and framing to the publishing context.", "audience", 37, "The piece feels natural to its channel rather than transplanted.", "tone-calibration-thought"),
-			node("reader-objection-forecasting", "Reader Objection Forecasting", "audience alignment", "Anticipate likely resistance and answer it before the reader disengages.", "audience", 38, "The piece stays ahead of the reader's skepticism.", "counterargument-handling", "reader-pain-mapping"),
-			node("trust-building-specificity", "Trust-Building Specificity", "authority and voice", "Use specifics that build credibility without showboating expertise.", "audience", 39, "Specificity increases trust rather than clutter.", "authority-and-voice"),
+			node("reader-objection-forecasting", "Reader Objection Forecasting", "audience alignment", "Anticipate likely resistance and answer it before the reader disengages.", "audience", 38, "The piece stays ahead of the reader's skepticism.", "counterargument-handling"),
+			node("trust-building-specificity", "Trust-Building Specificity", "authority and voice", "Use specifics that build credibility without showboating expertise.", "audience", 39, "Specificity increases trust rather than clutter.", "source-framing"),
 			node("actionable-insight", "Actionable Insight", "actionability", "Translate abstract reasoning into useful next moves.", "audience", 40, "Readers can apply the argument after reading.", "implication-expansion"),
-			node("audience-segmentation", "Audience Segmentation", "audience alignment", "Recognize when one audience needs a different framing from another.", "audience", 41, "The writer can adjust argument framing by reader group.", "platform-fit", "reader-pain-mapping"),
-			node("series-thinking", "Series Thinking", "structural signposting", "Write one piece as part of a larger body of thought, not an isolated post.", "audience", 42, "Pieces begin to reinforce each other across publication.", "framework-construction", "platform-fit"),
-			node("argument-arc", "Argument Arc", "structural signposting", "Shape the full piece so the argument deepens in deliberate stages.", "advanced", 43, "The reader feels guided through a progression rather than a stack of points.", "section-ordering", "insight-density"),
+			node("audience-segmentation", "Audience Segmentation", "audience alignment", "Recognize when one audience needs a different framing from another.", "audience", 41, "The writer can adjust argument framing by reader group.", "platform-fit"),
+			node("series-thinking", "Series Thinking", "structural signposting", "Write one piece as part of a larger body of thought, not an isolated post.", "audience", 42, "Pieces begin to reinforce each other across publication.", "audience-segmentation"),
+			node("argument-arc", "Argument Arc", "structural signposting", "Shape the full piece so the argument deepens in deliberate stages.", "advanced", 43, "The reader feels guided through a progression rather than a stack of points.", "series-thinking"),
 			node("strategic-repetition", "Strategic Repetition", "clarity and coherence", "Repeat key ideas with variation so they stick without becoming redundant.", "advanced", 44, "Key concepts recur memorably instead of monotonously.", "argument-arc"),
-			node("thought-contrast", "Thought Contrast", "insight density", "Use juxtaposition to sharpen distinctions and reveal stakes.", "advanced", 45, "Comparisons deepen rather than merely decorate the argument.", "novel-distinction"),
-			node("concept-bridging", "Concept Bridging", "insight density", "Connect ideas from different domains without making the bridge feel forced.", "advanced", 46, "Cross-domain connections feel earned and illuminating.", "framework-construction"),
-			node("revision-triage-thought", "Revision Triage", "revision habits", "Fix claim, structure, and evidence before polishing voice.", "revision", 47, "Revisions improve the argument in the right order.", "argument-arc"),
+			node("thought-contrast", "Thought Contrast", "insight density", "Use juxtaposition to sharpen distinctions and reveal stakes.", "advanced", 45, "Comparisons deepen rather than merely decorate the argument.", "strategic-repetition"),
+			node("concept-bridging", "Concept Bridging", "insight density", "Connect ideas from different domains without making the bridge feel forced.", "advanced", 46, "Cross-domain connections feel earned and illuminating.", "thought-contrast"),
+			node("revision-triage-thought", "Revision Triage", "revision habits", "Fix claim, structure, and evidence before polishing voice.", "revision", 47, "Revisions improve the argument in the right order.", "concept-bridging"),
 			node("clarity-pass-thought", "Clarity Pass", "revision habits", "Revise once only for reader confusion, ambiguity, and hidden assumptions.", "revision", 48, "The piece becomes easier to follow without losing depth.", "revision-triage-thought"),
-			node("evidence-pass-thought", "Evidence Pass", "revision habits", "Revise once only for support quality and proportionality.", "revision", 49, "Support becomes better matched to claims.", "revision-triage-thought"),
-			node("voice-pass-thought", "Voice Pass", "revision habits", "Do a separate revision pass for tone, cadence, and confidence.", "revision", 50, "The prose sounds more owned and deliberate.", "revision-triage-thought"),
+			node("evidence-pass-thought", "Evidence Pass", "revision habits", "Revise once only for support quality and proportionality.", "revision", 49, "Support becomes better matched to claims.", "clarity-pass-thought"),
+			node("voice-pass-thought", "Voice Pass", "revision habits", "Do a separate revision pass for tone, cadence, and confidence.", "revision", 50, "The prose sounds more owned and deliberate.", "evidence-pass-thought"),
 			node("headline-framing", "Headline Framing", "claim clarity", "Title the piece so it frames the real promise or provocation.", "revision", 51, "The title attracts the right reader with the right promise.", "opening-that-frames"),
-			node("portable-takeaway", "Portable Takeaway", "insight density", "Leave the reader with a phrasing or model they can carry away and repeat.", "revision", 52, "A memorable formulation survives after the piece ends.", "ending-that-opens", "framework-construction"),
+			node("portable-takeaway", "Portable Takeaway", "insight density", "Leave the reader with a phrasing or model they can carry away and repeat.", "revision", 52, "A memorable formulation survives after the piece ends.", "voice-pass-thought"),
 		},
 	}
 
@@ -313,48 +248,48 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 			node("terminology-consistency", "Terminology Consistency", "clarity and coherence", "Use project or domain terms consistently.", "core", 8, "Terms keep the same meaning across the document.", "objective-clarity"),
 			node("reader-load-control", "Reader Load Control", "scannability", "Reduce unnecessary cognitive load in high-context documents.", "core", 9, "The reader can process the message quickly.", "professional-sentence-economy"),
 			node("professional-structural-signposting", "Structural Signposting", "structural signposting", "Use headings, transitions, and ordering that reduce reader effort.", "structure", 10, "The document's structure is obvious and useful.", "objective-clarity"),
-			node("front-loaded-summary", "Front-Loaded Summary", "scannability", "Open longer documents with the essential point and recommendation.", "structure", 11, "Busy readers can grasp the message from the top.", "context-first", "professional-structural-signposting"),
-			node("bullet-discipline", "Bullet Discipline", "scannability", "Use bullets for true lists and keep them parallel and clear.", "structure", 12, "Bullets increase clarity instead of becoming visual clutter.", "professional-structural-signposting"),
-			node("section-order", "Section Order", "structural signposting", "Arrange sections in the order the reader needs them.", "structure", 13, "Readers encounter information at the moment it is useful.", "professional-structural-signposting"),
+			node("front-loaded-summary", "Front-Loaded Summary", "scannability", "Open longer documents with the essential point and recommendation.", "structure", 11, "Busy readers can grasp the message from the top.", "professional-structural-signposting"),
+			node("bullet-discipline", "Bullet Discipline", "scannability", "Use bullets for true lists and keep them parallel and clear.", "structure", 12, "Bullets increase clarity instead of becoming visual clutter.", "front-loaded-summary"),
+			node("section-order", "Section Order", "structural signposting", "Arrange sections in the order the reader needs them.", "structure", 13, "Readers encounter information at the moment it is useful.", "front-loaded-summary"),
 			node("bridge-lines", "Bridge Lines", "structural signposting", "Use short connecting lines that explain why the next section matters.", "structure", 14, "Transitions reduce re-reading and confusion.", "section-order"),
-			node("summary-vs-detail-balance", "Summary and Detail Balance", "scannability", "Balance overview and detail so neither overwhelms the other.", "structure", 15, "Documents feel complete without feeling overfull.", "front-loaded-summary", "reader-load-control"),
-			node("document-openings", "Document Openings", "tone calibration", "Open with the right mix of context, purpose, and tone.", "structure", 16, "The opening sets the right professional frame immediately.", "context-first", "professional-audience-alignment"),
-			node("document-closings", "Document Closings", "actionability", "Close with a clear next step or explicit status.", "structure", 17, "The document ends with directional clarity.", "ask-visibility", "ownership-clarity"),
+			node("summary-vs-detail-balance", "Summary and Detail Balance", "scannability", "Balance overview and detail so neither overwhelms the other.", "structure", 15, "Documents feel complete without feeling overfull.", "bridge-lines"),
+			node("document-openings", "Document Openings", "tone calibration", "Open with the right mix of context, purpose, and tone.", "structure", 16, "The opening sets the right professional frame immediately.", "front-loaded-summary"),
+			node("document-closings", "Document Closings", "actionability", "Close with a clear next step or explicit status.", "structure", 17, "The document ends with directional clarity.", "ownership-clarity"),
 			node("professional-tone-calibration", "Tone Calibration", "tone calibration", "Sound professional without becoming stiff, passive, or evasive.", "tone", 18, "Tone supports trust and clarity.", "professional-audience-alignment"),
 			node("directness-with-respect", "Directness with Respect", "tone calibration", "Be clear and firm without becoming sharp or dismissive.", "tone", 19, "Messages stay humane while still being decisive.", "professional-tone-calibration"),
-			node("confidence-without-overclaiming", "Confidence Without Overclaiming", "tone calibration", "State recommendations confidently while respecting uncertainty.", "tone", 20, "The prose sounds trustworthy because certainty is calibrated.", "professional-tone-calibration"),
+			node("confidence-without-overclaiming", "Confidence Without Overclaiming", "tone calibration", "State recommendations confidently while respecting uncertainty.", "tone", 20, "The prose sounds trustworthy because certainty is calibrated.", "directness-with-respect"),
 			node("bad-news-delivery", "Bad News Delivery", "tone calibration", "Handle negative updates honestly without confusion or unnecessary harshness.", "tone", 21, "The message is clear, respectful, and hard to misread.", "directness-with-respect"),
-			node("stakeholder-sensitivity", "Stakeholder Sensitivity", "audience alignment", "Adapt wording to different stakeholder concerns without losing substance.", "tone", 22, "The same core message can be tuned for different readers.", "professional-audience-alignment", "professional-tone-calibration"),
-			node("decision-language", "Decision Language", "actionability", "Use wording that makes decisions and recommendations unmistakable.", "tone", 23, "Readers can tell what is proposed, decided, or still open.", "confidence-without-overclaiming", "ask-visibility"),
+			node("stakeholder-sensitivity", "Stakeholder Sensitivity", "audience alignment", "Adapt wording to different stakeholder concerns without losing substance.", "tone", 22, "The same core message can be tuned for different readers.", "professional-tone-calibration"),
+			node("decision-language", "Decision Language", "actionability", "Use wording that makes decisions and recommendations unmistakable.", "tone", 23, "Readers can tell what is proposed, decided, or still open.", "ask-visibility"),
 			node("active-voice-control", "Active Voice Control", "sentence economy", "Prefer active constructions when responsibility and action matter.", "tone", 24, "The writing more often names who did what.", "professional-sentence-economy"),
-			node("meeting-note-clarity", "Meeting Note Clarity", "structural signposting", "Capture what happened, what was decided, and what remains open.", "forms", 25, "Meeting notes work as a dependable reference.", "front-loaded-summary", "ownership-clarity"),
-			node("status-update-control", "Status Update Control", "clarity and coherence", "Report progress, blockers, and next steps succinctly.", "forms", 26, "Status updates are easy to scan and act on.", "objective-clarity", "document-closings"),
-			node("proposal-structure", "Proposal Structure", "structural signposting", "Organize proposals so recommendation, rationale, and cost are easy to evaluate.", "forms", 27, "Proposals guide the reader toward a decision.", "front-loaded-summary", "decision-language"),
-			node("email-thread-discipline", "Email Thread Discipline", "scannability", "Keep long email threads readable and avoid burying the ask.", "forms", 28, "Even mid-thread, readers can spot what matters.", "ask-visibility", "bullet-discipline"),
-			node("spec-clarity", "Spec Clarity", "clarity and coherence", "Write requirements so they reduce interpretation drift.", "forms", 29, "Requirements are concrete enough to align execution.", "terminology-consistency", "objective-clarity"),
+			node("meeting-note-clarity", "Meeting Note Clarity", "structural signposting", "Capture what happened, what was decided, and what remains open.", "forms", 25, "Meeting notes work as a dependable reference.", "document-closings"),
+			node("status-update-control", "Status Update Control", "clarity and coherence", "Report progress, blockers, and next steps succinctly.", "forms", 26, "Status updates are easy to scan and act on.", "meeting-note-clarity"),
+			node("proposal-structure", "Proposal Structure", "structural signposting", "Organize proposals so recommendation, rationale, and cost are easy to evaluate.", "forms", 27, "Proposals guide the reader toward a decision.", "decision-language"),
+			node("email-thread-discipline", "Email Thread Discipline", "scannability", "Keep long email threads readable and avoid burying the ask.", "forms", 28, "Even mid-thread, readers can spot what matters.", "bullet-discipline"),
+			node("spec-clarity", "Spec Clarity", "clarity and coherence", "Write requirements so they reduce interpretation drift.", "forms", 29, "Requirements are concrete enough to align execution.", "terminology-consistency"),
 			node("supporting-rationale", "Supporting Rationale", "evidence integration", "Pair recommendations with the constraints or facts that justify them.", "analysis", 30, "The reader sees why the recommendation exists.", "ask-visibility"),
 			node("professional-evidence-integration", "Evidence Integration", "evidence integration", "Use relevant data, examples, or constraints to support decisions.", "analysis", 31, "Support strengthens the recommendation instead of cluttering it.", "supporting-rationale"),
 			node("risk-articulation", "Risk Articulation", "clarity and coherence", "Name tradeoffs, risks, and uncertainty directly.", "analysis", 32, "The writing makes risk legible rather than implicit.", "confidence-without-overclaiming"),
 			node("assumption-marking", "Assumption Marking", "clarity and coherence", "Make assumptions visible so readers can challenge or confirm them.", "analysis", 33, "Hidden assumptions become inspectable.", "risk-articulation"),
-			node("decision-framing", "Decision Framing", "actionability", "Present options and a recommendation in a way that supports choice.", "analysis", 34, "Decision-makers can compare options quickly and fairly.", "supporting-rationale", "risk-articulation"),
+			node("decision-framing", "Decision Framing", "actionability", "Present options and a recommendation in a way that supports choice.", "analysis", 34, "Decision-makers can compare options quickly and fairly.", "supporting-rationale"),
 			node("tradeoff-language", "Tradeoff Language", "clarity and coherence", "Explain what is gained and lost with each option.", "analysis", 35, "Tradeoffs read as concrete rather than fuzzy.", "decision-framing"),
 			node("quantification-basics", "Quantification Basics", "evidence integration", "Use numbers when they improve precision and decision quality.", "analysis", 36, "Quantitative detail sharpens claims without overwhelming the document.", "professional-evidence-integration"),
-			node("professional-scannability", "Scannability", "scannability", "Shape prose and sections so busy readers can extract the key message quickly.", "scanning", 37, "A fast pass still captures the essential points.", "professional-sentence-economy", "professional-structural-signposting"),
+			node("professional-scannability", "Scannability", "scannability", "Shape prose and sections so busy readers can extract the key message quickly.", "scanning", 37, "A fast pass still captures the essential points.", "summary-vs-detail-balance"),
 			node("heading-discipline", "Heading Discipline", "scannability", "Use headings that communicate meaning, not just labels.", "scanning", 38, "A skimming reader can follow the document from headings alone.", "professional-scannability"),
 			node("visual-grouping", "Visual Grouping", "scannability", "Group related content so the page supports the argument.", "scanning", 39, "Layout choices help readers interpret structure.", "professional-scannability"),
-			node("table-use", "Table Use", "scannability", "Use tables when comparison or compact lookup matters.", "scanning", 40, "Tables clarify instead of complicating the message.", "visual-grouping", "tradeoff-language"),
+			node("table-use", "Table Use", "scannability", "Use tables when comparison or compact lookup matters.", "scanning", 40, "Tables clarify instead of complicating the message.", "visual-grouping"),
 			node("annotation-restraint", "Annotation Restraint", "scannability", "Use emphasis, bolding, and notes selectively so signal remains visible.", "scanning", 41, "Visual emphasis points to what matters most.", "visual-grouping"),
-			node("executive-briefing-style", "Executive Briefing Style", "tone calibration", "Adapt writing for senior readers who need outcome, risk, and ask first.", "advanced", 42, "Senior-facing writing becomes shorter, clearer, and more decision-ready.", "front-loaded-summary", "decision-language"),
-			node("cross-functional-translation", "Cross-Functional Translation", "audience alignment", "Translate specialized context for readers outside your function.", "advanced", 43, "Specialized content becomes usable across teams.", "stakeholder-sensitivity", "terminology-consistency"),
-			node("persuasion-with-restraint", "Persuasion with Restraint", "tone calibration", "Persuade through clarity and support rather than hype.", "advanced", 44, "Recommendations feel convincing because they are well reasoned.", "decision-framing", "professional-evidence-integration"),
-			node("conflict-de-escalation", "Conflict De-Escalation", "tone calibration", "Write disagreement or correction in a way that preserves working relationships.", "advanced", 45, "Difficult messages stay clear without becoming inflammatory.", "directness-with-respect", "bad-news-delivery"),
-			node("alignment-language", "Alignment Language", "clarity and coherence", "State what is agreed, what is pending, and what changed.", "advanced", 46, "The document reduces coordination ambiguity.", "meeting-note-clarity", "status-update-control"),
-			node("revision-triage-professional", "Revision Triage", "revision habits", "Fix purpose, ask, and structure before polishing wording.", "revision", 47, "Revisions improve the highest-value issues first.", "decision-framing", "document-openings"),
+			node("executive-briefing-style", "Executive Briefing Style", "tone calibration", "Adapt writing for senior readers who need outcome, risk, and ask first.", "advanced", 42, "Senior-facing writing becomes shorter, clearer, and more decision-ready.", "decision-language"),
+			node("cross-functional-translation", "Cross-Functional Translation", "audience alignment", "Translate specialized context for readers outside your function.", "advanced", 43, "Specialized content becomes usable across teams.", "stakeholder-sensitivity"),
+			node("persuasion-with-restraint", "Persuasion with Restraint", "tone calibration", "Persuade through clarity and support rather than hype.", "advanced", 44, "Recommendations feel convincing because they are well reasoned.", "professional-evidence-integration"),
+			node("conflict-de-escalation", "Conflict De-Escalation", "tone calibration", "Write disagreement or correction in a way that preserves working relationships.", "advanced", 45, "Difficult messages stay clear without becoming inflammatory.", "bad-news-delivery"),
+			node("alignment-language", "Alignment Language", "clarity and coherence", "State what is agreed, what is pending, and what changed.", "advanced", 46, "The document reduces coordination ambiguity.", "status-update-control"),
+			node("revision-triage-professional", "Revision Triage", "revision habits", "Fix purpose, ask, and structure before polishing wording.", "revision", 47, "Revisions improve the highest-value issues first.", "decision-framing"),
 			node("clarity-pass-professional", "Clarity Pass", "revision habits", "Revise once only for ambiguity, missing context, and reader effort.", "revision", 48, "Documents become easier to process quickly.", "revision-triage-professional"),
-			node("tone-pass-professional", "Tone Pass", "revision habits", "Revise once only for tone, directness, and professionalism.", "revision", 49, "Tone becomes more reliable across different message types.", "revision-triage-professional"),
-			node("format-pass-professional", "Format Pass", "revision habits", "Revise once only for headings, bullets, layout, and scan behavior.", "revision", 50, "Formatting better supports the document's purpose.", "revision-triage-professional", "professional-scannability"),
-			node("proof-of-action", "Proof of Action", "actionability", "Check that every important document leaves the reader knowing what to do next.", "revision", 51, "Action items and decisions survive the final pass.", "format-pass-professional", "document-closings"),
-			node("reusable-template-thinking", "Reusable Template Thinking", "structural signposting", "Recognize recurring document patterns and standardize the best ones.", "revision", 52, "The writer begins building dependable internal writing systems.", "proposal-structure", "status-update-control"),
+			node("tone-pass-professional", "Tone Pass", "revision habits", "Revise once only for tone, directness, and professionalism.", "revision", 49, "Tone becomes more reliable across different message types.", "clarity-pass-professional"),
+			node("format-pass-professional", "Format Pass", "revision habits", "Revise once only for headings, bullets, layout, and scan behavior.", "revision", 50, "Formatting better supports the document's purpose.", "tone-pass-professional"),
+			node("proof-of-action", "Proof of Action", "actionability", "Check that every important document leaves the reader knowing what to do next.", "revision", 51, "Action items and decisions survive the final pass.", "format-pass-professional"),
+			node("reusable-template-thinking", "Reusable Template Thinking", "structural signposting", "Recognize recurring document patterns and standardize the best ones.", "revision", 52, "The writer begins building dependable internal writing systems.", "proof-of-action"),
 		},
 	}
 
@@ -438,19 +373,19 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 			node("technical-error-prevention", "Error Prevention", "accuracy", "Warn the reader before common mistakes or dangerous actions.", "core", 9, "The document helps users avoid predictable failure.", "technical-prereq-clarity"),
 			node("technical-reader-context", "Reader Context", "user goal alignment", "Provide just enough system context for the task to make sense.", "core", 10, "Readers understand why the task exists without drowning in architecture.", "technical-scope-control"),
 			node("technical-opening-summary", "Opening Summary", "scannability", "Open longer docs with a compact summary of purpose and outcome.", "structure", 11, "Readers can decide quickly whether the doc is relevant.", "technical-structure-basics"),
-			node("technical-section-order", "Section Order", "structural signposting", "Arrange sections in the order a user needs them.", "structure", 12, "The document's order matches reader workflow.", "technical-structure-basics"),
+			node("technical-section-order", "Section Order", "structural signposting", "Arrange sections in the order a user needs them.", "structure", 12, "The document's order matches reader workflow.", "technical-opening-summary"),
 			node("technical-heading-discipline", "Heading Discipline", "scannability", "Use headings that communicate meaning, not vague labels.", "structure", 13, "A skimming reader can navigate by headings alone.", "technical-section-order"),
-			node("technical-paragraph-economy", "Paragraph Economy", "scannability", "Keep paragraphs short enough for high-information documents.", "structure", 14, "Dense material remains readable because chunking is controlled.", "technical-structure-basics"),
-			node("technical-list-design", "List Design", "scannability", "Use ordered and unordered lists deliberately to improve scanning.", "structure", 15, "Lists clarify instead of cluttering.", "technical-heading-discipline"),
+			node("technical-paragraph-economy", "Paragraph Economy", "scannability", "Keep paragraphs short enough for high-information documents.", "structure", 14, "Dense material remains readable because chunking is controlled.", "technical-heading-discipline"),
+			node("technical-list-design", "List Design", "scannability", "Use ordered and unordered lists deliberately to improve scanning.", "structure", 15, "Lists clarify instead of cluttering.", "technical-paragraph-economy"),
 			node("technical-cross-links", "Cross-Link Judgment", "structural signposting", "Link to adjacent docs when detail belongs elsewhere.", "structure", 16, "The document participates in a usable documentation system.", "technical-scope-control"),
 			node("technical-glossary-handling", "Glossary Handling", "technical precision", "Define or link unfamiliar terms at the right moment.", "structure", 17, "Terminology becomes usable without overexplaining basics.", "technical-term-control"),
 			node("technical-reference-layout", "Reference Layout", "scannability", "Shape reference docs for lookup rather than linear reading.", "structure", 18, "Reference material becomes faster to retrieve.", "technical-heading-discipline"),
-			node("technical-task-vs-reference", "Task vs Reference Distinction", "user goal alignment", "Separate how-to content from conceptual or reference material.", "structure", 19, "Different document types stop fighting each other.", "technical-scope-control", "technical-reference-layout"),
+			node("technical-task-vs-reference", "Task vs Reference Distinction", "user goal alignment", "Separate how-to content from conceptual or reference material.", "structure", 19, "Different document types stop fighting each other.", "technical-reference-layout"),
 			node("technical-example-basics", "Example Basics", "example quality", "Use examples that match the user's real task.", "examples", 20, "Examples clarify the document instead of decorating it.", "technical-user-goal"),
 			node("technical-example-minimality", "Minimal Reproducible Examples", "example quality", "Strip examples down to the smallest useful case.", "examples", 21, "Examples are small enough to understand and reuse quickly.", "technical-example-basics"),
-			node("technical-example-realism", "Example Realism", "example quality", "Keep examples close enough to real use that transfer is easy.", "examples", 22, "Examples feel plausible and portable.", "technical-example-basics"),
+			node("technical-example-realism", "Example Realism", "example quality", "Keep examples close enough to real use that transfer is easy.", "examples", 22, "Examples feel plausible and portable.", "technical-example-minimality"),
 			node("technical-input-output", "Input and Output Clarity", "example quality", "Show what goes in and what comes out when examples matter.", "examples", 23, "The reader can compare expected and actual behavior.", "technical-result-visibility"),
-			node("technical-code-comment-restraint", "Code Comment Restraint", "technical precision", "Comment examples only where the comment adds meaning.", "examples", 24, "Comments support comprehension instead of duplicating the obvious.", "technical-example-minimality"),
+			node("technical-code-comment-restraint", "Code Comment Restraint", "technical precision", "Comment examples only where the comment adds meaning.", "examples", 24, "Comments support comprehension instead of duplicating the obvious.", "technical-input-output"),
 			node("technical-edge-case-signaling", "Edge Case Signaling", "accuracy", "Call out unusual conditions without overwhelming the main path.", "examples", 25, "Edge cases are visible but do not drown the primary task.", "technical-error-prevention"),
 			node("technical-api-surface-clarity", "API Surface Clarity", "technical precision", "Describe parameters, returns, and behavior with precision.", "reference", 26, "Readers can use the interface without inference gaps.", "technical-reference-layout"),
 			node("technical-parameter-docs", "Parameter Documentation", "technical precision", "Explain inputs in a way that reduces misuse.", "reference", 27, "Parameter docs clarify expectations and constraints.", "technical-api-surface-clarity"),
@@ -460,25 +395,25 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 			node("technical-deprecation-notes", "Deprecation Notes", "accuracy", "Handle outdated behavior with clear alternatives and timing.", "reference", 31, "Deprecated material is still usable but not misleading.", "technical-versioning-signals"),
 			node("technical-troubleshooting-basics", "Troubleshooting Basics", "accuracy", "Write error and troubleshooting sections around actual failure modes.", "support", 32, "Readers can recover from common failure with the doc alone.", "technical-error-prevention"),
 			node("technical-symptom-cause", "Symptom to Cause Mapping", "accuracy", "Map user-visible failure to likely causes in a readable way.", "support", 33, "Troubleshooting becomes diagnostic, not random.", "technical-troubleshooting-basics"),
-			node("technical-remediation-order", "Remediation Order", "actionability", "Present recovery steps from safest and simplest to most disruptive.", "support", 34, "The support flow lowers risk while increasing effectiveness.", "technical-troubleshooting-basics"),
-			node("technical-logging-guidance", "Logging Guidance", "technical precision", "Tell the reader what information to gather when diagnosing problems.", "support", 35, "Support instructions produce more useful bug reports.", "technical-symptom-cause"),
+			node("technical-remediation-order", "Remediation Order", "actionability", "Present recovery steps from safest and simplest to most disruptive.", "support", 34, "The support flow lowers risk while increasing effectiveness.", "technical-symptom-cause"),
+			node("technical-logging-guidance", "Logging Guidance", "technical precision", "Tell the reader what information to gather when diagnosing problems.", "support", 35, "Support instructions produce more useful bug reports.", "technical-remediation-order"),
 			node("technical-compatibility-notes", "Compatibility Notes", "accuracy", "Document platform, environment, or dependency differences clearly.", "support", 36, "Users can detect whether the doc applies to their setup.", "technical-versioning-signals"),
 			node("technical-screenshot-judgment", "Screenshot Judgment", "scannability", "Use screenshots only when they add real orientation value.", "support", 37, "Images help users instead of aging into clutter.", "technical-heading-discipline"),
 			node("technical-tone-control", "Technical Tone Control", "clarity and coherence", "Sound direct and helpful without overexplaining or condescending.", "style", 38, "The document feels professional and reader-centered.", "technical-user-goal"),
-			node("technical-sentence-economy", "Sentence Economy", "technical precision", "Keep technical prose concise without dropping needed precision.", "style", 39, "The document stays lean and exact.", "technical-term-control"),
+			node("technical-sentence-economy", "Sentence Economy", "technical precision", "Keep technical prose concise without dropping needed precision.", "style", 39, "The document stays lean and exact.", "technical-tone-control"),
 			node("technical-active-voice", "Active Voice Judgment", "technical precision", "Choose active or passive constructions deliberately based on task clarity.", "style", 40, "Voice choice supports comprehension.", "technical-sentence-economy"),
-			node("technical-ambiguity-hunting", "Ambiguity Hunting", "accuracy", "Remove phrases that could plausibly be interpreted in more than one way.", "style", 41, "The final prose leaves fewer interpretation traps.", "technical-constraint-language"),
-			node("technical-consistency-pass", "Consistency Pass", "revision habits", "Revise once only for term, heading, and formatting consistency.", "revision", 42, "The doc feels internally coherent.", "technical-term-control", "technical-heading-discipline"),
-			node("technical-accuracy-pass", "Accuracy Pass", "revision habits", "Revise once only to verify facts, commands, and outputs.", "revision", 43, "The doc becomes more trustworthy because details are checked.", "technical-versioning-signals"),
-			node("technical-user-walkthrough", "User Walkthrough", "revision habits", "Run the doc as if you were a new user following it literally.", "revision", 44, "Gaps in actionability become visible through walkthrough.", "technical-step-clarity"),
+			node("technical-ambiguity-hunting", "Ambiguity Hunting", "accuracy", "Remove phrases that could plausibly be interpreted in more than one way.", "style", 41, "The final prose leaves fewer interpretation traps.", "technical-active-voice"),
+			node("technical-consistency-pass", "Consistency Pass", "revision habits", "Revise once only for term, heading, and formatting consistency.", "revision", 42, "The doc feels internally coherent.", "technical-ambiguity-hunting"),
+			node("technical-accuracy-pass", "Accuracy Pass", "revision habits", "Revise once only to verify facts, commands, and outputs.", "revision", 43, "The doc becomes more trustworthy because details are checked.", "technical-consistency-pass"),
+			node("technical-user-walkthrough", "User Walkthrough", "revision habits", "Run the doc as if you were a new user following it literally.", "revision", 44, "Gaps in actionability become visible through walkthrough.", "technical-accuracy-pass"),
 			node("technical-triage", "Revision Triage", "revision habits", "Fix goal alignment, structure, and accuracy before polishing phrasing.", "revision", 45, "The highest-impact doc problems are solved first.", "technical-user-walkthrough"),
 			node("technical-shortening-pass", "Shortening Pass", "revision habits", "Cut repetition and unnecessary explanation late in the process.", "revision", 46, "The doc becomes faster to scan without losing essential meaning.", "technical-triage"),
-			node("technical-example-pass", "Example Pass", "revision habits", "Revise examples separately for clarity, realism, and correctness.", "revision", 47, "Examples become more useful than the surrounding prose alone.", "technical-example-realism", "technical-triage"),
-			node("technical-support-pass", "Support Pass", "revision habits", "Revise support and troubleshooting sections against real user failure cases.", "revision", 48, "Recovery guidance improves with each draft.", "technical-troubleshooting-basics", "technical-triage"),
-			node("technical-navigation-pass", "Navigation Pass", "revision habits", "Revise headings, links, and chunking so the doc works under skim conditions.", "revision", 49, "Readers find information faster.", "technical-cross-links", "technical-consistency-pass"),
-			node("technical-release-note-discipline", "Release Note Discipline", "accuracy", "Summarize changes in a way users can act on quickly.", "revision", 50, "Change communication becomes clearer and more useful.", "technical-versioning-signals", "technical-opening-summary"),
-			node("technical-ownership-signals", "Ownership Signals", "user goal alignment", "Make it clear where readers should go for deeper help or changes.", "revision", 51, "Readers know where this document sits in the larger support system.", "technical-cross-links", "technical-troubleshooting-basics"),
-			node("technical-final-polish", "Final Polish", "revision habits", "Do a last pass for friction points that slow reading without adding value.", "revision", 52, "The final document feels clean, deliberate, and trustworthy.", "technical-shortening-pass", "technical-ambiguity-hunting"),
+			node("technical-example-pass", "Example Pass", "revision habits", "Revise examples separately for clarity, realism, and correctness.", "revision", 47, "Examples become more useful than the surrounding prose alone.", "technical-triage"),
+			node("technical-support-pass", "Support Pass", "revision habits", "Revise support and troubleshooting sections against real user failure cases.", "revision", 48, "Recovery guidance improves with each draft.", "technical-triage"),
+			node("technical-navigation-pass", "Navigation Pass", "revision habits", "Revise headings, links, and chunking so the doc works under skim conditions.", "revision", 49, "Readers find information faster.", "technical-triage"),
+			node("technical-release-note-discipline", "Release Note Discipline", "accuracy", "Summarize changes in a way users can act on quickly.", "revision", 50, "Change communication becomes clearer and more useful.", "technical-navigation-pass"),
+			node("technical-ownership-signals", "Ownership Signals", "user goal alignment", "Make it clear where readers should go for deeper help or changes.", "revision", 51, "Readers know where this document sits in the larger support system.", "technical-release-note-discipline"),
+			node("technical-final-polish", "Final Polish", "revision habits", "Do a last pass for friction points that slow reading without adding value.", "revision", 52, "The final document feels clean, deliberate, and trustworthy.", "technical-ownership-signals"),
 		},
 	}
 
@@ -606,14 +541,15 @@ func buildBuiltInCatalog() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinit
 		},
 	}
 
-	trees := []TGOTreeDefinition{mythic, youth, story, thought, professional, academic, technical, persuasive, memoir}
-	return mythic, youth, story, thought, professional, academic, technical, persuasive, memoir, trees, skillMap
+	trees := []TGOTreeDefinition{youth, story, thought, professional, academic, technical, persuasive, memoir}
+	return youth, story, thought, professional, academic, technical, persuasive, memoir, trees, skillMap
 }
 
 var (
-	mythicTragedyTree, youthFoundationsTree, storyCraftTree, thoughtLeadershipTree, professionalWritingTree, academicEssayTree, technicalWritingTree, persuasiveWritingTree, memoirNarrativeTree, BuiltInTrees, TGOCodeToSkill = buildBuiltInCatalog()
+	youthFoundationsTree, storyCraftTree, thoughtLeadershipTree, professionalWritingTree, academicEssayTree, technicalWritingTree, persuasiveWritingTree, memoirNarrativeTree, BuiltInTrees, TGOCodeToSkill = buildBuiltInCatalog()
 	fantasyFictionTree, scienceFictionTree, romanceFictionTree, literaryFictionTree, mysteryThrillerTree                                                                                                                       = buildExpandedFictionTrees()
 	marketingWritingTree, contentMarketingTree, journalismReportingTree, educationalWritingTree, grantWritingTree                                                                                                              = buildExpandedNonfictionTrees()
+	PublicBuiltInTrees                                                                                                                                                                                                         []TGOTreeDefinition
 )
 
 func init() {
@@ -630,6 +566,25 @@ func init() {
 		educationalWritingTree,
 		grantWritingTree,
 	)
+	PublicBuiltInTrees = []TGOTreeDefinition{
+		storyCraftTree,
+		fantasyFictionTree,
+		scienceFictionTree,
+		romanceFictionTree,
+		literaryFictionTree,
+		mysteryThrillerTree,
+		thoughtLeadershipTree,
+		professionalWritingTree,
+		marketingWritingTree,
+		contentMarketingTree,
+		journalismReportingTree,
+		educationalWritingTree,
+		grantWritingTree,
+		academicEssayTree,
+		technicalWritingTree,
+		persuasiveWritingTree,
+		memoirNarrativeTree,
+	}
 	registerTreeSkills(
 		fantasyFictionTree,
 		scienceFictionTree,
@@ -642,6 +597,19 @@ func init() {
 		educationalWritingTree,
 		grantWritingTree,
 	)
+	MustValidateBuiltInTrees()
+}
+
+func PublicBuiltInTreeSlugs() map[string]bool {
+	out := make(map[string]bool, len(PublicBuiltInTrees))
+	for _, tree := range PublicBuiltInTrees {
+		out[tree.Slug] = true
+	}
+	return out
+}
+
+func NormalizeTreeSlug(slug string) string {
+	return slug
 }
 
 func buildExpandedFictionTrees() (TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition, TGOTreeDefinition) {
@@ -835,7 +803,7 @@ func GlobalSkillGraphDefinition() TGOTreeDefinition {
 	prioritySeen := map[string]bool{}
 	var priority []string
 	var tgos []TGO
-	for _, tree := range BuiltInTrees {
+	for _, tree := range PublicBuiltInTrees {
 		for _, skill := range tree.PrioritySkills {
 			if prioritySeen[skill] {
 				continue
@@ -849,7 +817,7 @@ func GlobalSkillGraphDefinition() TGOTreeDefinition {
 		Slug:           GlobalSkillGraphSlug,
 		Title:          GlobalSkillGraphTitle,
 		Description:    "A global writing skill graph built from all curated curriculum regions.",
-		SeedCodes:      []string{"sentence-clarity", "story-causal-clarity", "claim-clarity"},
+		SeedCodes:      []string{"story-causal-clarity", "claim-clarity", "technical-user-goal"},
 		PrioritySkills: priority,
 		TGOs:           tgos,
 	}
@@ -857,7 +825,7 @@ func GlobalSkillGraphDefinition() TGOTreeDefinition {
 
 func SkillGraphFromBuiltIns() SkillGraph {
 	unlocks := map[string][]string{}
-	for _, tree := range BuiltInTrees {
+	for _, tree := range PublicBuiltInTrees {
 		for _, tgo := range tree.TGOs {
 			for _, prereq := range tgo.Prerequisites {
 				unlocks[prereq] = append(unlocks[prereq], tgo.Code)
@@ -865,7 +833,7 @@ func SkillGraphFromBuiltIns() SkillGraph {
 		}
 	}
 	var nodes []SkillGraphNode
-	for _, tree := range BuiltInTrees {
+	for _, tree := range PublicBuiltInTrees {
 		for _, tgo := range tree.TGOs {
 			next := append([]string(nil), unlocks[tgo.Code]...)
 			sort.Strings(next)
@@ -884,7 +852,7 @@ func SkillGraphFromBuiltIns() SkillGraph {
 		return nodes[i].StageOrder < nodes[j].StageOrder
 	})
 	var regions []SkillGraphRegion
-	for _, tree := range BuiltInTrees {
+	for _, tree := range PublicBuiltInTrees {
 		nodeCodes := make([]string, 0, len(tree.TGOs))
 		for _, tgo := range tree.TGOs {
 			nodeCodes = append(nodeCodes, tgo.Code)

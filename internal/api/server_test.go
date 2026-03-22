@@ -27,7 +27,7 @@ func TestDashboardEndpoint(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
-	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get dashboard: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(context.Background(), "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 		Brief:           "Write something.",
 		Constraints:     []string{"one"},
 		FocusSkills:     []string{"prose precision"},
-		TGOCodes:        []string{"prose-precision"},
+		TGOCodes:        []string{"story-prose-precision"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "openai",
 	})
@@ -98,15 +98,15 @@ func TestDashboardReportsCompletedAssignments(t *testing.T) {
 		NextFocus:        "prose precision",
 		MetricWordCount:  3,
 		TGOAssessments: []domain.TGOAssessment{
-			{TGOCode: "causal-clarity", Status: "developing", Evidence: "n/a"},
-			{TGOCode: "scene-architecture", Status: "developing", Evidence: "n/a"},
-			{TGOCode: "prose-precision", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "story-causal-clarity", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "story-scene-architecture", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "story-prose-precision", Status: "developing", Evidence: "n/a"},
 		},
 	}, nil); err != nil {
 		t.Fatalf("save review: %v", err)
 	}
 
-	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get dashboard: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestDashboardCountsAssignmentsAndSubmissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestDashboardCountsAssignmentsAndSubmissions(t *testing.T) {
 		Brief:           "Write something.",
 		Constraints:     []string{"one"},
 		FocusSkills:     []string{"prose precision"},
-		TGOCodes:        []string{"prose-precision"},
+		TGOCodes:        []string{"story-prose-precision"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "deterministic",
 	})
@@ -196,7 +196,7 @@ func TestDashboardCountsAssignmentsAndSubmissions(t *testing.T) {
 		Brief:              "Revise it.",
 		Constraints:        []string{"one"},
 		FocusSkills:        []string{"prose precision"},
-		TGOCodes:           []string{"prose-precision"},
+		TGOCodes:           []string{"story-prose-precision"},
 		SuccessCriteria:    []string{"clearer result"},
 		GenerationKind:     "deterministic",
 		SourceSubmissionID: firstSubmissionID,
@@ -238,7 +238,7 @@ func TestDashboardCountsAssignmentsAndSubmissions(t *testing.T) {
 		Brief:              "Revise it again.",
 		Constraints:        []string{"one"},
 		FocusSkills:        []string{"prose precision"},
-		TGOCodes:           []string{"prose-precision"},
+		TGOCodes:           []string{"story-prose-precision"},
 		SuccessCriteria:    []string{"clearest result"},
 		GenerationKind:     "deterministic",
 		SourceSubmissionID: secondSubmissionID,
@@ -273,7 +273,7 @@ func TestDashboardCountsAssignmentsAndSubmissions(t *testing.T) {
 		t.Fatalf("save third review: %v", err)
 	}
 
-	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get dashboard: %v", err)
 	}
@@ -311,7 +311,7 @@ func TestDashboardEndpointRebuildsMissingCurriculumState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(context.Background(), "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -323,7 +323,7 @@ func TestDashboardEndpointRebuildsMissingCurriculumState(t *testing.T) {
 		t.Fatalf("delete curriculum state: %v", err)
 	}
 
-	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get dashboard: %v", err)
 	}
@@ -346,7 +346,7 @@ func TestAccountResetClearsUserDataButKeepsAccount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(context.Background(), "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -374,7 +374,7 @@ func TestAccountResetClearsUserDataButKeepsAccount(t *testing.T) {
 		Brief:           "Write something.",
 		Constraints:     []string{"one"},
 		FocusSkills:     []string{"prose precision"},
-		TGOCodes:        []string{"prose-precision"},
+		TGOCodes:        []string{"story-prose-precision"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "openai",
 	})
@@ -403,9 +403,9 @@ func TestAccountResetClearsUserDataButKeepsAccount(t *testing.T) {
 		NextFocus:        "prose precision",
 		MetricWordCount:  3,
 		TGOAssessments: []domain.TGOAssessment{
-			{TGOCode: "causal-clarity", Status: "developing", Evidence: "n/a"},
-			{TGOCode: "scene-architecture", Status: "developing", Evidence: "n/a"},
-			{TGOCode: "prose-precision", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "story-causal-clarity", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "story-scene-architecture", Status: "developing", Evidence: "n/a"},
+			{TGOCode: "story-prose-precision", Status: "developing", Evidence: "n/a"},
 		},
 	}, nil); err != nil {
 		t.Fatalf("save review: %v", err)
@@ -760,7 +760,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
-	promptResp, err := http.Post(testServer.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	promptResp, err := http.Post(testServer.URL+"/api/prompts/next?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{}`))
 	if err != nil {
 		t.Fatalf("prompt next: %v", err)
 	}
@@ -775,7 +775,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("decode prompt: %v", err)
 	}
 	acceptResp, err := http.Post(
-		testServer.URL+"/api/prompts/accept?user=tester&tree=mythic-tragedy-apprenticeship",
+		testServer.URL+"/api/prompts/accept?user=tester&tree=story-craft-track",
 		"application/json",
 		strings.NewReader(mustJSONString(map[string]any{
 			"title":            promptPayload.Exercise.Title,
@@ -799,7 +799,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("decode accepted prompt: %v", err)
 	}
 
-	exercisesResp, err := http.Get(testServer.URL + "/api/exercises?user=tester&tree=mythic-tragedy-apprenticeship")
+	exercisesResp, err := http.Get(testServer.URL + "/api/exercises?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("list exercises: %v", err)
 	}
@@ -808,7 +808,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("exercise list status: %d", exercisesResp.StatusCode)
 	}
 
-	exerciseResp, err := http.Get(testServer.URL + "/api/exercises/" + int64String(promptPayload.Exercise.ID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	exerciseResp, err := http.Get(testServer.URL + "/api/exercises/" + int64String(promptPayload.Exercise.ID) + "?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get exercise: %v", err)
 	}
@@ -817,7 +817,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("exercise get status: %d", exerciseResp.StatusCode)
 	}
 
-	submitResp, err := http.Post(testServer.URL+"/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{"exercise_id":`+int64String(promptPayload.Exercise.ID)+`,"content":"The bell cracked as the prince chose the gate that had no hinge."}`))
+	submitResp, err := http.Post(testServer.URL+"/api/submissions?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{"exercise_id":`+int64String(promptPayload.Exercise.ID)+`,"content":"The bell cracked as the prince chose the gate that had no hinge."}`))
 	if err != nil {
 		t.Fatalf("create submission: %v", err)
 	}
@@ -834,7 +834,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("decode submission: %v", err)
 	}
 
-	submissionsResp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship&exercise_id=" + int64String(promptPayload.Exercise.ID))
+	submissionsResp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=story-craft-track&exercise_id=" + int64String(promptPayload.Exercise.ID))
 	if err != nil {
 		t.Fatalf("list submissions: %v", err)
 	}
@@ -843,7 +843,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("submission list status: %d", submissionsResp.StatusCode)
 	}
 
-	reviewResp, err := http.Post(testServer.URL+"/api/reviews?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{"submission_id":`+int64String(submissionPayload.Submission.ID)+`}`))
+	reviewResp, err := http.Post(testServer.URL+"/api/reviews?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{"submission_id":`+int64String(submissionPayload.Submission.ID)+`}`))
 	if err != nil {
 		t.Fatalf("create review: %v", err)
 	}
@@ -866,7 +866,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 
 	reviewID := waitForReview(t, testServer.URL, submissionPayload.Submission.ID)
 
-	reviewsResp, err := http.Get(testServer.URL + "/api/reviews?user=tester&tree=mythic-tragedy-apprenticeship&submission_id=" + int64String(submissionPayload.Submission.ID))
+	reviewsResp, err := http.Get(testServer.URL + "/api/reviews?user=tester&tree=story-craft-track&submission_id=" + int64String(submissionPayload.Submission.ID))
 	if err != nil {
 		t.Fatalf("list reviews: %v", err)
 	}
@@ -875,7 +875,7 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 		t.Fatalf("review list status: %d", reviewsResp.StatusCode)
 	}
 
-	singleReviewResp, err := http.Get(testServer.URL + "/api/reviews/" + int64String(reviewID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	singleReviewResp, err := http.Get(testServer.URL + "/api/reviews/" + int64String(reviewID) + "?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get review: %v", err)
 	}
@@ -920,7 +920,7 @@ func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
 	defer testServer.Close()
 
 	ctx := context.Background()
-	otherUserID, otherTreeID, _, err := harness.Store.EnsureDefaultUserTree(ctx, "other-writer", "Other Writer", "mythic-tragedy-apprenticeship")
+	otherUserID, otherTreeID, _, err := harness.Store.EnsureDefaultUserTree(ctx, "other-writer", "Other Writer", "story-craft-track")
 	if err != nil {
 		t.Fatalf("ensure other user tree: %v", err)
 	}
@@ -931,7 +931,7 @@ func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
 		Brief:           "Should not be writable by tester.",
 		Constraints:     []string{"one"},
 		FocusSkills:     []string{"prose precision"},
-		TGOCodes:        []string{"prose-precision"},
+		TGOCodes:        []string{"story-prose-precision"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "openai",
 	})
@@ -940,7 +940,7 @@ func TestSubmissionEndpointRejectsForeignExercise(t *testing.T) {
 	}
 
 	resp, err := http.Post(
-		testServer.URL+"/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship",
+		testServer.URL+"/api/submissions?user=tester&tree=story-craft-track",
 		"application/json",
 		strings.NewReader(`{"exercise_id":`+int64String(exerciseID)+`,"content":"Unauthorized draft."}`),
 	)
@@ -970,7 +970,7 @@ func TestSubmissionsListRejectsForeignExerciseFilter(t *testing.T) {
 	defer testServer.Close()
 
 	ctx := context.Background()
-	otherUserID, otherTreeID, _, err := harness.Store.EnsureDefaultUserTree(ctx, "other-writer", "Other Writer", "mythic-tragedy-apprenticeship")
+	otherUserID, otherTreeID, _, err := harness.Store.EnsureDefaultUserTree(ctx, "other-writer", "Other Writer", "story-craft-track")
 	if err != nil {
 		t.Fatalf("ensure other user tree: %v", err)
 	}
@@ -981,7 +981,7 @@ func TestSubmissionsListRejectsForeignExerciseFilter(t *testing.T) {
 		Brief:           "Do not allow this to leak.",
 		Constraints:     []string{"one"},
 		FocusSkills:     []string{"prose precision"},
-		TGOCodes:        []string{"prose-precision"},
+		TGOCodes:        []string{"story-prose-precision"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "openai",
 	})
@@ -989,7 +989,7 @@ func TestSubmissionsListRejectsForeignExerciseFilter(t *testing.T) {
 		t.Fatalf("save foreign exercise: %v", err)
 	}
 
-	resp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=mythic-tragedy-apprenticeship&exercise_id=" + int64String(foreignExerciseID))
+	resp, err := http.Get(testServer.URL + "/api/submissions?user=tester&tree=story-craft-track&exercise_id=" + int64String(foreignExerciseID))
 	if err != nil {
 		t.Fatalf("list submissions: %v", err)
 	}
@@ -1006,7 +1006,7 @@ func TestTracksActiveUpdateRejectsUnknownJSONFields(t *testing.T) {
 	req, err := http.NewRequest(
 		http.MethodPut,
 		testServer.URL+"/api/tracks/active?user=tester",
-		strings.NewReader(`{"tree_slug":"mythic-tragedy-apprenticeship","unexpected":true}`),
+		strings.NewReader(`{"tree_slug":"story-craft-track","unexpected":true}`),
 	)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
@@ -1076,7 +1076,7 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -1087,8 +1087,8 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 		Title:           "Original Assignment",
 		Brief:           "Draft the omen scene.",
 		Constraints:     []string{"under 600 words"},
-		FocusSkills:     []string{"causal clarity"},
-		TGOCodes:        []string{"causal-clarity"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
 		SuccessCriteria: []string{"the sequence is easy to follow"},
 		GenerationKind:  "deterministic",
 	})
@@ -1117,9 +1117,9 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 		NextFocus:        "make the consequence concrete",
 		MetricWordCount:  10,
 		TGOAssessments: []domain.TGOAssessment{
-			{TGOCode: "causal-clarity", Status: "developing", Evidence: "The omen lands before the consequence clarifies."},
+			{TGOCode: "story-causal-clarity", Status: "developing", Evidence: "The omen lands before the consequence clarifies."},
 		},
-	}, []domain.SkillScore{{SubmissionID: rootSubmissionID, Skill: "causal clarity", Score: 3}}); err != nil {
+	}, []domain.SkillScore{{SubmissionID: rootSubmissionID, Skill: "narrative clarity", Score: 3}}); err != nil {
 		t.Fatalf("save root review: %v", err)
 	}
 
@@ -1129,8 +1129,8 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 		Title:              "Revision Assignment",
 		Brief:              "Revise the omen scene with sharper consequence.",
 		Constraints:        []string{"preserve the same core event"},
-		FocusSkills:        []string{"causal clarity"},
-		TGOCodes:           []string{"causal-clarity"},
+		FocusSkills:        []string{"narrative clarity"},
+		TGOCodes:           []string{"story-causal-clarity"},
 		SuccessCriteria:    []string{"the consequence becomes concrete"},
 		GenerationKind:     "revision",
 		SourceSubmissionID: rootSubmissionID,
@@ -1161,9 +1161,9 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 		NextFocus:        "strengthen the closing image",
 		MetricWordCount:  15,
 		TGOAssessments: []domain.TGOAssessment{
-			{TGOCode: "causal-clarity", Status: "mastered", Evidence: "The consequence now lands in-scene."},
+			{TGOCode: "story-causal-clarity", Status: "mastered", Evidence: "The consequence now lands in-scene."},
 		},
-	}, []domain.SkillScore{{SubmissionID: revisionSubmissionID, Skill: "causal clarity", Score: 4}}); err != nil {
+	}, []domain.SkillScore{{SubmissionID: revisionSubmissionID, Skill: "narrative clarity", Score: 4}}); err != nil {
 		t.Fatalf("save revision review: %v", err)
 	}
 	if _, err := harness.Store.SaveExercise(ctx, domain.Exercise{
@@ -1173,14 +1173,14 @@ func TestAssignmentTimelineEndpoint(t *testing.T) {
 		Brief:           "Start something new.",
 		Constraints:     []string{"under 600 words"},
 		FocusSkills:     []string{"scene architecture"},
-		TGOCodes:        []string{"scene-architecture"},
+		TGOCodes:        []string{"story-scene-architecture"},
 		SuccessCriteria: []string{"the scene advances cleanly"},
 		GenerationKind:  "deterministic",
 	}); err != nil {
 		t.Fatalf("save later exercise: %v", err)
 	}
 
-	resp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(revisionExerciseID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(revisionExerciseID) + "?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get assignment timeline: %v", err)
 	}
@@ -1254,7 +1254,7 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -1265,8 +1265,8 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 		Title:           "Past Assignment",
 		Brief:           "Write the omen.",
 		Constraints:     []string{"under 500 words"},
-		FocusSkills:     []string{"causal clarity"},
-		TGOCodes:        []string{"causal-clarity"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
 		SuccessCriteria: []string{"clear cause and effect"},
 		GenerationKind:  "deterministic",
 	})
@@ -1295,7 +1295,7 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 		NextFocus:        "make consequence vivid",
 		MetricWordCount:  7,
 		TGOAssessments: []domain.TGOAssessment{
-			{TGOCode: "causal-clarity", Status: "developing", Evidence: "The cause is present."},
+			{TGOCode: "story-causal-clarity", Status: "developing", Evidence: "The cause is present."},
 		},
 	}, nil); err != nil {
 		t.Fatalf("save past review: %v", err)
@@ -1308,7 +1308,7 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 		Brief:           "Write the aftermath.",
 		Constraints:     []string{"under 500 words"},
 		FocusSkills:     []string{"scene architecture"},
-		TGOCodes:        []string{"scene-architecture"},
+		TGOCodes:        []string{"story-scene-architecture"},
 		SuccessCriteria: []string{"scene moves cleanly"},
 		GenerationKind:  "deterministic",
 	})
@@ -1316,7 +1316,7 @@ func TestAssignmentsListEndpoint(t *testing.T) {
 		t.Fatalf("save current exercise: %v", err)
 	}
 
-	resp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get assignments list: %v", err)
 	}
@@ -1358,7 +1358,7 @@ func TestAssignmentsListCountsAllSubmissionsAsDrafts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -1370,7 +1370,7 @@ func TestAssignmentsListCountsAllSubmissionsAsDrafts(t *testing.T) {
 		Brief:           "Write something.",
 		Constraints:     []string{"one"},
 		FocusSkills:     []string{"prose precision"},
-		TGOCodes:        []string{"prose-precision"},
+		TGOCodes:        []string{"story-prose-precision"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "deterministic",
 	})
@@ -1409,7 +1409,7 @@ func TestAssignmentsListCountsAllSubmissionsAsDrafts(t *testing.T) {
 		Brief:              "Revise it.",
 		Constraints:        []string{"one"},
 		FocusSkills:        []string{"prose precision"},
-		TGOCodes:           []string{"prose-precision"},
+		TGOCodes:           []string{"story-prose-precision"},
 		SuccessCriteria:    []string{"clearer result"},
 		GenerationKind:     "deterministic",
 		SourceSubmissionID: firstSubmissionID,
@@ -1444,7 +1444,7 @@ func TestAssignmentsListCountsAllSubmissionsAsDrafts(t *testing.T) {
 		t.Fatalf("save second review: %v", err)
 	}
 
-	resp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get assignments list: %v", err)
 	}
@@ -1482,7 +1482,7 @@ func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -1493,8 +1493,8 @@ func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 		Title:           "Closable Assignment",
 		Brief:           "Write the turning point.",
 		Constraints:     []string{"under 500 words"},
-		FocusSkills:     []string{"causal clarity"},
-		TGOCodes:        []string{"causal-clarity"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
 		SuccessCriteria: []string{"the consequence is visible"},
 		GenerationKind:  "deterministic",
 	})
@@ -1523,13 +1523,13 @@ func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 		NextFocus:        "consequence",
 		MetricWordCount:  10,
 		TGOAssessments: []domain.TGOAssessment{
-			{TGOCode: "causal-clarity", Status: "developing", Evidence: "The sequence is legible."},
+			{TGOCode: "story-causal-clarity", Status: "developing", Evidence: "The sequence is legible."},
 		},
 	}, nil); err != nil {
 		t.Fatalf("save review: %v", err)
 	}
 
-	closeReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/assignments/"+int64String(exerciseID)+"/close?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{}`))
+	closeReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/assignments/"+int64String(exerciseID)+"/close?user=tester&tree=story-craft-track", strings.NewReader(`{}`))
 	if err != nil {
 		t.Fatalf("close request: %v", err)
 	}
@@ -1543,7 +1543,7 @@ func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 		t.Fatalf("close assignment status: %d", closeResp.StatusCode)
 	}
 
-	timelineResp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(exerciseID) + "?user=tester&tree=mythic-tragedy-apprenticeship")
+	timelineResp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(exerciseID) + "?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get assignment timeline: %v", err)
 	}
@@ -1567,7 +1567,7 @@ func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 		t.Fatal("closed assignment should report is_closed")
 	}
 
-	assignmentsResp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=mythic-tragedy-apprenticeship")
+	assignmentsResp, err := http.Get(testServer.URL + "/api/assignments?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("list assignments: %v", err)
 	}
@@ -1594,7 +1594,7 @@ func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 		t.Fatal("closed assignment should be listed as closed")
 	}
 
-	reviseResp, err := http.Post(testServer.URL+"/api/prompts/revise?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{"submission_id":`+int64String(submissionID)+`}`))
+	reviseResp, err := http.Post(testServer.URL+"/api/prompts/revise?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{"submission_id":`+int64String(submissionID)+`}`))
 	if err != nil {
 		t.Fatalf("revise request: %v", err)
 	}
@@ -1609,7 +1609,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
 	defer testServer.Close()
 
-	getResp, err := http.Get(testServer.URL + "/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship")
+	getResp, err := http.Get(testServer.URL + "/api/ai/settings?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get ai settings: %v", err)
 	}
@@ -1650,7 +1650,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 	}))
 	defer fakeProvider.Close()
 
-	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"prompt_model_override":"gpt-5.4","review_model_override":"gpt-5.4-mini","enabled":true}`, fakeProvider.URL)))
+	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"prompt_model_override":"gpt-5.4","review_model_override":"gpt-5.4-mini","enabled":true}`, fakeProvider.URL)))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -1680,7 +1680,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 		t.Fatalf("authorization = %q", authHeader)
 	}
 
-	putReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"prompt_model_override":"gpt-5.4","review_model_override":"gpt-5.4-mini","enabled":true}`, fakeProvider.URL)))
+	putReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=story-craft-track", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"prompt_model_override":"gpt-5.4","review_model_override":"gpt-5.4-mini","enabled":true}`, fakeProvider.URL)))
 	if err != nil {
 		t.Fatalf("new ai settings request: %v", err)
 	}
@@ -1725,7 +1725,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 		t.Fatalf("expected encrypted key, got %#v", record)
 	}
 
-	updateReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"","base_url_override":%q,"prompt_model_override":"gpt-5-mini","review_model_override":"gpt-5-mini","enabled":false}`, fakeProvider.URL)))
+	updateReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=story-craft-track", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"","base_url_override":%q,"prompt_model_override":"gpt-5-mini","review_model_override":"gpt-5-mini","enabled":false}`, fakeProvider.URL)))
 	if err != nil {
 		t.Fatalf("new update request: %v", err)
 	}
@@ -1752,7 +1752,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 		t.Fatalf("key last4 = %q", record.APIKeyLast4)
 	}
 
-	secondUserID, _, _, err := harness.Store.EnsureDefaultUserTree(context.Background(), "other", "Other", "mythic-tragedy-apprenticeship")
+	secondUserID, _, _, err := harness.Store.EnsureDefaultUserTree(context.Background(), "other", "Other", "story-craft-track")
 	if err != nil {
 		t.Fatalf("ensure other user: %v", err)
 	}
@@ -1760,7 +1760,7 @@ func TestAISettingsLifecycleEndpoint(t *testing.T) {
 		t.Fatalf("expected other user to have no provider settings, got %v", err)
 	}
 
-	deleteReq, err := http.NewRequest(http.MethodDelete, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", nil)
+	deleteReq, err := http.NewRequest(http.MethodDelete, testServer.URL+"/api/ai/settings?user=tester&tree=story-craft-track", nil)
 	if err != nil {
 		t.Fatalf("new delete request: %v", err)
 	}
@@ -1784,7 +1784,7 @@ func TestAISettingsDisablePersonalProviderStorageWithoutSecret(t *testing.T) {
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
 
-	getResp, err := http.Get(testServer.URL + "/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship")
+	getResp, err := http.Get(testServer.URL + "/api/ai/settings?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get ai settings: %v", err)
 	}
@@ -1805,7 +1805,7 @@ func TestAISettingsDisablePersonalProviderStorageWithoutSecret(t *testing.T) {
 		t.Fatal("expected personal provider storage to be unavailable without AI key secret")
 	}
 
-	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"openai","api_key":"sk-test-1234","enabled":true}`))
+	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(`{"provider":"openai","api_key":"sk-test-1234","enabled":true}`))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -1819,7 +1819,7 @@ func TestAISettingsDisablePersonalProviderStorageWithoutSecret(t *testing.T) {
 		t.Fatalf("validate status = %d", validateResp.StatusCode)
 	}
 
-	putReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"openai","api_key":"sk-test-1234","enabled":true}`))
+	putReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=story-craft-track", strings.NewReader(`{"provider":"openai","api_key":"sk-test-1234","enabled":true}`))
 	if err != nil {
 		t.Fatalf("new put request: %v", err)
 	}
@@ -1833,7 +1833,7 @@ func TestAISettingsDisablePersonalProviderStorageWithoutSecret(t *testing.T) {
 		t.Fatalf("put status = %d", putResp.StatusCode)
 	}
 
-	sessionResp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+	sessionResp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get auth session: %v", err)
 	}
@@ -1862,7 +1862,7 @@ func TestAISettingsValidateRejectsInvalidCredentials(t *testing.T) {
 	}))
 	defer fakeProvider.Close()
 
-	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-bad","base_url_override":%q,"enabled":true}`, fakeProvider.URL)))
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-bad","base_url_override":%q,"enabled":true}`, fakeProvider.URL)))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -1906,7 +1906,7 @@ func TestAISettingsValidateRateLimitsRepeatedChecksPerUser(t *testing.T) {
 
 	requestBody := fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"enabled":true}`, fakeProvider.URL)
 
-	firstReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	firstReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(requestBody))
 	if err != nil {
 		t.Fatalf("new first validate request: %v", err)
 	}
@@ -1920,7 +1920,7 @@ func TestAISettingsValidateRateLimitsRepeatedChecksPerUser(t *testing.T) {
 		t.Fatalf("first validate status = %d", firstResp.StatusCode)
 	}
 
-	secondReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	secondReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(requestBody))
 	if err != nil {
 		t.Fatalf("new second validate request: %v", err)
 	}
@@ -1961,7 +1961,7 @@ func TestAISettingsValidateMapsQuotaError(t *testing.T) {
 	}))
 	defer fakeProvider.Close()
 
-	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-quota","base_url_override":%q,"enabled":true}`, fakeProvider.URL)))
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(fmt.Sprintf(`{"provider":"openai","api_key":"sk-quota","base_url_override":%q,"enabled":true}`, fakeProvider.URL)))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -1987,7 +1987,7 @@ func TestAISettingsValidateMapsQuotaError(t *testing.T) {
 
 func TestAISettingsValidateRateLimitDoesNotBlockOtherUsers(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
-	if _, _, _, err := harness.Store.EnsureDefaultUserTree(context.Background(), "second-writer", "Second Writer", "mythic-tragedy-apprenticeship"); err != nil {
+	if _, _, _, err := harness.Store.EnsureDefaultUserTree(context.Background(), "second-writer", "Second Writer", "story-craft-track"); err != nil {
 		t.Fatalf("ensure second user tree: %v", err)
 	}
 	cfg := config.Default(t.TempDir())
@@ -2010,7 +2010,7 @@ func TestAISettingsValidateRateLimitDoesNotBlockOtherUsers(t *testing.T) {
 
 	requestFor := func(userSlug string) *http.Response {
 		t.Helper()
-		req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user="+userSlug+"&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+		req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user="+userSlug+"&tree=story-craft-track", strings.NewReader(requestBody))
 		if err != nil {
 			t.Fatalf("new validate request for %s: %v", userSlug, err)
 		}
@@ -2065,7 +2065,7 @@ func TestAISettingsSaveSharesValidationBudget(t *testing.T) {
 
 	requestBody := fmt.Sprintf(`{"provider":"openai","api_key":"sk-test-1234","base_url_override":%q,"enabled":true}`, fakeProvider.URL)
 
-	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	validateReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(requestBody))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -2079,7 +2079,7 @@ func TestAISettingsSaveSharesValidationBudget(t *testing.T) {
 		t.Fatalf("validate status = %d", validateResp.StatusCode)
 	}
 
-	saveReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(requestBody))
+	saveReq, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=story-craft-track", strings.NewReader(requestBody))
 	if err != nil {
 		t.Fatalf("new save request: %v", err)
 	}
@@ -2121,7 +2121,7 @@ func TestAISettingsUpdateRequiresNewKeyWhenChangingProvider(t *testing.T) {
 		t.Fatalf("save ai provider settings: %v", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"groq","api_key":"","enabled":true}`))
+	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/ai/settings?user=tester&tree=story-craft-track", strings.NewReader(`{"provider":"groq","api_key":"","enabled":true}`))
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -2153,7 +2153,7 @@ func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
 
-	resp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get auth session: %v", err)
 	}
@@ -2202,7 +2202,7 @@ func TestAuthSessionReportsAIProviderReadiness(t *testing.T) {
 		t.Fatalf("save ai provider settings: %v", err)
 	}
 
-	resp, err = http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err = http.Get(testServer.URL + "/api/auth/session?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get auth session after provider save: %v", err)
 	}
@@ -2245,7 +2245,7 @@ func TestAuthSessionReportsSetupStep(t *testing.T) {
 		AIProviderReady    bool   `json:"ai_provider_ready"`
 	} {
 		t.Helper()
-		resp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=mythic-tragedy-apprenticeship")
+		resp, err := http.Get(testServer.URL + "/api/auth/session?user=tester&tree=story-craft-track")
 		if err != nil {
 			t.Fatalf("get auth session: %v", err)
 		}
@@ -2306,7 +2306,7 @@ func TestAuthSessionReportsSetupStep(t *testing.T) {
 		DesiredOutcomes:     []string{"improve professional communication"},
 		DifficultyIntensity: "steady",
 		WritingGoals:        "Write sharper marketing copy.",
-		GeneratedTreeSlug:   "mythic-tragedy-apprenticeship",
+		GeneratedTreeSlug:   "story-craft-track",
 		TemplateKey:         "professional-writing",
 	}); err != nil {
 		t.Fatalf("save onboarding profile: %v", err)
@@ -2317,7 +2317,7 @@ func TestAuthSessionReportsSetupStep(t *testing.T) {
 		t.Fatalf("setup_step after track = %q", afterTrack.SetupStep)
 	}
 
-	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(context.Background(), "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -2328,7 +2328,7 @@ func TestAuthSessionReportsSetupStep(t *testing.T) {
 		Brief:           "Write something.",
 		Constraints:     []string{"one"},
 		FocusSkills:     []string{"prose precision"},
-		TGOCodes:        []string{"prose-precision"},
+		TGOCodes:        []string{"story-prose-precision"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "openai",
 	}); err != nil {
@@ -2345,7 +2345,7 @@ func TestAISettingsRejectUnsupportedProvider(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=mythic-tragedy-apprenticeship", strings.NewReader(`{"provider":"mistral","api_key":"sk-test-1234","enabled":true}`))
+	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/ai/settings/validate?user=tester&tree=story-craft-track", strings.NewReader(`{"provider":"mistral","api_key":"sk-test-1234","enabled":true}`))
 	if err != nil {
 		t.Fatalf("new validate request: %v", err)
 	}
@@ -2401,7 +2401,7 @@ func TestPromptNextUsesUserProviderSettings(t *testing.T) {
 		t.Fatalf("save ai provider settings: %v", err)
 	}
 
-	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{}`))
 	if err != nil {
 		t.Fatalf("prompt next: %v", err)
 	}
@@ -2456,7 +2456,7 @@ func TestReviewWorkerUsesUserProviderSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -2482,8 +2482,8 @@ func TestReviewWorkerUsesUserProviderSettings(t *testing.T) {
 		Title:           "Provider Review Exercise",
 		Brief:           "Write a paragraph.",
 		Constraints:     []string{"under 200 words"},
-		FocusSkills:     []string{"causal clarity"},
-		TGOCodes:        []string{"causal-clarity"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "deterministic",
 	})
@@ -2573,7 +2573,7 @@ func TestPromptNextUsesAnthropicProviderSettings(t *testing.T) {
 		t.Fatalf("save ai provider settings: %v", err)
 	}
 
-	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{}`))
 	if err != nil {
 		t.Fatalf("prompt next: %v", err)
 	}
@@ -2627,7 +2627,7 @@ func TestReviewWorkerUsesAnthropicProviderSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -2653,8 +2653,8 @@ func TestReviewWorkerUsesAnthropicProviderSettings(t *testing.T) {
 		Title:           "Anthropic Review Exercise",
 		Brief:           "Write a paragraph.",
 		Constraints:     []string{"under 200 words"},
-		FocusSkills:     []string{"causal clarity"},
-		TGOCodes:        []string{"causal-clarity"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "deterministic",
 	})
@@ -2732,7 +2732,7 @@ func TestPromptNextUsesGeminiProviderSettings(t *testing.T) {
 		t.Fatalf("save ai provider settings: %v", err)
 	}
 
-	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship", "application/json", strings.NewReader(`{}`))
+	resp, err := http.Post(server.URL+"/api/prompts/next?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{}`))
 	if err != nil {
 		t.Fatalf("prompt next: %v", err)
 	}
@@ -2786,7 +2786,7 @@ func TestReviewWorkerUsesGeminiProviderSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(ctx, "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -2812,8 +2812,8 @@ func TestReviewWorkerUsesGeminiProviderSettings(t *testing.T) {
 		Title:           "Gemini Review Exercise",
 		Brief:           "Write a paragraph.",
 		Constraints:     []string{"under 200 words"},
-		FocusSkills:     []string{"causal clarity"},
-		TGOCodes:        []string{"causal-clarity"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
 		SuccessCriteria: []string{"clear result"},
 		GenerationKind:  "deterministic",
 	})
@@ -2864,9 +2864,9 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Post(
-		testServer.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship",
+		testServer.URL+"/api/prompts/next?user=tester&tree=story-craft-track",
 		"application/json",
-		strings.NewReader(`{"tgo_codes":["scene-architecture","prose-precision","causal-clarity"]}`),
+		strings.NewReader(`{"tgo_codes":["story-scene-architecture","story-prose-precision","story-causal-clarity"]}`),
 	)
 	if err != nil {
 		t.Fatalf("prompt next with selection: %v", err)
@@ -2887,7 +2887,7 @@ func TestPromptNextAcceptsSelectedTGOs(t *testing.T) {
 	if len(payload.Exercise.TGOCodes) != 3 {
 		t.Fatalf("selected TGO count = %d", len(payload.Exercise.TGOCodes))
 	}
-	if payload.Exercise.TGOCodes[0] != "scene-architecture" || payload.Exercise.TGOCodes[2] != "causal-clarity" {
+	if payload.Exercise.TGOCodes[0] != "story-scene-architecture" || payload.Exercise.TGOCodes[2] != "story-causal-clarity" {
 		t.Fatalf("expected selected TGO to persist, got %v", payload.Exercise.TGOCodes)
 	}
 }
@@ -2897,9 +2897,9 @@ func TestPromptNextUsesSelectedTGOsForSuccessCriteria(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Post(
-		testServer.URL+"/api/prompts/next?user=tester&tree=mythic-tragedy-apprenticeship",
+		testServer.URL+"/api/prompts/next?user=tester&tree=story-craft-track",
 		"application/json",
-		strings.NewReader(`{"tgo_codes":["scene-architecture","prose-precision","causal-clarity"]}`),
+		strings.NewReader(`{"tgo_codes":["story-scene-architecture","story-prose-precision","story-causal-clarity"]}`),
 	)
 	if err != nil {
 		t.Fatalf("prompt next with selection: %v", err)
@@ -2946,7 +2946,7 @@ func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
 	resp, err := http.Post(
 		testServer.URL+"/api/prompts/next?user=tester",
 		"application/json",
-		strings.NewReader(`{"tgo_codes":["scene-architecture","prose-precision","causal-clarity"]}`),
+		strings.NewReader(`{"tgo_codes":["story-scene-architecture","story-prose-precision","story-causal-clarity"]}`),
 	)
 	if err != nil {
 		t.Fatalf("preview prompt: %v", err)
@@ -2960,7 +2960,7 @@ func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(context.Background(), "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -3600,7 +3600,7 @@ func TestTreeGetUsesProfileDisplayForGeneratedTrack(t *testing.T) {
 			"experience_level":"advanced",
 			"desired_tone":"serious and emotional, literary, philosophical",
 			"biggest_weaknesses":["symbol control","line pressure"],
-			"desired_outcomes":["stronger long-form fiction","stronger symbolic control"],
+			"desired_outcomes":["stronger long-form fiction","stronger scene architecture"],
 			"difficulty_intensity":"intensive",
 			"writing_goals":"I want to become a great author at mythopoeic literature, epic fantasy, and world building."
 		}`),
@@ -3737,7 +3737,7 @@ func TestAPIAuthMiddleware(t *testing.T) {
 	testServer := newTestServerWithToken(t, "secret-token")
 	defer testServer.Close()
 
-	unauthorizedResp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	unauthorizedResp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("unauthorized request: %v", err)
 	}
@@ -3746,7 +3746,7 @@ func TestAPIAuthMiddleware(t *testing.T) {
 		t.Fatalf("unauthorized status = %d", unauthorizedResp.StatusCode)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship", nil)
+	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/dashboard?user=tester&tree=story-craft-track", nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -3961,7 +3961,7 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	tree, err := harness.Store.TreeBySlug(context.Background(), "mythic-tragedy-apprenticeship")
+	tree, err := harness.Store.TreeBySlug(context.Background(), "story-craft-track")
 	if err != nil {
 		t.Fatalf("lookup tree: %v", err)
 	}
@@ -3972,7 +3972,7 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 		Brief:              "Secret",
 		Constraints:        []string{"single scene"},
 		FocusSkills:        []string{"scene architecture"},
-		TGOCodes:           []string{"scene-architecture"},
+		TGOCodes:           []string{"story-scene-architecture"},
 		SuccessCriteria:    []string{"a turn occurs"},
 		GenerationKind:     "deterministic",
 		SourceSubmissionID: 0,
@@ -4018,7 +4018,7 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	testServer := newTestServerWithStore(t, harness.Store, "", kratos.URL)
 	defer testServer.Close()
 
-	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/context?tree=mythic-tragedy-apprenticeship", nil)
+	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/context?tree=story-craft-track", nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -4041,7 +4041,7 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 		t.Fatalf("user slug = %q", payload.UserSlug)
 	}
 
-	sessionReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/auth/session?tree=mythic-tragedy-apprenticeship", nil)
+	sessionReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/auth/session?tree=story-craft-track", nil)
 	if err != nil {
 		t.Fatalf("session request: %v", err)
 	}
@@ -4055,7 +4055,7 @@ func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 		t.Fatalf("session status = %d", sessionResp.StatusCode)
 	}
 
-	foreignReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/submissions/"+int64String(testerSubmissionID)+"?user=tester&tree=mythic-tragedy-apprenticeship", nil)
+	foreignReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/submissions/"+int64String(testerSubmissionID)+"?user=tester&tree=story-craft-track", nil)
 	if err != nil {
 		t.Fatalf("foreign request: %v", err)
 	}
@@ -4077,7 +4077,7 @@ func TestAuthFailsClosedWithoutConfiguredAuthByDefault(t *testing.T) {
 	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
 
-	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=mythic-tragedy-apprenticeship")
+	resp, err := http.Get(testServer.URL + "/api/dashboard?user=tester&tree=story-craft-track")
 	if err != nil {
 		t.Fatalf("get dashboard: %v", err)
 	}
@@ -4227,7 +4227,7 @@ func newTestHarnessWithAuth(t *testing.T, apiToken, kratosPublicURL string) test
 	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	if _, _, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "mythic-tragedy-apprenticeship"); err != nil {
+	if _, _, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track"); err != nil {
 		t.Fatalf("default user tree: %v", err)
 	}
 	t.Cleanup(func() {
@@ -4293,9 +4293,9 @@ func newFakeOpenAIResponsesServer(t *testing.T, authHeader *string) *httptest.Se
 		var payload string
 		switch {
 		case strings.Contains(string(body), "submission_review"):
-			payload = `{"summary":"Provider review summary","strengths":["Provider strength"],"weaknesses":["Provider weakness"],"next_focus":"causal clarity","skill_scores":[{"skill":"causal clarity","score":4}],"tgo_assessments":[{"code":"causal-clarity","status":"secure","evidence":"Provider evidence"},{"code":"scene-architecture","status":"secure","evidence":"Provider evidence"},{"code":"prose-precision","status":"secure","evidence":"Provider evidence"}],"completed_tgo_checks":[],"annotations":[]}`
+			payload = `{"summary":"Provider review summary","strengths":["Provider strength"],"weaknesses":["Provider weakness"],"next_focus":"narrative clarity","skill_scores":[{"skill":"narrative clarity","score":4}],"tgo_assessments":[{"code":"story-causal-clarity","status":"secure","evidence":"Provider evidence"},{"code":"story-scene-architecture","status":"secure","evidence":"Provider evidence"},{"code":"story-prose-precision","status":"secure","evidence":"Provider evidence"}],"completed_tgo_checks":[],"annotations":[]}`
 		default:
-			payload = `{"title":"Provider Draft","brief":"Generated through the user provider.","constraints":["Keep the draft focused."],"focus_skills":["causal clarity"],"success_criteria":["Make the chain of events easy to follow."]}`
+			payload = `{"title":"Provider Draft","brief":"Generated through the user provider.","constraints":["Keep the draft focused."],"focus_skills":["narrative clarity"],"success_criteria":["Make the chain of events easy to follow."]}`
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -4330,7 +4330,7 @@ func newFakeAnthropicServer(t *testing.T, apiKey *string) *httptest.Server {
 				t.Fatalf("read body: %v", err)
 			}
 			if strings.Contains(string(body), "submission_review") {
-				_, _ = io.WriteString(w, `{"content":[{"type":"tool_use","input":{"summary":"Anthropic review summary","strengths":["Clear turn","Concrete consequence"],"weaknesses":["Push the beats harder","Tighten the prose"],"next_focus":"narrative clarity","skill_scores":[{"skill":"scene architecture","score":4},{"skill":"narrative clarity","score":3},{"skill":"prose precision","score":3}],"tgo_assessments":[{"code":"causal-clarity","status":"secure","evidence":"Cause and effect remain visible."},{"code":"scene-architecture","status":"developing","evidence":"The middle turn could land harder."},{"code":"prose-precision","status":"developing","evidence":"Some lines can tighten."}],"completed_tgo_checks":[],"annotations":[{"quote":"the room changed around him","tgo_code":"causal-clarity","category":"strength","comment":"The consequence lands on the page.","severity":"info"}]}}]}`)
+				_, _ = io.WriteString(w, `{"content":[{"type":"tool_use","input":{"summary":"Anthropic review summary","strengths":["Clear turn","Concrete consequence"],"weaknesses":["Push the beats harder","Tighten the prose"],"next_focus":"narrative clarity","skill_scores":[{"skill":"scene architecture","score":4},{"skill":"narrative clarity","score":3},{"skill":"prose precision","score":3}],"tgo_assessments":[{"code":"story-causal-clarity","status":"secure","evidence":"Cause and effect remain visible."},{"code":"story-scene-architecture","status":"developing","evidence":"The middle turn could land harder."},{"code":"story-prose-precision","status":"developing","evidence":"Some lines can tighten."}],"completed_tgo_checks":[],"annotations":[{"quote":"the room changed around him","tgo_code":"story-causal-clarity","category":"strength","comment":"The consequence lands on the page.","severity":"info"}]}}]}`)
 				return
 			}
 			_, _ = io.WriteString(w, `{"content":[{"type":"tool_use","input":{"title":"Anthropic Draft","brief":"Write the scene from scratch.","constraints":["Keep the focus tight.","Make the turn visible."],"focus_skills":["scene architecture","narrative clarity"],"success_criteria":["The shift is easy to follow.","The ending lands cleanly."]}}]}`)
@@ -4373,7 +4373,7 @@ func waitForReview(t *testing.T, baseURL string, submissionID int64) int64 {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		resp, err := http.Get(baseURL + "/api/review-jobs?user=tester&tree=mythic-tragedy-apprenticeship&submission_id=" + int64String(submissionID))
+		resp, err := http.Get(baseURL + "/api/review-jobs?user=tester&tree=story-craft-track&submission_id=" + int64String(submissionID))
 		if err != nil {
 			t.Fatalf("get review job: %v", err)
 		}
