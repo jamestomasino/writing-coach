@@ -171,6 +171,7 @@ type aiProviderEventSummaryResponse struct {
 	ValidationRateLimit int                            `json:"validation_rate_limit"`
 	Fallbacks           int                            `json:"fallbacks"`
 	ProviderCounts      []aiProviderEventCountResponse `json:"provider_counts"`
+	EventCounts         []aiProviderEventCountResponse `json:"event_counts"`
 	CategoryCounts      []aiProviderEventCountResponse `json:"category_counts"`
 }
 

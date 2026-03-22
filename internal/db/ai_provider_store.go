@@ -111,6 +111,7 @@ func (s *Store) SummarizeAIProviderEventsSince(ctx context.Context, since time.T
 	defer rows.Close()
 
 	providerCounts := make(map[string]int)
+	eventCounts := make(map[string]int)
 	categoryCounts := make(map[string]int)
 	for rows.Next() {
 		var provider, event, category string
@@ -133,6 +134,11 @@ func (s *Store) SummarizeAIProviderEventsSince(ctx context.Context, since time.T
 			providerKey = "unknown"
 		}
 		providerCounts[providerKey] += count
+		eventKey := strings.TrimSpace(event)
+		if eventKey == "" {
+			eventKey = "unknown"
+		}
+		eventCounts[eventKey] += count
 		categoryKey := strings.TrimSpace(category)
 		if categoryKey == "" || categoryKey == "<nil>" {
 			categoryKey = "uncategorized"
@@ -144,6 +150,7 @@ func (s *Store) SummarizeAIProviderEventsSince(ctx context.Context, since time.T
 	}
 
 	summary.ProviderCounts = sortEventCounts(providerCounts)
+	summary.EventCounts = sortEventCounts(eventCounts)
 	summary.CategoryCounts = sortEventCounts(categoryCounts)
 	return summary, nil
 }

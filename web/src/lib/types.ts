@@ -258,6 +258,7 @@ export type AIProviderEventSummary = {
   validation_rate_limit: number
   fallbacks: number
   provider_counts: AIProviderEventCount[]
+  event_counts: AIProviderEventCount[]
   category_counts: AIProviderEventCount[]
 }
 
