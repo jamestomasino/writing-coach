@@ -928,6 +928,24 @@ func TestPlaygroundReviewEndpointPersistsSessionAndKeepsAssignmentReviewHistoryC
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
 	defer testServer.Close()
 
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	var enrollmentID int64
+	if err := harness.Store.SQL.QueryRowContext(ctx, `SELECT id FROM user_tree_enrollments WHERE user_id = ? AND tree_id = ? AND archived_at IS NULL`, user.ID, tree.ID).Scan(&enrollmentID); err != nil {
+		t.Fatalf("lookup enrollment: %v", err)
+	}
+	beforeState, err := harness.Store.GetCurriculumState(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("load curriculum state: %v", err)
+	}
+
 	resp, err := http.Post(
 		testServer.URL+"/api/playground/review?user=tester&tree=story-craft-track",
 		"application/json",
@@ -974,6 +992,20 @@ func TestPlaygroundReviewEndpointPersistsSessionAndKeepsAssignmentReviewHistoryC
 	}
 	if reviewCount != 0 {
 		t.Fatalf("expected no persisted assignment reviews, got %d", reviewCount)
+	}
+	var submissionCount int
+	if err := harness.Store.SQL.QueryRow(`SELECT COUNT(*) FROM submissions`).Scan(&submissionCount); err != nil {
+		t.Fatalf("count submissions: %v", err)
+	}
+	if submissionCount != 0 {
+		t.Fatalf("expected no persisted submissions, got %d", submissionCount)
+	}
+	var exerciseCount int
+	if err := harness.Store.SQL.QueryRow(`SELECT COUNT(*) FROM exercises`).Scan(&exerciseCount); err != nil {
+		t.Fatalf("count exercises: %v", err)
+	}
+	if exerciseCount != 0 {
+		t.Fatalf("expected no persisted exercises, got %d", exerciseCount)
 	}
 	var playgroundSessionCount int
 	if err := harness.Store.SQL.QueryRow(`SELECT COUNT(*) FROM playground_sessions`).Scan(&playgroundSessionCount); err != nil {
@@ -1030,6 +1062,14 @@ func TestPlaygroundReviewEndpointPersistsSessionAndKeepsAssignmentReviewHistoryC
 	}
 	if reviewsPayload.Reviews[0].Review.Summary == "" {
 		t.Fatal("expected persisted playground review summary")
+	}
+
+	afterState, err := harness.Store.GetCurriculumState(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("load curriculum state after review: %v", err)
+	}
+	if afterState.LastReviewID != beforeState.LastReviewID || afterState.CurrentFocus != beforeState.CurrentFocus || afterState.DifficultyLevel != beforeState.DifficultyLevel {
+		t.Fatalf("expected curriculum state unchanged, before=%#v after=%#v", beforeState, afterState)
 	}
 }
 
@@ -1174,6 +1214,128 @@ func TestPlaygroundSessionEndpointsSupportCreateUpdateAndReviewHistory(t *testin
 	}
 	if singleReviewPayload.Review.Review.Summary == "" {
 		t.Fatal("expected saved playground review summary")
+	}
+}
+
+func TestPlaygroundSessionReviewTracksDraftSnapshotsAndComparison(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	createResp, err := http.Post(
+		testServer.URL+"/api/playground/sessions?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{"content":"The product helps writers practice with focused assignments.","writing_language":"en","writing_type":"product","assignment_format":"about page","coaching_brief":"Focus on clarity."}`),
+	)
+	if err != nil {
+		t.Fatalf("create playground session: %v", err)
+	}
+	defer createResp.Body.Close()
+	var createPayload struct {
+		Session playgroundSessionResponse `json:"session"`
+	}
+	if err := json.NewDecoder(createResp.Body).Decode(&createPayload); err != nil {
+		t.Fatalf("decode create playground session: %v", err)
+	}
+
+	firstReviewResp, err := http.Post(
+		testServer.URL+"/api/playground/sessions/"+int64String(createPayload.Session.ID)+"/reviews?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{}`),
+	)
+	if err != nil {
+		t.Fatalf("create first playground review: %v", err)
+	}
+	defer firstReviewResp.Body.Close()
+	var firstReviewPayload struct {
+		Job aiJobResponse `json:"job"`
+	}
+	if err := json.NewDecoder(firstReviewResp.Body).Decode(&firstReviewPayload); err != nil {
+		t.Fatalf("decode first playground review job: %v", err)
+	}
+	waitForAIJob(t, testServer.URL, firstReviewPayload.Job.ID)
+
+	updateReq, err := http.NewRequest(
+		http.MethodPut,
+		testServer.URL+"/api/playground/sessions/"+int64String(createPayload.Session.ID)+"?user=tester&tree=story-craft-track",
+		strings.NewReader(`{"content":"The product helps writers practice with focused assignments and clearer revision steps.","writing_language":"en","writing_type":"product","assignment_format":"about page","coaching_brief":"Focus on clarity and flow."}`),
+	)
+	if err != nil {
+		t.Fatalf("build update request: %v", err)
+	}
+	updateReq.Header.Set("Content-Type", "application/json")
+	updateResp, err := http.DefaultClient.Do(updateReq)
+	if err != nil {
+		t.Fatalf("update playground session: %v", err)
+	}
+	defer updateResp.Body.Close()
+	if updateResp.StatusCode != http.StatusOK {
+		t.Fatalf("update playground session status: %d", updateResp.StatusCode)
+	}
+
+	secondReviewResp, err := http.Post(
+		testServer.URL+"/api/playground/sessions/"+int64String(createPayload.Session.ID)+"/reviews?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{}`),
+	)
+	if err != nil {
+		t.Fatalf("create second playground review: %v", err)
+	}
+	defer secondReviewResp.Body.Close()
+	var secondReviewPayload struct {
+		Job aiJobResponse `json:"job"`
+	}
+	if err := json.NewDecoder(secondReviewResp.Body).Decode(&secondReviewPayload); err != nil {
+		t.Fatalf("decode second playground review job: %v", err)
+	}
+	waitForAIJob(t, testServer.URL, secondReviewPayload.Job.ID)
+
+	draftsResp, err := http.Get(testServer.URL + "/api/playground/sessions/" + int64String(createPayload.Session.ID) + "/drafts?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("list playground drafts: %v", err)
+	}
+	defer draftsResp.Body.Close()
+	if draftsResp.StatusCode != http.StatusOK {
+		t.Fatalf("playground drafts status: %d", draftsResp.StatusCode)
+	}
+	var draftsPayload struct {
+		Drafts []playgroundDraftResponse `json:"drafts"`
+	}
+	if err := json.NewDecoder(draftsResp.Body).Decode(&draftsPayload); err != nil {
+		t.Fatalf("decode playground drafts: %v", err)
+	}
+	if len(draftsPayload.Drafts) != 2 {
+		t.Fatalf("expected two playground drafts, got %d", len(draftsPayload.Drafts))
+	}
+	if draftsPayload.Drafts[0].ID == draftsPayload.Drafts[1].ID {
+		t.Fatal("expected distinct draft ids")
+	}
+
+	reviewsResp, err := http.Get(testServer.URL + "/api/playground/sessions/" + int64String(createPayload.Session.ID) + "/reviews?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("list playground reviews: %v", err)
+	}
+	defer reviewsResp.Body.Close()
+	if reviewsResp.StatusCode != http.StatusOK {
+		t.Fatalf("playground reviews status: %d", reviewsResp.StatusCode)
+	}
+	var reviewsPayload struct {
+		Reviews []playgroundReviewResponse `json:"reviews"`
+	}
+	if err := json.NewDecoder(reviewsResp.Body).Decode(&reviewsPayload); err != nil {
+		t.Fatalf("decode playground reviews: %v", err)
+	}
+	if len(reviewsPayload.Reviews) != 2 {
+		t.Fatalf("expected two playground reviews, got %d", len(reviewsPayload.Reviews))
+	}
+	if reviewsPayload.Reviews[0].DraftID == 0 || reviewsPayload.Reviews[1].DraftID == 0 {
+		t.Fatal("expected reviews to be tied to draft ids")
+	}
+	if reviewsPayload.Reviews[0].DraftID == reviewsPayload.Reviews[1].DraftID {
+		t.Fatal("expected latest review to reference a new draft")
+	}
+	if reviewsPayload.Reviews[0].Review.Artifacts == nil || len(reviewsPayload.Reviews[0].Review.Artifacts.Comparison) == 0 {
+		t.Fatal("expected comparison payload on later playground review")
 	}
 }
 

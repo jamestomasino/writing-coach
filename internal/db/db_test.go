@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,6 +142,100 @@ func TestEnsureDefaultUserTreeSeedsTreeSpecificTGOs(t *testing.T) {
 	}
 	if active[0].ProgressMode != domain.ProgressModePercent {
 		t.Fatalf("expected percent progress mode, got %q", active[0].ProgressMode)
+	}
+}
+
+func TestMigrateAddsPlaygroundStep2AndStep3SchemaToOlderDatabase(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if _, err := store.SQL.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			version TEXT PRIMARY KEY,
+			applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`); err != nil {
+		t.Fatalf("create schema migrations: %v", err)
+	}
+
+	migrationsDir := filepath.Join("..", "..", "migrations")
+	for _, version := range []string{
+		"0001_init.sql", "0002_add_exercise_generation_kind.sql", "0003_add_review_analyzer_findings.sql",
+		"0004_add_submission_revision_fields.sql", "0005_add_tgo_tables.sql", "0006_add_users_and_trees.sql",
+		"0007_add_review_completed_tgo_checks.sql", "0008_add_exercise_source_submission_id.sql",
+		"0009_add_review_artifacts.sql", "0010_add_tree_definition_metadata.sql", "0011_add_tree_versions.sql",
+		"0012_add_admin_identities.sql", "0013_add_user_onboarding.sql", "0014_add_review_annotations.sql",
+		"0015_add_tgo_progress_mode.sql", "0016_add_onboarding_prompt_seed_fields.sql", "0017_add_review_jobs.sql",
+		"0018_add_user_ai_provider_settings.sql", "0019_add_provider_notes.sql", "0020_add_ai_provider_events.sql",
+		"0021_add_enrollment_onboarding_profiles.sql", "0022_add_archived_at_to_user_tree_enrollments.sql",
+		"0023_add_closed_at_to_exercises.sql", "0024_add_writing_language_to_enrollment_onboarding_profiles.sql",
+		"0025_add_ai_jobs.sql",
+	} {
+		sqlBytes, err := os.ReadFile(filepath.Join(migrationsDir, version))
+		if err != nil {
+			t.Fatalf("read migration %s: %v", version, err)
+		}
+		if _, err := store.SQL.ExecContext(ctx, string(sqlBytes)); err != nil {
+			if !strings.Contains(err.Error(), "duplicate column name") {
+				t.Fatalf("apply migration %s: %v", version, err)
+			}
+		}
+		if _, err := store.SQL.ExecContext(ctx, `INSERT INTO schema_migrations (version) VALUES (?)`, version); err != nil {
+			t.Fatalf("record migration %s: %v", version, err)
+		}
+	}
+
+	if err := store.Migrate(ctx, migrationsDir); err != nil {
+		t.Fatalf("migrate latest: %v", err)
+	}
+
+	for _, table := range []string{"playground_sessions", "playground_reviews", "playground_drafts"} {
+		var count int
+		if err := store.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&count); err != nil {
+			t.Fatalf("check table %s: %v", table, err)
+		}
+		if count != 1 {
+			t.Fatalf("expected table %s to exist", table)
+		}
+	}
+
+	for _, column := range []struct {
+		table  string
+		column string
+	}{
+		{table: "playground_sessions", column: "latest_draft_id"},
+		{table: "playground_sessions", column: "draft_count"},
+		{table: "playground_reviews", column: "draft_id"},
+		{table: "playground_reviews", column: "comparison_json"},
+	} {
+		rows, err := store.SQL.QueryContext(ctx, `PRAGMA table_info(`+column.table+`)`)
+		if err != nil {
+			t.Fatalf("pragma %s: %v", column.table, err)
+		}
+		found := false
+		for rows.Next() {
+			var cid int
+			var name, ctype string
+			var notNull int
+			var dfltValue any
+			var pk int
+			if err := rows.Scan(&cid, &name, &ctype, &notNull, &dfltValue, &pk); err != nil {
+				t.Fatalf("scan pragma %s: %v", column.table, err)
+			}
+			if name == column.column {
+				found = true
+				break
+			}
+		}
+		rows.Close()
+		if !found {
+			t.Fatalf("expected column %s.%s to exist", column.table, column.column)
+		}
 	}
 }
 

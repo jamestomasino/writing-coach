@@ -129,16 +129,28 @@ export type PlaygroundSession = {
   writing_type?: string
   assignment_format?: string
   coaching_brief?: string
+  latest_draft_id?: number
   latest_review_id?: number
   latest_review_at?: string
+  draft_count: number
   review_count: number
   created_at: string
   updated_at: string
 }
 
+export type PlaygroundDraft = {
+  id: number
+  session_id: number
+  parent_draft_id?: number
+  content: string
+  word_count: number
+  created_at: string
+}
+
 export type PlaygroundReview = {
   id: number
   session_id: number
+  draft_id?: number
   created_at: string
   review: Review
 }

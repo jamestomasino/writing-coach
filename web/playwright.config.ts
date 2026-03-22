@@ -27,7 +27,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'go run ./cmd/writing-coach serve',
+      command: `rm -rf ${testDataDir} && go run ./cmd/writing-coach serve`,
       cwd: rootDir,
       url: `http://127.0.0.1:${apiPort}/api/ready`,
       reuseExistingServer: !process.env.CI,
@@ -38,6 +38,7 @@ export default defineConfig({
         WRITING_COACH_HTTP_ADDR: `127.0.0.1:${apiPort}`,
         WRITING_COACH_DATA_DIR: testDataDir,
         WRITING_COACH_DATABASE_URL: path.join(testDataDir, 'writing-coach-e2e.db'),
+        WRITING_COACH_DEFAULT_TREE_SLUG: 'global-writing-skill-graph',
         WRITING_COACH_API_TOKEN: apiToken,
         WRITING_COACH_AI_KEY_SECRET: 'e2e-ai-key-secret',
         OPENAI_API_KEY: 'e2e-fallback-key',

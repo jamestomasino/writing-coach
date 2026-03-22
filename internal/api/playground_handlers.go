@@ -186,6 +186,86 @@ func (s Server) handlePlaygroundSessionReviewCreate(w http.ResponseWriter, r *ht
 	})
 }
 
+func (s Server) handlePlaygroundSessionDraftsList(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	sessionID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || sessionID == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid session id"))
+		return
+	}
+	session, err := s.Store.GetPlaygroundSession(r.Context(), sessionID)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if !belongsToContext(session.UserID, session.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("session not found"))
+		return
+	}
+	items, err := s.Store.ListPlaygroundDrafts(r.Context(), appContext.UserID, appContext.TreeID, sessionID, listLimit(r, 50, 200))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	out := make([]playgroundDraftResponse, 0, len(items))
+	for _, item := range items {
+		out = append(out, toPlaygroundDraftResponse(item))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"drafts":  out,
+	})
+}
+
+func (s Server) handlePlaygroundSessionDraftCreate(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	sessionID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || sessionID == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid session id"))
+		return
+	}
+	session, err := s.Store.GetPlaygroundSession(r.Context(), sessionID)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if !belongsToContext(session.UserID, session.TreeID, appContext) {
+		writeError(w, http.StatusNotFound, fmt.Errorf("session not found"))
+		return
+	}
+	item, err := s.Store.EnsurePlaygroundDraftSnapshot(r.Context(), session)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	updatedSession, err := s.Store.GetPlaygroundSession(r.Context(), sessionID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"context": requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
+		"draft":   toPlaygroundDraftResponse(item),
+		"session": toPlaygroundSessionResponse(updatedSession),
+	})
+}
+
 func (s Server) handlePlaygroundSessionReviewsList(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {
