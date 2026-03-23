@@ -904,6 +904,10 @@ func RecommendedStarterCodes(profile OnboardingProfile) []string {
 	return append([]string(nil), tree.SeedCodes...)
 }
 
+func CanonicalTreeForProfile(profile OnboardingProfile) TGOTreeDefinition {
+	return treeForTemplateKey(TemplateKeyForProfile(profile))
+}
+
 func RecommendedRegionSlugs(profile OnboardingProfile) []string {
 	primary := treeForTemplateKey(TemplateKeyForProfile(profile)).Slug
 	regions := []string{primary}

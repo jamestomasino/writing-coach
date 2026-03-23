@@ -3443,7 +3443,7 @@ func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
 	}
 }
 
-func TestOnboardingCreatesAndActivatesGeneratedTrack(t *testing.T) {
+func TestOnboardingCreatesAndActivatesCanonicalTrack(t *testing.T) {
 	testServer := newTestServer(t)
 	defer testServer.Close()
 
@@ -3484,7 +3484,7 @@ func TestOnboardingCreatesAndActivatesGeneratedTrack(t *testing.T) {
 	if !onboardingPayload.OnboardingComplete {
 		t.Fatal("expected onboarding to complete")
 	}
-	expectedTree := domain.GenerateTreeDefinition("tester", "Tester", domain.OnboardingProfile{
+	expectedTree := domain.CanonicalTreeForProfile(domain.OnboardingProfile{
 		WritingType:         "thought leadership",
 		AssignmentFormat:    "blog post",
 		TargetAudience:      "startup founders",
@@ -3560,6 +3560,156 @@ func TestOnboardingCreatesAndActivatesGeneratedTrack(t *testing.T) {
 	}
 	if getPayload.Profile.SubjectMatter != "AI product strategy" {
 		t.Fatalf("subject matter = %q", getPayload.Profile.SubjectMatter)
+	}
+}
+
+func TestOnboardingEditMigratesLegacyTrackToCanonicalAndPreservesProgress(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	userID, _, _, err := harness.Store.EnsureDefaultUserTree(ctx, "tester", "Tester", domain.GlobalSkillGraphSlug)
+	if err != nil {
+		t.Fatalf("ensure bootstrap tree: %v", err)
+	}
+	profile := domain.OnboardingProfile{
+		WritingLanguage:     "en",
+		WritingType:         "thought leadership",
+		AssignmentFormat:    "blog post",
+		TargetAudience:      "startup founders",
+		SubjectMatter:       "AI product strategy",
+		ExperienceLevel:     "intermediate",
+		DesiredTone:         "analytical and decisive",
+		BiggestWeaknesses:   []string{"sentence economy", "claim clarity"},
+		DesiredOutcomes:     []string{"write thought leadership with authority"},
+		DifficultyIntensity: "steady",
+		WritingGoals:        "I want to publish stronger essays with clearer arguments.",
+	}
+	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
+	legacyTree := domain.GenerateTreeDefinition("tester", "Tester", profile)
+	if err := harness.Store.SaveTreeDefinition(ctx, legacyTree); err != nil {
+		t.Fatalf("save legacy tree: %v", err)
+	}
+	savedLegacyTree, err := harness.Store.TreeBySlug(ctx, legacyTree.Slug)
+	if err != nil {
+		t.Fatalf("lookup legacy tree: %v", err)
+	}
+	_, _, legacyEnrollmentID, err := harness.Store.EnsureDefaultUserTree(ctx, "tester", "Tester", legacyTree.Slug)
+	if err != nil {
+		t.Fatalf("ensure legacy tree: %v", err)
+	}
+	profile.EnrollmentID = legacyEnrollmentID
+	profile.UserID = userID
+	profile.GeneratedTreeSlug = legacyTree.Slug
+	if err := harness.Store.SaveOnboardingProfile(ctx, profile); err != nil {
+		t.Fatalf("save legacy profile: %v", err)
+	}
+	if err := harness.Store.SetActiveTGOs(ctx, legacyEnrollmentID, []string{"claim-clarity", "problem-framing", "stakes-articulation"}); err != nil {
+		t.Fatalf("set legacy active tgos: %v", err)
+	}
+	if err := harness.Store.MarkTGOCompleted(ctx, legacyEnrollmentID, "opening-hook"); err != nil {
+		t.Fatalf("mark legacy completed: %v", err)
+	}
+	if err := harness.Store.SetUserActiveTree(ctx, userID, legacyTree.Slug); err != nil {
+		t.Fatalf("set active legacy tree: %v", err)
+	}
+	if _, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          userID,
+		TreeID:          savedLegacyTree.ID,
+		Title:           "Legacy Assignment",
+		Brief:           "Write something persuasive.",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"claim clarity"},
+		TGOCodes:        []string{"claim-clarity"},
+		SuccessCriteria: []string{"clear argument"},
+		GenerationKind:  "deterministic",
+	}); err != nil {
+		t.Fatalf("save legacy exercise: %v", err)
+	}
+
+	resp, err := http.Post(
+		testServer.URL+"/api/onboarding?user=tester&tree="+legacyTree.Slug,
+		"application/json",
+		strings.NewReader(`{
+			"mode":"edit",
+			"writing_language":"en",
+			"writing_type":"thought leadership",
+			"assignment_format":"blog post",
+			"target_audience":"startup founders",
+			"subject_matter":"AI product strategy",
+			"experience_level":"intermediate",
+			"desired_tone":"analytical and decisive",
+			"biggest_weaknesses":["sentence economy","claim clarity"],
+			"desired_outcomes":["write thought leadership with authority"],
+			"difficulty_intensity":"steady",
+			"writing_goals":"I want to publish stronger essays with clearer arguments."
+		}`),
+	)
+	if err != nil {
+		t.Fatalf("post onboarding edit: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("onboarding edit status: %d", resp.StatusCode)
+	}
+
+	canonicalTree := domain.CanonicalTreeForProfile(profile)
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	if user.ActiveTreeSlug != canonicalTree.Slug {
+		t.Fatalf("active tree slug = %q", user.ActiveTreeSlug)
+	}
+	tracks, err := harness.Store.ListUserTracks(ctx, user.ID)
+	if err != nil {
+		t.Fatalf("list tracks: %v", err)
+	}
+	foundCanonical := false
+	for _, track := range tracks {
+		if track.TreeSlug == legacyTree.Slug {
+			t.Fatalf("legacy generated track still active: %q", track.TreeSlug)
+		}
+		if track.TreeSlug == canonicalTree.Slug {
+			foundCanonical = true
+		}
+	}
+	if !foundCanonical {
+		t.Fatalf("canonical track %q not found in active tracks", canonicalTree.Slug)
+	}
+
+	canonicalTreeRow, err := harness.Store.TreeBySlug(ctx, canonicalTree.Slug)
+	if err != nil {
+		t.Fatalf("lookup canonical tree: %v", err)
+	}
+	canonicalEnrollmentID, err := harness.Store.EnrollmentID(ctx, user.ID, canonicalTreeRow.ID)
+	if err != nil {
+		t.Fatalf("lookup canonical enrollment: %v", err)
+	}
+	activeTGOs, err := harness.Store.ActiveTGOs(ctx, canonicalEnrollmentID)
+	if err != nil {
+		t.Fatalf("active tgos: %v", err)
+	}
+	if len(activeTGOs) != 3 {
+		t.Fatalf("active tgo count = %d", len(activeTGOs))
+	}
+	if activeTGOs[0].Code != "claim-clarity" || activeTGOs[1].Code != "problem-framing" || activeTGOs[2].Code != "stakes-articulation" {
+		t.Fatalf("active tgos = %#v", activeTGOs)
+	}
+	completedTGOs, err := harness.Store.CompletedTGOs(ctx, canonicalEnrollmentID)
+	if err != nil {
+		t.Fatalf("completed tgos: %v", err)
+	}
+	if len(completedTGOs) != 1 || completedTGOs[0].Code != "opening-hook" {
+		t.Fatalf("completed tgos = %#v", completedTGOs)
+	}
+	exercises, err := harness.Store.ListExercises(ctx, user.ID, canonicalTreeRow.ID, 10)
+	if err != nil {
+		t.Fatalf("list canonical exercises: %v", err)
+	}
+	if len(exercises) != 1 {
+		t.Fatalf("expected migrated exercise count = 1, got %d", len(exercises))
 	}
 }
 
@@ -4046,9 +4196,9 @@ func TestTreeGetUsesProfileDisplayForGeneratedTrack(t *testing.T) {
 		t.Fatalf("onboarding status: %d", resp.StatusCode)
 	}
 
-	treeResp, err := http.Get(testServer.URL + "/api/trees/tester-track?user=tester")
+	treeResp, err := http.Get(testServer.URL + "/api/trees/story-craft-track?user=tester")
 	if err != nil {
-		t.Fatalf("get generated tree: %v", err)
+		t.Fatalf("get profile-backed tree: %v", err)
 	}
 	defer treeResp.Body.Close()
 	if treeResp.StatusCode != http.StatusOK {
