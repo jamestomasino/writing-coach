@@ -16,10 +16,13 @@ For the full workflow, see [docs/release-process.md](/home/tomasino/writing-coac
 
 ## Unreleased
 
+## 2026.03.23
+
 ### Changed
 
 - Reworked the admin AI provider activity panel so provider and event-type filters use selectable count chips instead of dropdowns.
 - Replaced the stacked admin event cards with a sortable event table and moved raw JSON payloads into a details dialog.
+- Simplified Playground page copy so the drafting and feedback flow reads more clearly and less mechanically.
 
 ## 2026.03.22
 
