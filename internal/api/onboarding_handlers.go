@@ -161,50 +161,74 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	profile.TemplateKey = domain.TemplateKeyForProfile(profile)
-	treeDef := domain.GenerateTreeDefinition(appContext.UserSlug, user.Name, profile)
+	treeDef := domain.CanonicalTreeForProfile(profile)
 	starterCodes := domain.RecommendedStarterCodes(profile)
 	recommendedRegions := domain.RecommendedRegionSlugs(profile)
+	publicTreeSlugs := domain.PublicBuiltInTreeSlugs()
+	sourceProfile, sourceProfileErr := s.Store.OnboardingProfileByEnrollmentID(r.Context(), appContext.EnrollmentID)
+	sourceMatchesCurrent := sourceProfileErr == nil && sourceProfile.GeneratedTreeSlug == appContext.TreeSlug
+	sourceIsLegacyGenerated := sourceMatchesCurrent && !publicTreeSlugs[appContext.TreeSlug]
+	sourceMatchesTargetTemplate := sourceProfileErr == nil && sourceProfile.TemplateKey == profile.TemplateKey
 
 	targetContext := appContext
+	targetTreeSlug := treeDef.Slug
+	targetTree, err := s.Store.TreeBySlug(r.Context(), targetTreeSlug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	existingTargetEnrollmentID, err := s.Store.EnrollmentID(r.Context(), appContext.UserID, targetTree.ID)
+	if err != nil && !db.IsNotFound(err) && !errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	targetEnrollmentExists := err == nil
 	switch mode {
 	case "create":
-		treeDef.Slug = s.uniqueGeneratedTreeSlug(r.Context(), treeDef.Slug)
-		profile.GeneratedTreeSlug = treeDef.Slug
 	case "edit":
-		if existing, err := s.Store.OnboardingProfileByEnrollmentID(r.Context(), appContext.EnrollmentID); err == nil && existing.GeneratedTreeSlug == appContext.TreeSlug {
-			treeDef.Slug = appContext.TreeSlug
-			profile.GeneratedTreeSlug = treeDef.Slug
-			profile.EnrollmentID = appContext.EnrollmentID
-			profile.UserID = appContext.UserID
-		} else {
-			treeDef.Slug = s.uniqueGeneratedTreeSlug(r.Context(), treeDef.Slug)
-			profile.GeneratedTreeSlug = treeDef.Slug
-		}
 	default:
 		writeError(w, http.StatusBadRequest, fmt.Errorf("unsupported onboarding mode"))
 		return
 	}
 
-	if err := s.Store.SaveTreeDefinition(r.Context(), treeDef); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
+	profile.GeneratedTreeSlug = treeDef.Slug
+	treeID := targetTree.ID
+	enrollmentID := appContext.EnrollmentID
+	if appContext.TreeSlug != targetTreeSlug {
+		_, treeID, enrollmentID, err = s.Store.EnsureDefaultUserTree(r.Context(), appContext.UserSlug, user.Name, targetTreeSlug)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+		if sourceIsLegacyGenerated && sourceMatchesTargetTemplate {
+			if err := s.Store.TransferTrackData(r.Context(), appContext.UserID, appContext.EnrollmentID, appContext.TreeID, enrollmentID, treeID); err != nil {
+				writeError(w, http.StatusInternalServerError, err)
+				return
+			}
+		}
 	}
-	_, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(r.Context(), appContext.UserSlug, user.Name, treeDef.Slug)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
+	if appContext.TreeSlug == targetTreeSlug {
+		profile.EnrollmentID = appContext.EnrollmentID
+		profile.UserID = appContext.UserID
+	} else {
+		profile.EnrollmentID = enrollmentID
+		profile.UserID = appContext.UserID
 	}
-	profile.EnrollmentID = enrollmentID
-	profile.UserID = appContext.UserID
 	if err := s.Store.SaveOnboardingProfile(r.Context(), profile); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	if err := s.Store.SetUserActiveTree(r.Context(), appContext.UserID, treeDef.Slug); err != nil {
+	if err := s.Store.SetUserActiveTree(r.Context(), appContext.UserID, targetTreeSlug); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	if firstTrackSetup && bootstrapTrackIsEmpty && mode == "edit" && appContext.TreeSlug != treeDef.Slug {
+	if sourceIsLegacyGenerated && sourceMatchesTargetTemplate && appContext.TreeSlug != targetTreeSlug {
+		if err := s.Store.ArchiveUserTrack(r.Context(), appContext.UserID, appContext.TreeSlug); err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if firstTrackSetup && bootstrapTrackIsEmpty && mode == "edit" && appContext.TreeSlug != targetTreeSlug {
 		if err := s.Store.ArchiveUserTrack(r.Context(), appContext.UserID, appContext.TreeSlug); err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
@@ -215,29 +239,70 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		TreeID:       treeID,
 		EnrollmentID: enrollmentID,
 		UserSlug:     appContext.UserSlug,
-		TreeSlug:     treeDef.Slug,
+		TreeSlug:     targetTreeSlug,
 	}
+
 	completed, err := s.Store.CompletedTGOs(r.Context(), enrollmentID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	activeCodes := sanitizeStringList(starterCodes)
-	if len(activeCodes) != 3 {
-		completedSet := make(map[string]bool, len(completed))
-		for _, tgo := range completed {
-			completedSet[tgo.Code] = true
+	completedSet := make(map[string]bool, len(completed))
+	for _, tgo := range completed {
+		completedSet[tgo.Code] = true
+	}
+
+	var preferredActive []domain.TGO
+	preserveProgress := false
+	switch {
+	case appContext.TreeSlug == targetTreeSlug:
+		preserveProgress = true
+	case sourceIsLegacyGenerated && sourceMatchesTargetTemplate && appContext.TreeSlug != targetTreeSlug:
+		preferredActive, err = s.Store.ActiveTGOs(r.Context(), appContext.EnrollmentID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
 		}
-		activeCodes = nextSeedCodes(treeDef, completedSet)
+		preserveProgress = true
+	case targetEnrollmentExists && existingTargetEnrollmentID == enrollmentID:
+		preserveProgress = true
 	}
-	if err := s.Store.SetActiveTGOs(r.Context(), enrollmentID, activeCodes); err != nil {
+
+	activeTGOs, err := s.Store.ActiveTGOs(r.Context(), enrollmentID)
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	if err := s.Store.UpdateCurriculumState(r.Context(), enrollmentID, activeCodes[0], 2, 0); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+	if preserveProgress && len(preferredActive) == 0 {
+		preferredActive = activeTGOs
+	}
+	activeCodes := onboardingActiveCodes(treeDef, starterCodes, completedSet, preferredActive)
+	if len(activeCodes) != 3 {
+		writeError(w, http.StatusInternalServerError, fmt.Errorf("expected 3 active TGO codes, got %d", len(activeCodes)))
 		return
 	}
+	needsActiveUpdate := len(activeTGOs) != len(activeCodes)
+	if !needsActiveUpdate {
+		for idx, tgo := range activeTGOs {
+			if tgo.Code != activeCodes[idx] {
+				needsActiveUpdate = true
+				break
+			}
+		}
+	}
+	if needsActiveUpdate {
+		if err := s.Store.SetActiveTGOs(r.Context(), enrollmentID, activeCodes); err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if !preserveProgress {
+		if err := s.Store.UpdateCurriculumState(r.Context(), enrollmentID, activeCodes[0], 2, 0); err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
 	tree := domain.TGOTree{
 		ID:          treeID,
 		Slug:        treeDef.Slug,
@@ -250,8 +315,50 @@ func (s Server) handleOnboardingUpsert(w http.ResponseWriter, r *http.Request) {
 		Profile:            toOnboardingProfileResponse(profile),
 		OnboardingComplete: true,
 		Tree:               &treeResponse,
-		StarterTGOCodes:    starterCodes,
+		StarterTGOCodes:    activeCodes,
 		RecommendedRegions: recommendedRegions,
 		Context:            &requestContextResponse{UserSlug: targetContext.UserSlug, TreeSlug: targetContext.TreeSlug, UserID: targetContext.UserID, TreeID: targetContext.TreeID},
 	})
+}
+
+func onboardingActiveCodes(treeDef domain.TGOTreeDefinition, starterCodes []string, completed map[string]bool, preferred []domain.TGO) []string {
+	valid := make(map[string]bool, len(treeDef.TGOs))
+	for _, tgo := range treeDef.TGOs {
+		valid[tgo.Code] = true
+	}
+	var selected []string
+	active := map[string]bool{}
+	add := func(code string) {
+		code = strings.TrimSpace(code)
+		if code == "" || completed[code] || active[code] || !valid[code] {
+			return
+		}
+		active[code] = true
+		selected = append(selected, code)
+	}
+	for _, tgo := range preferred {
+		add(tgo.Code)
+		if len(selected) == 3 {
+			return selected
+		}
+	}
+	for _, code := range starterCodes {
+		add(code)
+		if len(selected) == 3 {
+			return selected
+		}
+	}
+	for _, tgo := range domain.NextUnlockedFromDefinition(treeDef, completed, active, 10) {
+		add(tgo.Code)
+		if len(selected) == 3 {
+			return selected
+		}
+	}
+	for _, tgo := range treeDef.TGOs {
+		add(tgo.Code)
+		if len(selected) == 3 {
+			return selected
+		}
+	}
+	return selected
 }
