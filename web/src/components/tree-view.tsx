@@ -2,17 +2,18 @@
 
 import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/badge'
+import { SkillTreeEdge, type EdgeBridge, type SkillTreeEdgeData } from '@/components/tree-edge'
 import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
+import { layoutTreeGraph, type LayoutEdgeRoute, type LayoutPoint } from '@/components/tree-layout'
 import type { Dashboard, Tree } from '@/lib/types'
 import { useTrackDashboardData } from '@/lib/use-track-dashboard-data'
 import {
   Background,
   Controls,
   Handle,
-  MarkerType,
   MiniMap,
   Position,
   ReactFlow,
@@ -21,8 +22,7 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import dagre from 'dagre'
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -39,14 +39,26 @@ type GraphNodeData = {
   mastery_hint?: string
   status: TreeNodeStatus
   selected: boolean
+  tooltipSide: 'left' | 'right'
 }
 
 const nodeTypes = {
   skillNode: SkillTreeNode,
 }
 
-const nodeWidth = 240
-const nodeHeight = 156
+const edgeTypes = {
+  skillTreeEdge: SkillTreeEdge,
+}
+
+const nodeWidth = 184
+const nodeHeight = 76
+const tooltipFlipThreshold = 0.72
+
+type TreeGraph = {
+  nodes: Node<GraphNodeData>[]
+  edges: Edge<SkillTreeEdgeData>[]
+  dataByCode: Map<string, GraphNodeData>
+}
 
 function statusLabel(status: TreeNodeStatus) {
   switch (status) {
@@ -107,57 +119,67 @@ function edgeColor(sourceStatus: TreeNodeStatus, targetStatus: TreeNodeStatus) {
   if (targetStatus === 'unlocked') {
     return '#f59e0b'
   }
-  return '#3f3f46'
+  return '#71717a'
 }
 
 function SkillTreeNode({ data }: NodeProps<Node<GraphNodeData>>) {
   const tone = statusTone(data.status)
   return (
     <div
-      className={`group relative w-[240px] overflow-hidden rounded-[28px] border px-4 py-4 text-left transition-all duration-300 ${tone.shell} ${
+      className={`group relative w-[184px] overflow-visible rounded-[24px] border px-4 py-3 text-left transition-all duration-300 ${tone.shell} ${
         data.selected ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-zinc-950' : ''
       }`}
     >
       <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-none !bg-transparent" />
       <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-none !bg-transparent" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex min-h-[52px] items-center justify-between gap-3">
         <div className="min-w-0">
-          <Eyebrow tone="white" className="text-[10px] tracking-[0.24em]">
-            {stageTitle(data.stage)}
-          </Eyebrow>
-          <div className="mt-2 text-sm leading-5 font-semibold text-white">{data.title}</div>
+          <div className="pr-2 text-[13px] leading-5 font-semibold text-white">{data.title}</div>
         </div>
-        <div
-          className={`rounded-full px-2 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase ring-1 ${tone.badge}`}
-        >
-          {statusLabel(data.status)}
+        <div className="flex shrink-0 items-center gap-2">
+          <div
+            className="h-2.5 w-2.5 rounded-full ring-1 ring-white/20"
+            style={{ backgroundColor: tone.accent }}
+            aria-hidden="true"
+          />
         </div>
       </div>
-      <Text className="mt-3 line-clamp-3 text-[13px] leading-5 text-zinc-300">{data.description}</Text>
-      <div className="mt-4 flex items-center justify-between gap-4 text-[11px] tracking-[0.16em] text-zinc-400 uppercase">
-        <span>{data.prerequisites.length} prereq</span>
-        <span>{data.unlocks.length} unlocks</span>
+      <div
+        className={`pointer-events-none absolute top-1/2 z-30 hidden w-72 -translate-y-1/2 rounded-3xl border border-white/12 bg-zinc-950/96 p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)] group-hover:block group-focus-within:block ${
+          data.tooltipSide === 'left' ? 'right-[calc(100%+1rem)]' : 'left-[calc(100%+1rem)]'
+        }`}
+      >
+        <Eyebrow tone="white" className="text-[10px] tracking-[0.24em]">
+          {stageTitle(data.stage)}
+        </Eyebrow>
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <div className="min-w-0 text-sm leading-5 font-semibold text-white">{data.title}</div>
+          <div
+            className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold tracking-[0.16em] uppercase ring-1 ${tone.badge}`}
+          >
+            {statusLabel(data.status)}
+          </div>
+        </div>
+        <Text className="mt-3 text-[13px] leading-5 text-zinc-300">{data.description}</Text>
+        <div className="mt-4 flex items-center justify-between gap-4 text-[10px] tracking-[0.16em] text-zinc-400 uppercase">
+          <span>{data.prerequisites.length} prereq</span>
+          <span>{data.unlocks.length} unlocks</span>
+        </div>
       </div>
     </div>
   )
 }
 
-function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | null) {
+async function buildGraph(
+  tree: Tree,
+  dashboard: Dashboard,
+  selectedCode: string | null
+): Promise<TreeGraph> {
   const treeTGOs = tree.tgos ?? []
   const active = new Set((dashboard.active_tgos ?? []).map((tgo) => tgo.code))
   const completed = new Set((dashboard.completed_tgos ?? []).map((tgo) => tgo.code))
   const unlocked = new Set((dashboard.upcoming_tgos ?? []).map((tgo) => tgo.code))
   const titleByCode = new Map(treeTGOs.map((tgo) => [tgo.code, tgo.title]))
-  const graph = new dagre.graphlib.Graph()
-  graph.setDefaultEdgeLabel(() => ({}))
-  graph.setGraph({
-    rankdir: 'LR',
-    nodesep: 36,
-    ranksep: 128,
-    marginx: 24,
-    marginy: 24,
-  })
 
   const unlocks = new Map<string, string[]>()
   for (const tgo of treeTGOs) {
@@ -188,21 +210,45 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
       mastery_hint: tgo.mastery_hint,
       status,
       selected: selectedCode === tgo.code,
+      tooltipSide: 'right',
     }
     dataByCode.set(tgo.code, data)
-    graph.setNode(tgo.code, { width: nodeWidth, height: nodeHeight })
   }
 
+  const layoutNodes = treeTGOs.map((tgo) => ({
+    id: tgo.code,
+    width: nodeWidth,
+    height: nodeHeight,
+  }))
+  const layoutEdges: { source: string; target: string }[] = []
   for (const tgo of treeTGOs) {
     for (const prerequisite of tgo.prerequisites ?? []) {
-      graph.setEdge(prerequisite, tgo.code)
+      layoutEdges.push({
+        source: prerequisite,
+        target: tgo.code,
+      })
     }
   }
+  const layout = await layoutTreeGraph({
+    strategy: 'elk',
+    nodes: layoutNodes,
+    edges: layoutEdges,
+  })
+  const positionByCode = new Map(layout.nodes.map((node) => [node.id, node]))
+  const routeById = new Map(layout.edges.map((edge) => [edge.id, edge]))
+  const bridgesByEdge = computeEdgeBridges(layout.edges, dataByCode)
+  const maxNodeX = Math.max(...layout.nodes.map((node) => node.x), 0)
 
-  dagre.layout(graph)
+  for (const [code, data] of dataByCode.entries()) {
+    const positioned = positionByCode.get(code)
+    if (!positioned) {
+      continue
+    }
+    data.tooltipSide = maxNodeX === 0 || positioned.x / maxNodeX < tooltipFlipThreshold ? 'right' : 'left'
+  }
 
   const nodes: Node<GraphNodeData>[] = treeTGOs.map((tgo) => {
-    const positioned = graph.node(tgo.code)
+    const positioned = positionByCode.get(tgo.code) ?? { x: 0, y: 0 }
     return {
       id: tgo.code,
       type: 'skillNode',
@@ -210,14 +256,14 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
       selectable: false,
       connectable: false,
       position: {
-        x: positioned.x - nodeWidth / 2,
-        y: positioned.y - nodeHeight / 2,
+        x: positioned.x,
+        y: positioned.y,
       },
       data: dataByCode.get(tgo.code)!,
     }
   })
 
-  const edges: Edge[] = []
+  const edges: Edge<SkillTreeEdgeData>[] = []
   for (const tgo of treeTGOs) {
     for (const prerequisite of tgo.prerequisites ?? []) {
       const source = dataByCode.get(prerequisite)
@@ -225,29 +271,188 @@ function buildGraph(tree: Tree, dashboard: Dashboard, selectedCode: string | nul
       if (!source || !target) {
         continue
       }
+      const edgeId = `${prerequisite}->${tgo.code}`
       const stroke = edgeColor(source.status, target.status)
       edges.push({
-        id: `${prerequisite}->${tgo.code}`,
+        id: edgeId,
         source: prerequisite,
         target: tgo.code,
-        type: 'smoothstep',
+        type: 'skillTreeEdge',
         animated: target.status === 'active' || target.status === 'unlocked',
+        data: {
+          points: routeById.get(edgeId)?.points ?? [],
+          bridges: bridgesByEdge.get(edgeId) ?? [],
+        } satisfies SkillTreeEdgeData,
         style: {
           stroke,
-          strokeWidth: target.status === 'locked' ? 1.4 : 2.4,
-          opacity: target.status === 'locked' ? 0.34 : 0.92,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: stroke,
-          width: 20,
-          height: 20,
+          strokeWidth: target.status === 'locked' ? 1.8 : 2.4,
+          opacity: target.status === 'locked' ? 0.58 : 0.92,
         },
       })
     }
   }
 
   return { nodes, edges, dataByCode }
+}
+
+function computeEdgeBridges(routes: LayoutEdgeRoute[], dataByCode: Map<string, GraphNodeData>) {
+  const bridgesByEdge = new Map<string, EdgeBridge[]>()
+  const segments = routes.flatMap((route) => getOrthogonalSegments(route))
+
+  for (let i = 0; i < segments.length; i++) {
+    for (let j = i + 1; j < segments.length; j++) {
+      const first = segments[i]
+      const second = segments[j]
+
+      if (first.edgeId === second.edgeId) {
+        continue
+      }
+      if (sharesEndpoint(first, second)) {
+        continue
+      }
+      if (first.orientation === second.orientation) {
+        continue
+      }
+
+      const horizontal = first.orientation === 'horizontal' ? first : second
+      const vertical = first.orientation === 'vertical' ? first : second
+      const crossing = orthogonalCrossing(horizontal.start, horizontal.end, vertical.start, vertical.end)
+      if (!crossing) {
+        continue
+      }
+
+      const top = chooseBridgeOwner(horizontal.edgeId, vertical.edgeId, dataByCode)
+      if (top !== horizontal.edgeId) {
+        continue
+      }
+
+      const existing = bridgesByEdge.get(horizontal.edgeId) ?? []
+      existing.push({
+        x: crossing.x,
+        y: crossing.y,
+        segmentIndex: horizontal.segmentIndex,
+      })
+      bridgesByEdge.set(horizontal.edgeId, existing)
+    }
+  }
+
+  return bridgesByEdge
+}
+
+function getOrthogonalSegments(route: LayoutEdgeRoute) {
+  const segments: Array<{
+    edgeId: string
+    source: string
+    target: string
+    start: LayoutPoint
+    end: LayoutPoint
+    orientation: 'horizontal' | 'vertical'
+    segmentIndex: number
+  }> = []
+
+  for (let i = 0; i < route.points.length - 1; i++) {
+    const start = route.points[i]
+    const end = route.points[i + 1]
+    if (nearlyEqual(start.x, end.x) && nearlyEqual(start.y, end.y)) {
+      continue
+    }
+    if (nearlyEqual(start.y, end.y)) {
+      segments.push({
+        edgeId: route.id,
+        source: route.source,
+        target: route.target,
+        start,
+        end,
+        orientation: 'horizontal',
+        segmentIndex: i,
+      })
+      continue
+    }
+    if (nearlyEqual(start.x, end.x)) {
+      segments.push({
+        edgeId: route.id,
+        source: route.source,
+        target: route.target,
+        start,
+        end,
+        orientation: 'vertical',
+        segmentIndex: i,
+      })
+    }
+  }
+
+  return segments
+}
+
+function sharesEndpoint(
+  first: { source: string; target: string },
+  second: { source: string; target: string }
+) {
+  return (
+    first.source === second.source ||
+    first.source === second.target ||
+    first.target === second.source ||
+    first.target === second.target
+  )
+}
+
+function orthogonalCrossing(
+  horizontalStart: LayoutPoint,
+  horizontalEnd: LayoutPoint,
+  verticalStart: LayoutPoint,
+  verticalEnd: LayoutPoint
+) {
+  const minX = Math.min(horizontalStart.x, horizontalEnd.x)
+  const maxX = Math.max(horizontalStart.x, horizontalEnd.x)
+  const minY = Math.min(verticalStart.y, verticalEnd.y)
+  const maxY = Math.max(verticalStart.y, verticalEnd.y)
+  const x = verticalStart.x
+  const y = horizontalStart.y
+
+  if (x <= minX + 8 || x >= maxX - 8) {
+    return null
+  }
+  if (y <= minY + 8 || y >= maxY - 8) {
+    return null
+  }
+
+  return { x, y }
+}
+
+function chooseBridgeOwner(firstEdgeId: string, secondEdgeId: string, dataByCode: Map<string, GraphNodeData>) {
+  const firstWeight = edgePriority(firstEdgeId, dataByCode)
+  const secondWeight = edgePriority(secondEdgeId, dataByCode)
+  if (firstWeight !== secondWeight) {
+    return firstWeight > secondWeight ? firstEdgeId : secondEdgeId
+  }
+  return firstEdgeId < secondEdgeId ? firstEdgeId : secondEdgeId
+}
+
+function edgePriority(edgeId: string, dataByCode: Map<string, GraphNodeData>) {
+  const [sourceId, targetId] = edgeId.split('->')
+  const source = dataByCode.get(sourceId)
+  const target = dataByCode.get(targetId)
+
+  return statusWeight(source?.status) + statusWeight(target?.status) + (target?.selected ? 5 : 0)
+}
+
+function statusWeight(status?: TreeNodeStatus) {
+  switch (status) {
+    case 'active':
+      return 6
+    case 'completed':
+      return 4
+    case 'unlocked':
+      return 3
+    case 'locked':
+      return 1
+    default:
+      return 0
+  }
+}
+
+function nearlyEqual(a: number, b: number) {
+  return Math.abs(a - b) < 0.5
 }
 
 export function TreeView() {
@@ -257,16 +462,32 @@ export function TreeView() {
     loadErrorMessage: t('loadError'),
   })
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
+  const [graph, setGraph] = useState<TreeGraph | null>(null)
   const effectiveSelectedCode = selectedCode ?? dashboard?.active_tgos?.[0]?.code ?? tree?.tgos?.[0]?.code ?? null
 
-  const graph = useMemo(() => {
-    if (!tree || !dashboard) {
-      return null
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadGraph() {
+      if (!tree || !dashboard) {
+        setGraph(null)
+        return
+      }
+
+      const nextGraph = await buildGraph(tree, dashboard, effectiveSelectedCode)
+      if (!cancelled) {
+        setGraph(nextGraph)
+      }
     }
-    return buildGraph(tree, dashboard, effectiveSelectedCode)
+
+    void loadGraph()
+
+    return () => {
+      cancelled = true
+    }
   }, [dashboard, effectiveSelectedCode, tree])
 
-  if (sessionLoading || loading) {
+  if (sessionLoading || loading || (tree && dashboard && !graph)) {
     return <LoadingState label={t('loading')} />
   }
   if (sessionError || error || !tree || !dashboard || !graph) {
@@ -301,6 +522,7 @@ export function TreeView() {
                 nodes={graph.nodes}
                 edges={graph.edges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 fitView
                 fitViewOptions={{ padding: 0.18 }}
                 nodesDraggable={false}
