@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowsPointingInIcon, ArrowsPointingOutIcon } from '@heroicons/react/20/solid'
 import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/badge'
 import { SkillTreeEdge, type EdgeBridge, type SkillTreeEdgeData } from '@/components/tree-edge'
@@ -22,7 +23,7 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -463,6 +464,10 @@ export function TreeView() {
   })
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [graph, setGraph] = useState<TreeGraph | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [fullscreenAnnouncement, setFullscreenAnnouncement] = useState('')
+  const flowPaneRef = useRef<HTMLDivElement | null>(null)
+  const flowPaneId = useId()
   const effectiveSelectedCode = selectedCode ?? dashboard?.active_tgos?.[0]?.code ?? tree?.tgos?.[0]?.code ?? null
 
   useEffect(() => {
@@ -487,6 +492,21 @@ export function TreeView() {
     }
   }, [dashboard, effectiveSelectedCode, tree])
 
+  useEffect(() => {
+    function syncFullscreenState() {
+      const nextIsFullscreen = document.fullscreenElement === flowPaneRef.current
+      setIsFullscreen(nextIsFullscreen)
+      setFullscreenAnnouncement(
+        nextIsFullscreen ? t('fullscreenEnteredAnnouncement') : t('fullscreenExitedAnnouncement'),
+      )
+    }
+
+    document.addEventListener('fullscreenchange', syncFullscreenState)
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreenState)
+    }
+  }, [])
+
   if (sessionLoading || loading || (tree && dashboard && !graph)) {
     return <LoadingState label={t('loading')} />
   }
@@ -498,6 +518,19 @@ export function TreeView() {
   const completedCount = dashboard.completed_tgos?.length ?? 0
   const unlockedCount = dashboard.upcoming_tgos?.length ?? 0
   const selected = effectiveSelectedCode ? (graph.dataByCode.get(effectiveSelectedCode) ?? null) : null
+
+  async function toggleFullscreen() {
+    if (!flowPaneRef.current) {
+      return
+    }
+
+    if (document.fullscreenElement === flowPaneRef.current) {
+      await document.exitFullscreen()
+      return
+    }
+
+    await flowPaneRef.current.requestFullscreen()
+  }
 
   return (
     <ReactFlowProvider>
@@ -517,7 +550,13 @@ export function TreeView() {
 
         <WorkspaceCard className="overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.12),_transparent_28%),linear-gradient(180deg,rgba(24,24,27,0.98),rgba(9,9,11,0.98))] p-0 text-white">
           <div className="grid min-h-[46rem] gap-0 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="relative min-h-[38rem]">
+            <div
+              id={flowPaneId}
+              ref={flowPaneRef}
+              role="region"
+              aria-label={t('flowRegionLabel')}
+              className="relative min-h-[38rem] bg-zinc-950"
+            >
               <ReactFlow
                 nodes={graph.nodes}
                 edges={graph.edges}
@@ -551,6 +590,21 @@ export function TreeView() {
                   className="[&_button]:!border-white/10 [&_button]:!bg-zinc-950/92 [&_button]:!text-zinc-100 [&_button:hover]:!bg-zinc-900"
                 />
               </ReactFlow>
+              <button
+                type="button"
+                onClick={() => void toggleFullscreen()}
+                className="absolute bottom-3 left-[3.25rem] z-20 inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-zinc-950/92 text-zinc-100 shadow-sm transition hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                aria-label={isFullscreen ? t('exitFullscreenLabel') : t('enterFullscreenLabel')}
+                aria-controls={flowPaneId}
+                aria-pressed={isFullscreen}
+                title={isFullscreen ? t('exitFullscreenTitle') : t('enterFullscreenTitle')}
+              >
+                <span className="sr-only">{isFullscreen ? t('exitFullscreenLabel') : t('enterFullscreenLabel')}</span>
+                {isFullscreen ? <ArrowsPointingInIcon className="h-4 w-4" /> : <ArrowsPointingOutIcon className="h-4 w-4" />}
+              </button>
+              <div className="sr-only" aria-live="polite" aria-atomic="true">
+                {fullscreenAnnouncement}
+              </div>
             </div>
 
             <aside className="border-t border-white/10 bg-black/24 xl:border-t-0 xl:border-l">
