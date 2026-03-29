@@ -28,31 +28,115 @@ const openSourceCheckTools = [
     titleKey: 'ossHeuristicTitle',
     bodyKey: 'ossHeuristicBody',
     href: '',
+    licenseKey: '',
   },
   {
     titleKey: 'ossValeTitle',
     bodyKey: 'ossValeBody',
     href: 'https://vale.sh/',
+    licenseKey: 'ossValeLicense',
   },
   {
     titleKey: 'ossLanguageToolTitle',
     bodyKey: 'ossLanguageToolBody',
     href: 'https://languagetool.org/',
+    licenseKey: 'ossLanguageToolLicense',
   },
   {
     titleKey: 'ossSpacyTitle',
     bodyKey: 'ossSpacyBody',
     href: 'https://spacy.io/',
+    licenseKey: 'ossSpacyLicense',
   },
   {
     titleKey: 'ossTextDescriptivesTitle',
     bodyKey: 'ossTextDescriptivesBody',
     href: 'https://hlasse.github.io/TextDescriptives/',
+    licenseKey: 'ossTextDescriptivesLicense',
   },
   {
     titleKey: 'ossCoreNLPTitle',
     bodyKey: 'ossCoreNLPBody',
     href: 'https://stanfordnlp.github.io/CoreNLP/',
+    licenseKey: 'ossCoreNLPLicense',
+  },
+] as const
+
+const openSourceCredits = [
+  {
+    titleKey: 'creditReactTitle',
+    href: 'https://react.dev/',
+    licenseKey: 'creditReactLicense',
+  },
+  {
+    titleKey: 'creditNextTitle',
+    href: 'https://nextjs.org/',
+    licenseKey: 'creditNextLicense',
+  },
+  {
+    titleKey: 'creditTailwindTitle',
+    href: 'https://tailwindcss.com/',
+    licenseKey: 'creditTailwindLicense',
+  },
+  {
+    titleKey: 'creditHeadlessUITitle',
+    href: 'https://headlessui.com/',
+    licenseKey: 'creditHeadlessUILicense',
+  },
+  {
+    titleKey: 'creditHeroiconsTitle',
+    href: 'https://heroicons.com/',
+    licenseKey: 'creditHeroiconsLicense',
+  },
+  {
+    titleKey: 'creditInterTitle',
+    href: 'https://rsms.me/inter/',
+    licenseKey: 'creditInterLicense',
+  },
+  {
+    titleKey: 'creditValeTitle',
+    href: 'https://vale.sh/',
+    licenseKey: 'creditValeLicense',
+  },
+  {
+    titleKey: 'creditLanguageToolTitle',
+    href: 'https://languagetool.org/',
+    licenseKey: 'creditLanguageToolLicense',
+  },
+  {
+    titleKey: 'creditSpacyTitle',
+    href: 'https://spacy.io/',
+    licenseKey: 'creditSpacyLicense',
+  },
+  {
+    titleKey: 'creditTextDescriptivesTitle',
+    href: 'https://hlasse.github.io/TextDescriptives/',
+    licenseKey: 'creditTextDescriptivesLicense',
+  },
+  {
+    titleKey: 'creditCoreNLPTitle',
+    href: 'https://stanfordnlp.github.io/CoreNLP/',
+    licenseKey: 'creditCoreNLPLicense',
+  },
+  {
+    titleKey: 'creditKratosTitle',
+    href: 'https://github.com/ory/kratos',
+    licenseKey: 'creditKratosLicense',
+  },
+  {
+    titleKey: 'creditSQLiteTitle',
+    href: 'https://www.sqlite.org/',
+    licenseKey: 'creditSQLiteLicense',
+  },
+  {
+    titleKey: 'creditTailwindPlusTitle',
+    href: 'https://tailwindcss.com/plus',
+    licenseKey: 'creditTailwindPlusLicense',
+  },
+  {
+    titleKey: 'creditWritingCoachTitle',
+    href: 'https://github.com/tomasino/writing-coach',
+    licenseKey: 'creditWritingCoachLicense',
   },
 ] as const
 
@@ -247,6 +331,9 @@ export function AboutView() {
                   <TextLink href={tool.href} target="_blank" rel="noreferrer">
                     {t('ossProjectLinkLabel')}
                   </TextLink>
+                  <span className="ml-2 text-zinc-600 dark:text-zinc-300">
+                    {t('licenseLabel', { license: t(tool.licenseKey) })}
+                  </span>
                 </Text>
               ) : null}
             </div>
@@ -314,6 +401,30 @@ export function AboutView() {
               <Text className="mt-2">{t('reviewStep3Body')}</Text>
             </div>
           </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
+        <Eyebrow>{t('openSourceCreditsEyebrow')}</Eyebrow>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('openSourceCreditsTitle')}</Subheading>
+        <Text className="mt-3">{t('openSourceCreditsIntro')}</Text>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {openSourceCredits.map((tool) => (
+            <div
+              key={tool.titleKey}
+              className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5"
+            >
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t(tool.titleKey)}</div>
+              <Text className="mt-2 text-sm">
+                <TextLink href={tool.href} target="_blank" rel="noreferrer">
+                  {t('ossProjectLinkLabel')}
+                </TextLink>
+                <span className="ml-2 text-zinc-600 dark:text-zinc-300">
+                  {t('licenseLabel', { license: t(tool.licenseKey) })}
+                </span>
+              </Text>
+            </div>
+          ))}
         </div>
       </WorkspaceCard>
     </div>
