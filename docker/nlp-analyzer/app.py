@@ -1,6 +1,10 @@
 import json
 import math
 import os
+import re
+import urllib.error
+import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import spacy
@@ -13,6 +17,62 @@ NLP.add_pipe("textdescriptives/readability")
 NLP.add_pipe("textdescriptives/dependency_distance")
 NLP.add_pipe("textdescriptives/pos_proportions")
 
+CLAIM_MARKERS = (
+    "should",
+    "must",
+    "need to",
+    "recommend",
+    "therefore",
+    "argue",
+    "suggest",
+)
+
+EVIDENCE_MARKERS = (
+    "because",
+    "for example",
+    "for instance",
+    "according to",
+    "data",
+    "evidence",
+    "study",
+    "result",
+    "as shown",
+)
+
+AMBIGUOUS_PRONOUNS = {"it", "this", "that", "they", "these", "those"}
+STOPWORDS = {
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "if",
+    "then",
+    "than",
+    "to",
+    "of",
+    "in",
+    "on",
+    "for",
+    "with",
+    "at",
+    "by",
+    "from",
+    "as",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "it",
+    "this",
+    "that",
+    "they",
+}
+
 
 def safe_number(value, default=0.0):
     if value is None:
@@ -24,6 +84,153 @@ def safe_number(value, default=0.0):
 
 def clamp_metric(value):
     return max(0, int(round(value)))
+
+
+def sentence_texts(doc):
+    return [sent.text.strip() for sent in doc.sents if sent.text.strip()]
+
+
+def normalized_word_set(text):
+    words = re.findall(r"[a-zA-Z][a-zA-Z'-]+", text.lower())
+    return {w for w in words if len(w) >= 4 and w not in STOPWORDS}
+
+
+def bounded_percent(numerator, denominator):
+    if denominator <= 0:
+        return 0
+    return clamp_metric(max(0.0, min(100.0, 100.0 * float(numerator) / float(denominator))))
+
+
+def claim_evidence_metrics(sentences):
+    claims = 0
+    evidence_markers = 0
+    for sentence in sentences:
+        lowered = sentence.lower()
+        if any(marker in lowered for marker in CLAIM_MARKERS):
+            claims += 1
+        if any(marker in lowered for marker in EVIDENCE_MARKERS):
+            evidence_markers += 1
+    if claims == 0:
+        coverage = 100
+    else:
+        coverage = bounded_percent(min(evidence_markers, claims), claims)
+    return claims, evidence_markers, coverage
+
+
+def coref_ambiguity_count(doc):
+    recent_nouns = 0
+    ambiguous = 0
+    for token in doc:
+        if token.pos_ in {"NOUN", "PROPN"}:
+            recent_nouns = 2
+            continue
+        if token.pos_ == "PRON" and token.lower_ in AMBIGUOUS_PRONOUNS:
+            if recent_nouns == 0:
+                ambiguous += 1
+            else:
+                recent_nouns -= 1
+        elif token.is_sent_start:
+            recent_nouns = max(0, recent_nouns - 1)
+    return ambiguous
+
+
+def sentence_jaccard_similarity(left, right):
+    left_set = normalized_word_set(left)
+    right_set = normalized_word_set(right)
+    if not left_set or not right_set:
+        return 0.0
+    intersection = len(left_set.intersection(right_set))
+    union = len(left_set.union(right_set))
+    if union == 0:
+        return 0.0
+    return float(intersection) / float(union)
+
+
+def semantic_repetition_ratio(sentences):
+    if len(sentences) < 2:
+        return 0
+    similar_pairs = 0
+    total_pairs = 0
+    for i in range(len(sentences)):
+        for j in range(i + 1, len(sentences)):
+            total_pairs += 1
+            if sentence_jaccard_similarity(sentences[i], sentences[j]) >= 0.65:
+                similar_pairs += 1
+    return bounded_percent(similar_pairs, total_pairs)
+
+
+def topic_drift_score(text):
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    if len(paragraphs) < 2:
+        return 0
+    anchor = normalized_word_set(paragraphs[0])
+    if not anchor:
+        return 0
+    overlap_sum = 0.0
+    compared = 0
+    for paragraph in paragraphs[1:]:
+        compared_set = normalized_word_set(paragraph)
+        if not compared_set:
+            continue
+        intersection = len(anchor.intersection(compared_set))
+        union = len(anchor.union(compared_set))
+        if union == 0:
+            continue
+        overlap_sum += float(intersection) / float(union)
+        compared += 1
+    if compared == 0:
+        return 0
+    overlap_avg = overlap_sum / float(compared)
+    return clamp_metric((1.0 - overlap_avg) * 100.0)
+
+
+def coref_ambiguity_from_corenlp_payload(payload):
+    corefs = payload.get("corefs", {}) if isinstance(payload, dict) else {}
+    if not isinstance(corefs, dict):
+        return 0
+    ambiguous = 0
+    for _, chain in corefs.items():
+        if not isinstance(chain, list) or not chain:
+            continue
+        has_non_pronominal = False
+        for mention in chain:
+            if not isinstance(mention, dict):
+                continue
+            mention_type = str(mention.get("type", "")).strip().upper()
+            if mention_type and mention_type != "PRONOMINAL":
+                has_non_pronominal = True
+                break
+        if not has_non_pronominal:
+            ambiguous += 1
+    return ambiguous
+
+
+def corenlp_ambiguity_count(text):
+    base_url = os.getenv("CORENLP_URL", "").strip()
+    if not base_url:
+        return 0
+    params = {
+        "properties": json.dumps(
+            {
+                "annotators": "tokenize,ssplit,pos,lemma,ner,parse,coref",
+                "outputFormat": "json",
+                "timeout": 10000,
+            }
+        )
+    }
+    endpoint = base_url.rstrip("/") + "/?" + urllib.parse.urlencode(params)
+    request = urllib.request.Request(
+        endpoint,
+        data=text.encode("utf-8"),
+        headers={"Content-Type": "text/plain; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=2.0) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+            return coref_ambiguity_from_corenlp_payload(payload)
+    except (TimeoutError, urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError):
+        return 0
 
 
 def normalized_domain(payload):
@@ -110,6 +317,20 @@ def message_for(domain, key):
             "thought_leadership": "Pronouns outnumber concrete noun references; confirm that every referent stays unmistakable.",
             "default": "Pronouns outnumber concrete noun references; confirm that each pronoun stays unmistakable.",
         },
+        "claim_evidence_gap": {
+            "technical": "Several claims are not directly supported by explicit evidence markers; add rationale, data points, or concrete examples near each claim.",
+            "academic": "Several claims are not directly supported by explicit evidence markers; anchor key assertions with concrete support.",
+            "professional": "Several recommendations are not directly supported by explicit rationale or evidence language; make support visible near each ask.",
+            "marketing": "Several value claims are not directly supported by proof markers; add concrete supporting evidence or examples.",
+            "thought_leadership": "Several central claims are not directly supported by explicit evidence markers; add concrete support near key assertions.",
+            "default": "Several claims are not directly supported by explicit evidence markers; add concrete support near key assertions.",
+        },
+        "semantic_repetition": {
+            "default": "Repeated semantic phrasing is high; condense or vary repeated lines so each sentence adds new information.",
+        },
+        "topic_drift": {
+            "default": "Topic continuity shifts sharply between sections; strengthen transitions or tighten focus around one governing objective.",
+        },
     }
     variants = messages.get(key, {})
     return variants.get(domain, variants.get("default", ""))
@@ -124,6 +345,7 @@ def analyze_text(text, payload):
         }
     domain = normalized_domain(payload)
     doc = NLP(text)
+    sentences_text = sentence_texts(doc)
     metrics = td.extract_dict(doc)[0]
     sentences = list(doc.sents)
     sentence_lengths = [sum(1 for token in sentence if not token.is_space and not token.is_punct) for sentence in sentences]
@@ -136,6 +358,13 @@ def analyze_text(text, payload):
 
     noun_count = sum(1 for token in doc if token.pos_ in {"NOUN", "PROPN"})
     pronoun_count = sum(1 for token in doc if token.pos_ == "PRON")
+    claim_count, evidence_marker_count, claim_evidence_coverage = claim_evidence_metrics(sentences_text)
+    coref_ambiguity = coref_ambiguity_count(doc)
+    corenlp_coref_ambiguity = corenlp_ambiguity_count(text)
+    if corenlp_coref_ambiguity > coref_ambiguity:
+        coref_ambiguity = corenlp_coref_ambiguity
+    repetition_ratio = semantic_repetition_ratio(sentences_text)
+    drift_score = topic_drift_score(text)
 
     metrics_payload = {
         "nlp_long_sentences": len(long_sentences),
@@ -145,6 +374,12 @@ def analyze_text(text, payload):
         "nlp_readability_grade": clamp_metric(safe_number(metrics.get("flesch_kincaid_grade"))),
         "nlp_dependency_distance": clamp_metric(safe_number(metrics.get("dependency_distance_mean")) * 100),
         "nlp_unique_token_ratio": clamp_metric(safe_number(metrics.get("proportion_unique_tokens")) * 100),
+        "nlp_claim_count": claim_count,
+        "nlp_evidence_marker_count": evidence_marker_count,
+        "nlp_claim_evidence_coverage": claim_evidence_coverage,
+        "nlp_coref_ambiguity_count": coref_ambiguity,
+        "nlp_semantic_repetition_ratio": repetition_ratio,
+        "nlp_topic_drift_score": drift_score,
     }
 
     findings = []
@@ -217,6 +452,30 @@ def analyze_text(text, payload):
                 "category": "referent clarity",
                 "severity": "note",
                 "message": message_for(domain, "pronoun_ratio"),
+            }
+        )
+    if claim_count >= 2 and claim_evidence_coverage < 50:
+        findings.append(
+            {
+                "category": "evidence integration",
+                "severity": "warning",
+                "message": message_for(domain, "claim_evidence_gap"),
+            }
+        )
+    if repetition_ratio >= 55 and word_count >= 80:
+        findings.append(
+            {
+                "category": "sentence economy",
+                "severity": "note",
+                "message": message_for(domain, "semantic_repetition"),
+            }
+        )
+    if drift_score >= 50 and word_count >= 120:
+        findings.append(
+            {
+                "category": "structural signposting",
+                "severity": "note",
+                "message": message_for(domain, "topic_drift"),
             }
         )
 
