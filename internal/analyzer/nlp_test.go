@@ -16,7 +16,14 @@ func TestNLPAnalyzerReadsFindingsAndMetrics(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
-			"metrics":{"nlp_long_sentences":2,"nlp_passive_sentences":1},
+			"metrics":{
+				"nlp_long_sentences":2,
+				"nlp_passive_sentences":1,
+				"nlp_claim_evidence_coverage":67,
+				"nlp_coref_ambiguity_count":1,
+				"nlp_semantic_repetition_ratio":12,
+				"nlp_topic_drift_score":44
+			},
 			"findings":[
 				{"category":"clarity","severity":"warning","message":"Several sentences are carrying too many clauses."}
 			]
@@ -30,6 +37,9 @@ func TestNLPAnalyzerReadsFindingsAndMetrics(t *testing.T) {
 	}
 	if report.Metrics["nlp_long_sentences"] != 2 {
 		t.Fatalf("long sentence metric = %d", report.Metrics["nlp_long_sentences"])
+	}
+	if report.Metrics["nlp_claim_evidence_coverage"] != 67 {
+		t.Fatalf("claim/evidence coverage metric = %d", report.Metrics["nlp_claim_evidence_coverage"])
 	}
 	if len(report.Findings) != 1 {
 		t.Fatalf("findings = %#v", report.Findings)

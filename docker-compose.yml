@@ -62,12 +62,22 @@ services:
       dockerfile: docker/nlp-analyzer/Dockerfile
     container_name: writing-coach-nlp-analyzer
     restart: unless-stopped
+    environment:
+      CORENLP_URL: "${NLP_CORENLP_URL:-}"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=2)"]
       interval: 20s
       timeout: 5s
       retries: 5
       start_period: 20s
+
+  corenlp:
+    image: "haub/corenlp:4.5.7"
+    container_name: writing-coach-corenlp
+    restart: unless-stopped
+    profiles: ["phase4-nlp"]
+    environment:
+      JAVA_TOOL_OPTIONS: "${CORENLP_JAVA_TOOL_OPTIONS:--Xms512m -Xmx1536m}"
 
   kratos-migrate:
     image: oryd/kratos:v25.4.0

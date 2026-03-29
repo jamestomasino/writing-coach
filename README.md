@@ -247,6 +247,30 @@ If an external analyzer is unavailable, the app continues with the remaining ana
 
 The initial Vale rules live under [styles/WritingCoach](/home/tomasino/writing-coach/styles/WritingCoach).
 
+### Phase 4 Deterministic Signals
+
+The `nlp-analyzer` sidecar now emits additional deterministic signals used for rubric and annotation work:
+
+- claim/evidence coverage metrics
+- referent/coreference ambiguity counts
+- semantic repetition ratio
+- topic drift score across sections
+
+Optional CoreNLP augmentation is available for coreference chains.
+
+- Enable by setting `NLP_CORENLP_URL` (for example `http://corenlp:9000`)
+- Start CoreNLP with: `docker compose --profile phase4-nlp up -d corenlp`
+
+If CoreNLP is unavailable, the sidecar falls back to local deterministic heuristics.
+
+### Analyzer Test Command
+
+Run the sidecar unit suite in the analyzer container:
+
+```bash
+docker compose run --rm -v "$PWD/docker/nlp-analyzer:/app" nlp-analyzer python -m unittest test_app.py -v
+```
+
 ## Web Experience
 
 The browser UI is built around the assignment loop:
