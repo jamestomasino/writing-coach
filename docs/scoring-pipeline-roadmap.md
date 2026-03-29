@@ -79,6 +79,11 @@ Routing rule for Phase 1:
 - Phase 3: LLM constrained calibration + conflict detection.
 - Phase 4: Expanded deterministic tools (claim-evidence structure, cohesion/referent clarity, repetition/drift).
 
+### Phase 2 Calibration Focus (added after Phase 1 validation)
+- Tighten top-end score separation to avoid premature ceiling effects across domains.
+- Add stronger rubric distinctions between high-performing and exceptional submissions (especially around 4->5 transitions).
+- Validate with paired track calibration runs (at least one narrative track and one technical/informational track) before promoting rubric version updates.
+
 ---
 
 ## Phase 1: Deterministic Foundation Plan
