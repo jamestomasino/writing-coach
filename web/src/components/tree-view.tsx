@@ -505,7 +505,7 @@ export function TreeView() {
     return () => {
       document.removeEventListener('fullscreenchange', syncFullscreenState)
     }
-  }, [])
+  }, [t])
 
   if (sessionLoading || loading || (tree && dashboard && !graph)) {
     return <LoadingState label={t('loading')} />
