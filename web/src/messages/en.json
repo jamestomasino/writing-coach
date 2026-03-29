@@ -543,7 +543,13 @@
     "creditTailwindPlusTitle": "Tailwind Plus / Catalyst UI materials",
     "creditTailwindPlusLicense": "Tailwind Plus commercial license (see web/LICENSE.md)",
     "creditWritingCoachTitle": "Writing Coach (this project)",
-    "creditWritingCoachLicense": "GPL-3.0-or-later"
+    "creditWritingCoachLicense": "GPL-3.0-or-later",
+    "legalEyebrow": "Legal",
+    "legalTitle": "Legal notices",
+    "legalIntro": "This is the canonical legal section for this app. For plain-language policy details, use the pages below.",
+    "legalPrivacy": "Privacy Policy",
+    "legalTerms": "Terms of Use",
+    "legalThirdParty": "Third-Party Notices"
   },
   "progressView": {
     "loadError": "Could not load progress",
