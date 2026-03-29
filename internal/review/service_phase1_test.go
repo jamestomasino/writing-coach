@@ -2,6 +2,7 @@ package review
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/tomasino/writing-coach/internal/analyzer"
@@ -58,5 +59,74 @@ func TestReviewSubmissionIncludesDeterministicAndNonAuthoritativeProviderScores(
 	}
 	if !hasProvider {
 		t.Fatal("expected non-authoritative provider scores")
+	}
+}
+
+func TestConstrainedCalibrationScoresAppliesBoundedAdjustmentAndFlagsConflict(t *testing.T) {
+	deterministic := []domain.SkillScore{
+		{SubmissionID: 9, Skill: "claim clarity", Score: 2, ScoreSource: "deterministic", ScoreVersion: "det-v1"},
+	}
+	provider := []domain.SkillScore{
+		{SubmissionID: 9, Skill: "claim clarity", Score: 5},
+		{SubmissionID: 9, Skill: "extra skill", Score: 4},
+	}
+
+	hybrid, summary := constrainedCalibrationScores(deterministic, provider, "openai")
+	if len(hybrid) != 1 {
+		t.Fatalf("expected 1 hybrid score, got %d", len(hybrid))
+	}
+	if hybrid[0].ScoreSource != "hybrid" {
+		t.Fatalf("expected hybrid source, got %q", hybrid[0].ScoreSource)
+	}
+	if hybrid[0].Score != 3 {
+		t.Fatalf("expected bounded score 3, got %d", hybrid[0].Score)
+	}
+	if summary.AppliedCount != 1 || summary.AdjustedCount != 1 {
+		t.Fatalf("unexpected summary counts: %+v", summary)
+	}
+	if summary.ConflictCount != 1 {
+		t.Fatalf("expected 1 conflict, got %d", summary.ConflictCount)
+	}
+	if summary.UnsupportedCount != 1 {
+		t.Fatalf("expected 1 unsupported provider skill, got %d", summary.UnsupportedCount)
+	}
+
+	var evidence map[string]any
+	if err := json.Unmarshal([]byte(hybrid[0].ScoreEvidenceJSON), &evidence); err != nil {
+		t.Fatalf("unmarshal evidence: %v", err)
+	}
+	if evidence["kind"] != "bounded_calibration" {
+		t.Fatalf("unexpected evidence kind: %v", evidence["kind"])
+	}
+	if evidence["conflict"] != true {
+		t.Fatalf("expected conflict=true evidence, got %v", evidence["conflict"])
+	}
+}
+
+func TestReviewSubmissionAddsHybridCalibrationStream(t *testing.T) {
+	service := NewService(fakeReviewLLM{}, analyzer.NewService(analyzer.Heuristic{})).WithClient(fakeReviewLLM{}, "openai")
+	sub := domain.Submission{ID: 77, Content: "A compact draft with clear steps and explicit ownership.", WordCount: 260}
+	result := service.ReviewSubmissionDetailedWithOptions(context.Background(), sub, []domain.TGO{{Code: "claim-clarity"}}, nil, Options{
+		AnalyzerContext: analyzer.ContextOptions{TreeSlug: "thought-leadership-track", WritingType: "thought leadership", WritingLanguage: "en"},
+	})
+
+	hasHybrid := false
+	hasProvider := false
+	for _, score := range result.Scores {
+		if score.ScoreSource == "hybrid" {
+			hasHybrid = true
+		}
+		if score.ScoreSource == "llm:openai:non_authoritative" {
+			hasProvider = true
+		}
+	}
+	if !hasHybrid {
+		t.Fatal("expected bounded hybrid calibration scores")
+	}
+	if !hasProvider {
+		t.Fatal("expected non-authoritative provider scores")
+	}
+	if result.Review.ProviderNote == "" {
+		t.Fatal("expected provider note to include calibration summary")
 	}
 }
