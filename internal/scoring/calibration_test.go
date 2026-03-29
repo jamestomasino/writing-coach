@@ -106,6 +106,69 @@ func TestDomainRubricCalibrationProfiles(t *testing.T) {
 	}
 }
 
+func TestTopEndSeparationFantasyAndTechnical(t *testing.T) {
+	engine, err := NewEngine()
+	if err != nil {
+		t.Fatalf("new engine: %v", err)
+	}
+
+	tracks := []struct {
+		name    string
+		options analyzer.ContextOptions
+	}{
+		{name: "fantasy", options: analyzer.ContextOptions{TreeSlug: "fantasy-fiction-track", WritingType: "fantasy fiction"}},
+		{name: "technical", options: analyzer.ContextOptions{TreeSlug: "technical-writing-track", WritingType: "technical writing"}},
+	}
+
+	strongNotElite := analyzer.Report{
+		Metrics: map[string]int{
+			"word_count":             780,
+			"avg_sentence_length":    14,
+			"paragraph_count":        8,
+			"nlp_readability_grade":  9,
+			"nlp_passive_sentences":  1,
+			"nlp_unique_token_ratio": 53,
+			"nlp_long_sentences":     1,
+			"adverb_count":           4,
+		},
+		Findings: []analyzer.Finding{},
+	}
+	elite := analyzer.Report{
+		Metrics: map[string]int{
+			"word_count":             960,
+			"avg_sentence_length":    13,
+			"paragraph_count":        9,
+			"nlp_readability_grade":  8,
+			"nlp_passive_sentences":  0,
+			"nlp_unique_token_ratio": 58,
+			"nlp_long_sentences":     0,
+			"adverb_count":           3,
+		},
+		Findings: []analyzer.Finding{},
+	}
+
+	for i, track := range tracks {
+		t.Run(track.name, func(t *testing.T) {
+			sub := domain.Submission{ID: int64(800 + i), Content: "top-end fixture", WordCount: 960}
+			strongScores, err := engine.ScoreSubmission(sub, strongNotElite, track.options, nil)
+			if err != nil {
+				t.Fatalf("strong score: %v", err)
+			}
+			eliteScores, err := engine.ScoreSubmission(sub, elite, track.options, nil)
+			if err != nil {
+				t.Fatalf("elite score: %v", err)
+			}
+
+			if maxScore(strongScores) >= 5 {
+				t.Fatalf("expected top-end separation (no 5s) for strong-not-elite in %s, got max=%d", track.name, maxScore(strongScores))
+			}
+			if maxScore(eliteScores) < 5 {
+				t.Fatalf("expected elite profile to reach 5 in %s, got max=%d", track.name, maxScore(eliteScores))
+			}
+		})
+	}
+}
+
 func averageScore(scores []domain.SkillScore) float64 {
 	if len(scores) == 0 {
 		return 0
@@ -115,4 +178,14 @@ func averageScore(scores []domain.SkillScore) float64 {
 		total += score.Score
 	}
 	return float64(total) / float64(len(scores))
+}
+
+func maxScore(scores []domain.SkillScore) int {
+	value := 0
+	for _, score := range scores {
+		if score.Score > value {
+			value = score.Score
+		}
+	}
+	return value
 }
