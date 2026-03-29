@@ -19,11 +19,11 @@ export default function SettingsPage() {
         <KratosFlowView kind="settings" />
       </Suspense>
       <Callout
-        title="AI provider"
-        body="Manage the provider and key used for assignment and feedback generation."
+        title="AI setup"
+        body="Choose where AI help comes from, and manage the key used for assignments and feedback."
         actions={
           <Button href="/ai-settings" outline>
-            Open AI provider settings
+            Open AI settings
           </Button>
         }
       />
