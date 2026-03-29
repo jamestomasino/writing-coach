@@ -50,6 +50,14 @@ type SkillConfig struct {
 	NoFindingBonus    int            `json:"no_finding_bonus"`
 	RangeRules        []RangeRule    `json:"range_rules"`
 	CategoryPenalties map[string]int `json:"category_penalties"`
+	TopScoreGate      TopScoreGate   `json:"top_score_gate"`
+}
+
+type TopScoreGate struct {
+	RequireNoFindings bool           `json:"require_no_findings"`
+	MinMetrics        map[string]int `json:"min_metrics"`
+	MaxMetrics        map[string]int `json:"max_metrics"`
+	MaxCategoryHits   map[string]int `json:"max_category_hits"`
 }
 
 type RangeRule struct {
@@ -124,15 +132,33 @@ func (e Engine) ScoreSubmission(sub domain.Submission, report analyzer.Report, o
 	if override, ok := rubric.TrackOverrides[strings.ToLower(strings.TrimSpace(options.TreeSlug))]; ok {
 		for i := range scores {
 			if delta, has := override.SkillAdjustments[scores[i].Skill]; has {
+				config, ok := rubric.Skills[scores[i].Skill]
+				if !ok {
+					config = rubric.DefaultSkillConfig
+				}
 				adjusted := clampScore(scores[i].Score + delta)
 				scores[i].Score = adjusted
 				if strings.TrimSpace(scores[i].ScoreEvidenceJSON) == "" || scores[i].ScoreEvidenceJSON == "{}" {
+					if adjusted == 5 && topScoreGateEnabled(config.TopScoreGate) {
+						var placeholderEvidence ScoreEvidence
+						if reason := topScoreGateFailure(config.TopScoreGate, report, categoryHistogram, &placeholderEvidence); reason != "" {
+							scores[i].Score = 4
+						}
+					}
 					continue
 				}
 				var evidence ScoreEvidence
 				if err := json.Unmarshal([]byte(scores[i].ScoreEvidenceJSON), &evidence); err == nil {
 					evidence.FinalScore = adjusted
 					evidence.AppliedRules = append(evidence.AppliedRules, fmt.Sprintf("track override %s: %+d", options.TreeSlug, delta))
+					if adjusted == 5 && topScoreGateEnabled(config.TopScoreGate) {
+						if reason := topScoreGateFailure(config.TopScoreGate, report, categoryHistogram, &evidence); reason != "" {
+							adjusted = 4
+							scores[i].Score = adjusted
+							evidence.FinalScore = adjusted
+							evidence.AppliedRules = append(evidence.AppliedRules, "top score gate post-override: "+reason)
+						}
+					}
 					if encoded, err := json.Marshal(evidence); err == nil {
 						scores[i].ScoreEvidenceJSON = string(encoded)
 					}
@@ -304,6 +330,15 @@ func scoreSkill(skill string, config SkillConfig, rubric Rubric, options analyze
 		evidence.AppliedRules = append(evidence.AppliedRules, fmt.Sprintf("category penalty %s: -%d", categoryKey, totalPenalty))
 	}
 
+	if score == 5 && topScoreGateEnabled(config.TopScoreGate) {
+		if reason := topScoreGateFailure(config.TopScoreGate, report, categoryHistogram, &evidence); reason != "" {
+			score = 4
+			evidence.AppliedRules = append(evidence.AppliedRules, "top score gate: "+reason)
+		} else {
+			evidence.AppliedRules = append(evidence.AppliedRules, "top score gate passed")
+		}
+	}
+
 	evidence.FinalScore = score
 	return score, evidence
 }
@@ -328,4 +363,60 @@ func clampScore(value int) int {
 		return 5
 	}
 	return value
+}
+
+func topScoreGateEnabled(gate TopScoreGate) bool {
+	return gate.RequireNoFindings || len(gate.MinMetrics) > 0 || len(gate.MaxMetrics) > 0 || len(gate.MaxCategoryHits) > 0
+}
+
+func topScoreGateFailure(gate TopScoreGate, report analyzer.Report, categoryHistogram map[string]int, evidence *ScoreEvidence) string {
+	if gate.RequireNoFindings && len(report.Findings) > 0 {
+		return "requires zero findings"
+	}
+	if len(gate.MinMetrics) > 0 {
+		keys := sortedMapKeys(gate.MinMetrics)
+		for _, metric := range keys {
+			min := gate.MinMetrics[metric]
+			value, ok := report.Metrics[metric]
+			if ok {
+				evidence.MetricSnapshot[metric] = value
+			}
+			if !ok || value < min {
+				return fmt.Sprintf("%s >= %d required", metric, min)
+			}
+		}
+	}
+	if len(gate.MaxMetrics) > 0 {
+		keys := sortedMapKeys(gate.MaxMetrics)
+		for _, metric := range keys {
+			max := gate.MaxMetrics[metric]
+			value, ok := report.Metrics[metric]
+			if ok {
+				evidence.MetricSnapshot[metric] = value
+			}
+			if !ok || value > max {
+				return fmt.Sprintf("%s <= %d required", metric, max)
+			}
+		}
+	}
+	if len(gate.MaxCategoryHits) > 0 {
+		keys := sortedMapKeys(gate.MaxCategoryHits)
+		for _, category := range keys {
+			max := gate.MaxCategoryHits[category]
+			hits := categoryHistogram[strings.ToLower(strings.TrimSpace(category))]
+			if hits > max {
+				return fmt.Sprintf("%s category hits <= %d required", category, max)
+			}
+		}
+	}
+	return ""
+}
+
+func sortedMapKeys(values map[string]int) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
