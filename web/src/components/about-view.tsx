@@ -16,6 +16,11 @@ type SessionState = {
 
 const openSourceCheckTools = [
   {
+    titleKey: 'ossHeuristicTitle',
+    bodyKey: 'ossHeuristicBody',
+    href: 'https://github.com/jamestomasino/writing-coach/tree/main/internal/analyzer',
+  },
+  {
     titleKey: 'ossValeTitle',
     bodyKey: 'ossValeBody',
     href: 'https://vale.sh/',
@@ -34,6 +39,11 @@ const openSourceCheckTools = [
     titleKey: 'ossTextDescriptivesTitle',
     bodyKey: 'ossTextDescriptivesBody',
     href: 'https://hlasse.github.io/TextDescriptives/',
+  },
+  {
+    titleKey: 'ossCoreNLPTitle',
+    bodyKey: 'ossCoreNLPBody',
+    href: 'https://stanfordnlp.github.io/CoreNLP/',
   },
 ] as const
 
@@ -224,15 +234,30 @@ export function AboutView() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step1Title')}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step1Title')}</div>
+              <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
+                {t('stepTagNoAI')}
+              </span>
+            </div>
             <Text className="mt-2">{t('step1Body')}</Text>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step2Title')}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step2Title')}</div>
+              <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
+                {t('stepTagNoAI')}
+              </span>
+            </div>
             <Text className="mt-2">{t('step2Body')}</Text>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step3Title')}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step3Title')}</div>
+              <span className="inline-flex rounded-full border border-sky-300 bg-sky-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sky-800 dark:border-sky-700 dark:bg-sky-900/40 dark:text-sky-200">
+                {t('stepTagAI')}
+              </span>
+            </div>
             <Text className="mt-2">{t('step3Body')}</Text>
           </div>
         </div>
