@@ -74,7 +74,7 @@ function humanizeCalibrationIssue(issue: string) {
     case 'insufficient_samples':
       return 'Insufficient samples'
     case 'no_deterministic_scores':
-      return 'No deterministic scores'
+      return 'No fixed-check scores'
     case 'top_score_saturation':
       return '5/5 saturation'
     case 'top_score_scarcity':

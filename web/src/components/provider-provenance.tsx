@@ -4,7 +4,7 @@ import { Badge } from '@/components/badge'
 import { Text } from '@/components/text'
 import { useTranslations } from 'next-intl'
 
-const deterministicTooling = ['Rubric Engine', 'Heuristic', 'Vale', 'LanguageTool', 'NLP']
+const deterministicTooling = ['Rubric rules', 'Style checks', 'Grammar checks', 'Text patterns']
 
 function providerLabel(value: string) {
   switch (value) {
@@ -47,7 +47,7 @@ function parseProviderNote(providerNote?: string) {
 
   if (trimmedHead === 'deterministic' || trimmedHead === 'deterministic-fallback') {
     return {
-      sourceLabel: trimmedHead === 'deterministic' ? 'Deterministic' : 'Fallback',
+      sourceLabel: trimmedHead === 'deterministic' ? 'Fixed checks' : 'Backup',
       providerLabel: '',
       modelLabel: detail.trim(),
     }
@@ -57,7 +57,7 @@ function parseProviderNote(providerNote?: string) {
   if (!provider) {
     if (isKnownProvider(trimmedHead)) {
       return {
-        sourceLabel: 'LLM',
+        sourceLabel: 'AI',
         providerLabel: providerLabel(trimmedHead),
         modelLabel: detail.trim(),
       }
@@ -92,7 +92,7 @@ export function ProviderProvenance({
   }
 
   const feedbackMode = kind === 'feedback'
-  const showLLM = parsed.providerLabel || parsed.sourceLabel.toLowerCase() === 'llm' || parsed.modelLabel
+  const showAI = parsed.providerLabel || parsed.sourceLabel.toLowerCase() === 'ai' || parsed.modelLabel
 
   return (
     <div className={compact ? 'flex flex-wrap items-center gap-2' : 'space-y-2'}>
@@ -105,9 +105,9 @@ export function ProviderProvenance({
                 {tool}
               </Badge>
             ))}
-            {showLLM ? (
+            {showAI ? (
               <>
-                <Badge color="zinc">LLM (secondary)</Badge>
+                <Badge color="zinc">AI wording help</Badge>
                 {parsed.providerLabel ? <Badge color="zinc">{parsed.providerLabel}</Badge> : null}
                 {parsed.modelLabel ? <Badge color="zinc">{parsed.modelLabel}</Badge> : null}
               </>
@@ -128,12 +128,12 @@ export function ProviderProvenance({
         <Text className="text-sm">
           {parsed.modelLabel
             ? t('createdWithModel', {
-                source: parsed.sourceLabel.toLowerCase(),
+                source: parsed.sourceLabel,
                 provider: parsed.providerLabel,
                 model: parsed.modelLabel,
               })
             : t('createdWith', {
-                source: parsed.sourceLabel.toLowerCase(),
+                source: parsed.sourceLabel,
                 provider: parsed.providerLabel,
               })}
         </Text>
