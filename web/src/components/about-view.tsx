@@ -407,25 +407,41 @@ export function AboutView() {
       <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
         <Eyebrow>{t('openSourceCreditsEyebrow')}</Eyebrow>
         <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('openSourceCreditsTitle')}</Subheading>
-        <Text className="mt-3">{t('openSourceCreditsIntro')}</Text>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Text className="mt-3 text-sm/6">{t('openSourceCreditsIntro')}</Text>
+        <ul className="mt-4 space-y-2 text-xs/6 text-zinc-700 dark:text-zinc-300">
           {openSourceCredits.map((tool) => (
-            <div
-              key={tool.titleKey}
-              className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5"
-            >
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t(tool.titleKey)}</div>
-              <Text className="mt-2 text-sm">
+            <li key={tool.titleKey}>
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">{t(tool.titleKey)}</span>{' '}
+              <span className="text-zinc-500 dark:text-zinc-400">-</span>{' '}
+              <span>
                 <TextLink href={tool.href} target="_blank" rel="noreferrer">
                   {t('ossProjectLinkLabel')}
                 </TextLink>
-                <span className="ml-2 text-zinc-600 dark:text-zinc-300">
+              </span>{' '}
+              <span className="text-zinc-500 dark:text-zinc-400">-</span>{' '}
+              <span className="text-zinc-600 dark:text-zinc-300">
                   {t('licenseLabel', { license: t(tool.licenseKey) })}
-                </span>
-              </Text>
-            </div>
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
+      </WorkspaceCard>
+
+      <WorkspaceCard className="border-stone-200/80 bg-stone-50 dark:border-white/10 dark:bg-white/5">
+        <Eyebrow>{t('legalEyebrow')}</Eyebrow>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('legalTitle')}</Subheading>
+        <Text className="mt-3 text-sm/6">{t('legalIntro')}</Text>
+        <ul className="mt-4 space-y-2 text-sm/6 text-zinc-700 dark:text-zinc-300">
+          <li>
+            <TextLink href="/privacy">{t('legalPrivacy')}</TextLink>
+          </li>
+          <li>
+            <TextLink href="/terms">{t('legalTerms')}</TextLink>
+          </li>
+          <li>
+            <TextLink href="/third-party-notices">{t('legalThirdParty')}</TextLink>
+          </li>
+        </ul>
       </WorkspaceCard>
     </div>
   )
