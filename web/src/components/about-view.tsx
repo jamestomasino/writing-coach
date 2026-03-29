@@ -146,6 +146,36 @@ export function AboutView() {
           <Text>{t('howItWorksBody3')}</Text>
           <Text>{t('howItWorksBody4')}</Text>
         </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
+        <Eyebrow>{t('deterministicDetailEyebrow')}</Eyebrow>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('deterministicDetailTitle')}</Subheading>
+        <Text className="mt-3">{t('deterministicDetailIntro')}</Text>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('checksCardTitle')}</div>
+            <Text className="mt-2">{t('checksCardBody')}</Text>
+          </div>
+          <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('styleCardTitle')}</div>
+            <Text className="mt-2">{t('styleCardBody')}</Text>
+          </div>
+          <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('skillCardTitle')}</div>
+            <Text className="mt-2">{t('skillCardBody')}</Text>
+          </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard className="border-stone-200/80 bg-linear-to-br from-stone-50 via-white to-sky-50 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/30">
+        <Eyebrow>{t('aiBoundaryEyebrow')}</Eyebrow>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('aiBoundaryTitle')}</Subheading>
+        <div className="mt-4 max-w-3xl space-y-4">
+          <Text>{t('aiBoundaryBody1')}</Text>
+          <Text>{t('aiBoundaryBody2')}</Text>
+          <Text>{t('aiBoundaryBody3')}</Text>
+        </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
