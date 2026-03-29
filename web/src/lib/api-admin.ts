@@ -65,3 +65,10 @@ export async function markAdminCalibrationNotificationRead(id: number) {
 export async function markAdminCalibrationRunRead(runID: number) {
   return request(`/api/admin/calibration/runs/${runID}/read`, { method: 'POST' })
 }
+
+export async function setAdminCalibrationRunApproval(runID: number, status: 'pending' | 'approved' | 'rejected', notes = '') {
+  return request(`/api/admin/calibration/runs/${runID}/approval`, {
+    method: 'POST',
+    body: JSON.stringify({ status, notes }),
+  })
+}

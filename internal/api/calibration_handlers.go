@@ -17,8 +17,12 @@ type calibrationTrackLearningResponse struct {
 	Domain                  string   `json:"domain"`
 	SubmissionCount         int      `json:"submission_count"`
 	DeterministicScoreCount int      `json:"deterministic_score_count"`
+	HybridScoreCount        int      `json:"hybrid_score_count"`
+	HybridConflictCount     int      `json:"hybrid_conflict_count"`
+	HybridAdjustedCount     int      `json:"hybrid_adjusted_count"`
 	TopScoreRate            float64  `json:"top_score_rate"`
 	AverageScore            float64  `json:"average_score"`
+	Confidence              string   `json:"confidence"`
 	Issues                  []string `json:"issues"`
 }
 
@@ -27,9 +31,21 @@ type calibrationDomainLearningResponse struct {
 	TrackCount              int      `json:"track_count"`
 	SubmissionCount         int      `json:"submission_count"`
 	DeterministicScoreCount int      `json:"deterministic_score_count"`
+	HybridScoreCount        int      `json:"hybrid_score_count"`
+	HybridConflictCount     int      `json:"hybrid_conflict_count"`
+	HybridAdjustedCount     int      `json:"hybrid_adjusted_count"`
 	TopScoreRate            float64  `json:"top_score_rate"`
 	AverageScore            float64  `json:"average_score"`
+	Confidence              string   `json:"confidence"`
 	Issues                  []string `json:"issues"`
+}
+
+type calibrationRunDiffResponse struct {
+	ComparedToRunID         int64   `json:"compared_to_run_id,omitempty"`
+	TopScoreRateShift       float64 `json:"top_score_rate_shift"`
+	AverageScoreShift       float64 `json:"average_score_shift"`
+	HybridConflictShift     int     `json:"hybrid_conflict_shift"`
+	DeterministicCountShift int     `json:"deterministic_count_shift"`
 }
 
 type calibrationRunResponse struct {
@@ -44,6 +60,12 @@ type calibrationRunResponse struct {
 	DomainLearnings         []calibrationDomainLearningResponse `json:"domain_learnings"`
 	Highlights              []string                            `json:"highlights"`
 	Recommendations         []string                            `json:"recommendations"`
+	DataAdequate            bool                                `json:"data_adequate"`
+	ApprovalStatus          string                              `json:"approval_status"`
+	ApprovedByUserID        int64                               `json:"approved_by_user_id,omitempty"`
+	ApprovedAt              string                              `json:"approved_at,omitempty"`
+	ApprovalNotes           string                              `json:"approval_notes,omitempty"`
+	Diff                    calibrationRunDiffResponse          `json:"diff"`
 	ErrorText               string                              `json:"error_text,omitempty"`
 	StartedAt               string                              `json:"started_at"`
 	CompletedAt             string                              `json:"completed_at,omitempty"`
@@ -124,7 +146,7 @@ func (s *Server) handleAdminCalibrationRun(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusConflict, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"run": toCalibrationRunResponse(run)})
+	writeJSON(w, http.StatusCreated, map[string]any{"run": toCalibrationRunResponse(run, nil)})
 }
 
 func (s Server) handleAdminCalibrationNotificationRead(w http.ResponseWriter, r *http.Request) {
@@ -163,15 +185,51 @@ func (s Server) handleAdminCalibrationRunRead(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, map[string]any{"run_id": runID, "read": true})
 }
 
+func (s Server) handleAdminCalibrationRunApproval(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	runID, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("id")), 10, 64)
+	if err != nil || runID <= 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid run id"))
+		return
+	}
+	var payload struct {
+		Status string `json:"status"`
+		Notes  string `json:"notes"`
+	}
+	if err := decodeJSONBody(w, r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	status := strings.ToLower(strings.TrimSpace(payload.Status))
+	if status == "" {
+		status = "pending"
+	}
+	if err := s.Store.UpdateCalibrationRunApproval(r.Context(), runID, status, 0, payload.Notes); err != nil {
+		apiStatus := http.StatusBadRequest
+		if db.IsNotFound(err) {
+			apiStatus = http.StatusNotFound
+		}
+		writeError(w, apiStatus, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"run_id": runID, "approval_status": status})
+}
+
 func toCalibrationRunResponses(runs []domain.CalibrationRun) []calibrationRunResponse {
 	items := make([]calibrationRunResponse, 0, len(runs))
-	for _, run := range runs {
-		items = append(items, toCalibrationRunResponse(run))
+	for i, run := range runs {
+		var previous *domain.CalibrationRun
+		if i+1 < len(runs) {
+			previous = &runs[i+1]
+		}
+		items = append(items, toCalibrationRunResponse(run, previous))
 	}
 	return items
 }
 
-func toCalibrationRunResponse(run domain.CalibrationRun) calibrationRunResponse {
+func toCalibrationRunResponse(run domain.CalibrationRun, previous *domain.CalibrationRun) calibrationRunResponse {
 	item := calibrationRunResponse{
 		ID:                      run.ID,
 		RunKind:                 run.RunKind,
@@ -184,6 +242,11 @@ func toCalibrationRunResponse(run domain.CalibrationRun) calibrationRunResponse 
 		DomainLearnings:         make([]calibrationDomainLearningResponse, 0, len(run.DomainLearnings)),
 		Highlights:              append([]string{}, run.Highlights...),
 		Recommendations:         append([]string{}, run.Recommendations...),
+		DataAdequate:            run.DataAdequate,
+		ApprovalStatus:          run.ApprovalStatus,
+		ApprovedByUserID:        run.ApprovedByUserID,
+		ApprovalNotes:           run.ApprovalNotes,
+		Diff:                    calibrationRunDiffResponse{},
 		ErrorText:               run.ErrorText,
 		StartedAt:               db.Since(run.StartedAt),
 		CreatedAt:               db.Since(run.CreatedAt),
@@ -191,14 +254,21 @@ func toCalibrationRunResponse(run domain.CalibrationRun) calibrationRunResponse 
 	if !run.CompletedAt.IsZero() {
 		item.CompletedAt = db.Since(run.CompletedAt)
 	}
+	if !run.ApprovedAt.IsZero() {
+		item.ApprovedAt = db.Since(run.ApprovedAt)
+	}
 	for _, track := range run.TrackLearnings {
 		item.TrackLearnings = append(item.TrackLearnings, calibrationTrackLearningResponse{
 			TreeSlug:                track.TreeSlug,
 			Domain:                  track.Domain,
 			SubmissionCount:         track.SubmissionCount,
 			DeterministicScoreCount: track.DeterministicScoreCount,
+			HybridScoreCount:        track.HybridScoreCount,
+			HybridConflictCount:     track.HybridConflictCount,
+			HybridAdjustedCount:     track.HybridAdjustedCount,
 			TopScoreRate:            track.TopScoreRate,
 			AverageScore:            track.AverageScore,
+			Confidence:              track.Confidence,
 			Issues:                  append([]string{}, track.Issues...),
 		})
 	}
@@ -208,12 +278,55 @@ func toCalibrationRunResponse(run domain.CalibrationRun) calibrationRunResponse 
 			TrackCount:              domainLearning.TrackCount,
 			SubmissionCount:         domainLearning.SubmissionCount,
 			DeterministicScoreCount: domainLearning.DeterministicScoreCount,
+			HybridScoreCount:        domainLearning.HybridScoreCount,
+			HybridConflictCount:     domainLearning.HybridConflictCount,
+			HybridAdjustedCount:     domainLearning.HybridAdjustedCount,
 			TopScoreRate:            domainLearning.TopScoreRate,
 			AverageScore:            domainLearning.AverageScore,
+			Confidence:              domainLearning.Confidence,
 			Issues:                  append([]string{}, domainLearning.Issues...),
 		})
 	}
+	if previous != nil {
+		item.Diff = calibrationRunDiffResponse{
+			ComparedToRunID:         previous.ID,
+			TopScoreRateShift:       runAverageTopScoreRate(run) - runAverageTopScoreRate(*previous),
+			AverageScoreShift:       runAverageScore(run) - runAverageScore(*previous),
+			HybridConflictShift:     runHybridConflicts(run) - runHybridConflicts(*previous),
+			DeterministicCountShift: run.DeterministicScoreCount - previous.DeterministicScoreCount,
+		}
+	}
 	return item
+}
+
+func runAverageTopScoreRate(run domain.CalibrationRun) float64 {
+	if len(run.TrackLearnings) == 0 {
+		return 0
+	}
+	total := 0.0
+	for _, track := range run.TrackLearnings {
+		total += track.TopScoreRate
+	}
+	return total / float64(len(run.TrackLearnings))
+}
+
+func runAverageScore(run domain.CalibrationRun) float64 {
+	if len(run.TrackLearnings) == 0 {
+		return 0
+	}
+	total := 0.0
+	for _, track := range run.TrackLearnings {
+		total += track.AverageScore
+	}
+	return total / float64(len(run.TrackLearnings))
+}
+
+func runHybridConflicts(run domain.CalibrationRun) int {
+	total := 0
+	for _, track := range run.TrackLearnings {
+		total += track.HybridConflictCount
+	}
+	return total
 }
 
 func toAdminNotificationResponses(items []domain.AdminNotification) []adminNotificationResponse {

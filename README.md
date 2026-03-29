@@ -242,6 +242,8 @@ State is stored in Docker volumes:
 - provider activity events are retained for `30` days by default
 - admin users can inspect provider activity in the admin workspace
 - calibration maintenance runs can be scheduled and manually triggered from the admin workspace
+- calibration runs include confidence/adequacy guardrails and hybrid conflict telemetry
+- admin can mark calibration runs approved/rejected before acting on rubric changes
 
 ## Deterministic Analysis
 Every review runs built-in heuristic analysis. In the Compose deployment, the stack also includes:

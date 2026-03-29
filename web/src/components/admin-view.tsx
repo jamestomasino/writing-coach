@@ -97,6 +97,17 @@ function calibrationStatusBadgeColor(status: string) {
   }
 }
 
+function approvalBadgeColor(status: string) {
+  switch (status) {
+    case 'approved':
+      return 'green'
+    case 'rejected':
+      return 'rose'
+    default:
+      return 'amber'
+  }
+}
+
 type EventSortKey = 'created_at' | 'provider' | 'event' | 'category' | 'status_code' | 'user'
 
 function compareValues(left: string | number, right: string | number) {
@@ -143,6 +154,7 @@ export function AdminView() {
     triggerCalibrationRun,
     markCalibrationNotificationRead,
     markCalibrationRunRead,
+    setCalibrationRunApproval,
   } = useAdminWorkspace()
 
   const sortedProviderEvents = [...providerEvents].sort((left, right) => {
@@ -436,6 +448,10 @@ export function AdminView() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge color={calibrationStatusBadgeColor(run.status)}>{run.status}</Badge>
                       <Badge color="zinc">{run.run_kind}</Badge>
+                      <Badge color={approvalBadgeColor(run.approval_status)}>{run.approval_status}</Badge>
+                      <Badge color={run.data_adequate ? 'green' : 'amber'}>
+                        {run.data_adequate ? t('dataAdequateLabel') : t('lowDataLabel')}
+                      </Badge>
                       <div className="text-xs text-zinc-500">
                         {formatLocalDateTime(run.created_at) ?? run.created_at}
                       </div>
@@ -444,6 +460,11 @@ export function AdminView() {
                       <div>{t('sampledSubmissions', { count: run.submission_count })}</div>
                       <div>{t('deterministicScores', { count: run.deterministic_score_count })}</div>
                       <div>{t('calibrationMinSamplesLabel', { count: run.min_samples })}</div>
+                    </div>
+                    <div className="mt-2 grid gap-3 text-sm text-zinc-700 dark:text-zinc-300 md:grid-cols-3">
+                      <div>{t('topScoreShift', { value: `${run.diff.top_score_rate_shift >= 0 ? '+' : ''}${run.diff.top_score_rate_shift.toFixed(1)}%` })}</div>
+                      <div>{t('averageShift', { value: `${run.diff.average_score_shift >= 0 ? '+' : ''}${run.diff.average_score_shift.toFixed(2)}` })}</div>
+                      <div>{t('hybridConflictShift', { value: `${run.diff.hybrid_conflict_shift >= 0 ? '+' : ''}${run.diff.hybrid_conflict_shift}` })}</div>
                     </div>
                     {run.highlights.length > 0 ? (
                       <ul className="mt-3 space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
@@ -464,6 +485,7 @@ export function AdminView() {
                           <div key={`${run.id}-${track.tree_slug}`} className="py-1">
                             <span className="font-medium text-zinc-800 dark:text-zinc-200">{track.tree_slug}</span>{' '}
                             ({track.domain}) · {track.submission_count} submissions · {track.top_score_rate.toFixed(1)}% 5/5
+                            {` · hybrid ${track.hybrid_score_count} / conflicts ${track.hybrid_conflict_count} / ${track.confidence} confidence`}
                             {track.issues.length > 0 ? ` · ${track.issues.map(humanizeCalibrationIssue).join(', ')}` : ''}
                           </div>
                         ))}
@@ -472,6 +494,15 @@ export function AdminView() {
                     <div className="mt-3">
                       <Button plain onClick={() => void markCalibrationRunRead(run.id)}>
                         {t('markRunNotificationsRead')}
+                      </Button>
+                      <Button plain onClick={() => void setCalibrationRunApproval(run.id, 'approved')} disabled={!run.data_adequate}>
+                        {t('approveRun')}
+                      </Button>
+                      <Button plain onClick={() => void setCalibrationRunApproval(run.id, 'rejected')}>
+                        {t('rejectRun')}
+                      </Button>
+                      <Button plain onClick={() => void setCalibrationRunApproval(run.id, 'pending')}>
+                        {t('resetRun')}
                       </Button>
                     </div>
                   </div>

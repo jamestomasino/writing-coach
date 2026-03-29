@@ -217,6 +217,7 @@ export type Comparison = {
     current_score: number
     delta: number
     direction: 'up' | 'down' | 'flat'
+    deterministic_delta?: boolean
     evidence_quotes?: string[]
   }[]
 }
@@ -349,8 +350,12 @@ export type CalibrationTrackLearning = {
   domain: string
   submission_count: number
   deterministic_score_count: number
+  hybrid_score_count: number
+  hybrid_conflict_count: number
+  hybrid_adjusted_count: number
   top_score_rate: number
   average_score: number
+  confidence: 'low' | 'medium' | 'high' | string
   issues: string[]
 }
 
@@ -359,9 +364,21 @@ export type CalibrationDomainLearning = {
   track_count: number
   submission_count: number
   deterministic_score_count: number
+  hybrid_score_count: number
+  hybrid_conflict_count: number
+  hybrid_adjusted_count: number
   top_score_rate: number
   average_score: number
+  confidence: 'low' | 'medium' | 'high' | string
   issues: string[]
+}
+
+export type CalibrationRunDiff = {
+  compared_to_run_id?: number
+  top_score_rate_shift: number
+  average_score_shift: number
+  hybrid_conflict_shift: number
+  deterministic_count_shift: number
 }
 
 export type CalibrationRun = {
@@ -376,6 +393,12 @@ export type CalibrationRun = {
   domain_learnings: CalibrationDomainLearning[]
   highlights: string[]
   recommendations: string[]
+  data_adequate: boolean
+  approval_status: 'pending' | 'approved' | 'rejected' | string
+  approved_by_user_id?: number
+  approved_at?: string
+  approval_notes?: string
+  diff: CalibrationRunDiff
   error_text?: string
   started_at: string
   completed_at?: string

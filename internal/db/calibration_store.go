@@ -31,10 +31,12 @@ func (s *Store) CreateCalibrationRun(ctx context.Context, runKind string, trigge
 			triggered_by_user_id,
 			min_samples,
 			limit_per_track,
+			data_adequate,
+			approval_status,
 			started_at,
 			updated_at
 		)
-		VALUES (?, 'running', ?, ?, ?, ?, ?)
+		VALUES (?, 'running', ?, ?, ?, 0, 'pending', ?, ?)
 	`, runKind, nullableID(triggeredByUserID), minSamples, limitPerTrack, now, now)
 	if err != nil {
 		return domain.CalibrationRun{}, err
@@ -50,6 +52,8 @@ func (s *Store) CreateCalibrationRun(ctx context.Context, runKind string, trigge
 		TriggeredByUserID: triggeredByUserID,
 		MinSamples:        minSamples,
 		LimitPerTrack:     limitPerTrack,
+		DataAdequate:      false,
+		ApprovalStatus:    "pending",
 		StartedAt:         now,
 		CreatedAt:         now,
 		UpdatedAt:         now,
@@ -83,6 +87,7 @@ func (s *Store) FinalizeCalibrationRun(ctx context.Context, run domain.Calibrati
 		SET status = ?,
 			submission_count = ?,
 			deterministic_score_count = ?,
+			data_adequate = ?,
 			track_learnings_json = ?,
 			domain_learnings_json = ?,
 			highlights_json = ?,
@@ -91,8 +96,46 @@ func (s *Store) FinalizeCalibrationRun(ctx context.Context, run domain.Calibrati
 			completed_at = ?,
 			updated_at = ?
 		WHERE id = ?
-	`, strings.TrimSpace(run.Status), run.SubmissionCount, run.DeterministicScoreCount, string(tracksJSON), string(domainsJSON), string(highlightsJSON), string(recommendationsJSON), strings.TrimSpace(run.ErrorText), completedAt, time.Now().UTC(), run.ID)
+	`, strings.TrimSpace(run.Status), run.SubmissionCount, run.DeterministicScoreCount, boolToInt(run.DataAdequate), string(tracksJSON), string(domainsJSON), string(highlightsJSON), string(recommendationsJSON), strings.TrimSpace(run.ErrorText), completedAt, time.Now().UTC(), run.ID)
 	return err
+}
+
+func (s *Store) UpdateCalibrationRunApproval(ctx context.Context, runID int64, status string, approvedByUserID int64, notes string) error {
+	if runID <= 0 {
+		return fmt.Errorf("invalid run id")
+	}
+	status = strings.ToLower(strings.TrimSpace(status))
+	if status != "approved" && status != "rejected" && status != "pending" {
+		return fmt.Errorf("invalid approval status")
+	}
+	approvedAt := nullableTime(time.Now().UTC())
+	if status == "pending" {
+		approvedAt = nil
+	}
+	approvedBy := nullableID(approvedByUserID)
+	if status == "pending" {
+		approvedBy = nil
+	}
+	res, err := s.SQL.ExecContext(ctx, `
+		UPDATE calibration_runs
+		SET approval_status = ?,
+			approved_by_user_id = ?,
+			approved_at = ?,
+			approval_notes = ?,
+			updated_at = ?
+		WHERE id = ?
+	`, status, approvedBy, approvedAt, strings.TrimSpace(notes), time.Now().UTC(), runID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func (s *Store) ListRecentCalibrationRuns(ctx context.Context, limit int) ([]domain.CalibrationRun, error) {
@@ -109,6 +152,11 @@ func (s *Store) ListRecentCalibrationRuns(ctx context.Context, limit int) ([]dom
 			limit_per_track,
 			submission_count,
 			deterministic_score_count,
+			data_adequate,
+			approval_status,
+			COALESCE(approved_by_user_id, 0),
+			approved_at,
+			approval_notes,
 			track_learnings_json,
 			domain_learnings_json,
 			highlights_json,
@@ -286,10 +334,76 @@ func (s *Store) ListCalibrationTrackSnapshots(ctx context.Context, defaultTreeSl
 	return items, rows.Err()
 }
 
+func (s *Store) ListCalibrationHybridSignalSnapshots(ctx context.Context, defaultTreeSlug string, limitPerTrack int) ([]domain.CalibrationHybridSignalSnapshot, error) {
+	if strings.TrimSpace(defaultTreeSlug) == "" {
+		defaultTreeSlug = domain.GlobalSkillGraphSlug
+	}
+	if limitPerTrack <= 0 {
+		limitPerTrack = 200
+	}
+	rows, err := s.SQL.QueryContext(ctx, `
+		WITH track_ranked AS (
+			SELECT
+				s.id AS submission_id,
+				COALESCE(NULLIF(t.slug, ''), NULLIF(u.active_tree_slug, ''), ?) AS tree_slug,
+				ROW_NUMBER() OVER (
+					PARTITION BY COALESCE(NULLIF(t.slug, ''), NULLIF(u.active_tree_slug, ''), ?)
+					ORDER BY s.id DESC
+				) AS track_rank
+			FROM submissions s
+			LEFT JOIN users u ON u.id = s.user_id
+			LEFT JOIN tgo_trees t ON t.id = s.tree_id
+		),
+		sampled AS (
+			SELECT submission_id, tree_slug
+			FROM track_ranked
+			WHERE track_rank <= ?
+		),
+		latest_hybrid AS (
+			SELECT
+				sss.submission_id,
+				sss.skill_name,
+				sss.score_evidence_json,
+				ROW_NUMBER() OVER (
+					PARTITION BY sss.submission_id, sss.skill_name
+					ORDER BY sss.id DESC
+				) AS rn
+			FROM submission_skill_scores sss
+			WHERE sss.score_source = 'hybrid'
+		)
+		SELECT
+			sampled.tree_slug,
+			COUNT(latest_hybrid.skill_name) AS hybrid_score_count,
+			COALESCE(SUM(CASE WHEN json_extract(latest_hybrid.score_evidence_json, '$.conflict') = 1 THEN 1 ELSE 0 END), 0) AS conflict_count,
+			COALESCE(SUM(CASE WHEN ABS(COALESCE(json_extract(latest_hybrid.score_evidence_json, '$.applied_delta'), 0)) > 0 THEN 1 ELSE 0 END), 0) AS adjusted_count
+		FROM sampled
+		LEFT JOIN latest_hybrid
+			ON latest_hybrid.submission_id = sampled.submission_id
+			AND latest_hybrid.rn = 1
+		GROUP BY sampled.tree_slug
+		ORDER BY hybrid_score_count DESC, sampled.tree_slug ASC
+	`, defaultTreeSlug, defaultTreeSlug, limitPerTrack)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]domain.CalibrationHybridSignalSnapshot, 0)
+	for rows.Next() {
+		var item domain.CalibrationHybridSignalSnapshot
+		if err := rows.Scan(&item.TreeSlug, &item.HybridScoreCount, &item.ConflictCount, &item.AdjustedCount); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func scanCalibrationRun(scanner interface{ Scan(...any) error }) (domain.CalibrationRun, error) {
 	var run domain.CalibrationRun
 	var tracksJSON, domainsJSON, highlightsJSON, recommendationsJSON string
-	var completedAt sql.NullTime
+	var completedAt, approvedAt sql.NullTime
+	var dataAdequate int
 	if err := scanner.Scan(
 		&run.ID,
 		&run.RunKind,
@@ -299,6 +413,11 @@ func scanCalibrationRun(scanner interface{ Scan(...any) error }) (domain.Calibra
 		&run.LimitPerTrack,
 		&run.SubmissionCount,
 		&run.DeterministicScoreCount,
+		&dataAdequate,
+		&run.ApprovalStatus,
+		&run.ApprovedByUserID,
+		&approvedAt,
+		&run.ApprovalNotes,
 		&tracksJSON,
 		&domainsJSON,
 		&highlightsJSON,
@@ -313,6 +432,10 @@ func scanCalibrationRun(scanner interface{ Scan(...any) error }) (domain.Calibra
 	}
 	if completedAt.Valid {
 		run.CompletedAt = completedAt.Time
+	}
+	run.DataAdequate = dataAdequate == 1
+	if approvedAt.Valid {
+		run.ApprovedAt = approvedAt.Time
 	}
 	if strings.TrimSpace(tracksJSON) != "" {
 		_ = json.Unmarshal([]byte(tracksJSON), &run.TrackLearnings)

@@ -5,6 +5,7 @@ import {
   getAdminCalibrationDashboard,
   markAdminCalibrationNotificationRead,
   markAdminCalibrationRunRead,
+  setAdminCalibrationRunApproval,
   runAdminCalibration,
 } from '@/lib/api-admin'
 import type {
@@ -168,6 +169,15 @@ export function useAdminWorkspace() {
     }
   }
 
+  async function setCalibrationRunApproval(runID: number, status: 'pending' | 'approved' | 'rejected', notes = '') {
+    try {
+      await setAdminCalibrationRunApproval(runID, status, notes)
+      await refreshCalibrationDashboard()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update run approval')
+    }
+  }
+
   return {
     loading,
     error,
@@ -194,6 +204,7 @@ export function useAdminWorkspace() {
     triggerCalibrationRun,
     markCalibrationNotificationRead,
     markCalibrationRunRead,
+    setCalibrationRunApproval,
     refreshCalibrationDashboard,
   }
 }

@@ -85,6 +85,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/admin/calibration/run", s.handleAdminCalibrationRun)
 	mux.HandleFunc("POST /api/admin/calibration/notifications/{id}/read", s.handleAdminCalibrationNotificationRead)
 	mux.HandleFunc("POST /api/admin/calibration/runs/{id}/read", s.handleAdminCalibrationRunRead)
+	mux.HandleFunc("POST /api/admin/calibration/runs/{id}/approval", s.handleAdminCalibrationRunApproval)
 	mux.HandleFunc("GET /api/users", s.handleUsersList)
 	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
 	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)

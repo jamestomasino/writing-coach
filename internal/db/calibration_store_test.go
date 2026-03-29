@@ -110,8 +110,27 @@ func TestCalibrationRunAndNotificationLifecycle(t *testing.T) {
 	if runs[0].Status != "succeeded" {
 		t.Fatalf("run status = %q", runs[0].Status)
 	}
+	if runs[0].ApprovalStatus != "pending" {
+		t.Fatalf("approval status = %q", runs[0].ApprovalStatus)
+	}
 	if len(runs[0].TrackLearnings) != 1 {
 		t.Fatalf("track learnings len = %d", len(runs[0].TrackLearnings))
+	}
+	if err := store.UpdateCalibrationRunApproval(ctx, run.ID, "approved", userID, "looks good"); err != nil {
+		t.Fatalf("update approval: %v", err)
+	}
+	runs, err = store.ListRecentCalibrationRuns(ctx, 10)
+	if err != nil {
+		t.Fatalf("list calibration runs after approval: %v", err)
+	}
+	if runs[0].ApprovalStatus != "approved" {
+		t.Fatalf("approval status after update = %q", runs[0].ApprovalStatus)
+	}
+	if runs[0].ApprovedByUserID != userID {
+		t.Fatalf("approved_by_user_id = %d", runs[0].ApprovedByUserID)
+	}
+	if runs[0].ApprovalNotes != "looks good" {
+		t.Fatalf("approval_notes = %q", runs[0].ApprovalNotes)
 	}
 
 	if err := store.SaveAdminNotification(ctx, domain.AdminNotification{

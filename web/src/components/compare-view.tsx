@@ -121,9 +121,12 @@ export function CompareView({ submissionId }: { submissionId: number }) {
               <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-semibold capitalize text-zinc-900 dark:text-white">{item.skill}</div>
-                  <Badge color={item.delta > 0 ? 'green' : item.delta < 0 ? 'amber' : 'zinc'}>
-                    {item.delta > 0 ? `+${item.delta}` : item.delta}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {item.deterministic_delta ? <Badge color="cyan">{t('scoreDeltaDeterministic')}</Badge> : null}
+                    <Badge color={item.delta > 0 ? 'green' : item.delta < 0 ? 'amber' : 'zinc'}>
+                      {item.delta > 0 ? `+${item.delta}` : item.delta}
+                    </Badge>
+                  </div>
                 </div>
                 <Text className="mt-2 text-sm">
                   {t('scoreDeltaLine', { baseline: item.baseline_score, current: item.current_score })}
