@@ -114,6 +114,10 @@ func (s *Server) startBackgroundWorkers(ctx context.Context) {
 	if s.eventRecorder == nil {
 		s.eventRecorder = newAIProviderEventRecorder(s.Store, s.Config)
 	}
+	if s.calibration == nil {
+		s.calibration = newCalibrationMaintainer(s.Store, s.Config)
+	}
 	s.eventRecorder.start(ctx)
+	s.calibration.start(ctx)
 	go s.runAIJobWorker(ctx)
 }

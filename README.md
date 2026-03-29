@@ -200,6 +200,14 @@ If `WRITING_COACH_AI_KEY_SECRET` is missing, personal provider storage is unavai
   App-wide cap for provider validation attempts.
 - `WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS`
   Retention window for admin-visible provider activity events.
+- `WRITING_COACH_CALIBRATION_MAINTENANCE_ENABLED`
+  Enables scheduled deterministic calibration maintenance runs.
+- `WRITING_COACH_CALIBRATION_MAINTENANCE_INTERVAL`
+  Interval between automatic calibration runs (default `720h`).
+- `WRITING_COACH_CALIBRATION_MIN_SAMPLES`
+  Minimum sampled submissions target used for calibration warnings.
+- `WRITING_COACH_CALIBRATION_LIMIT_PER_TRACK`
+  Maximum submissions sampled per track during each run.
 - `WRITING_COACH_NLP_ANALYZER_URL`
   Optional internal spaCy/TextDescriptives analyzer service URL.
 - `WRITING_COACH_WRITER_NAME`
@@ -233,6 +241,7 @@ State is stored in Docker volumes:
 - repeated bad-key retries eventually return `429` without hitting the upstream provider
 - provider activity events are retained for `30` days by default
 - admin users can inspect provider activity in the admin workspace
+- calibration maintenance runs can be scheduled and manually triggered from the admin workspace
 
 ## Deterministic Analysis
 Every review runs built-in heuristic analysis. In the Compose deployment, the stack also includes:

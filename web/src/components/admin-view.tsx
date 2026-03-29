@@ -69,6 +69,34 @@ function filterChipClass(active: boolean) {
   return active ? 'ring-1 ring-inset ring-current' : 'opacity-55 hover:opacity-100'
 }
 
+function humanizeCalibrationIssue(issue: string) {
+  switch (issue) {
+    case 'insufficient_samples':
+      return 'Insufficient samples'
+    case 'no_deterministic_scores':
+      return 'No deterministic scores'
+    case 'top_score_saturation':
+      return '5/5 saturation'
+    case 'top_score_scarcity':
+      return '5/5 scarcity'
+    default:
+      return issue.replaceAll('_', ' ')
+  }
+}
+
+function calibrationStatusBadgeColor(status: string) {
+  switch (status) {
+    case 'succeeded':
+      return 'green'
+    case 'failed':
+      return 'rose'
+    case 'running':
+      return 'amber'
+    default:
+      return 'zinc'
+  }
+}
+
 type EventSortKey = 'created_at' | 'provider' | 'event' | 'category' | 'status_code' | 'user'
 
 function compareValues(left: string | number, right: string | number) {
@@ -106,6 +134,15 @@ export function AdminView() {
     selectedEvent,
     setSelectedEvent,
     loadingProviderActivity,
+    calibrationRuns,
+    calibrationNotifications,
+    calibrationUnreadCount,
+    calibrationSettings,
+    loadingCalibration,
+    runningCalibration,
+    triggerCalibrationRun,
+    markCalibrationNotificationRead,
+    markCalibrationRunRead,
   } = useAdminWorkspace()
 
   const sortedProviderEvents = [...providerEvents].sort((left, right) => {
@@ -363,6 +400,120 @@ export function AdminView() {
         ) : (
           <Text className="mt-4 text-sm">{t('noProviderActivity')}</Text>
         )}
+      </WorkspaceCard>
+
+      <WorkspaceCard>
+        <CardHeader
+          eyebrow={t('calibrationEyebrow')}
+          title={t('calibrationTitle')}
+          description={t('calibrationDescription')}
+        />
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Button color="dark/zinc" onClick={() => void triggerCalibrationRun()} disabled={runningCalibration || loadingCalibration}>
+            {runningCalibration ? t('calibrationRunning') : t('runCalibrationNow')}
+          </Button>
+          {calibrationSettings ? (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              {t('calibrationSchedule', {
+                hours: calibrationSettings.interval_hours,
+                minSamples: calibrationSettings.min_samples,
+                limitPerTrack: calibrationSettings.limit_per_track,
+              })}
+            </div>
+          ) : null}
+          {calibrationUnreadCount > 0 ? <Badge color="amber">{t('unreadNotifications', { count: calibrationUnreadCount })}</Badge> : null}
+        </div>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_1fr]">
+          <div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('calibrationRuns')}</div>
+            {calibrationRuns.length === 0 ? (
+              <Text className="mt-3 text-sm">{t('noCalibrationRuns')}</Text>
+            ) : (
+              <div className="mt-3 space-y-4">
+                {calibrationRuns.map((run) => (
+                  <div key={run.id} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge color={calibrationStatusBadgeColor(run.status)}>{run.status}</Badge>
+                      <Badge color="zinc">{run.run_kind}</Badge>
+                      <div className="text-xs text-zinc-500">
+                        {formatLocalDateTime(run.created_at) ?? run.created_at}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-3 text-sm text-zinc-700 dark:text-zinc-300 md:grid-cols-3">
+                      <div>{t('sampledSubmissions', { count: run.submission_count })}</div>
+                      <div>{t('deterministicScores', { count: run.deterministic_score_count })}</div>
+                      <div>{t('calibrationMinSamplesLabel', { count: run.min_samples })}</div>
+                    </div>
+                    {run.highlights.length > 0 ? (
+                      <ul className="mt-3 space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
+                        {run.highlights.slice(0, 3).map((line, index) => (
+                          <li key={`${run.id}-highlight-${index}`}>• {line}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {run.recommendations.length > 0 ? (
+                      <div className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        {run.recommendations[0]}
+                      </div>
+                    ) : null}
+                    {run.error_text ? <div className="mt-3 text-sm text-rose-600 dark:text-rose-300">{run.error_text}</div> : null}
+                    {run.track_learnings.length > 0 ? (
+                      <div className="mt-3 max-h-36 overflow-y-auto pr-2 text-xs text-zinc-600 dark:text-zinc-400">
+                        {run.track_learnings.slice(0, 5).map((track) => (
+                          <div key={`${run.id}-${track.tree_slug}`} className="py-1">
+                            <span className="font-medium text-zinc-800 dark:text-zinc-200">{track.tree_slug}</span>{' '}
+                            ({track.domain}) · {track.submission_count} submissions · {track.top_score_rate.toFixed(1)}% 5/5
+                            {track.issues.length > 0 ? ` · ${track.issues.map(humanizeCalibrationIssue).join(', ')}` : ''}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="mt-3">
+                      <Button plain onClick={() => void markCalibrationRunRead(run.id)}>
+                        {t('markRunNotificationsRead')}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('calibrationNotifications')}</div>
+            {calibrationNotifications.length === 0 ? (
+              <Text className="mt-3 text-sm">{t('noCalibrationNotifications')}</Text>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {calibrationNotifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`rounded-2xl border px-4 py-3 text-sm ${
+                      notification.is_read
+                        ? 'border-stone-200 bg-stone-50 text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400'
+                        : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="font-semibold">{notification.title}</div>
+                      {!notification.is_read ? <Badge color="amber">{t('newLabel')}</Badge> : null}
+                    </div>
+                    {notification.body ? <div className="mt-1">{notification.body}</div> : null}
+                    <div className="mt-2 text-xs opacity-80">{formatLocalDateTime(notification.created_at) ?? notification.created_at}</div>
+                    {!notification.is_read ? (
+                      <div className="mt-2">
+                        <Button plain onClick={() => void markCalibrationNotificationRead(notification.id)}>
+                          {t('markRead')}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </WorkspaceCard>
 
       <WorkspaceCard>

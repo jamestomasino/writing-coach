@@ -344,6 +344,65 @@ export type AIProviderEvent = {
   created_at: string
 }
 
+export type CalibrationTrackLearning = {
+  tree_slug: string
+  domain: string
+  submission_count: number
+  deterministic_score_count: number
+  top_score_rate: number
+  average_score: number
+  issues: string[]
+}
+
+export type CalibrationDomainLearning = {
+  domain: string
+  track_count: number
+  submission_count: number
+  deterministic_score_count: number
+  top_score_rate: number
+  average_score: number
+  issues: string[]
+}
+
+export type CalibrationRun = {
+  id: number
+  run_kind: string
+  status: 'running' | 'succeeded' | 'failed' | string
+  min_samples: number
+  limit_per_track: number
+  submission_count: number
+  deterministic_score_count: number
+  track_learnings: CalibrationTrackLearning[]
+  domain_learnings: CalibrationDomainLearning[]
+  highlights: string[]
+  recommendations: string[]
+  error_text?: string
+  started_at: string
+  completed_at?: string
+  created_at: string
+}
+
+export type AdminNotification = {
+  id: number
+  kind: string
+  title: string
+  body: string
+  related_run_id?: number
+  is_read: boolean
+  created_at: string
+  read_at?: string
+  payload?: Record<string, unknown>
+}
+
+export type CalibrationSettings = {
+  enabled: boolean
+  interval_hours: number
+  min_samples: number
+  limit_per_track: number
+  background_active: boolean
+  running: boolean
+}
+
 export type OnboardingProfile = {
   writing_language: string
   writing_type: string

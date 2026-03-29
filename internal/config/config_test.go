@@ -78,6 +78,10 @@ func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
 	t.Setenv("WRITING_COACH_AI_VALIDATE_LIMIT_PER_MINUTE", "3")
 	t.Setenv("WRITING_COACH_AI_VALIDATE_GLOBAL_LIMIT_PER_MINUTE", "12")
 	t.Setenv("WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS", "21")
+	t.Setenv("WRITING_COACH_CALIBRATION_MAINTENANCE_ENABLED", "false")
+	t.Setenv("WRITING_COACH_CALIBRATION_MAINTENANCE_INTERVAL", "168h")
+	t.Setenv("WRITING_COACH_CALIBRATION_MIN_SAMPLES", "25")
+	t.Setenv("WRITING_COACH_CALIBRATION_LIMIT_PER_TRACK", "150")
 
 	loaded, err := Load(root)
 	if err != nil {
@@ -91,6 +95,18 @@ func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
 	}
 	if loaded.AIProviderEventRetentionDays != 21 {
 		t.Fatalf("provider event retention days = %d", loaded.AIProviderEventRetentionDays)
+	}
+	if loaded.CalibrationMaintenanceEnabled {
+		t.Fatal("expected calibration maintenance to be disabled by env")
+	}
+	if loaded.CalibrationMaintenanceInterval != 168*time.Hour {
+		t.Fatalf("calibration maintenance interval = %s", loaded.CalibrationMaintenanceInterval)
+	}
+	if loaded.CalibrationMinSamples != 25 {
+		t.Fatalf("calibration min samples = %d", loaded.CalibrationMinSamples)
+	}
+	if loaded.CalibrationLimitPerTrack != 150 {
+		t.Fatalf("calibration limit per track = %d", loaded.CalibrationLimitPerTrack)
 	}
 }
 

@@ -4538,6 +4538,114 @@ func TestAdminAIProviderEventsEndpointFiltersResults(t *testing.T) {
 	}
 }
 
+func TestAdminCalibrationEndpointsRunAndReadNotifications(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	user, err := harness.Store.UserBySlug(context.Background(), "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(context.Background(), "story-craft-track")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	exerciseID, err := harness.Store.SaveExercise(context.Background(), domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Calibration sample",
+		Brief:           "Sample brief",
+		Constraints:     []string{"single paragraph"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
+		SuccessCriteria: []string{"clear turn"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(context.Background(), domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "A focused scene with a clear turn.",
+		WordCount:  8,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	if _, err := harness.Store.SQL.ExecContext(context.Background(), `
+		INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, submissionID, "narrative clarity", 4, "deterministic", "det-v2", `{}`); err != nil {
+		t.Fatalf("insert deterministic score: %v", err)
+	}
+
+	runResp, err := http.Post(testServer.URL+"/api/admin/calibration/run", "application/json", nil)
+	if err != nil {
+		t.Fatalf("post calibration run: %v", err)
+	}
+	defer runResp.Body.Close()
+	if runResp.StatusCode != http.StatusCreated {
+		t.Fatalf("calibration run status = %d", runResp.StatusCode)
+	}
+
+	var runPayload struct {
+		Run struct {
+			ID     int64  `json:"id"`
+			Status string `json:"status"`
+		} `json:"run"`
+	}
+	if err := json.NewDecoder(runResp.Body).Decode(&runPayload); err != nil {
+		t.Fatalf("decode run payload: %v", err)
+	}
+	if runPayload.Run.ID == 0 {
+		t.Fatal("expected run id")
+	}
+	if runPayload.Run.Status != "succeeded" {
+		t.Fatalf("run status = %q", runPayload.Run.Status)
+	}
+
+	dashboardResp, err := http.Get(testServer.URL + "/api/admin/calibration")
+	if err != nil {
+		t.Fatalf("get calibration dashboard: %v", err)
+	}
+	defer dashboardResp.Body.Close()
+	if dashboardResp.StatusCode != http.StatusOK {
+		t.Fatalf("calibration dashboard status = %d", dashboardResp.StatusCode)
+	}
+	var dashboardPayload struct {
+		UnreadCount   int `json:"unread_count"`
+		Notifications []struct {
+			ID     int64 `json:"id"`
+			IsRead bool  `json:"is_read"`
+		} `json:"notifications"`
+	}
+	if err := json.NewDecoder(dashboardResp.Body).Decode(&dashboardPayload); err != nil {
+		t.Fatalf("decode calibration dashboard payload: %v", err)
+	}
+	if dashboardPayload.UnreadCount < 1 {
+		t.Fatalf("unread_count = %d", dashboardPayload.UnreadCount)
+	}
+	if len(dashboardPayload.Notifications) == 0 {
+		t.Fatal("expected calibration notification")
+	}
+
+	readReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/admin/calibration/runs/%d/read", testServer.URL, runPayload.Run.ID), nil)
+	if err != nil {
+		t.Fatalf("build run read request: %v", err)
+	}
+	readResp, err := http.DefaultClient.Do(readReq)
+	if err != nil {
+		t.Fatalf("post run read: %v", err)
+	}
+	defer readResp.Body.Close()
+	if readResp.StatusCode != http.StatusOK {
+		t.Fatalf("run read status = %d", readResp.StatusCode)
+	}
+}
+
 func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	user, err := harness.Store.UserBySlug(context.Background(), "tester")

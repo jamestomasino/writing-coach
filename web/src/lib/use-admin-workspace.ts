@@ -1,7 +1,22 @@
 'use client'
 
 import { getAdminAIProviderEvents, getSession, listAdmins, listUsers } from '@/lib/api'
-import type { AIProviderEvent, AIProviderEventFilters, AIProviderEventSummary, AuthSession, UserRecord } from '@/lib/types'
+import {
+  getAdminCalibrationDashboard,
+  markAdminCalibrationNotificationRead,
+  markAdminCalibrationRunRead,
+  runAdminCalibration,
+} from '@/lib/api-admin'
+import type {
+  AIProviderEvent,
+  AIProviderEventFilters,
+  AIProviderEventSummary,
+  AdminNotification,
+  AuthSession,
+  CalibrationRun,
+  CalibrationSettings,
+  UserRecord,
+} from '@/lib/types'
 import { useEffect, useState } from 'react'
 
 export function useAdminWorkspace() {
@@ -17,6 +32,12 @@ export function useAdminWorkspace() {
   const [selectedProvider, setSelectedProvider] = useState('')
   const [selectedEvent, setSelectedEvent] = useState('')
   const [loadingProviderActivity, setLoadingProviderActivity] = useState(false)
+  const [calibrationRuns, setCalibrationRuns] = useState<CalibrationRun[]>([])
+  const [calibrationNotifications, setCalibrationNotifications] = useState<AdminNotification[]>([])
+  const [calibrationUnreadCount, setCalibrationUnreadCount] = useState(0)
+  const [calibrationSettings, setCalibrationSettings] = useState<CalibrationSettings | null>(null)
+  const [loadingCalibration, setLoadingCalibration] = useState(false)
+  const [runningCalibration, setRunningCalibration] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -30,7 +51,12 @@ export function useAdminWorkspace() {
         if (!sessionData.is_admin) {
           return
         }
-        const [adminData, userData, providerData] = await Promise.all([listAdmins(), listUsers(), getAdminAIProviderEvents()])
+        const [adminData, userData, providerData, calibrationData] = await Promise.all([
+          listAdmins(),
+          listUsers(),
+          getAdminAIProviderEvents(),
+          getAdminCalibrationDashboard(),
+        ])
         if (!cancelled) {
           setAdmins(adminData.admins)
           setUsers(userData)
@@ -40,6 +66,10 @@ export function useAdminWorkspace() {
           setSelectedHours(String(providerData.filters.hours))
           setSelectedProvider(providerData.filters.provider ?? '')
           setSelectedEvent(providerData.filters.event ?? '')
+          setCalibrationRuns(calibrationData.runs)
+          setCalibrationNotifications(calibrationData.notifications)
+          setCalibrationUnreadCount(calibrationData.unread_count)
+          setCalibrationSettings(calibrationData.settings)
         }
       } catch (err) {
         if (!cancelled) {
@@ -90,6 +120,54 @@ export function useAdminWorkspace() {
     }
   }, [loading, selectedEvent, selectedHours, selectedProvider, session?.is_admin])
 
+  async function refreshCalibrationDashboard() {
+    if (!session?.is_admin) {
+      return
+    }
+    try {
+      setLoadingCalibration(true)
+      const calibrationData = await getAdminCalibrationDashboard()
+      setCalibrationRuns(calibrationData.runs)
+      setCalibrationNotifications(calibrationData.notifications)
+      setCalibrationUnreadCount(calibrationData.unread_count)
+      setCalibrationSettings(calibrationData.settings)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load calibration dashboard')
+    } finally {
+      setLoadingCalibration(false)
+    }
+  }
+
+  async function triggerCalibrationRun() {
+    try {
+      setRunningCalibration(true)
+      await runAdminCalibration()
+      await refreshCalibrationDashboard()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not trigger calibration run')
+    } finally {
+      setRunningCalibration(false)
+    }
+  }
+
+  async function markCalibrationNotificationRead(notificationID: number) {
+    try {
+      await markAdminCalibrationNotificationRead(notificationID)
+      await refreshCalibrationDashboard()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not mark notification as read')
+    }
+  }
+
+  async function markCalibrationRunRead(runID: number) {
+    try {
+      await markAdminCalibrationRunRead(runID)
+      await refreshCalibrationDashboard()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not mark run as read')
+    }
+  }
+
   return {
     loading,
     error,
@@ -107,5 +185,15 @@ export function useAdminWorkspace() {
     selectedEvent,
     setSelectedEvent,
     loadingProviderActivity,
+    calibrationRuns,
+    calibrationNotifications,
+    calibrationUnreadCount,
+    calibrationSettings,
+    loadingCalibration,
+    runningCalibration,
+    triggerCalibrationRun,
+    markCalibrationNotificationRead,
+    markCalibrationRunRead,
+    refreshCalibrationDashboard,
   }
 }

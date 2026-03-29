@@ -33,6 +33,7 @@ type Server struct {
 	Curriculum        curriculum.Service
 	validationLimiter *aiValidationLimiter
 	eventRecorder     *aiProviderEventRecorder
+	calibration       *calibrationMaintainer
 }
 
 const serverShutdownTimeout = 10 * time.Second
@@ -80,6 +81,10 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/admins", s.handleAdminsCreate)
 	mux.HandleFunc("DELETE /api/admins/{email}", s.handleAdminsDelete)
 	mux.HandleFunc("GET /api/admin/ai-provider-events", s.handleAdminAIProviderEvents)
+	mux.HandleFunc("GET /api/admin/calibration", s.handleAdminCalibrationDashboard)
+	mux.HandleFunc("POST /api/admin/calibration/run", s.handleAdminCalibrationRun)
+	mux.HandleFunc("POST /api/admin/calibration/notifications/{id}/read", s.handleAdminCalibrationNotificationRead)
+	mux.HandleFunc("POST /api/admin/calibration/runs/{id}/read", s.handleAdminCalibrationRunRead)
 	mux.HandleFunc("GET /api/users", s.handleUsersList)
 	mux.HandleFunc("POST /api/users", s.handleUsersCreate)
 	mux.HandleFunc("GET /api/users/{slug}", s.handleUserGet)

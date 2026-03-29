@@ -1,0 +1,298 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/tomasino/writing-coach/internal/analyzer"
+	"github.com/tomasino/writing-coach/internal/config"
+	"github.com/tomasino/writing-coach/internal/db"
+	"github.com/tomasino/writing-coach/internal/domain"
+)
+
+const calibrationRunKindScheduled = "scheduled"
+const calibrationRunKindManual = "manual"
+
+const calibrationStatusRunning = "running"
+const calibrationStatusSucceeded = "succeeded"
+const calibrationStatusFailed = "failed"
+
+const adminNotificationKindCalibrationCompleted = "calibration_run_completed"
+
+type calibrationMaintainer struct {
+	store *db.Store
+	cfg   config.Config
+
+	once sync.Once
+	mu   sync.Mutex
+
+	running bool
+}
+
+func newCalibrationMaintainer(store *db.Store, cfg config.Config) *calibrationMaintainer {
+	return &calibrationMaintainer{store: store, cfg: cfg}
+}
+
+func (m *calibrationMaintainer) start(ctx context.Context) {
+	if m == nil || m.store == nil || !m.cfg.CalibrationMaintenanceEnabled {
+		return
+	}
+	m.once.Do(func() {
+		go m.run(ctx)
+	})
+}
+
+func (m *calibrationMaintainer) run(ctx context.Context) {
+	interval := m.cfg.CalibrationMaintenanceInterval
+	if interval <= 0 {
+		interval = 30 * 24 * time.Hour
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if _, err := m.RunOnce(ctx, calibrationRunKindScheduled, 0); err != nil {
+				log.Printf("calibration maintenance run failed: %v", err)
+			}
+		}
+	}
+}
+
+func (m *calibrationMaintainer) IsRunning() bool {
+	if m == nil {
+		return false
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.running
+}
+
+func (m *calibrationMaintainer) RunOnce(ctx context.Context, runKind string, triggeredByUserID int64) (domain.CalibrationRun, error) {
+	if m == nil || m.store == nil {
+		return domain.CalibrationRun{}, fmt.Errorf("calibration maintainer unavailable")
+	}
+
+	m.mu.Lock()
+	if m.running {
+		m.mu.Unlock()
+		return domain.CalibrationRun{}, fmt.Errorf("calibration run already in progress")
+	}
+	m.running = true
+	m.mu.Unlock()
+	defer func() {
+		m.mu.Lock()
+		m.running = false
+		m.mu.Unlock()
+	}()
+
+	run, err := m.store.CreateCalibrationRun(ctx, runKind, triggeredByUserID, m.cfg.CalibrationMinSamples, m.cfg.CalibrationLimitPerTrack)
+	if err != nil {
+		return domain.CalibrationRun{}, err
+	}
+
+	runCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	snapshots, err := m.store.ListCalibrationTrackSnapshots(runCtx, m.cfg.DefaultTreeSlug, run.LimitPerTrack)
+	if err != nil {
+		run.Status = calibrationStatusFailed
+		run.ErrorText = err.Error()
+		run.CompletedAt = time.Now().UTC()
+		_ = m.store.FinalizeCalibrationRun(ctx, run)
+		_ = m.publishRunNotification(ctx, run)
+		return run, err
+	}
+
+	run.Status = calibrationStatusSucceeded
+	run.CompletedAt = time.Now().UTC()
+	run.TrackLearnings, run.DomainLearnings, run.Highlights, run.Recommendations = analyzeCalibrationSnapshots(snapshots, run.MinSamples)
+	for _, item := range run.TrackLearnings {
+		run.SubmissionCount += item.SubmissionCount
+		run.DeterministicScoreCount += item.DeterministicScoreCount
+	}
+	if len(run.TrackLearnings) == 0 {
+		run.Highlights = append(run.Highlights, "No deterministic calibration data is available yet.")
+		run.Recommendations = append(run.Recommendations, "Wait for more reviewed submissions, then rerun calibration.")
+	}
+	if err := m.store.FinalizeCalibrationRun(ctx, run); err != nil {
+		return run, err
+	}
+	if err := m.publishRunNotification(ctx, run); err != nil {
+		log.Printf("calibration run notification failed run=%d err=%v", run.ID, err)
+	}
+	return run, nil
+}
+
+func (m *calibrationMaintainer) publishRunNotification(ctx context.Context, run domain.CalibrationRun) error {
+	highlight := ""
+	if len(run.Highlights) > 0 {
+		highlight = run.Highlights[0]
+	}
+	title := "Calibration maintenance run completed"
+	if run.Status == calibrationStatusFailed {
+		title = "Calibration maintenance run failed"
+		if strings.TrimSpace(run.ErrorText) != "" {
+			highlight = run.ErrorText
+		}
+	}
+	payload, err := json.Marshal(map[string]any{
+		"run_id":          run.ID,
+		"status":          run.Status,
+		"highlights":      run.Highlights,
+		"recommendations": run.Recommendations,
+	})
+	if err != nil {
+		return err
+	}
+	return m.store.SaveAdminNotification(ctx, domain.AdminNotification{
+		Kind:         adminNotificationKindCalibrationCompleted,
+		Title:        title,
+		Body:         highlight,
+		PayloadJSON:  string(payload),
+		RelatedRunID: run.ID,
+		IsRead:       false,
+		CreatedAt:    time.Now().UTC(),
+	})
+}
+
+func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, minSamples int) ([]domain.CalibrationTrackLearning, []domain.CalibrationDomainLearning, []string, []string) {
+	tracks := make([]domain.CalibrationTrackLearning, 0, len(snapshots))
+	domainRollup := map[string]*domain.CalibrationDomainLearning{}
+
+	insufficientTracks := 0
+	missingDeterministicTracks := 0
+	saturationTracks := 0
+	scarcityTracks := 0
+
+	for _, snapshot := range snapshots {
+		domainName := calibrationDomainForTrack(snapshot.TreeSlug)
+		topScoreRate := 0.0
+		if snapshot.DeterministicScoreCount > 0 {
+			topScoreRate = (float64(snapshot.TopScoreCount) / float64(snapshot.DeterministicScoreCount)) * 100
+		}
+		issues := make([]string, 0, 4)
+		if snapshot.SubmissionCount < minSamples {
+			issues = append(issues, "insufficient_samples")
+			insufficientTracks++
+		}
+		if snapshot.DeterministicScoreCount == 0 {
+			issues = append(issues, "no_deterministic_scores")
+			missingDeterministicTracks++
+		}
+		if snapshot.DeterministicScoreCount >= minSamples && topScoreRate > 40 {
+			issues = append(issues, "top_score_saturation")
+			saturationTracks++
+		}
+		if snapshot.DeterministicScoreCount >= minSamples && topScoreRate < 5 {
+			issues = append(issues, "top_score_scarcity")
+			scarcityTracks++
+		}
+
+		track := domain.CalibrationTrackLearning{
+			TreeSlug:                snapshot.TreeSlug,
+			Domain:                  domainName,
+			SubmissionCount:         snapshot.SubmissionCount,
+			DeterministicScoreCount: snapshot.DeterministicScoreCount,
+			TopScoreRate:            topScoreRate,
+			AverageScore:            snapshot.AverageScore,
+			Issues:                  issues,
+		}
+		tracks = append(tracks, track)
+
+		domainAgg, ok := domainRollup[domainName]
+		if !ok {
+			domainAgg = &domain.CalibrationDomainLearning{Domain: domainName}
+			domainRollup[domainName] = domainAgg
+		}
+		domainAgg.TrackCount++
+		domainAgg.SubmissionCount += track.SubmissionCount
+		domainAgg.DeterministicScoreCount += track.DeterministicScoreCount
+		domainAgg.TopScoreRate += track.TopScoreRate
+		domainAgg.AverageScore += track.AverageScore
+	}
+
+	domains := make([]domain.CalibrationDomainLearning, 0, len(domainRollup))
+	for _, item := range domainRollup {
+		if item.TrackCount > 0 {
+			item.TopScoreRate = item.TopScoreRate / float64(item.TrackCount)
+			item.AverageScore = item.AverageScore / float64(item.TrackCount)
+		}
+		if item.SubmissionCount < minSamples {
+			item.Issues = append(item.Issues, "insufficient_samples")
+		}
+		if item.DeterministicScoreCount == 0 {
+			item.Issues = append(item.Issues, "no_deterministic_scores")
+		}
+		domains = append(domains, *item)
+	}
+
+	sort.Slice(tracks, func(i, j int) bool {
+		if tracks[i].SubmissionCount == tracks[j].SubmissionCount {
+			return tracks[i].TreeSlug < tracks[j].TreeSlug
+		}
+		return tracks[i].SubmissionCount > tracks[j].SubmissionCount
+	})
+	sort.Slice(domains, func(i, j int) bool {
+		if domains[i].SubmissionCount == domains[j].SubmissionCount {
+			return domains[i].Domain < domains[j].Domain
+		}
+		return domains[i].SubmissionCount > domains[j].SubmissionCount
+	})
+
+	highlights := make([]string, 0, 4)
+	if insufficientTracks > 0 {
+		highlights = append(highlights, fmt.Sprintf("%d track(s) are below the minimum sample threshold (%d).", insufficientTracks, minSamples))
+	}
+	if missingDeterministicTracks > 0 {
+		highlights = append(highlights, fmt.Sprintf("%d track(s) have no deterministic scores in the sampled window.", missingDeterministicTracks))
+	}
+	if saturationTracks > 0 {
+		highlights = append(highlights, fmt.Sprintf("%d track(s) show high 5/5 saturation (>40%%).", saturationTracks))
+	}
+	if scarcityTracks > 0 {
+		highlights = append(highlights, fmt.Sprintf("%d track(s) show low 5/5 rates (<5%%).", scarcityTracks))
+	}
+	if len(highlights) == 0 {
+		highlights = append(highlights, "Calibration signals look stable across sampled tracks.")
+	}
+
+	recommendations := make([]string, 0, 5)
+	if insufficientTracks > 0 {
+		recommendations = append(recommendations, "Collect more submissions before making threshold changes for under-sampled tracks.")
+	}
+	if missingDeterministicTracks > 0 {
+		recommendations = append(recommendations, "Verify deterministic scoring coverage for tracks with missing score rows.")
+	}
+	if saturationTracks > 0 {
+		recommendations = append(recommendations, "Review top-score gates on saturated tracks to reduce false positives.")
+	}
+	if scarcityTracks > 0 {
+		recommendations = append(recommendations, "Review strict gate criteria on low-5/5 tracks to reduce false negatives.")
+	}
+	if len(recommendations) == 0 {
+		recommendations = append(recommendations, "No immediate threshold tuning is recommended.")
+	}
+
+	return tracks, domains, highlights, recommendations
+}
+
+func calibrationDomainForTrack(treeSlug string) string {
+	opts := analyzer.ContextOptions{TreeSlug: treeSlug, WritingType: writingTypeForTreeSlug(treeSlug)}
+	return analyzer.DomainForContext(opts)
+}
+
+func writingTypeForTreeSlug(treeSlug string) string {
+	if tree, ok := domain.BuiltInTreeBySlug(treeSlug); ok {
+		return tree.Title
+	}
+	return treeSlug
+}

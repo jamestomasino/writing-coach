@@ -36,6 +36,10 @@ type Config struct {
 	AIValidateLimitPerMinute       int           `json:"ai_validate_limit_per_minute"`
 	AIValidateGlobalLimitPerMinute int           `json:"ai_validate_global_limit_per_minute"`
 	AIProviderEventRetentionDays   int           `json:"ai_provider_event_retention_days"`
+	CalibrationMaintenanceEnabled  bool          `json:"calibration_maintenance_enabled"`
+	CalibrationMaintenanceInterval time.Duration `json:"-"`
+	CalibrationMinSamples          int           `json:"calibration_min_samples"`
+	CalibrationLimitPerTrack       int           `json:"calibration_limit_per_track"`
 	ValeBinary                     string        `json:"vale_binary"`
 	LanguageToolURL                string        `json:"languagetool_url"`
 	NLPAnalyzerURL                 string        `json:"nlp_analyzer_url"`
@@ -60,6 +64,10 @@ func Default(projectRoot string) Config {
 		AIValidateLimitPerMinute:       6,
 		AIValidateGlobalLimitPerMinute: 60,
 		AIProviderEventRetentionDays:   30,
+		CalibrationMaintenanceEnabled:  true,
+		CalibrationMaintenanceInterval: 30 * 24 * time.Hour,
+		CalibrationMinSamples:          50,
+		CalibrationLimitPerTrack:       200,
 	}
 }
 
@@ -106,6 +114,15 @@ func Load(projectRoot string) (Config, error) {
 	if cfg.AIProviderEventRetentionDays <= 0 {
 		cfg.AIProviderEventRetentionDays = 30
 	}
+	if cfg.CalibrationMaintenanceInterval <= 0 {
+		cfg.CalibrationMaintenanceInterval = 30 * 24 * time.Hour
+	}
+	if cfg.CalibrationMinSamples <= 0 {
+		cfg.CalibrationMinSamples = 50
+	}
+	if cfg.CalibrationLimitPerTrack <= 0 {
+		cfg.CalibrationLimitPerTrack = 200
+	}
 	if cfg.DefaultUserSlug == "" {
 		cfg.DefaultUserSlug = "default"
 	}
@@ -141,6 +158,18 @@ func Load(projectRoot string) (Config, error) {
 	}
 	if value := os.Getenv("WRITING_COACH_AI_PROVIDER_EVENT_RETENTION_DAYS"); value != "" {
 		cfg.AIProviderEventRetentionDays = parsePositiveInt(value, cfg.AIProviderEventRetentionDays)
+	}
+	if value := os.Getenv("WRITING_COACH_CALIBRATION_MAINTENANCE_ENABLED"); value != "" {
+		cfg.CalibrationMaintenanceEnabled = parseBool(value, cfg.CalibrationMaintenanceEnabled)
+	}
+	if value := os.Getenv("WRITING_COACH_CALIBRATION_MAINTENANCE_INTERVAL"); value != "" {
+		cfg.CalibrationMaintenanceInterval = parseDuration(value, cfg.CalibrationMaintenanceInterval)
+	}
+	if value := os.Getenv("WRITING_COACH_CALIBRATION_MIN_SAMPLES"); value != "" {
+		cfg.CalibrationMinSamples = parsePositiveInt(value, cfg.CalibrationMinSamples)
+	}
+	if value := os.Getenv("WRITING_COACH_CALIBRATION_LIMIT_PER_TRACK"); value != "" {
+		cfg.CalibrationLimitPerTrack = parsePositiveInt(value, cfg.CalibrationLimitPerTrack)
 	}
 	if value := os.Getenv("VALE_BINARY"); value != "" {
 		cfg.ValeBinary = value
@@ -208,6 +237,10 @@ func Save(cfg Config) error {
 		AIValidateLimitPerMinute       int      `json:"ai_validate_limit_per_minute"`
 		AIValidateGlobalLimitPerMinute int      `json:"ai_validate_global_limit_per_minute"`
 		AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
+		CalibrationMaintenanceEnabled  bool     `json:"calibration_maintenance_enabled"`
+		CalibrationMaintenanceInterval string   `json:"calibration_maintenance_interval"`
+		CalibrationMinSamples          int      `json:"calibration_min_samples"`
+		CalibrationLimitPerTrack       int      `json:"calibration_limit_per_track"`
 		ValeBinary                     string   `json:"vale_binary"`
 		LanguageToolURL                string   `json:"languagetool_url"`
 		NLPAnalyzerURL                 string   `json:"nlp_analyzer_url"`
@@ -228,6 +261,10 @@ func Save(cfg Config) error {
 		AIValidateLimitPerMinute:       cfg.AIValidateLimitPerMinute,
 		AIValidateGlobalLimitPerMinute: cfg.AIValidateGlobalLimitPerMinute,
 		AIProviderEventRetentionDays:   cfg.AIProviderEventRetentionDays,
+		CalibrationMaintenanceEnabled:  cfg.CalibrationMaintenanceEnabled,
+		CalibrationMaintenanceInterval: cfg.CalibrationMaintenanceInterval.String(),
+		CalibrationMinSamples:          cfg.CalibrationMinSamples,
+		CalibrationLimitPerTrack:       cfg.CalibrationLimitPerTrack,
 		ValeBinary:                     cfg.ValeBinary,
 		LanguageToolURL:                cfg.LanguageToolURL,
 		NLPAnalyzerURL:                 cfg.NLPAnalyzerURL,

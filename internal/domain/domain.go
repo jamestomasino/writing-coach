@@ -53,6 +53,66 @@ type AIProviderEventSummary struct {
 	CategoryCounts      []AIProviderEventCount
 }
 
+type CalibrationTrackLearning struct {
+	TreeSlug                string
+	Domain                  string
+	SubmissionCount         int
+	DeterministicScoreCount int
+	TopScoreRate            float64
+	AverageScore            float64
+	Issues                  []string
+}
+
+type CalibrationDomainLearning struct {
+	Domain                  string
+	TrackCount              int
+	SubmissionCount         int
+	DeterministicScoreCount int
+	TopScoreRate            float64
+	AverageScore            float64
+	Issues                  []string
+}
+
+type CalibrationRun struct {
+	ID                      int64
+	RunKind                 string
+	Status                  string
+	TriggeredByUserID       int64
+	MinSamples              int
+	LimitPerTrack           int
+	SubmissionCount         int
+	DeterministicScoreCount int
+	TrackLearnings          []CalibrationTrackLearning
+	DomainLearnings         []CalibrationDomainLearning
+	Highlights              []string
+	Recommendations         []string
+	ErrorText               string
+	StartedAt               time.Time
+	CompletedAt             time.Time
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+}
+
+type AdminNotification struct {
+	ID           int64
+	Kind         string
+	Title        string
+	Body         string
+	PayloadJSON  string
+	RelatedRunID int64
+	IsRead       bool
+	CreatedAt    time.Time
+	ReadAt       time.Time
+}
+
+type CalibrationTrackSnapshot struct {
+	TreeSlug                string
+	SubmissionCount         int
+	DeterministicScoreCount int
+	TopScoreCount           int
+	AverageScore            float64
+}
+
 type TGOTree struct {
 	ID          int64
 	Slug        string
