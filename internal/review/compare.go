@@ -15,12 +15,24 @@ type Comparison struct {
 	RemovedWords         []string
 	PersistingWeaknesses []string
 	AddressedWeaknesses  []string
+	SkillSetMismatch     bool
+	SkillDeltas          []SkillDelta
 	Summary              string
+}
+
+type SkillDelta struct {
+	Skill          string   `json:"skill"`
+	BaselineScore  int      `json:"baseline_score"`
+	CurrentScore   int      `json:"current_score"`
+	Delta          int      `json:"delta"`
+	Direction      string   `json:"direction"`
+	EvidenceQuotes []string `json:"evidence_quotes,omitempty"`
 }
 
 func CompareSubmissions(current, baseline domain.Submission, currentReview domain.Review, baselineReview domain.Review) Comparison {
 	added, removed := diffWordSets(baseline.Content, current.Content)
 	persisting, addressed := weaknessDelta(baselineReview.Weaknesses, currentReview.Weaknesses)
+	skillDeltas, skillSetMismatch := scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations)
 
 	summary := "Revision changes are mixed."
 	switch {
@@ -40,6 +52,8 @@ func CompareSubmissions(current, baseline domain.Submission, currentReview domai
 		RemovedWords:         removed,
 		PersistingWeaknesses: persisting,
 		AddressedWeaknesses:  addressed,
+		SkillSetMismatch:     skillSetMismatch,
+		SkillDeltas:          skillDeltas,
 		Summary:              summary,
 	}
 }
@@ -113,4 +127,119 @@ func normalizeWeaknessKey(value string) string {
 		parts = parts[:6]
 	}
 	return strings.Join(parts, " ")
+}
+
+func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.ReviewAnnotation) ([]SkillDelta, bool) {
+	baselineMap := authoritativeSkillMap(baseline)
+	currentMap := authoritativeSkillMap(current)
+	if len(currentMap) == 0 {
+		return nil, false
+	}
+	skillSetMismatch := !sameSkillKeys(baselineMap, currentMap)
+	keys := make([]string, 0, len(currentMap))
+	for skill := range currentMap {
+		if _, ok := baselineMap[skill]; ok {
+			keys = append(keys, skill)
+		}
+	}
+	sort.Strings(keys)
+	if len(keys) > 8 {
+		keys = keys[:8]
+	}
+	out := make([]SkillDelta, 0, len(keys))
+	for _, skill := range keys {
+		cur := currentMap[skill]
+		base := baselineMap[skill]
+		delta := cur - base
+		direction := "flat"
+		switch {
+		case delta > 0:
+			direction = "up"
+		case delta < 0:
+			direction = "down"
+		}
+		out = append(out, SkillDelta{
+			Skill:          skill,
+			BaselineScore:  base,
+			CurrentScore:   cur,
+			Delta:          delta,
+			Direction:      direction,
+			EvidenceQuotes: evidenceQuotesForSkill(skill, annotations),
+		})
+	}
+	return out, skillSetMismatch
+}
+
+func authoritativeSkillMap(scores []domain.SkillScore) map[string]int {
+	primary := map[string]int{}
+	legacy := map[string]int{}
+	fallback := map[string]int{}
+	for _, score := range scores {
+		skill := strings.TrimSpace(score.Skill)
+		if skill == "" {
+			continue
+		}
+		switch {
+		case score.ScoreSource == "deterministic":
+			primary[skill] = score.Score
+		case strings.Contains(score.ScoreSource, "legacy") || strings.TrimSpace(score.ScoreSource) == "":
+			legacy[skill] = score.Score
+		default:
+			if _, ok := fallback[skill]; !ok {
+				fallback[skill] = score.Score
+			}
+		}
+	}
+	if len(primary) > 0 {
+		return primary
+	}
+	if len(legacy) > 0 {
+		return legacy
+	}
+	return fallback
+}
+
+func evidenceQuotesForSkill(skill string, annotations []domain.ReviewAnnotation) []string {
+	parts := strings.Fields(strings.ToLower(skill))
+	keywords := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.Trim(part, ".,;:!?\"'()[]{}")
+		if len(part) >= 4 {
+			keywords = append(keywords, part)
+		}
+	}
+	if len(keywords) == 0 || len(annotations) == 0 {
+		return nil
+	}
+	out := make([]string, 0, 2)
+	seen := map[string]bool{}
+	for _, ann := range annotations {
+		haystack := strings.ToLower(strings.TrimSpace(ann.Category + " " + ann.Comment + " " + ann.TGOCode))
+		for _, key := range keywords {
+			if strings.Contains(haystack, key) {
+				quote := strings.TrimSpace(ann.Quote)
+				if quote != "" && !seen[quote] {
+					out = append(out, quote)
+					seen[quote] = true
+				}
+				break
+			}
+		}
+		if len(out) == 2 {
+			break
+		}
+	}
+	return out
+}
+
+func sameSkillKeys(left, right map[string]int) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for key := range left {
+		if _, ok := right[key]; !ok {
+			return false
+		}
+	}
+	return true
 }

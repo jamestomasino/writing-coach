@@ -108,6 +108,41 @@ export function CompareView({ submissionId }: { submissionId: number }) {
         </WorkspaceCard>
       </div>
 
+      {comparison.skill_deltas && comparison.skill_deltas.length > 0 ? (
+        <WorkspaceCard>
+          <CardHeader eyebrow={t('scoreDeltaEyebrow')} title={t('scoreDeltaTitle')} description={t('scoreDeltaDescription')} />
+          {comparison.skill_set_mismatch ? (
+            <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+              {t('scoreDeltaMismatch')}
+            </div>
+          ) : null}
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {comparison.skill_deltas.map((item) => (
+              <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold capitalize text-zinc-900 dark:text-white">{item.skill}</div>
+                  <Badge color={item.delta > 0 ? 'green' : item.delta < 0 ? 'amber' : 'zinc'}>
+                    {item.delta > 0 ? `+${item.delta}` : item.delta}
+                  </Badge>
+                </div>
+                <Text className="mt-2 text-sm">
+                  {t('scoreDeltaLine', { baseline: item.baseline_score, current: item.current_score })}
+                </Text>
+                {item.evidence_quotes && item.evidence_quotes.length > 0 ? (
+                  <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                    {item.evidence_quotes.map((quote) => (
+                      <li key={quote}>“{quote}”</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Text className="mt-3 text-sm">{t('scoreDeltaNoEvidence')}</Text>
+                )}
+              </div>
+            ))}
+          </div>
+        </WorkspaceCard>
+      ) : null}
+
       {review ? (
         <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
           <WorkspaceCard>
