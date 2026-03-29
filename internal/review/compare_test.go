@@ -11,8 +11,8 @@ func TestCompareSubmissions(t *testing.T) {
 	current := domain.Submission{ID: 2, WordCount: 120, Content: "The river token broke and the city mourned beneath the hall rafters."}
 	baselineReview := domain.Review{
 		SkillScores: []domain.SkillScore{
-			{Skill: "narrative clarity", Score: 2, ScoreSource: "deterministic"},
-			{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+			{Skill: "narrative clarity", Score: 2, ScoreSource: "deterministic", ScoreEvidenceJSON: `{"applied_rules":["top score gate: nlp_unique_token_ratio >= 54 required"]}`},
+			{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic", ScoreEvidenceJSON: `{"applied_rules":["finding pressure <= 2 required"]}`},
 		},
 		Weaknesses: []string{
 			"Adverb density is elevated; check whether stronger verbs can carry more of the weight.",
@@ -21,8 +21,8 @@ func TestCompareSubmissions(t *testing.T) {
 	}
 	currentReview := domain.Review{
 		SkillScores: []domain.SkillScore{
-			{Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic"},
-			{Skill: "scene architecture", Score: 2, ScoreSource: "deterministic"},
+			{Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic", ScoreEvidenceJSON: `{"applied_rules":["top score gate: nlp_unique_token_ratio >= 54 required"]}`},
+			{Skill: "scene architecture", Score: 2, ScoreSource: "deterministic", ScoreEvidenceJSON: `{"applied_rules":["finding pressure <= 2 required"]}`},
 		},
 		Annotations: []domain.ReviewAnnotation{
 			{Quote: "The river token broke and the city mourned beneath the hall rafters.", Category: "clarity", Comment: "Narrative clarity improved around causal flow."},
@@ -48,6 +48,25 @@ func TestCompareSubmissions(t *testing.T) {
 	}
 	if got.SkillDeltas[0].Skill != "narrative clarity" && got.SkillDeltas[1].Skill != "narrative clarity" {
 		t.Fatalf("expected narrative clarity delta in %+v", got.SkillDeltas)
+	}
+	foundNarrativeDelta := false
+	for _, delta := range got.SkillDeltas {
+		if delta.Skill != "narrative clarity" {
+			continue
+		}
+		foundNarrativeDelta = true
+		if !delta.DeterministicDelta {
+			t.Fatal("expected deterministic delta flag for narrative clarity")
+		}
+		if len(delta.EvidenceQuotes) == 0 {
+			t.Fatal("expected evidence quotes for narrative clarity")
+		}
+		if delta.DeltaExplanation == "" {
+			t.Fatal("expected delta explanation")
+		}
+	}
+	if !foundNarrativeDelta {
+		t.Fatal("expected to locate narrative clarity delta details")
 	}
 	if got.SkillSetMismatch {
 		t.Fatal("expected stable skill set across revision chain")

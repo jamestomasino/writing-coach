@@ -1,6 +1,8 @@
 package review
 
 import (
+	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -21,12 +23,16 @@ type Comparison struct {
 }
 
 type SkillDelta struct {
-	Skill          string   `json:"skill"`
-	BaselineScore  int      `json:"baseline_score"`
-	CurrentScore   int      `json:"current_score"`
-	Delta          int      `json:"delta"`
-	Direction      string   `json:"direction"`
-	EvidenceQuotes []string `json:"evidence_quotes,omitempty"`
+	Skill              string   `json:"skill"`
+	BaselineScore      int      `json:"baseline_score"`
+	CurrentScore       int      `json:"current_score"`
+	Delta              int      `json:"delta"`
+	Direction          string   `json:"direction"`
+	EvidenceQuotes     []string `json:"evidence_quotes,omitempty"`
+	BaselineRules      []string `json:"baseline_rules,omitempty"`
+	CurrentRules       []string `json:"current_rules,omitempty"`
+	DeltaExplanation   string   `json:"delta_explanation,omitempty"`
+	DeterministicDelta bool     `json:"deterministic_delta"`
 }
 
 func CompareSubmissions(current, baseline domain.Submission, currentReview domain.Review, baselineReview domain.Review) Comparison {
@@ -150,7 +156,7 @@ func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.Revi
 	for _, skill := range keys {
 		cur := currentMap[skill]
 		base := baselineMap[skill]
-		delta := cur - base
+		delta := cur.Score - base.Score
 		direction := "flat"
 		switch {
 		case delta > 0:
@@ -158,22 +164,28 @@ func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.Revi
 		case delta < 0:
 			direction = "down"
 		}
+		baselineRules := appliedRules(base.ScoreEvidenceJSON)
+		currentRules := appliedRules(cur.ScoreEvidenceJSON)
 		out = append(out, SkillDelta{
-			Skill:          skill,
-			BaselineScore:  base,
-			CurrentScore:   cur,
-			Delta:          delta,
-			Direction:      direction,
-			EvidenceQuotes: evidenceQuotesForSkill(skill, annotations),
+			Skill:              skill,
+			BaselineScore:      base.Score,
+			CurrentScore:       cur.Score,
+			Delta:              delta,
+			Direction:          direction,
+			EvidenceQuotes:     evidenceQuotesForSkill(skill, annotations),
+			BaselineRules:      baselineRules,
+			CurrentRules:       currentRules,
+			DeltaExplanation:   deltaExplanation(delta, baselineRules, currentRules),
+			DeterministicDelta: strings.TrimSpace(base.ScoreSource) == "deterministic" || strings.TrimSpace(cur.ScoreSource) == "deterministic",
 		})
 	}
 	return out, skillSetMismatch
 }
 
-func authoritativeSkillMap(scores []domain.SkillScore) map[string]int {
-	primary := map[string]int{}
-	legacy := map[string]int{}
-	fallback := map[string]int{}
+func authoritativeSkillMap(scores []domain.SkillScore) map[string]domain.SkillScore {
+	primary := map[string]domain.SkillScore{}
+	legacy := map[string]domain.SkillScore{}
+	fallback := map[string]domain.SkillScore{}
 	for _, score := range scores {
 		skill := strings.TrimSpace(score.Skill)
 		if skill == "" {
@@ -181,12 +193,12 @@ func authoritativeSkillMap(scores []domain.SkillScore) map[string]int {
 		}
 		switch {
 		case score.ScoreSource == "deterministic":
-			primary[skill] = score.Score
+			primary[skill] = score
 		case strings.Contains(score.ScoreSource, "legacy") || strings.TrimSpace(score.ScoreSource) == "":
-			legacy[skill] = score.Score
+			legacy[skill] = score
 		default:
 			if _, ok := fallback[skill]; !ok {
-				fallback[skill] = score.Score
+				fallback[skill] = score
 			}
 		}
 	}
@@ -197,6 +209,62 @@ func authoritativeSkillMap(scores []domain.SkillScore) map[string]int {
 		return legacy
 	}
 	return fallback
+}
+
+func appliedRules(rawEvidence string) []string {
+	rawEvidence = strings.TrimSpace(rawEvidence)
+	if rawEvidence == "" || rawEvidence == "{}" {
+		return nil
+	}
+	var payload struct {
+		AppliedRules []string `json:"applied_rules"`
+	}
+	if err := json.Unmarshal([]byte(rawEvidence), &payload); err != nil {
+		return nil
+	}
+	if len(payload.AppliedRules) == 0 {
+		return nil
+	}
+	if len(payload.AppliedRules) > 4 {
+		return append([]string{}, payload.AppliedRules[len(payload.AppliedRules)-4:]...)
+	}
+	return append([]string{}, payload.AppliedRules...)
+}
+
+func deltaExplanation(delta int, baselineRules, currentRules []string) string {
+	if delta == 0 {
+		return "Score held flat across drafts."
+	}
+	topGate := func(rules []string) string {
+		for i := len(rules) - 1; i >= 0; i-- {
+			if strings.Contains(strings.ToLower(rules[i]), "top score gate") {
+				return rules[i]
+			}
+		}
+		return ""
+	}
+	if gate := topGate(currentRules); gate != "" {
+		if delta > 0 {
+			return "Improved: " + gate
+		}
+		return "Regressed: " + gate
+	}
+	if len(currentRules) > 0 {
+		if delta > 0 {
+			return fmt.Sprintf("Improved by %+d from current deterministic rules.", delta)
+		}
+		return fmt.Sprintf("Dropped by %d from current deterministic rules.", -delta)
+	}
+	if len(baselineRules) > 0 {
+		if delta > 0 {
+			return fmt.Sprintf("Improved by %+d versus baseline rule state.", delta)
+		}
+		return fmt.Sprintf("Dropped by %d versus baseline rule state.", -delta)
+	}
+	if delta > 0 {
+		return fmt.Sprintf("Improved by %+d.", delta)
+	}
+	return fmt.Sprintf("Dropped by %d.", -delta)
 }
 
 func evidenceQuotesForSkill(skill string, annotations []domain.ReviewAnnotation) []string {
@@ -232,7 +300,7 @@ func evidenceQuotesForSkill(skill string, annotations []domain.ReviewAnnotation)
 	return out
 }
 
-func sameSkillKeys(left, right map[string]int) bool {
+func sameSkillKeys(left, right map[string]domain.SkillScore) bool {
 	if len(left) != len(right) {
 		return false
 	}

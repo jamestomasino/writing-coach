@@ -88,8 +88,20 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 		if err == nil {
 			reviewResult.ReviewKind = s.clientKind
 			reviewResult.ProviderNote = s.clientKind
+			hybridScores, calibration := constrainedCalibrationScores(deterministicScores, providerScores, s.clientKind)
+			if calibration.AppliedCount > 0 || calibration.ConflictCount > 0 || calibration.UnsupportedCount > 0 {
+				reviewResult.ProviderNote = fmt.Sprintf(
+					"%s; calibration=bounded-v1 matched=%d adjusted=%d conflicts=%d unsupported=%d",
+					s.clientKind,
+					calibration.AppliedCount,
+					calibration.AdjustedCount,
+					calibration.ConflictCount,
+					calibration.UnsupportedCount,
+				)
+			}
 			reviewResult.AnalyzerFindings = analyzer.TopFindings(report, 6)
 			persistedScores := append([]domain.SkillScore{}, deterministicScores...)
+			persistedScores = append(persistedScores, hybridScores...)
 			persistedScores = append(persistedScores, tagProviderScores(providerScores, s.clientKind)...)
 			return Result{Review: reviewResult, Scores: persistedScores, AnalyzerReport: report}
 		}
@@ -222,6 +234,116 @@ func tagProviderScores(scores []domain.SkillScore, providerKind string) []domain
 		})
 	}
 	return out
+}
+
+type calibrationSummary struct {
+	AppliedCount     int
+	AdjustedCount    int
+	ConflictCount    int
+	UnsupportedCount int
+}
+
+func constrainedCalibrationScores(deterministicScores []domain.SkillScore, providerScores []domain.SkillScore, providerKind string) ([]domain.SkillScore, calibrationSummary) {
+	if len(deterministicScores) == 0 || len(providerScores) == 0 {
+		return nil, calibrationSummary{}
+	}
+	providerBySkill := map[string]domain.SkillScore{}
+	source := strings.TrimSpace(providerKind)
+	if source == "" {
+		source = "llm"
+	}
+	for _, score := range providerScores {
+		key := normalizeSkillKey(score.Skill)
+		if key == "" {
+			continue
+		}
+		if _, exists := providerBySkill[key]; exists {
+			continue
+		}
+		providerBySkill[key] = score
+	}
+
+	out := make([]domain.SkillScore, 0, len(deterministicScores))
+	summary := calibrationSummary{}
+	seenDeterministic := map[string]bool{}
+	for _, det := range deterministicScores {
+		if strings.TrimSpace(det.ScoreSource) != "deterministic" {
+			continue
+		}
+		key := normalizeSkillKey(det.Skill)
+		if key == "" {
+			continue
+		}
+		seenDeterministic[key] = true
+		provider, ok := providerBySkill[key]
+		if !ok {
+			continue
+		}
+		summary.AppliedCount++
+		providerClamped := clampScore(provider.Score)
+		proposedDelta := providerClamped - det.Score
+		appliedDelta := clampDelta(proposedDelta)
+		hybridScore := clampScore(det.Score + appliedDelta)
+		conflict := proposedDelta > 1 || proposedDelta < -1 || provider.Score < 1 || provider.Score > 5
+		if appliedDelta != 0 {
+			summary.AdjustedCount++
+		}
+		if conflict {
+			summary.ConflictCount++
+		}
+		evidence := map[string]any{
+			"kind":                   "bounded_calibration",
+			"provider_kind":          source,
+			"deterministic_score":    det.Score,
+			"provider_score_raw":     provider.Score,
+			"provider_score_clamped": providerClamped,
+			"proposed_delta":         proposedDelta,
+			"applied_delta":          appliedDelta,
+			"conflict":               conflict,
+		}
+		rawEvidence := "{}"
+		if encoded, err := json.Marshal(evidence); err == nil {
+			rawEvidence = string(encoded)
+		}
+		out = append(out, domain.SkillScore{
+			SubmissionID:      det.SubmissionID,
+			Skill:             det.Skill,
+			Score:             hybridScore,
+			ScoreSource:       "hybrid",
+			ScoreVersion:      "hybrid-v1-bounded",
+			ScoreEvidenceJSON: rawEvidence,
+		})
+	}
+	for key := range providerBySkill {
+		if !seenDeterministic[key] {
+			summary.UnsupportedCount++
+		}
+	}
+	return out, summary
+}
+
+func normalizeSkillKey(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func clampScore(score int) int {
+	if score < 1 {
+		return 1
+	}
+	if score > 5 {
+		return 5
+	}
+	return score
+}
+
+func clampDelta(delta int) int {
+	if delta < -1 {
+		return -1
+	}
+	if delta > 1 {
+		return 1
+	}
+	return delta
 }
 
 func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options analyzer.ContextOptions) (domain.Review, []domain.SkillScore) {
