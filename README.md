@@ -301,6 +301,7 @@ Useful docs:
 - [docs/ai-provider-rollout-plan.md](/home/tomasino/writing-coach/docs/ai-provider-rollout-plan.md)
 - [docs/licensing.md](/home/tomasino/writing-coach/docs/licensing.md)
 - [docs/release-process.md](/home/tomasino/writing-coach/docs/release-process.md)
+- [docs/scoring-backtest.md](/home/tomasino/writing-coach/docs/scoring-backtest.md)
 - [docs/web-foundation-plan.md](/home/tomasino/writing-coach/docs/web-foundation-plan.md)
 - [docs/web-app-plan.md](/home/tomasino/writing-coach/docs/web-app-plan.md)
 - [docs/tree-library.md](/home/tomasino/writing-coach/docs/tree-library.md)
