@@ -49,4 +49,31 @@ func TestCompareSubmissions(t *testing.T) {
 	if got.SkillDeltas[0].Skill != "narrative clarity" && got.SkillDeltas[1].Skill != "narrative clarity" {
 		t.Fatalf("expected narrative clarity delta in %+v", got.SkillDeltas)
 	}
+	if got.SkillSetMismatch {
+		t.Fatal("expected stable skill set across revision chain")
+	}
+}
+
+func TestCompareSubmissionsFlagsSkillSetMismatch(t *testing.T) {
+	baseline := domain.Submission{ID: 10, WordCount: 200, Content: "baseline content"}
+	current := domain.Submission{ID: 11, WordCount: 250, Content: "current content"}
+	baselineReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 3, ScoreSource: "deterministic"},
+			{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+		},
+	}
+	currentReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic"},
+		},
+	}
+
+	got := CompareSubmissions(current, baseline, currentReview, baselineReview)
+	if !got.SkillSetMismatch {
+		t.Fatal("expected skill set mismatch")
+	}
+	if len(got.SkillDeltas) != 1 || got.SkillDeltas[0].Skill != "narrative clarity" {
+		t.Fatalf("expected overlap delta only, got %+v", got.SkillDeltas)
+	}
 }

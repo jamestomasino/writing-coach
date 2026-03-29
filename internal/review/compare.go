@@ -15,6 +15,7 @@ type Comparison struct {
 	RemovedWords         []string
 	PersistingWeaknesses []string
 	AddressedWeaknesses  []string
+	SkillSetMismatch     bool
 	SkillDeltas          []SkillDelta
 	Summary              string
 }
@@ -31,7 +32,7 @@ type SkillDelta struct {
 func CompareSubmissions(current, baseline domain.Submission, currentReview domain.Review, baselineReview domain.Review) Comparison {
 	added, removed := diffWordSets(baseline.Content, current.Content)
 	persisting, addressed := weaknessDelta(baselineReview.Weaknesses, currentReview.Weaknesses)
-	skillDeltas := scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations)
+	skillDeltas, skillSetMismatch := scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations)
 
 	summary := "Revision changes are mixed."
 	switch {
@@ -51,6 +52,7 @@ func CompareSubmissions(current, baseline domain.Submission, currentReview domai
 		RemovedWords:         removed,
 		PersistingWeaknesses: persisting,
 		AddressedWeaknesses:  addressed,
+		SkillSetMismatch:     skillSetMismatch,
 		SkillDeltas:          skillDeltas,
 		Summary:              summary,
 	}
@@ -127,12 +129,13 @@ func normalizeWeaknessKey(value string) string {
 	return strings.Join(parts, " ")
 }
 
-func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.ReviewAnnotation) []SkillDelta {
+func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.ReviewAnnotation) ([]SkillDelta, bool) {
 	baselineMap := authoritativeSkillMap(baseline)
 	currentMap := authoritativeSkillMap(current)
 	if len(currentMap) == 0 {
-		return nil
+		return nil, false
 	}
+	skillSetMismatch := !sameSkillKeys(baselineMap, currentMap)
 	keys := make([]string, 0, len(currentMap))
 	for skill := range currentMap {
 		if _, ok := baselineMap[skill]; ok {
@@ -164,7 +167,7 @@ func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.Revi
 			EvidenceQuotes: evidenceQuotesForSkill(skill, annotations),
 		})
 	}
-	return out
+	return out, skillSetMismatch
 }
 
 func authoritativeSkillMap(scores []domain.SkillScore) map[string]int {
@@ -227,4 +230,16 @@ func evidenceQuotesForSkill(skill string, annotations []domain.ReviewAnnotation)
 		}
 	}
 	return out
+}
+
+func sameSkillKeys(left, right map[string]int) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for key := range left {
+		if _, ok := right[key]; !ok {
+			return false
+		}
+	}
+	return true
 }

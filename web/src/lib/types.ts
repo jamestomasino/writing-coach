@@ -210,6 +210,7 @@ export type Comparison = {
   removed_words: string[]
   addressed_weaknesses: string[]
   persisting_weaknesses: string[]
+  skill_set_mismatch?: boolean
   skill_deltas?: {
     skill: string
     baseline_score: number

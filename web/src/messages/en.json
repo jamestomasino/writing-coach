@@ -412,6 +412,7 @@
     "scoreDeltaEyebrow": "Score delta",
     "scoreDeltaTitle": "Skill movement across drafts",
     "scoreDeltaDescription": "Deterministic score changes from the previous draft, with linked line evidence when available.",
+    "scoreDeltaMismatch": "Skill set mismatch detected between drafts. This assignment track should keep a stable skill set across revisions.",
     "scoreDeltaLine": "Score moved from {baseline}/5 to {current}/5.",
     "scoreDeltaNoEvidence": "No linked line evidence for this skill on this pass.",
     "currentSkillsEyebrow": "Current skills",

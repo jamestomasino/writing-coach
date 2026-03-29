@@ -737,6 +737,9 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	comparison := review.CompareSubmissions(current, baseline, currentReview, baselineReview)
+	if comparison.SkillSetMismatch {
+		log.Printf("compare api: skill set mismatch current_submission=%d baseline_submission=%d", current.ID, baseline.ID)
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"current_submission_id":  current.ID,
 		"baseline_submission_id": baseline.ID,
@@ -747,6 +750,7 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 			RemovedWords:         comparison.RemovedWords,
 			AddressedWeaknesses:  comparison.AddressedWeaknesses,
 			PersistingWeaknesses: comparison.PersistingWeaknesses,
+			SkillSetMismatch:     comparison.SkillSetMismatch,
 			SkillDeltas:          comparison.SkillDeltas,
 		},
 	})

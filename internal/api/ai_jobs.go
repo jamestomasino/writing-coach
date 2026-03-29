@@ -273,6 +273,9 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 					currentSub := domain.Submission{Content: draft.Content, WordCount: draft.WordCount}
 					previousSub := domain.Submission{Content: previousDraft.Content, WordCount: previousDraft.WordCount}
 					comparison := review.CompareSubmissions(currentSub, previousSub, result.Review, previousReview.Review)
+					if comparison.SkillSetMismatch {
+						log.Printf("playground compare: skill set mismatch session=%d draft=%d parent_draft=%d", sessionID, draft.ID, previousDraft.ID)
+					}
 					comparisonJSON = mustJSON(map[string]any{
 						"summary":               comparison.Summary,
 						"word_delta":            comparison.WordDelta,
@@ -280,6 +283,7 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 						"removed_words":         comparison.RemovedWords,
 						"addressed_weaknesses":  comparison.AddressedWeaknesses,
 						"persisting_weaknesses": comparison.PersistingWeaknesses,
+						"skill_set_mismatch":    comparison.SkillSetMismatch,
 						"skill_deltas":          comparison.SkillDeltas,
 					})
 				}

@@ -343,6 +343,7 @@ type comparisonResponse struct {
 	RemovedWords         []string            `json:"removed_words"`
 	AddressedWeaknesses  []string            `json:"addressed_weaknesses"`
 	PersistingWeaknesses []string            `json:"persisting_weaknesses"`
+	SkillSetMismatch     bool                `json:"skill_set_mismatch,omitempty"`
 	SkillDeltas          []review.SkillDelta `json:"skill_deltas,omitempty"`
 }
 
@@ -628,6 +629,9 @@ func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submissi
 		return nil
 	}
 	comparison := review.CompareSubmissions(sub, previous, currentReview, previousReview)
+	if comparison.SkillSetMismatch {
+		log.Printf("comparison skill set mismatch: current_submission=%d baseline_submission=%d", sub.ID, previous.ID)
+	}
 	return map[string]any{
 		"summary":               comparison.Summary,
 		"word_delta":            comparison.WordDelta,
@@ -635,6 +639,7 @@ func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submissi
 		"removed_words":         comparison.RemovedWords,
 		"addressed_weaknesses":  comparison.AddressedWeaknesses,
 		"persisting_weaknesses": comparison.PersistingWeaknesses,
+		"skill_set_mismatch":    comparison.SkillSetMismatch,
 		"skill_deltas":          comparison.SkillDeltas,
 	}
 }
