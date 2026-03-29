@@ -18,6 +18,18 @@
       "readability": 1,
       "sentence control": 1,
       "causal clarity": 1
+    },
+    "top_score_gate": {
+      "require_no_findings": true,
+      "min_metrics": {
+        "word_count": 450,
+        "paragraph_count": 5
+      },
+      "max_metrics": {
+        "avg_sentence_length": 16,
+        "nlp_readability_grade": 9,
+        "nlp_passive_sentences": 0
+      }
     }
   },
   "skills": {
@@ -35,6 +47,16 @@
         "clarity": 1,
         "readability": 1,
         "referent clarity": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 500
+        },
+        "max_metrics": {
+          "avg_sentence_length": 15,
+          "nlp_passive_sentences": 0
+        }
       }
     },
     "sentence economy": {
@@ -51,6 +73,13 @@
         "prose precision": 1,
         "sentence control": 1,
         "readability": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "max_metrics": {
+          "avg_sentence_length": 14,
+          "adverb_count": 3
+        }
       }
     }
   },

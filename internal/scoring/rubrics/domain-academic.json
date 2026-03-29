@@ -49,6 +49,57 @@
         "readability": 1,
         "structure": 1
       }
+    },
+    "clarity and coherence": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "avg_sentence_length", "min": 10, "max": 20, "delta": 1, "reason": "academic argument readability band"},
+        {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "reader-legible argument flow"}
+      ],
+      "category_penalties": {
+        "clarity": 1,
+        "readability": 1,
+        "referent clarity": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 720
+        },
+        "max_metrics": {
+          "avg_sentence_length": 16,
+          "nlp_passive_sentences": 0
+        }
+      }
+    },
+    "sentence economy": {
+      "base_score": 3,
+      "finding_penalty": 2,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "avg_sentence_length", "max": 19, "delta": 1, "reason": "controlled scholarly sentence length"},
+        {"metric": "adverb_count", "max": 6, "delta": 1, "reason": "modifier discipline in claims"}
+      ],
+      "category_penalties": {
+        "sentence control": 1,
+        "readability": 1,
+        "prose precision": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 850,
+          "nlp_unique_token_ratio": 56
+        },
+        "max_metrics": {
+          "avg_sentence_length": 15,
+          "adverb_count": 4
+        }
+      }
     }
   },
   "track_overrides": {}

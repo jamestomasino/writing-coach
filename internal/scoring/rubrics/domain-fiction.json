@@ -62,6 +62,55 @@
         "prose precision": 1,
         "diction variety": 1
       }
+    },
+    "dialogue intelligence": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "avg_sentence_length", "min": 9, "max": 17, "delta": 1, "reason": "dialogue cadence remains readable"},
+        {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "dialogue intent remains legible"}
+      ],
+      "category_penalties": {
+        "clarity": 1,
+        "referent clarity": 1,
+        "sentence control": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 850
+        },
+        "max_metrics": {
+          "avg_sentence_length": 15,
+          "nlp_passive_sentences": 0
+        }
+      }
+    },
+    "image freshness": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "nlp_unique_token_ratio", "min": 46, "delta": 1, "reason": "lexical freshness supports vivid imagery"},
+        {"metric": "adverb_count", "max": 7, "delta": 1, "reason": "imagery relies on specific nouns/verbs"}
+      ],
+      "category_penalties": {
+        "diction variety": 1,
+        "prose precision": 1,
+        "readability": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 57
+        },
+        "max_metrics": {
+          "adverb_count": 4
+        }
+      }
     }
   },
   "track_overrides": {
