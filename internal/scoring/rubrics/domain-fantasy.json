@@ -1,0 +1,45 @@
+{
+  "id": "domain-fantasy",
+  "version": "det-v1",
+  "domain": "fantasy",
+  "default_skills": ["narrative clarity", "scene architecture", "prose precision", "worldbuilding economy", "image freshness"],
+  "default_skill_config": {
+    "base_score": 3,
+    "finding_penalty": 3,
+    "max_finding_penalty": 2,
+    "no_finding_bonus": 1,
+    "range_rules": [
+      {"metric": "avg_sentence_length", "min": 9, "max": 23, "delta": 1, "reason": "fantasy sentence control band"},
+      {"metric": "word_count", "min": 550, "max": 1300, "delta": 1, "reason": "world-and-scene development"}
+    ],
+    "category_penalties": {
+      "clarity": 1,
+      "readability": 1,
+      "causal clarity": 1
+    }
+  },
+  "skills": {
+    "worldbuilding economy": {
+      "base_score": 3,
+      "finding_penalty": 4,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "word_count", "min": 600, "delta": 1, "reason": "sufficient worldbuilding context"},
+        {"metric": "avg_sentence_length", "max": 24, "delta": 1, "reason": "world detail remains readable"},
+        {"metric": "nlp_readability_grade", "min": 14, "delta": -1, "reason": "worldbuilding may be syntactically dense"}
+      ],
+      "category_penalties": {
+        "readability": 1,
+        "clarity": 1
+      }
+    }
+  },
+  "track_overrides": {
+    "fantasy-fiction-track": {
+      "add_skills": [],
+      "remove_skills": [],
+      "skill_adjustments": {"worldbuilding economy": 1}
+    }
+  }
+}

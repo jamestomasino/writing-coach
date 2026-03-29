@@ -1,0 +1,60 @@
+{
+  "id": "domain-technical",
+  "version": "det-v1",
+  "domain": "technical",
+  "default_skills": ["clarity and coherence", "actionability", "scannability", "sentence economy"],
+  "default_skill_config": {
+    "base_score": 3,
+    "finding_penalty": 3,
+    "max_finding_penalty": 2,
+    "no_finding_bonus": 1,
+    "range_rules": [
+      {"metric": "avg_sentence_length", "min": 9, "max": 20, "delta": 1, "reason": "instructional sentence control"},
+      {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "instructional readability"}
+    ],
+    "category_penalties": {
+      "clarity": 1,
+      "readability": 1,
+      "sentence control": 1,
+      "coverage": 1,
+      "scanability": 1
+    }
+  },
+  "skills": {
+    "actionability": {
+      "base_score": 3,
+      "finding_penalty": 2,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "word_count", "min": 260, "delta": 1, "reason": "instructional coverage threshold"},
+        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear actor-oriented instructions"}
+      ],
+      "category_penalties": {
+        "causal clarity": 1,
+        "clarity": 1
+      }
+    },
+    "scannability": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "paragraph_count", "min": 3, "delta": 1, "reason": "content chunked for scan"},
+        {"metric": "avg_sentence_length", "max": 20, "delta": 1, "reason": "compact instruction lines"}
+      ],
+      "category_penalties": {
+        "scanability": 1,
+        "structure": 1
+      }
+    }
+  },
+  "track_overrides": {
+    "educational-writing-track": {
+      "add_skills": ["evidence integration"],
+      "remove_skills": [],
+      "skill_adjustments": {"clarity and coherence": 1}
+    }
+  }
+}

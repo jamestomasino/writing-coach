@@ -1,0 +1,58 @@
+{
+  "id": "domain-general",
+  "version": "det-v1",
+  "domain": "general",
+  "default_skills": ["clarity and coherence", "sentence economy"],
+  "default_skill_config": {
+    "base_score": 3,
+    "finding_penalty": 3,
+    "max_finding_penalty": 2,
+    "no_finding_bonus": 1,
+    "range_rules": [
+      {"metric": "avg_sentence_length", "min": 10, "max": 22, "delta": 1, "reason": "sentence length in control band"},
+      {"metric": "avg_sentence_length", "min": 28, "delta": -1, "reason": "overlong sentence average"},
+      {"metric": "word_count", "max": 119, "delta": -1, "reason": "insufficient development length"}
+    ],
+    "category_penalties": {
+      "clarity": 1,
+      "readability": 1,
+      "sentence control": 1,
+      "causal clarity": 1
+    }
+  },
+  "skills": {
+    "clarity and coherence": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "avg_sentence_length", "min": 10, "max": 22, "delta": 1, "reason": "clarity sentence range"},
+        {"metric": "avg_sentence_length", "min": 28, "delta": -1, "reason": "clarity sentence overload"},
+        {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "accessible readability"}
+      ],
+      "category_penalties": {
+        "clarity": 1,
+        "readability": 1,
+        "referent clarity": 1
+      }
+    },
+    "sentence economy": {
+      "base_score": 3,
+      "finding_penalty": 2,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "avg_sentence_length", "max": 24, "delta": 1, "reason": "sentence economy in range"},
+        {"metric": "adverb_count", "max": 6, "delta": 1, "reason": "controlled modifier load"},
+        {"metric": "adverb_count", "min": 14, "delta": -1, "reason": "high modifier load"}
+      ],
+      "category_penalties": {
+        "prose precision": 1,
+        "sentence control": 1,
+        "readability": 1
+      }
+    }
+  },
+  "track_overrides": {}
+}

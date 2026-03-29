@@ -1,0 +1,55 @@
+{
+  "id": "domain-academic",
+  "version": "det-v1",
+  "domain": "academic",
+  "default_skills": ["claim clarity", "evidence integration", "clarity and coherence", "sentence economy"],
+  "default_skill_config": {
+    "base_score": 3,
+    "finding_penalty": 3,
+    "max_finding_penalty": 2,
+    "no_finding_bonus": 1,
+    "range_rules": [
+      {"metric": "word_count", "min": 320, "delta": 1, "reason": "argument development threshold"},
+      {"metric": "nlp_readability_grade", "max": 12, "delta": 1, "reason": "argument legibility"}
+    ],
+    "category_penalties": {
+      "clarity": 1,
+      "readability": 1,
+      "sentence control": 1,
+      "development": 1
+    }
+  },
+  "skills": {
+    "claim clarity": {
+      "base_score": 3,
+      "finding_penalty": 2,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear claim agency"},
+        {"metric": "avg_sentence_length", "max": 24, "delta": 1, "reason": "claim readability control"}
+      ],
+      "category_penalties": {
+        "clarity": 1,
+        "causal clarity": 1,
+        "referent clarity": 1
+      }
+    },
+    "evidence integration": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "word_count", "min": 380, "delta": 1, "reason": "space for support and interpretation"},
+        {"metric": "nlp_unique_token_ratio", "min": 42, "delta": 1, "reason": "lexical variety supports evidence texture"}
+      ],
+      "category_penalties": {
+        "evidence": 1,
+        "readability": 1,
+        "structure": 1
+      }
+    }
+  },
+  "track_overrides": {}
+}

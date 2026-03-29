@@ -506,10 +506,22 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 	}
 
 	for _, score := range scores {
+		scoreSource := strings.TrimSpace(score.ScoreSource)
+		if scoreSource == "" {
+			scoreSource = "deterministic"
+		}
+		scoreVersion := strings.TrimSpace(score.ScoreVersion)
+		if scoreVersion == "" {
+			scoreVersion = "det-v1"
+		}
+		scoreEvidence := strings.TrimSpace(score.ScoreEvidenceJSON)
+		if scoreEvidence == "" {
+			scoreEvidence = "{}"
+		}
 		if _, err = tx.ExecContext(ctx, `
-			INSERT INTO submission_skill_scores (submission_id, skill_name, score)
-			VALUES (?, ?, ?)
-		`, review.SubmissionID, score.Skill, score.Score); err != nil {
+			INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`, review.SubmissionID, score.Skill, score.Score, scoreSource, scoreVersion, scoreEvidence); err != nil {
 			return 0, err
 		}
 	}
@@ -863,7 +875,7 @@ func (s *Store) ListReviews(ctx context.Context, userID, treeID, submissionID in
 
 func (s *Store) SubmissionSkillScores(ctx context.Context, submissionID int64) ([]domain.SkillScore, error) {
 	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT submission_id, skill_name, score
+		SELECT submission_id, skill_name, score, score_source, score_version, score_evidence_json
 		FROM submission_skill_scores
 		WHERE submission_id = ?
 		ORDER BY score DESC, skill_name ASC
@@ -876,7 +888,14 @@ func (s *Store) SubmissionSkillScores(ctx context.Context, submissionID int64) (
 	var scores []domain.SkillScore
 	for rows.Next() {
 		var score domain.SkillScore
-		if err := rows.Scan(&score.SubmissionID, &score.Skill, &score.Score); err != nil {
+		if err := rows.Scan(
+			&score.SubmissionID,
+			&score.Skill,
+			&score.Score,
+			&score.ScoreSource,
+			&score.ScoreVersion,
+			&score.ScoreEvidenceJSON,
+		); err != nil {
 			return nil, err
 		}
 		scores = append(scores, score)
