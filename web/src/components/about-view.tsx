@@ -217,39 +217,62 @@ export function AboutView() {
       <WorkspaceCard className="border-stone-200/80 bg-linear-to-br from-stone-50 via-white to-sky-50 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/30">
         <Eyebrow>{t('aiBoundaryEyebrow')}</Eyebrow>
         <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('aiBoundaryTitle')}</Subheading>
-        <div className="mt-4 max-w-3xl space-y-4">
-          <Text>{t('aiBoundaryBody1')}</Text>
-          <Text>{t('aiBoundaryBody2')}</Text>
-          <Text>{t('aiBoundaryBody3')}</Text>
+        <Text className="mt-4 max-w-3xl">{t('aiBoundaryIntro')}</Text>
+
+        <div className="mt-6">
+          <div className="text-sm font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">{t('promptFlowTitle')}</div>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('promptStep1Title')}</div>
+                <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
+                  {t('stepTagNoAI')}
+                </span>
+              </div>
+              <Text className="mt-2">{t('promptStep1Body')}</Text>
+            </div>
+            <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('promptStep2Title')}</div>
+                <span className="inline-flex rounded-full border border-sky-300 bg-sky-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sky-800 dark:border-sky-700 dark:bg-sky-900/40 dark:text-sky-200">
+                  {t('stepTagAI')}
+                </span>
+              </div>
+              <Text className="mt-2">{t('promptStep2Body')}</Text>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step1Title')}</div>
-              <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
-                {t('stepTagNoAI')}
-              </span>
+        <div className="mt-6">
+          <div className="text-sm font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">{t('reviewFlowTitle')}</div>
+          <div className="mt-3 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('reviewStep1Title')}</div>
+                <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
+                  {t('stepTagNoAI')}
+                </span>
+              </div>
+              <Text className="mt-2">{t('reviewStep1Body')}</Text>
             </div>
-            <Text className="mt-2">{t('step1Body')}</Text>
-          </div>
-          <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step2Title')}</div>
-              <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
-                {t('stepTagNoAI')}
-              </span>
+            <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('reviewStep2Title')}</div>
+                <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
+                  {t('stepTagNoAI')}
+                </span>
+              </div>
+              <Text className="mt-2">{t('reviewStep2Body')}</Text>
             </div>
-            <Text className="mt-2">{t('step2Body')}</Text>
-          </div>
-          <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('step3Title')}</div>
-              <span className="inline-flex rounded-full border border-sky-300 bg-sky-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sky-800 dark:border-sky-700 dark:bg-sky-900/40 dark:text-sky-200">
-                {t('stepTagAI')}
-              </span>
+            <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-white/10 dark:bg-white/5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('reviewStep3Title')}</div>
+                <span className="inline-flex rounded-full border border-sky-300 bg-sky-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sky-800 dark:border-sky-700 dark:bg-sky-900/40 dark:text-sky-200">
+                  {t('stepTagAI')}
+                </span>
+              </div>
+              <Text className="mt-2">{t('reviewStep3Body')}</Text>
             </div>
-            <Text className="mt-2">{t('step3Body')}</Text>
           </div>
         </div>
       </WorkspaceCard>
