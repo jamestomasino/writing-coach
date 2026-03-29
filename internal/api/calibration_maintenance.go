@@ -111,10 +111,19 @@ func (m *calibrationMaintainer) RunOnce(ctx context.Context, runKind string, tri
 		_ = m.publishRunNotification(ctx, run)
 		return run, err
 	}
+	hybridSignals, err := m.store.ListCalibrationHybridSignalSnapshots(runCtx, m.cfg.DefaultTreeSlug, run.LimitPerTrack)
+	if err != nil {
+		run.Status = calibrationStatusFailed
+		run.ErrorText = err.Error()
+		run.CompletedAt = time.Now().UTC()
+		_ = m.store.FinalizeCalibrationRun(ctx, run)
+		_ = m.publishRunNotification(ctx, run)
+		return run, err
+	}
 
 	run.Status = calibrationStatusSucceeded
 	run.CompletedAt = time.Now().UTC()
-	run.TrackLearnings, run.DomainLearnings, run.Highlights, run.Recommendations = analyzeCalibrationSnapshots(snapshots, run.MinSamples)
+	run.TrackLearnings, run.DomainLearnings, run.Highlights, run.Recommendations, run.DataAdequate = analyzeCalibrationSnapshots(snapshots, hybridSignals, run.MinSamples)
 	for _, item := range run.TrackLearnings {
 		run.SubmissionCount += item.SubmissionCount
 		run.DeterministicScoreCount += item.DeterministicScoreCount
@@ -164,16 +173,22 @@ func (m *calibrationMaintainer) publishRunNotification(ctx context.Context, run 
 	})
 }
 
-func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, minSamples int) ([]domain.CalibrationTrackLearning, []domain.CalibrationDomainLearning, []string, []string) {
+func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, hybridSignals []domain.CalibrationHybridSignalSnapshot, minSamples int) ([]domain.CalibrationTrackLearning, []domain.CalibrationDomainLearning, []string, []string, bool) {
 	tracks := make([]domain.CalibrationTrackLearning, 0, len(snapshots))
 	domainRollup := map[string]*domain.CalibrationDomainLearning{}
+	hybridByTrack := map[string]domain.CalibrationHybridSignalSnapshot{}
+	for _, signal := range hybridSignals {
+		hybridByTrack[signal.TreeSlug] = signal
+	}
 
 	insufficientTracks := 0
 	missingDeterministicTracks := 0
 	saturationTracks := 0
 	scarcityTracks := 0
+	dataAdequateTracks := 0
 
 	for _, snapshot := range snapshots {
+		hybrid := hybridByTrack[snapshot.TreeSlug]
 		domainName := calibrationDomainForTrack(snapshot.TreeSlug)
 		topScoreRate := 0.0
 		if snapshot.DeterministicScoreCount > 0 {
@@ -196,14 +211,25 @@ func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, mi
 			issues = append(issues, "top_score_scarcity")
 			scarcityTracks++
 		}
+		confidence := "low"
+		if snapshot.SubmissionCount >= minSamples && snapshot.DeterministicScoreCount >= minSamples {
+			confidence = "high"
+			dataAdequateTracks++
+		} else if snapshot.SubmissionCount >= (minSamples/2) && snapshot.DeterministicScoreCount >= (minSamples/2) {
+			confidence = "medium"
+		}
 
 		track := domain.CalibrationTrackLearning{
 			TreeSlug:                snapshot.TreeSlug,
 			Domain:                  domainName,
 			SubmissionCount:         snapshot.SubmissionCount,
 			DeterministicScoreCount: snapshot.DeterministicScoreCount,
+			HybridScoreCount:        hybrid.HybridScoreCount,
+			HybridConflictCount:     hybrid.ConflictCount,
+			HybridAdjustedCount:     hybrid.AdjustedCount,
 			TopScoreRate:            topScoreRate,
 			AverageScore:            snapshot.AverageScore,
+			Confidence:              confidence,
 			Issues:                  issues,
 		}
 		tracks = append(tracks, track)
@@ -216,6 +242,9 @@ func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, mi
 		domainAgg.TrackCount++
 		domainAgg.SubmissionCount += track.SubmissionCount
 		domainAgg.DeterministicScoreCount += track.DeterministicScoreCount
+		domainAgg.HybridScoreCount += track.HybridScoreCount
+		domainAgg.HybridConflictCount += track.HybridConflictCount
+		domainAgg.HybridAdjustedCount += track.HybridAdjustedCount
 		domainAgg.TopScoreRate += track.TopScoreRate
 		domainAgg.AverageScore += track.AverageScore
 	}
@@ -231,6 +260,13 @@ func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, mi
 		}
 		if item.DeterministicScoreCount == 0 {
 			item.Issues = append(item.Issues, "no_deterministic_scores")
+		}
+		if item.SubmissionCount >= minSamples && item.DeterministicScoreCount >= minSamples {
+			item.Confidence = "high"
+		} else if item.SubmissionCount >= (minSamples/2) && item.DeterministicScoreCount >= (minSamples/2) {
+			item.Confidence = "medium"
+		} else {
+			item.Confidence = "low"
 		}
 		domains = append(domains, *item)
 	}
@@ -261,6 +297,15 @@ func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, mi
 	if scarcityTracks > 0 {
 		highlights = append(highlights, fmt.Sprintf("%d track(s) show low 5/5 rates (<5%%).", scarcityTracks))
 	}
+	hybridConflictTracks := 0
+	for _, track := range tracks {
+		if track.HybridConflictCount > 0 {
+			hybridConflictTracks++
+		}
+	}
+	if hybridConflictTracks > 0 {
+		highlights = append(highlights, fmt.Sprintf("%d track(s) show bounded-calibration conflicts worth review.", hybridConflictTracks))
+	}
 	if len(highlights) == 0 {
 		highlights = append(highlights, "Calibration signals look stable across sampled tracks.")
 	}
@@ -278,11 +323,18 @@ func analyzeCalibrationSnapshots(snapshots []domain.CalibrationTrackSnapshot, mi
 	if scarcityTracks > 0 {
 		recommendations = append(recommendations, "Review strict gate criteria on low-5/5 tracks to reduce false negatives.")
 	}
+	if hybridConflictTracks > 0 {
+		recommendations = append(recommendations, "Inspect hybrid calibration conflicts before approving rubric adjustments.")
+	}
+	dataAdequate := dataAdequateTracks > 0 && insufficientTracks == 0 && missingDeterministicTracks == 0
+	if !dataAdequate {
+		recommendations = append(recommendations, "Data is not adequate for automatic threshold tuning; keep changes in pending review only.")
+	}
 	if len(recommendations) == 0 {
 		recommendations = append(recommendations, "No immediate threshold tuning is recommended.")
 	}
 
-	return tracks, domains, highlights, recommendations
+	return tracks, domains, highlights, recommendations, dataAdequate
 }
 
 func calibrationDomainForTrack(treeSlug string) string {

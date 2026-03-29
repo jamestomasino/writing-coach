@@ -58,8 +58,12 @@ type CalibrationTrackLearning struct {
 	Domain                  string
 	SubmissionCount         int
 	DeterministicScoreCount int
+	HybridScoreCount        int
+	HybridConflictCount     int
+	HybridAdjustedCount     int
 	TopScoreRate            float64
 	AverageScore            float64
+	Confidence              string
 	Issues                  []string
 }
 
@@ -68,8 +72,12 @@ type CalibrationDomainLearning struct {
 	TrackCount              int
 	SubmissionCount         int
 	DeterministicScoreCount int
+	HybridScoreCount        int
+	HybridConflictCount     int
+	HybridAdjustedCount     int
 	TopScoreRate            float64
 	AverageScore            float64
+	Confidence              string
 	Issues                  []string
 }
 
@@ -86,6 +94,11 @@ type CalibrationRun struct {
 	DomainLearnings         []CalibrationDomainLearning
 	Highlights              []string
 	Recommendations         []string
+	DataAdequate            bool
+	ApprovalStatus          string
+	ApprovedByUserID        int64
+	ApprovedAt              time.Time
+	ApprovalNotes           string
 	ErrorText               string
 	StartedAt               time.Time
 	CompletedAt             time.Time
@@ -111,6 +124,13 @@ type CalibrationTrackSnapshot struct {
 	DeterministicScoreCount int
 	TopScoreCount           int
 	AverageScore            float64
+}
+
+type CalibrationHybridSignalSnapshot struct {
+	TreeSlug         string
+	HybridScoreCount int
+	ConflictCount    int
+	AdjustedCount    int
 }
 
 type TGOTree struct {
