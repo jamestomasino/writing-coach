@@ -79,6 +79,14 @@ Routing rule for Phase 1:
 - Phase 3: LLM constrained calibration + conflict detection.
 - Phase 4: Expanded deterministic tools (claim-evidence structure, cohesion/referent clarity, repetition/drift).
 
+### Future Deterministic Tooling Notes
+- Planned addition: `alex` (inclusive language checks) as a deterministic signal source.
+- Evaluate for fit: `fastText` language identification as a pre-check for deterministic analyzer language gating.
+- Constraints for both:
+  - keep findings bounded and low-noise for coaching contexts,
+  - preserve deterministic evidence contracts (`score_evidence_json`),
+  - validate false-positive rate before promoting to default scoring inputs.
+
 ### Phase 2 Calibration Focus (added after Phase 1 validation)
 - Tighten top-end score separation to avoid premature ceiling effects across domains.
 - Add stronger rubric distinctions between high-performing and exceptional submissions (especially around 4->5 transitions).
