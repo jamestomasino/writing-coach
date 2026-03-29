@@ -41,7 +41,9 @@
       "range_rules": [
         {"metric": "avg_sentence_length", "min": 10, "max": 22, "delta": 1, "reason": "clarity sentence range"},
         {"metric": "avg_sentence_length", "min": 28, "delta": -1, "reason": "clarity sentence overload"},
-        {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "accessible readability"}
+        {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "accessible readability"},
+        {"metric": "nlp_coref_ambiguity_count", "max": 1, "delta": 1, "reason": "referents stay clear"},
+        {"metric": "nlp_coref_ambiguity_count", "min": 3, "delta": -1, "reason": "referent ambiguity weakens coherence"}
       ],
       "category_penalties": {
         "clarity": 1,
@@ -67,7 +69,9 @@
       "range_rules": [
         {"metric": "avg_sentence_length", "max": 24, "delta": 1, "reason": "sentence economy in range"},
         {"metric": "adverb_count", "max": 6, "delta": 1, "reason": "controlled modifier load"},
-        {"metric": "adverb_count", "min": 14, "delta": -1, "reason": "high modifier load"}
+        {"metric": "adverb_count", "min": 14, "delta": -1, "reason": "high modifier load"},
+        {"metric": "nlp_semantic_repetition_ratio", "max": 35, "delta": 1, "reason": "limited semantic repetition"},
+        {"metric": "nlp_semantic_repetition_ratio", "min": 60, "delta": -1, "reason": "semantic repetition reduces economy"}
       ],
       "category_penalties": {
         "prose precision": 1,

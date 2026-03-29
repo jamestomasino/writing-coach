@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -93,6 +94,7 @@ func NewEngine() (Engine, error) {
 }
 
 func (e Engine) ScoreSubmission(sub domain.Submission, report analyzer.Report, options analyzer.ContextOptions, activeTGOs []domain.TGO) ([]domain.SkillScore, error) {
+	logMissingPhase4Metrics(sub.ID, analyzer.DomainForContext(options), report.Metrics)
 	domainName := analyzer.DomainForContext(options)
 	rubric, ok := e.rubrics[domainName]
 	if !ok {
@@ -176,6 +178,36 @@ func (e Engine) ScoreSubmission(sub domain.Submission, report analyzer.Report, o
 	})
 
 	return scores, nil
+}
+
+func logMissingPhase4Metrics(submissionID int64, domainName string, metrics map[string]int) {
+	required := []string{
+		"nlp_claim_count",
+		"nlp_evidence_marker_count",
+		"nlp_claim_evidence_coverage",
+		"nlp_coref_ambiguity_count",
+		"nlp_semantic_repetition_ratio",
+		"nlp_topic_drift_score",
+	}
+	missing := make([]string, 0, len(required))
+	presentCount := 0
+	for _, key := range required {
+		if _, ok := metrics[key]; !ok {
+			missing = append(missing, key)
+			continue
+		}
+		presentCount++
+	}
+	if len(missing) == 0 || presentCount == 0 {
+		return
+	}
+	log.Printf(
+		"scoring diagnostics: submission=%d domain=%s warning=missing_phase4_metrics count=%d keys=%s",
+		submissionID,
+		strings.TrimSpace(domainName),
+		len(missing),
+		strings.Join(missing, ","),
+	)
 }
 
 func loadEmbeddedRubrics() (map[string]Rubric, error) {

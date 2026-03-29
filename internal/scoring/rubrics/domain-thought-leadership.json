@@ -32,6 +32,32 @@
     }
   },
   "skills": {
+    "claim clarity": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "nlp_claim_evidence_coverage", "min": 60, "delta": 1, "reason": "claims are paired with support"},
+        {"metric": "nlp_claim_evidence_coverage", "max": 35, "delta": -1, "reason": "claims outpace evidence support"},
+        {"metric": "nlp_coref_ambiguity_count", "max": 1, "delta": 1, "reason": "claim referents stay stable"}
+      ],
+      "category_penalties": {
+        "clarity": 1,
+        "causal clarity": 1,
+        "referent clarity": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 720,
+          "nlp_claim_evidence_coverage": 70
+        },
+        "max_metrics": {
+          "nlp_coref_ambiguity_count": 1
+        }
+      }
+    },
     "structural signposting": {
       "base_score": 3,
       "finding_penalty": 3,
@@ -39,7 +65,9 @@
       "no_finding_bonus": 0,
       "range_rules": [
         {"metric": "paragraph_count", "min": 4, "delta": 1, "reason": "section-level structure visible"},
-        {"metric": "nlp_long_sentences", "max": 2, "delta": 1, "reason": "reduced structural drag"}
+        {"metric": "nlp_long_sentences", "max": 2, "delta": 1, "reason": "reduced structural drag"},
+        {"metric": "nlp_topic_drift_score", "max": 45, "delta": 1, "reason": "idea progression stays cohesive"},
+        {"metric": "nlp_topic_drift_score", "min": 70, "delta": -1, "reason": "topic drift weakens structure"}
       ],
       "category_penalties": {
         "structure": 1,
@@ -77,6 +105,22 @@
         "max_metrics": {
           "nlp_readability_grade": 8
         }
+      }
+    },
+    "sentence economy": {
+      "base_score": 3,
+      "finding_penalty": 2,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "avg_sentence_length", "max": 19, "delta": 1, "reason": "argument units stay compact"},
+        {"metric": "nlp_semantic_repetition_ratio", "max": 35, "delta": 1, "reason": "limited semantic redundancy"},
+        {"metric": "nlp_semantic_repetition_ratio", "min": 60, "delta": -1, "reason": "repetition lowers insight density"}
+      ],
+      "category_penalties": {
+        "sentence control": 1,
+        "readability": 1,
+        "sentence economy": 1
       }
     }
   },

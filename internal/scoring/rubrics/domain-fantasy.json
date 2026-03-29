@@ -37,7 +37,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear actor/action chain in fantastical scenes"},
-        {"metric": "avg_sentence_length", "max": 20, "delta": 1, "reason": "high-concept content remains readable"}
+        {"metric": "avg_sentence_length", "max": 20, "delta": 1, "reason": "high-concept content remains readable"},
+        {"metric": "nlp_coref_ambiguity_count", "max": 1, "delta": 1, "reason": "referents remain legible in dense world context"},
+        {"metric": "nlp_coref_ambiguity_count", "min": 3, "delta": -1, "reason": "referent ambiguity obscures scene causality"}
       ],
       "category_penalties": {
         "clarity": 1,
@@ -62,7 +64,9 @@
       "no_finding_bonus": 0,
       "range_rules": [
         {"metric": "paragraph_count", "min": 4, "delta": 1, "reason": "scene beats are visibly staged"},
-        {"metric": "word_count", "min": 620, "delta": 1, "reason": "room for setup-payoff movement"}
+        {"metric": "word_count", "min": 620, "delta": 1, "reason": "room for setup-payoff movement"},
+        {"metric": "nlp_topic_drift_score", "max": 45, "delta": 1, "reason": "scene focus holds through world detail"},
+        {"metric": "nlp_topic_drift_score", "min": 70, "delta": -1, "reason": "topic drift breaks scene progression"}
       ],
       "category_penalties": {
         "scene architecture": 1,
@@ -86,7 +90,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "adverb_count", "max": 8, "delta": 1, "reason": "specific verb-noun image control"},
-        {"metric": "adverb_count", "min": 15, "delta": -1, "reason": "high modifier density blunts impact"}
+        {"metric": "adverb_count", "min": 15, "delta": -1, "reason": "high modifier density blunts impact"},
+        {"metric": "nlp_semantic_repetition_ratio", "max": 35, "delta": 1, "reason": "repetition is used selectively"},
+        {"metric": "nlp_semantic_repetition_ratio", "min": 60, "delta": -1, "reason": "semantic repetition dulls prose movement"}
       ],
       "category_penalties": {
         "prose precision": 1,

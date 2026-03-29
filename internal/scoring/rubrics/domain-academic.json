@@ -39,7 +39,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear claim agency"},
-        {"metric": "avg_sentence_length", "max": 24, "delta": 1, "reason": "claim readability control"}
+        {"metric": "avg_sentence_length", "max": 24, "delta": 1, "reason": "claim readability control"},
+        {"metric": "nlp_claim_evidence_coverage", "min": 60, "delta": 1, "reason": "claim-evidence coverage strong"},
+        {"metric": "nlp_claim_evidence_coverage", "max": 35, "delta": -1, "reason": "claim-evidence coverage weak"}
       ],
       "category_penalties": {
         "clarity": 1,
@@ -61,7 +63,9 @@
       "no_finding_bonus": 0,
       "range_rules": [
         {"metric": "word_count", "min": 380, "delta": 1, "reason": "space for support and interpretation"},
-        {"metric": "nlp_unique_token_ratio", "min": 42, "delta": 1, "reason": "lexical variety supports evidence texture"}
+        {"metric": "nlp_unique_token_ratio", "min": 42, "delta": 1, "reason": "lexical variety supports evidence texture"},
+        {"metric": "nlp_evidence_marker_count", "min": 2, "delta": 1, "reason": "explicit evidence language present"},
+        {"metric": "nlp_claim_evidence_coverage", "min": 60, "delta": 1, "reason": "evidence keeps pace with claims"}
       ],
       "category_penalties": {
         "evidence": 1,
@@ -83,7 +87,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "avg_sentence_length", "min": 10, "max": 20, "delta": 1, "reason": "academic argument readability band"},
-        {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "reader-legible argument flow"}
+        {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "reader-legible argument flow"},
+        {"metric": "nlp_coref_ambiguity_count", "max": 1, "delta": 1, "reason": "referent chain stays stable"},
+        {"metric": "nlp_coref_ambiguity_count", "min": 3, "delta": -1, "reason": "referent ambiguity interrupts coherence"}
       ],
       "category_penalties": {
         "clarity": 1,
@@ -108,7 +114,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "avg_sentence_length", "max": 19, "delta": 1, "reason": "controlled scholarly sentence length"},
-        {"metric": "adverb_count", "max": 6, "delta": 1, "reason": "modifier discipline in claims"}
+        {"metric": "adverb_count", "max": 6, "delta": 1, "reason": "modifier discipline in claims"},
+        {"metric": "nlp_semantic_repetition_ratio", "max": 35, "delta": 1, "reason": "limited semantic redundancy"},
+        {"metric": "nlp_semantic_repetition_ratio", "min": 60, "delta": -1, "reason": "semantic repetition lowers information density"}
       ],
       "category_penalties": {
         "sentence control": 1,

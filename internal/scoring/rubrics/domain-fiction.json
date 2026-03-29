@@ -38,7 +38,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear actor/action line"},
-        {"metric": "nlp_passive_sentences", "min": 4, "delta": -1, "reason": "agency blur through passive"}
+        {"metric": "nlp_passive_sentences", "min": 4, "delta": -1, "reason": "agency blur through passive"},
+        {"metric": "nlp_coref_ambiguity_count", "max": 1, "delta": 1, "reason": "character/action referents remain stable"},
+        {"metric": "nlp_coref_ambiguity_count", "min": 3, "delta": -1, "reason": "referent ambiguity blurs narrative line"}
       ],
       "category_penalties": {
         "causal clarity": 1,
@@ -63,7 +65,9 @@
       "range_rules": [
         {"metric": "paragraph_count", "min": 3, "delta": 1, "reason": "scene chunking present"},
         {"metric": "word_count", "min": 550, "delta": 1, "reason": "scene has sufficient beats"},
-        {"metric": "word_count", "max": 220, "delta": -1, "reason": "scene underdeveloped"}
+        {"metric": "word_count", "max": 220, "delta": -1, "reason": "scene underdeveloped"},
+        {"metric": "nlp_topic_drift_score", "max": 45, "delta": 1, "reason": "scene focus stays coherent"},
+        {"metric": "nlp_topic_drift_score", "min": 70, "delta": -1, "reason": "topic drift weakens beat progression"}
       ],
       "category_penalties": {
         "scene architecture": 1,
@@ -84,7 +88,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "adverb_count", "max": 8, "delta": 1, "reason": "modifier discipline"},
-        {"metric": "adverb_count", "min": 16, "delta": -1, "reason": "modifier overuse"}
+        {"metric": "adverb_count", "min": 16, "delta": -1, "reason": "modifier overuse"},
+        {"metric": "nlp_semantic_repetition_ratio", "max": 35, "delta": 1, "reason": "line-level repetition is controlled"},
+        {"metric": "nlp_semantic_repetition_ratio", "min": 60, "delta": -1, "reason": "semantic repetition flattens prose"}
       ],
       "category_penalties": {
         "prose precision": 1,

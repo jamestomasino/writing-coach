@@ -40,7 +40,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "word_count", "min": 260, "delta": 1, "reason": "instructional coverage threshold"},
-        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear actor-oriented instructions"}
+        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear actor-oriented instructions"},
+        {"metric": "nlp_claim_evidence_coverage", "min": 55, "delta": 1, "reason": "procedural claims are supported"},
+        {"metric": "nlp_claim_evidence_coverage", "max": 30, "delta": -1, "reason": "procedural claims under-supported"}
       ],
       "category_penalties": {
         "causal clarity": 1,
@@ -64,7 +66,9 @@
       "no_finding_bonus": 0,
       "range_rules": [
         {"metric": "paragraph_count", "min": 3, "delta": 1, "reason": "content chunked for scan"},
-        {"metric": "avg_sentence_length", "max": 20, "delta": 1, "reason": "compact instruction lines"}
+        {"metric": "avg_sentence_length", "max": 20, "delta": 1, "reason": "compact instruction lines"},
+        {"metric": "nlp_topic_drift_score", "max": 45, "delta": 1, "reason": "section progression stays on task"},
+        {"metric": "nlp_topic_drift_score", "min": 70, "delta": -1, "reason": "topic drift weakens scan path"}
       ],
       "category_penalties": {
         "scanability": 1,
@@ -88,7 +92,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "avg_sentence_length", "min": 9, "max": 18, "delta": 1, "reason": "instruction sequencing remains readable"},
-        {"metric": "nlp_readability_grade", "max": 9, "delta": 1, "reason": "operator-facing clarity"}
+        {"metric": "nlp_readability_grade", "max": 9, "delta": 1, "reason": "operator-facing clarity"},
+        {"metric": "nlp_coref_ambiguity_count", "max": 1, "delta": 1, "reason": "referents stay explicit across steps"},
+        {"metric": "nlp_coref_ambiguity_count", "min": 3, "delta": -1, "reason": "ambiguous referents blur instruction flow"}
       ],
       "category_penalties": {
         "clarity": 1,
@@ -113,7 +119,9 @@
       "no_finding_bonus": 1,
       "range_rules": [
         {"metric": "avg_sentence_length", "max": 17, "delta": 1, "reason": "compact instruction units"},
-        {"metric": "nlp_long_sentences", "max": 1, "delta": 1, "reason": "minimal long-sentence drag"}
+        {"metric": "nlp_long_sentences", "max": 1, "delta": 1, "reason": "minimal long-sentence drag"},
+        {"metric": "nlp_semantic_repetition_ratio", "max": 35, "delta": 1, "reason": "each step adds distinct information"},
+        {"metric": "nlp_semantic_repetition_ratio", "min": 60, "delta": -1, "reason": "semantic repetition reduces step economy"}
       ],
       "category_penalties": {
         "sentence control": 1,

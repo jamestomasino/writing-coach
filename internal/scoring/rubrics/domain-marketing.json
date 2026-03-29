@@ -10,7 +10,9 @@
     "no_finding_bonus": 1,
     "range_rules": [
       {"metric": "avg_sentence_length", "min": 8, "max": 18, "delta": 1, "reason": "marketing sentence pace"},
-      {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "fast readability"}
+      {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "fast readability"},
+      {"metric": "nlp_semantic_repetition_ratio", "max": 35, "delta": 1, "reason": "copy avoids repetitive phrasing"},
+      {"metric": "nlp_semantic_repetition_ratio", "min": 60, "delta": -1, "reason": "semantic repetition blunts message impact"}
     ],
     "category_penalties": {
       "clarity": 1,
@@ -62,7 +64,9 @@
       "max_finding_penalty": 2,
       "no_finding_bonus": 0,
       "range_rules": [
-        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "active value proposition language"}
+        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "active value proposition language"},
+        {"metric": "nlp_claim_evidence_coverage", "min": 55, "delta": 1, "reason": "value claims are supported"},
+        {"metric": "nlp_claim_evidence_coverage", "max": 30, "delta": -1, "reason": "value claims lack proof language"}
       ],
       "category_penalties": {
         "causal clarity": 1,
