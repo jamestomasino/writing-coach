@@ -117,7 +117,9 @@ func TestTopEndSeparationFantasyAndTechnical(t *testing.T) {
 		options analyzer.ContextOptions
 	}{
 		{name: "fantasy", options: analyzer.ContextOptions{TreeSlug: "fantasy-fiction-track", WritingType: "fantasy fiction"}},
+		{name: "fiction", options: analyzer.ContextOptions{TreeSlug: "story-craft-track", WritingType: "fiction"}},
 		{name: "technical", options: analyzer.ContextOptions{TreeSlug: "technical-writing-track", WritingType: "technical writing"}},
+		{name: "academic", options: analyzer.ContextOptions{TreeSlug: "academic-essay-track", WritingType: "academic essay"}},
 	}
 
 	strongNotElite := analyzer.Report{

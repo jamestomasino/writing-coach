@@ -17,6 +17,18 @@
       "readability": 1,
       "sentence control": 1,
       "development": 1
+    },
+    "top_score_gate": {
+      "require_no_findings": true,
+      "min_metrics": {
+        "word_count": 700,
+        "nlp_unique_token_ratio": 56
+      },
+      "max_metrics": {
+        "avg_sentence_length": 17,
+        "nlp_readability_grade": 9,
+        "nlp_passive_sentences": 0
+      }
     }
   },
   "skills": {
@@ -33,6 +45,13 @@
         "clarity": 1,
         "causal clarity": 1,
         "referent clarity": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "max_metrics": {
+          "nlp_passive_sentences": 0,
+          "avg_sentence_length": 18
+        }
       }
     },
     "evidence integration": {
@@ -48,6 +67,13 @@
         "evidence": 1,
         "readability": 1,
         "structure": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 760,
+          "nlp_unique_token_ratio": 56
+        }
       }
     }
   },
