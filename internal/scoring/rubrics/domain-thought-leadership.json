@@ -17,6 +17,18 @@
       "readability": 1,
       "sentence control": 1,
       "structure": 1
+    },
+    "top_score_gate": {
+      "require_no_findings": true,
+      "min_metrics": {
+        "word_count": 700,
+        "nlp_unique_token_ratio": 56
+      },
+      "max_metrics": {
+        "avg_sentence_length": 18,
+        "nlp_readability_grade": 9,
+        "nlp_passive_sentences": 0
+      }
     }
   },
   "skills": {
@@ -32,6 +44,15 @@
       "category_penalties": {
         "structure": 1,
         "clarity": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "paragraph_count": 8
+        },
+        "max_metrics": {
+          "nlp_long_sentences": 0
+        }
       }
     },
     "insight density": {
@@ -46,6 +67,16 @@
       "category_penalties": {
         "diction variety": 1,
         "readability": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 760,
+          "nlp_unique_token_ratio": 58
+        },
+        "max_metrics": {
+          "nlp_readability_grade": 8
+        }
       }
     }
   },

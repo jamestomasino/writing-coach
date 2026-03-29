@@ -17,6 +17,18 @@
       "readability": 1,
       "sentence control": 1,
       "message development": 1
+    },
+    "top_score_gate": {
+      "require_no_findings": true,
+      "min_metrics": {
+        "word_count": 420,
+        "nlp_unique_token_ratio": 54
+      },
+      "max_metrics": {
+        "avg_sentence_length": 15,
+        "nlp_readability_grade": 9,
+        "nlp_passive_sentences": 0
+      }
     }
   },
   "skills": {
@@ -32,6 +44,16 @@
       "category_penalties": {
         "clarity": 1,
         "readability": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 450
+        },
+        "max_metrics": {
+          "nlp_long_sentences": 0,
+          "nlp_passive_sentences": 0
+        }
       }
     },
     "claim clarity": {
@@ -45,6 +67,16 @@
       "category_penalties": {
         "causal clarity": 1,
         "clarity": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 56
+        },
+        "max_metrics": {
+          "avg_sentence_length": 12,
+          "nlp_passive_sentences": 0
+        }
       }
     }
   },

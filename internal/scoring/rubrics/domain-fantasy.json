@@ -30,6 +30,79 @@
     }
   },
   "skills": {
+    "narrative clarity": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear actor/action chain in fantastical scenes"},
+        {"metric": "avg_sentence_length", "max": 20, "delta": 1, "reason": "high-concept content remains readable"}
+      ],
+      "category_penalties": {
+        "clarity": 1,
+        "causal clarity": 1,
+        "referent clarity": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 880
+        },
+        "max_metrics": {
+          "nlp_passive_sentences": 0,
+          "avg_sentence_length": 16
+        }
+      }
+    },
+    "scene architecture": {
+      "base_score": 3,
+      "finding_penalty": 4,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "paragraph_count", "min": 4, "delta": 1, "reason": "scene beats are visibly staged"},
+        {"metric": "word_count", "min": 620, "delta": 1, "reason": "room for setup-payoff movement"}
+      ],
+      "category_penalties": {
+        "scene architecture": 1,
+        "structure": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "word_count": 920,
+          "paragraph_count": 7
+        },
+        "max_metrics": {
+          "nlp_long_sentences": 0
+        }
+      }
+    },
+    "prose precision": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "adverb_count", "max": 8, "delta": 1, "reason": "specific verb-noun image control"},
+        {"metric": "adverb_count", "min": 15, "delta": -1, "reason": "high modifier density blunts impact"}
+      ],
+      "category_penalties": {
+        "prose precision": 1,
+        "diction variety": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 56
+        },
+        "max_metrics": {
+          "adverb_count": 5,
+          "nlp_passive_sentences": 0
+        }
+      }
+    },
     "worldbuilding economy": {
       "base_score": 3,
       "finding_penalty": 4,
@@ -53,6 +126,30 @@
         "max_metrics": {
           "avg_sentence_length": 18,
           "nlp_readability_grade": 11
+        }
+      }
+    },
+    "image freshness": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "nlp_unique_token_ratio", "min": 47, "delta": 1, "reason": "imagery novelty signal"},
+        {"metric": "adverb_count", "max": 7, "delta": 1, "reason": "concrete sensory choices over modifiers"}
+      ],
+      "category_penalties": {
+        "diction variety": 1,
+        "prose precision": 1,
+        "readability": 1
+      },
+      "top_score_gate": {
+        "require_no_findings": true,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 57
+        },
+        "max_metrics": {
+          "adverb_count": 4
         }
       }
     }

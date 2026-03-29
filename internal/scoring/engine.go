@@ -114,7 +114,7 @@ func (e Engine) ScoreSubmission(sub domain.Submission, report analyzer.Report, o
 		if !ok {
 			config = rubric.DefaultSkillConfig
 		}
-		score, evidence := scoreSkill(skill, config, rubric, options, report, categoryHistogram)
+		score, evidence := scoreSkill(skill, config, rubric.DefaultSkillConfig.TopScoreGate, rubric, options, report, categoryHistogram)
 		evidenceJSON, err := json.Marshal(evidence)
 		if err != nil {
 			return nil, err
@@ -136,12 +136,13 @@ func (e Engine) ScoreSubmission(sub domain.Submission, report analyzer.Report, o
 				if !ok {
 					config = rubric.DefaultSkillConfig
 				}
+				gate := resolveTopScoreGate(config.TopScoreGate, rubric.DefaultSkillConfig.TopScoreGate)
 				adjusted := clampScore(scores[i].Score + delta)
 				scores[i].Score = adjusted
 				if strings.TrimSpace(scores[i].ScoreEvidenceJSON) == "" || scores[i].ScoreEvidenceJSON == "{}" {
-					if adjusted == 5 && topScoreGateEnabled(config.TopScoreGate) {
+					if adjusted == 5 && topScoreGateEnabled(gate) {
 						var placeholderEvidence ScoreEvidence
-						if reason := topScoreGateFailure(config.TopScoreGate, report, categoryHistogram, &placeholderEvidence); reason != "" {
+						if reason := topScoreGateFailure(gate, report, categoryHistogram, &placeholderEvidence); reason != "" {
 							scores[i].Score = 4
 						}
 					}
@@ -151,8 +152,8 @@ func (e Engine) ScoreSubmission(sub domain.Submission, report analyzer.Report, o
 				if err := json.Unmarshal([]byte(scores[i].ScoreEvidenceJSON), &evidence); err == nil {
 					evidence.FinalScore = adjusted
 					evidence.AppliedRules = append(evidence.AppliedRules, fmt.Sprintf("track override %s: %+d", options.TreeSlug, delta))
-					if adjusted == 5 && topScoreGateEnabled(config.TopScoreGate) {
-						if reason := topScoreGateFailure(config.TopScoreGate, report, categoryHistogram, &evidence); reason != "" {
+					if adjusted == 5 && topScoreGateEnabled(gate) {
+						if reason := topScoreGateFailure(gate, report, categoryHistogram, &evidence); reason != "" {
 							adjusted = 4
 							scores[i].Score = adjusted
 							evidence.FinalScore = adjusted
@@ -264,7 +265,7 @@ func candidateSkills(rubric Rubric, treeSlug string, activeTGOs []domain.TGO) []
 	return out
 }
 
-func scoreSkill(skill string, config SkillConfig, rubric Rubric, options analyzer.ContextOptions, report analyzer.Report, categoryHistogram map[string]int) (int, ScoreEvidence) {
+func scoreSkill(skill string, config SkillConfig, defaultGate TopScoreGate, rubric Rubric, options analyzer.ContextOptions, report analyzer.Report, categoryHistogram map[string]int) (int, ScoreEvidence) {
 	score := clampScore(config.BaseScore)
 	evidence := ScoreEvidence{
 		RubricID:          rubric.ID,
@@ -330,8 +331,9 @@ func scoreSkill(skill string, config SkillConfig, rubric Rubric, options analyze
 		evidence.AppliedRules = append(evidence.AppliedRules, fmt.Sprintf("category penalty %s: -%d", categoryKey, totalPenalty))
 	}
 
-	if score == 5 && topScoreGateEnabled(config.TopScoreGate) {
-		if reason := topScoreGateFailure(config.TopScoreGate, report, categoryHistogram, &evidence); reason != "" {
+	gate := resolveTopScoreGate(config.TopScoreGate, defaultGate)
+	if score == 5 && topScoreGateEnabled(gate) {
+		if reason := topScoreGateFailure(gate, report, categoryHistogram, &evidence); reason != "" {
 			score = 4
 			evidence.AppliedRules = append(evidence.AppliedRules, "top score gate: "+reason)
 		} else {
@@ -341,6 +343,13 @@ func scoreSkill(skill string, config SkillConfig, rubric Rubric, options analyze
 
 	evidence.FinalScore = score
 	return score, evidence
+}
+
+func resolveTopScoreGate(skillGate, defaultGate TopScoreGate) TopScoreGate {
+	if topScoreGateEnabled(skillGate) {
+		return skillGate
+	}
+	return defaultGate
 }
 
 func findingHistogram(report analyzer.Report) map[string]int {
