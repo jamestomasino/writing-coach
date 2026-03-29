@@ -304,8 +304,11 @@ type submissionResponse struct {
 }
 
 type scoreResponse struct {
-	Skill string `json:"skill"`
-	Score int    `json:"score"`
+	Skill         string         `json:"skill"`
+	Score         int            `json:"score"`
+	ScoreSource   string         `json:"score_source,omitempty"`
+	ScoreVersion  string         `json:"score_version,omitempty"`
+	ScoreEvidence map[string]any `json:"score_evidence,omitempty"`
 }
 
 type tgoAssessmentResponse struct {
@@ -1509,9 +1512,38 @@ func toPlaygroundReviewResponse(item domain.PlaygroundReview) playgroundReviewRe
 }
 
 func toScoreResponses(scores []domain.SkillScore) []scoreResponse {
-	var out []scoreResponse
+	filtered := make([]domain.SkillScore, 0, len(scores))
 	for _, score := range scores {
-		out = append(out, scoreResponse{Skill: score.Skill, Score: score.Score})
+		if score.ScoreSource == "deterministic" {
+			filtered = append(filtered, score)
+		}
+	}
+	if len(filtered) == 0 {
+		for _, score := range scores {
+			if strings.Contains(score.ScoreSource, "legacy") || score.ScoreSource == "" {
+				filtered = append(filtered, score)
+			}
+		}
+	}
+	if len(filtered) == 0 {
+		filtered = scores
+	}
+
+	var out []scoreResponse
+	for _, score := range filtered {
+		item := scoreResponse{
+			Skill:        score.Skill,
+			Score:        score.Score,
+			ScoreSource:  score.ScoreSource,
+			ScoreVersion: score.ScoreVersion,
+		}
+		if strings.TrimSpace(score.ScoreEvidenceJSON) != "" && score.ScoreEvidenceJSON != "{}" {
+			var evidence map[string]any
+			if err := json.Unmarshal([]byte(score.ScoreEvidenceJSON), &evidence); err == nil && len(evidence) > 0 {
+				item.ScoreEvidence = evidence
+			}
+		}
+		out = append(out, item)
 	}
 	return out
 }

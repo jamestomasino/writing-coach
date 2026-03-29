@@ -88,6 +88,9 @@ export type TGOAssessment = {
 export type SkillScore = {
   skill: string
   score: number
+  score_source?: string
+  score_version?: string
+  score_evidence?: Record<string, unknown>
 }
 
 export type Review = {

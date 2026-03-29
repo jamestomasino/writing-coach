@@ -113,7 +113,7 @@ export function CompareView({ submissionId }: { submissionId: number }) {
           <WorkspaceCard>
             <CardHeader eyebrow={t('currentSkillsEyebrow')} title={t('currentSkillsTitle')} />
             <div className="mt-4">
-              <ProviderProvenance providerNote={review.provider_note} />
+              <ProviderProvenance providerNote={review.provider_note} kind="feedback" />
             </div>
             <div className="mt-4 space-y-4">
               {review.tgo_assessments.map((assessment) => (

@@ -2,11 +2,16 @@ package review
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"math"
 	"strings"
 
 	"github.com/tomasino/writing-coach/internal/analyzer"
 	"github.com/tomasino/writing-coach/internal/domain"
 	"github.com/tomasino/writing-coach/internal/llm"
+	"github.com/tomasino/writing-coach/internal/scoring"
 )
 
 type deterministicReviewer struct{}
@@ -65,9 +70,11 @@ func (s Service) ReviewSubmissionWithOptions(ctx context.Context, sub domain.Sub
 func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub domain.Submission, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options Options) Result {
 	report := s.analyzers.AnalyzeWithContext(ctx, sub.Content, options.AnalyzerContext)
 	fallbackActiveTGOs := reviewTGOs(activeTGOs, options.AllowUnscoped)
+	deterministicScores := deterministicScoresForSubmission(sub, report, options.AnalyzerContext, activeTGOs)
+	logScoringDiagnostics(sub.ID, analyzer.DomainForContext(options.AnalyzerContext), deterministicScores)
 
 	if s.client != nil && s.client.Enabled() {
-		reviewResult, scores, err := s.client.ReviewSubmission(ctx, llm.ReviewRequest{
+		reviewResult, providerScores, err := s.client.ReviewSubmission(ctx, llm.ReviewRequest{
 			SubmissionID:     sub.ID,
 			Content:          sub.Content,
 			WordCount:        sub.WordCount,
@@ -82,22 +89,139 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 			reviewResult.ReviewKind = s.clientKind
 			reviewResult.ProviderNote = s.clientKind
 			reviewResult.AnalyzerFindings = analyzer.TopFindings(report, 6)
-			return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
+			persistedScores := append([]domain.SkillScore{}, deterministicScores...)
+			persistedScores = append(persistedScores, tagProviderScores(providerScores, s.clientKind)...)
+			return Result{Review: reviewResult, Scores: persistedScores, AnalyzerReport: report}
 		}
 
-		reviewResult, scores = s.fallback.ReviewSubmission(ctx, sub, report, fallbackActiveTGOs, completedTGOs, options.AnalyzerContext)
+		reviewResult, fallbackScores := s.fallback.ReviewSubmission(ctx, sub, report, fallbackActiveTGOs, completedTGOs, options.AnalyzerContext)
 		reviewResult.ReviewKind = "deterministic-fallback"
 		reviewResult.ProviderNote = strings.TrimSpace(s.clientKind + ": " + err.Error())
-		return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
+		if len(deterministicScores) == 0 {
+			deterministicScores = fallbackScores
+		}
+		return Result{Review: reviewResult, Scores: deterministicScores, AnalyzerReport: report}
 	}
 
-	reviewResult, scores := s.fallback.ReviewSubmission(ctx, sub, report, fallbackActiveTGOs, completedTGOs, options.AnalyzerContext)
+	reviewResult, fallbackScores := s.fallback.ReviewSubmission(ctx, sub, report, fallbackActiveTGOs, completedTGOs, options.AnalyzerContext)
 	reviewResult.ReviewKind = "deterministic"
-	return Result{Review: reviewResult, Scores: scores, AnalyzerReport: report}
+	if len(deterministicScores) == 0 {
+		deterministicScores = fallbackScores
+	}
+	return Result{Review: reviewResult, Scores: deterministicScores, AnalyzerReport: report}
+}
+
+func logScoringDiagnostics(submissionID int64, domainName string, scores []domain.SkillScore) {
+	deterministic := make([]domain.SkillScore, 0, len(scores))
+	for _, score := range scores {
+		if score.ScoreSource == "deterministic" {
+			deterministic = append(deterministic, score)
+		}
+	}
+	if len(deterministic) == 0 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s deterministic_scores=0 warning=no_deterministic_scores", submissionID, strings.TrimSpace(domainName))
+		return
+	}
+
+	missingRubricEvidence := 0
+	minScore := 5
+	maxScore := 1
+	total := 0
+	histogram := [6]int{}
+	for _, score := range deterministic {
+		if score.Score < minScore {
+			minScore = score.Score
+		}
+		if score.Score > maxScore {
+			maxScore = score.Score
+		}
+		if score.Score >= 1 && score.Score <= 5 {
+			histogram[score.Score]++
+		}
+		total += score.Score
+		if strings.TrimSpace(score.ScoreEvidenceJSON) == "" || score.ScoreEvidenceJSON == "{}" {
+			missingRubricEvidence++
+		}
+	}
+
+	avg := float64(total) / float64(len(deterministic))
+	log.Printf(
+		"scoring diagnostics: submission=%d domain=%s deterministic_scores=%d min=%d max=%d avg=%.2f dist=[1:%d 2:%d 3:%d 4:%d 5:%d] missing_evidence=%d",
+		submissionID,
+		strings.TrimSpace(domainName),
+		len(deterministic),
+		minScore,
+		maxScore,
+		avg,
+		histogram[1],
+		histogram[2],
+		histogram[3],
+		histogram[4],
+		histogram[5],
+		missingRubricEvidence,
+	)
+
+	if missingRubricEvidence > 0 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s warning=missing_rubric_evidence count=%d", submissionID, strings.TrimSpace(domainName), missingRubricEvidence)
+	}
+	if math.Abs(float64(maxScore-minScore)) == 0 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s warning=flat_distribution score=%d", submissionID, strings.TrimSpace(domainName), minScore)
+	}
+	if avg < 1.8 || avg > 4.8 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s warning=distribution_outlier avg=%.2f", submissionID, strings.TrimSpace(domainName), avg)
+	}
 }
 
 func analyzerContextLanguage(options analyzer.ContextOptions) string {
 	return domain.NormalizeWritingLanguage(options.WritingLanguage)
+}
+
+func deterministicScoresForSubmission(sub domain.Submission, report analyzer.Report, options analyzer.ContextOptions, activeTGOs []domain.TGO) []domain.SkillScore {
+	engine, err := scoring.NewEngine()
+	if err == nil {
+		scores, scoreErr := engine.ScoreSubmission(sub, report, options, activeTGOs)
+		if scoreErr == nil && len(scores) > 0 {
+			return scores
+		}
+	}
+
+	wordCount := sub.WordCount
+	sentences := report.Metrics["sentence_count"]
+	avgSentenceLength := 0
+	if sentences > 0 {
+		avgSentenceLength = report.Metrics["avg_sentence_length"]
+	}
+	return defaultScoresForActiveTGOs(sub.ID, activeTGOs, wordCount, avgSentenceLength, len(report.Findings))
+}
+
+func tagProviderScores(scores []domain.SkillScore, providerKind string) []domain.SkillScore {
+	if len(scores) == 0 {
+		return nil
+	}
+	source := strings.TrimSpace(providerKind)
+	if source == "" {
+		source = "llm"
+	}
+	out := make([]domain.SkillScore, 0, len(scores))
+	for _, score := range scores {
+		evidence := map[string]any{
+			"kind":          "non_authoritative_provider_score",
+			"provider_kind": source,
+		}
+		rawEvidence := "{}"
+		if encoded, err := json.Marshal(evidence); err == nil {
+			rawEvidence = string(encoded)
+		}
+		out = append(out, domain.SkillScore{
+			SubmissionID:      score.SubmissionID,
+			Skill:             score.Skill,
+			Score:             score.Score,
+			ScoreSource:       fmt.Sprintf("llm:%s:non_authoritative", source),
+			ScoreVersion:      "llm-v1",
+			ScoreEvidenceJSON: rawEvidence,
+		})
+	}
+	return out
 }
 
 func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Submission, report analyzer.Report, activeTGOs []domain.TGO, completedTGOs []domain.TGO, options analyzer.ContextOptions) (domain.Review, []domain.SkillScore) {
@@ -155,14 +279,42 @@ func (deterministicReviewer) ReviewSubmission(_ context.Context, sub domain.Subm
 func defaultScoresForActiveTGOs(submissionID int64, activeTGOs []domain.TGO, wordCount, avgSentenceLength, findingCount int) []domain.SkillScore {
 	if len(activeTGOs) == 0 {
 		return []domain.SkillScore{
-			{SubmissionID: submissionID, Skill: "clarity and coherence", Score: scoreFromSentenceLength(avgSentenceLength)},
-			{SubmissionID: submissionID, Skill: "sentence economy", Score: scoreFromFindingCount(findingCount)},
+			{
+				SubmissionID:      submissionID,
+				Skill:             "clarity and coherence",
+				Score:             scoreFromSentenceLength(avgSentenceLength),
+				ScoreSource:       "deterministic",
+				ScoreVersion:      "det-v1-fallback",
+				ScoreEvidenceJSON: "{}",
+			},
+			{
+				SubmissionID:      submissionID,
+				Skill:             "sentence economy",
+				Score:             scoreFromFindingCount(findingCount),
+				ScoreSource:       "deterministic",
+				ScoreVersion:      "det-v1-fallback",
+				ScoreEvidenceJSON: "{}",
+			},
 		}
 	}
 	seen := map[string]bool{}
 	scores := []domain.SkillScore{
-		{SubmissionID: submissionID, Skill: "scene architecture", Score: scoreFromWordCount(wordCount)},
-		{SubmissionID: submissionID, Skill: "narrative clarity", Score: scoreFromSentenceLength(avgSentenceLength)},
+		{
+			SubmissionID:      submissionID,
+			Skill:             "scene architecture",
+			Score:             scoreFromWordCount(wordCount),
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1-fallback",
+			ScoreEvidenceJSON: "{}",
+		},
+		{
+			SubmissionID:      submissionID,
+			Skill:             "narrative clarity",
+			Score:             scoreFromSentenceLength(avgSentenceLength),
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1-fallback",
+			ScoreEvidenceJSON: "{}",
+		},
 	}
 	for _, score := range scores {
 		seen[score.Skill] = true
@@ -174,9 +326,12 @@ func defaultScoresForActiveTGOs(submissionID int64, activeTGOs []domain.TGO, wor
 		}
 		seen[skill] = true
 		scores = append(scores, domain.SkillScore{
-			SubmissionID: submissionID,
-			Skill:        skill,
-			Score:        scoreFromFindingCount(findingCount),
+			SubmissionID:      submissionID,
+			Skill:             skill,
+			Score:             scoreFromFindingCount(findingCount),
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1-fallback",
+			ScoreEvidenceJSON: "{}",
 		})
 		if len(scores) >= 4 {
 			break

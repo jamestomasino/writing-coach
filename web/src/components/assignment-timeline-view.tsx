@@ -144,7 +144,7 @@ function ReviewStepSection({ step, t }: { step: AssignmentTimelineStep; t: Retur
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('howCreated')}</div>
             <div className="mt-3">
-              <ProviderProvenance providerNote={step.review.provider_note} />
+              <ProviderProvenance providerNote={step.review.provider_note} kind="feedback" />
             </div>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">

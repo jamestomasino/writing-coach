@@ -4,6 +4,8 @@ import { Badge } from '@/components/badge'
 import { Text } from '@/components/text'
 import { useTranslations } from 'next-intl'
 
+const deterministicTooling = ['Rubric Engine', 'Heuristic', 'Vale', 'LanguageTool', 'NLP']
+
 function providerLabel(value: string) {
   switch (value) {
     case 'anthropic':
@@ -19,6 +21,10 @@ function providerLabel(value: string) {
     default:
       return value
   }
+}
+
+function isKnownProvider(value: string) {
+  return ['anthropic', 'gemini', 'openai', 'groq', 'xai'].includes(value)
 }
 
 function titleCase(value: string) {
@@ -49,6 +55,13 @@ function parseProviderNote(providerNote?: string) {
 
   const [mode, provider] = trimmedHead.split('/', 2)
   if (!provider) {
+    if (isKnownProvider(trimmedHead)) {
+      return {
+        sourceLabel: 'LLM',
+        providerLabel: providerLabel(trimmedHead),
+        modelLabel: detail.trim(),
+      }
+    }
     return {
       sourceLabel: titleCase(trimmedHead),
       providerLabel: '',
@@ -66,9 +79,11 @@ function parseProviderNote(providerNote?: string) {
 export function ProviderProvenance({
   providerNote,
   compact = false,
+  kind = 'default',
 }: {
   providerNote?: string
   compact?: boolean
+  kind?: 'default' | 'feedback'
 }) {
   const t = useTranslations('providerProvenance')
   const parsed = parseProviderNote(providerNote)
@@ -76,14 +91,40 @@ export function ProviderProvenance({
     return null
   }
 
+  const feedbackMode = kind === 'feedback'
+  const showLLM = parsed.providerLabel || parsed.sourceLabel.toLowerCase() === 'llm' || parsed.modelLabel
+
   return (
     <div className={compact ? 'flex flex-wrap items-center gap-2' : 'space-y-2'}>
       <div className="flex flex-wrap items-center gap-2">
-        <Badge color="zinc">{parsed.sourceLabel}</Badge>
-        {parsed.providerLabel ? <Badge color="cyan">{parsed.providerLabel}</Badge> : null}
-        {parsed.modelLabel ? <Badge color="amber">{parsed.modelLabel}</Badge> : null}
+        {feedbackMode ? (
+          <>
+            <Badge color="green">{t('deterministic')}</Badge>
+            {deterministicTooling.map((tool) => (
+              <Badge key={tool} color="emerald">
+                {tool}
+              </Badge>
+            ))}
+            {showLLM ? (
+              <>
+                <Badge color="zinc">LLM (secondary)</Badge>
+                {parsed.providerLabel ? <Badge color="zinc">{parsed.providerLabel}</Badge> : null}
+                {parsed.modelLabel ? <Badge color="zinc">{parsed.modelLabel}</Badge> : null}
+              </>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Badge color="zinc">{parsed.sourceLabel}</Badge>
+            {parsed.providerLabel ? <Badge color="cyan">{parsed.providerLabel}</Badge> : null}
+            {parsed.modelLabel ? <Badge color="amber">{parsed.modelLabel}</Badge> : null}
+          </>
+        )}
       </div>
-      {!compact && parsed.providerLabel ? (
+      {!compact && feedbackMode ? (
+        <Text className="text-sm">{t('feedbackPipeline')}</Text>
+      ) : null}
+      {!compact && !feedbackMode && parsed.providerLabel ? (
         <Text className="text-sm">
           {parsed.modelLabel
             ? t('createdWithModel', {

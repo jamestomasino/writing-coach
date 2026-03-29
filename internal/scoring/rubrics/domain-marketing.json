@@ -1,0 +1,58 @@
+{
+  "id": "domain-marketing",
+  "version": "det-v1",
+  "domain": "marketing",
+  "default_skills": ["audience alignment", "claim clarity", "actionability", "sentence economy", "tone calibration"],
+  "default_skill_config": {
+    "base_score": 3,
+    "finding_penalty": 3,
+    "max_finding_penalty": 2,
+    "no_finding_bonus": 1,
+    "range_rules": [
+      {"metric": "avg_sentence_length", "min": 8, "max": 18, "delta": 1, "reason": "marketing sentence pace"},
+      {"metric": "nlp_readability_grade", "max": 10, "delta": 1, "reason": "fast readability"}
+    ],
+    "category_penalties": {
+      "clarity": 1,
+      "readability": 1,
+      "sentence control": 1,
+      "message development": 1
+    }
+  },
+  "skills": {
+    "actionability": {
+      "base_score": 3,
+      "finding_penalty": 2,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "word_count", "min": 160, "delta": 1, "reason": "sufficient offer/call detail"},
+        {"metric": "nlp_long_sentences", "max": 1, "delta": 1, "reason": "rapid message consumption"}
+      ],
+      "category_penalties": {
+        "clarity": 1,
+        "readability": 1
+      }
+    },
+    "claim clarity": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "active value proposition language"}
+      ],
+      "category_penalties": {
+        "causal clarity": 1,
+        "clarity": 1
+      }
+    }
+  },
+  "track_overrides": {
+    "content-marketing-track": {
+      "add_skills": ["structural signposting"],
+      "remove_skills": [],
+      "skill_adjustments": {"sentence economy": 1}
+    }
+  }
+}

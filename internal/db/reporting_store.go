@@ -16,7 +16,7 @@ func (s *Store) SkillAverages(ctx context.Context, userID, treeID int64, limit i
 			SELECT DISTINCT sss.submission_id
 			FROM submission_skill_scores sss
 			JOIN submissions s ON s.id = sss.submission_id
-			WHERE s.user_id = ? AND s.tree_id = ?
+			WHERE s.user_id = ? AND s.tree_id = ? AND sss.score_source = 'deterministic'
 			ORDER BY sss.submission_id DESC
 			LIMIT ?
 		)
@@ -47,7 +47,7 @@ func (s *Store) RecentSkillScores(ctx context.Context, userID, treeID int64, ski
 		SELECT sss.score
 		FROM submission_skill_scores sss
 		JOIN submissions s ON s.id = sss.submission_id
-		WHERE sss.skill_name = ? AND s.user_id = ? AND s.tree_id = ?
+		WHERE sss.skill_name = ? AND s.user_id = ? AND s.tree_id = ? AND sss.score_source = 'deterministic'
 		ORDER BY sss.submission_id DESC
 		LIMIT ?
 	`, skill, userID, treeID, limit)
@@ -71,7 +71,7 @@ func (s *Store) LatestSkillScores(ctx context.Context, submissionID int64) (map[
 	rows, err := s.SQL.QueryContext(ctx, `
 		SELECT skill_name, score
 		FROM submission_skill_scores
-		WHERE submission_id = ?
+		WHERE submission_id = ? AND score_source = 'deterministic'
 	`, submissionID)
 	if err != nil {
 		return nil, err

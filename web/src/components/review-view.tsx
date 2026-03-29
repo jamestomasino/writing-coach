@@ -94,7 +94,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
         <CardHeader eyebrow={t('aiDetailsEyebrow')} title={t('aiDetailsTitle')} />
         <div className="mt-4 space-y-4">
           <ProviderProvenance providerNote={exercise.provider_note} />
-          <ProviderProvenance providerNote={review.provider_note} />
+          <ProviderProvenance providerNote={review.provider_note} kind="feedback" />
         </div>
       </WorkspaceCard>
 

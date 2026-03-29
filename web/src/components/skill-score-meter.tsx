@@ -39,11 +39,19 @@ export function SkillScoreMeter({
   score,
   compact = false,
 }: {
-  score: Pick<SkillScore, 'skill' | 'score'>
+  score: Pick<SkillScore, 'skill' | 'score' | 'score_source' | 'score_version' | 'score_evidence'>
   compact?: boolean
 }) {
   const value = Math.max(1, Math.min(5, score.score))
   const tone = toneClasses(value)
+  const source = typeof score.score_source === 'string' ? score.score_source.trim() : ''
+  const version = typeof score.score_version === 'string' ? score.score_version.trim() : ''
+  const evidence = score.score_evidence && typeof score.score_evidence === 'object' ? score.score_evidence : undefined
+  const appliedRules = Array.isArray(evidence?.applied_rules)
+    ? evidence.applied_rules.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : []
+  const domain = typeof evidence?.domain === 'string' ? evidence.domain : ''
+  const findings = typeof evidence?.finding_count === 'number' ? evidence.finding_count : undefined
 
   return (
     <div className={compact ? 'space-y-2' : 'space-y-2.5'}>
@@ -51,11 +59,36 @@ export function SkillScoreMeter({
         <span className="font-semibold capitalize text-zinc-950 dark:text-white">{score.skill}</span>
         <span className={`text-sm font-semibold ${tone.text}`}>{value}/5</span>
       </div>
+      {source || version ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+          {source ? <span className="rounded-full border border-stone-200 px-2 py-0.5 dark:border-white/10">{source}</span> : null}
+          {version ? <span className="rounded-full border border-stone-200 px-2 py-0.5 dark:border-white/10">{version}</span> : null}
+        </div>
+      ) : null}
       <div className="grid grid-cols-5 gap-1.5">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className={`h-2 rounded-full ${index < value ? tone.filled : tone.empty}`} />
         ))}
       </div>
+      {!compact && evidence ? (
+        <details className="rounded-lg border border-stone-200 px-3 py-2 text-xs text-zinc-700 dark:border-white/10 dark:text-zinc-300">
+          <summary className="cursor-pointer font-medium text-zinc-900 dark:text-white">Evidence</summary>
+          <div className="mt-2 space-y-1">
+            {domain ? <div>Domain: {domain}</div> : null}
+            {typeof findings === 'number' ? <div>Findings: {findings}</div> : null}
+            {appliedRules.length > 0 ? (
+              <div>
+                <div>Rules:</div>
+                <ul className="ml-4 list-disc">
+                  {appliedRules.slice(0, 3).map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        </details>
+      ) : null}
     </div>
   )
 }

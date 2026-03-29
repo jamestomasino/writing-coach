@@ -1,0 +1,74 @@
+{
+  "id": "domain-fiction",
+  "version": "det-v1",
+  "domain": "fiction",
+  "default_skills": ["narrative clarity", "scene architecture", "prose precision", "dialogue intelligence", "image freshness"],
+  "default_skill_config": {
+    "base_score": 3,
+    "finding_penalty": 3,
+    "max_finding_penalty": 2,
+    "no_finding_bonus": 1,
+    "range_rules": [
+      {"metric": "avg_sentence_length", "min": 9, "max": 22, "delta": 1, "reason": "fiction sentence control band"},
+      {"metric": "word_count", "min": 500, "max": 1200, "delta": 1, "reason": "scene development depth"}
+    ],
+    "category_penalties": {
+      "clarity": 1,
+      "readability": 1,
+      "causal clarity": 1
+    }
+  },
+  "skills": {
+    "narrative clarity": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "nlp_passive_sentences", "max": 1, "delta": 1, "reason": "clear actor/action line"},
+        {"metric": "nlp_passive_sentences", "min": 4, "delta": -1, "reason": "agency blur through passive"}
+      ],
+      "category_penalties": {
+        "causal clarity": 1,
+        "referent clarity": 1,
+        "clarity": 1
+      }
+    },
+    "scene architecture": {
+      "base_score": 3,
+      "finding_penalty": 4,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "paragraph_count", "min": 3, "delta": 1, "reason": "scene chunking present"},
+        {"metric": "word_count", "min": 550, "delta": 1, "reason": "scene has sufficient beats"},
+        {"metric": "word_count", "max": 220, "delta": -1, "reason": "scene underdeveloped"}
+      ],
+      "category_penalties": {
+        "scene architecture": 1,
+        "structure": 1
+      }
+    },
+    "prose precision": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 1,
+      "range_rules": [
+        {"metric": "adverb_count", "max": 8, "delta": 1, "reason": "modifier discipline"},
+        {"metric": "adverb_count", "min": 16, "delta": -1, "reason": "modifier overuse"}
+      ],
+      "category_penalties": {
+        "prose precision": 1,
+        "diction variety": 1
+      }
+    }
+  },
+  "track_overrides": {
+    "memoir-personal-narrative-track": {
+      "add_skills": ["clarity and coherence"],
+      "remove_skills": [],
+      "skill_adjustments": {"narrative clarity": 1}
+    }
+  }
+}

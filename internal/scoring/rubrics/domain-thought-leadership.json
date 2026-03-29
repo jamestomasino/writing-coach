@@ -1,0 +1,59 @@
+{
+  "id": "domain-thought-leadership",
+  "version": "det-v1",
+  "domain": "thought_leadership",
+  "default_skills": ["claim clarity", "structural signposting", "insight density", "authority and voice", "sentence economy"],
+  "default_skill_config": {
+    "base_score": 3,
+    "finding_penalty": 3,
+    "max_finding_penalty": 2,
+    "no_finding_bonus": 1,
+    "range_rules": [
+      {"metric": "word_count", "min": 320, "delta": 1, "reason": "idea development depth"},
+      {"metric": "avg_sentence_length", "min": 9, "max": 23, "delta": 1, "reason": "controlled argument cadence"}
+    ],
+    "category_penalties": {
+      "clarity": 1,
+      "readability": 1,
+      "sentence control": 1,
+      "structure": 1
+    }
+  },
+  "skills": {
+    "structural signposting": {
+      "base_score": 3,
+      "finding_penalty": 3,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "paragraph_count", "min": 4, "delta": 1, "reason": "section-level structure visible"},
+        {"metric": "nlp_long_sentences", "max": 2, "delta": 1, "reason": "reduced structural drag"}
+      ],
+      "category_penalties": {
+        "structure": 1,
+        "clarity": 1
+      }
+    },
+    "insight density": {
+      "base_score": 3,
+      "finding_penalty": 4,
+      "max_finding_penalty": 2,
+      "no_finding_bonus": 0,
+      "range_rules": [
+        {"metric": "nlp_unique_token_ratio", "min": 45, "delta": 1, "reason": "high lexical novelty signal"},
+        {"metric": "word_count", "min": 380, "delta": 1, "reason": "room for original distinctions"}
+      ],
+      "category_penalties": {
+        "diction variety": 1,
+        "readability": 1
+      }
+    }
+  },
+  "track_overrides": {
+    "journalism-reporting-track": {
+      "add_skills": ["evidence integration"],
+      "remove_skills": [],
+      "skill_adjustments": {"structural signposting": 1}
+    }
+  }
+}

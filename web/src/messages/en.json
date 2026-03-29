@@ -33,6 +33,7 @@
     "fallback": "Fallback",
     "personal": "Personal",
     "shared": "Shared",
+    "feedbackPipeline": "Deterministic tooling leads scoring and evidence. LLM support is applied second for narrative feedback.",
     "createdWith": "Created with {source} {provider}.",
     "createdWithModel": "Created with {source} {provider} using {model}."
   },
