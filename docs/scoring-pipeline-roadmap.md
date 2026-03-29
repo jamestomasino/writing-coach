@@ -202,12 +202,27 @@ Add tests:
 - Barrier: existing UI/API expects score arrays.
 - Mitigation: keep shape stable; enrich internals first; expose optional metadata fields behind additive API changes.
 
+6. Migration rollback constraints
+- Barrier: migration runner is forward-only; no down migration framework exists.
+- Mitigation: treat migration `0028` as additive/forward-only and require:
+  - database snapshot before deploy,
+  - staged rollout (apply migration before app rollout),
+  - emergency fallback via app rollback only (schema remains compatible because fields are additive),
+  - documented reindex/drop SQL runbook only if absolutely required.
+
 ### Phase 1 Acceptance Criteria
 - Deterministic scorer produces path-aware per-skill scores for all supported English submissions.
 - Every persisted score has `score_source` and `score_version`.
 - Reporting defaults to deterministic stream and remains query-compatible.
 - Lint/tests pass and migrations are reversible.
 - At least one fixture suite per domain family validates scoring behavior.
+
+### Phase 1 Operational Rollout Notes
+- Migration `0028_add_skill_score_provenance.sql` is additive and safe to deploy before application update.
+- Because migrations are forward-only in this repo, rollback means:
+  - roll back app binaries first,
+  - keep additive columns in place,
+  - restore database from snapshot only if data-level rollback is required.
 
 ### Delivery Sequence
 1. Migration + model updates (`score_source`, `score_version`, evidence payload).

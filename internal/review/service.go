@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math"
 	"strings"
 
 	"github.com/tomasino/writing-coach/internal/analyzer"
@@ -69,6 +71,7 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 	report := s.analyzers.AnalyzeWithContext(ctx, sub.Content, options.AnalyzerContext)
 	fallbackActiveTGOs := reviewTGOs(activeTGOs, options.AllowUnscoped)
 	deterministicScores := deterministicScoresForSubmission(sub, report, options.AnalyzerContext, activeTGOs)
+	logScoringDiagnostics(sub.ID, analyzer.DomainForContext(options.AnalyzerContext), deterministicScores)
 
 	if s.client != nil && s.client.Enabled() {
 		reviewResult, providerScores, err := s.client.ReviewSubmission(ctx, llm.ReviewRequest{
@@ -106,6 +109,67 @@ func (s Service) ReviewSubmissionDetailedWithOptions(ctx context.Context, sub do
 		deterministicScores = fallbackScores
 	}
 	return Result{Review: reviewResult, Scores: deterministicScores, AnalyzerReport: report}
+}
+
+func logScoringDiagnostics(submissionID int64, domainName string, scores []domain.SkillScore) {
+	deterministic := make([]domain.SkillScore, 0, len(scores))
+	for _, score := range scores {
+		if score.ScoreSource == "deterministic" {
+			deterministic = append(deterministic, score)
+		}
+	}
+	if len(deterministic) == 0 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s deterministic_scores=0 warning=no_deterministic_scores", submissionID, strings.TrimSpace(domainName))
+		return
+	}
+
+	missingRubricEvidence := 0
+	minScore := 5
+	maxScore := 1
+	total := 0
+	histogram := [6]int{}
+	for _, score := range deterministic {
+		if score.Score < minScore {
+			minScore = score.Score
+		}
+		if score.Score > maxScore {
+			maxScore = score.Score
+		}
+		if score.Score >= 1 && score.Score <= 5 {
+			histogram[score.Score]++
+		}
+		total += score.Score
+		if strings.TrimSpace(score.ScoreEvidenceJSON) == "" || score.ScoreEvidenceJSON == "{}" {
+			missingRubricEvidence++
+		}
+	}
+
+	avg := float64(total) / float64(len(deterministic))
+	log.Printf(
+		"scoring diagnostics: submission=%d domain=%s deterministic_scores=%d min=%d max=%d avg=%.2f dist=[1:%d 2:%d 3:%d 4:%d 5:%d] missing_evidence=%d",
+		submissionID,
+		strings.TrimSpace(domainName),
+		len(deterministic),
+		minScore,
+		maxScore,
+		avg,
+		histogram[1],
+		histogram[2],
+		histogram[3],
+		histogram[4],
+		histogram[5],
+		missingRubricEvidence,
+	)
+
+	if missingRubricEvidence > 0 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s warning=missing_rubric_evidence count=%d", submissionID, strings.TrimSpace(domainName), missingRubricEvidence)
+	}
+	if math.Abs(float64(maxScore-minScore)) == 0 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s warning=flat_distribution score=%d", submissionID, strings.TrimSpace(domainName), minScore)
+	}
+	if avg < 1.8 || avg > 4.8 {
+		log.Printf("scoring diagnostics: submission=%d domain=%s warning=distribution_outlier avg=%.2f", submissionID, strings.TrimSpace(domainName), avg)
+	}
 }
 
 func analyzerContextLanguage(options analyzer.ContextOptions) string {
