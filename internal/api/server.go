@@ -337,12 +337,13 @@ type reviewResponse struct {
 }
 
 type comparisonResponse struct {
-	Summary              string   `json:"summary"`
-	WordDelta            int      `json:"word_delta"`
-	AddedWords           []string `json:"added_words"`
-	RemovedWords         []string `json:"removed_words"`
-	AddressedWeaknesses  []string `json:"addressed_weaknesses"`
-	PersistingWeaknesses []string `json:"persisting_weaknesses"`
+	Summary              string              `json:"summary"`
+	WordDelta            int                 `json:"word_delta"`
+	AddedWords           []string            `json:"added_words"`
+	RemovedWords         []string            `json:"removed_words"`
+	AddressedWeaknesses  []string            `json:"addressed_weaknesses"`
+	PersistingWeaknesses []string            `json:"persisting_weaknesses"`
+	SkillDeltas          []review.SkillDelta `json:"skill_deltas,omitempty"`
 }
 
 type reviewArtifactsPayload struct {
@@ -634,6 +635,7 @@ func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submissi
 		"removed_words":         comparison.RemovedWords,
 		"addressed_weaknesses":  comparison.AddressedWeaknesses,
 		"persisting_weaknesses": comparison.PersistingWeaknesses,
+		"skill_deltas":          comparison.SkillDeltas,
 	}
 }
 

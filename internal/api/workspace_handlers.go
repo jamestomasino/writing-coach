@@ -747,6 +747,7 @@ func (s Server) handleCompare(w http.ResponseWriter, r *http.Request) {
 			RemovedWords:         comparison.RemovedWords,
 			AddressedWeaknesses:  comparison.AddressedWeaknesses,
 			PersistingWeaknesses: comparison.PersistingWeaknesses,
+			SkillDeltas:          comparison.SkillDeltas,
 		},
 	})
 }

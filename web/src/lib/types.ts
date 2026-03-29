@@ -210,6 +210,14 @@ export type Comparison = {
   removed_words: string[]
   addressed_weaknesses: string[]
   persisting_weaknesses: string[]
+  skill_deltas?: {
+    skill: string
+    baseline_score: number
+    current_score: number
+    delta: number
+    direction: 'up' | 'down' | 'flat'
+    evidence_quotes?: string[]
+  }[]
 }
 
 export type Dashboard = {

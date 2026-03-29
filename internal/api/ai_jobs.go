@@ -280,6 +280,7 @@ func (s Server) processPlaygroundReviewJob(ctx context.Context, job domain.AIJob
 						"removed_words":         comparison.RemovedWords,
 						"addressed_weaknesses":  comparison.AddressedWeaknesses,
 						"persisting_weaknesses": comparison.PersistingWeaknesses,
+						"skill_deltas":          comparison.SkillDeltas,
 					})
 				}
 			}
