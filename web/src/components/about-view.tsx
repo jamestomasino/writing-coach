@@ -3,7 +3,7 @@
 import { Button } from '@/components/button'
 import { Eyebrow } from '@/components/eyebrow'
 import { Heading, Subheading } from '@/components/heading'
-import { Strong, Text } from '@/components/text'
+import { Strong, Text, TextLink } from '@/components/text'
 import { WorkspaceCard } from '@/components/workspace-card'
 import { getSession } from '@/lib/api'
 import { useTranslations } from 'next-intl'
@@ -13,6 +13,29 @@ type SessionState = {
   checked: boolean
   authenticated: boolean
 }
+
+const openSourceCheckTools = [
+  {
+    titleKey: 'ossValeTitle',
+    bodyKey: 'ossValeBody',
+    href: 'https://vale.sh/',
+  },
+  {
+    titleKey: 'ossLanguageToolTitle',
+    bodyKey: 'ossLanguageToolBody',
+    href: 'https://languagetool.org/',
+  },
+  {
+    titleKey: 'ossSpacyTitle',
+    bodyKey: 'ossSpacyBody',
+    href: 'https://spacy.io/',
+  },
+  {
+    titleKey: 'ossTextDescriptivesTitle',
+    bodyKey: 'ossTextDescriptivesBody',
+    href: 'https://hlasse.github.io/TextDescriptives/',
+  },
+] as const
 
 function AboutCard({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
   return (
@@ -165,6 +188,28 @@ export function AboutView() {
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('skillCardTitle')}</div>
             <Text className="mt-2">{t('skillCardBody')}</Text>
           </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
+        <Eyebrow>{t('ossToolsEyebrow')}</Eyebrow>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('ossToolsTitle')}</Subheading>
+        <Text className="mt-3">{t('ossToolsIntro')}</Text>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {openSourceCheckTools.map((tool) => (
+            <div
+              key={tool.titleKey}
+              className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5"
+            >
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t(tool.titleKey)}</div>
+              <Text className="mt-2">{t(tool.bodyKey)}</Text>
+              <Text className="mt-3 text-sm">
+                <TextLink href={tool.href} target="_blank" rel="noreferrer">
+                  {t('ossProjectLinkLabel')}
+                </TextLink>
+              </Text>
+            </div>
+          ))}
         </div>
       </WorkspaceCard>
 
