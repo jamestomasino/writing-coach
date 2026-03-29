@@ -69,6 +69,7 @@ func main() {
 	dbPath := flag.String("db", cfg.DatabaseURL, "path to sqlite database")
 	limitPerTrack := flag.Int("limit-per-track", 80, "max submissions per track (newest first)")
 	minSamples := flag.Int("min-samples", 20, "minimum submissions required for stable calibration conclusions")
+	scoreSources := flag.String("score-sources", "deterministic,llm_or_legacy", "comma-separated score_source values to include; use 'any' to disable source filtering")
 	outPath := flag.String("out", "", "optional report output path")
 	flag.Parse()
 
@@ -78,14 +79,18 @@ func main() {
 	if *minSamples <= 0 {
 		dieMsg("--min-samples must be > 0")
 	}
+	selectedSources := parseCSV(*scoreSources)
+	if len(selectedSources) == 0 {
+		dieMsg("--score-sources must include at least one value (or use 'any')")
+	}
 
 	resolvedDBPath := resolveDBPath(projectRoot, *dbPath)
-	snaps, err := loadSnapshots(ctx, resolvedDBPath, *limitPerTrack, cfg.DefaultTreeSlug)
+	snaps, err := loadSnapshots(ctx, resolvedDBPath, *limitPerTrack, cfg.DefaultTreeSlug, selectedSources)
 	if err != nil {
 		die("load snapshots", err)
 	}
 	if len(snaps) == 0 {
-		dieMsg("no deterministic submission scores found")
+		dieMsg("no submission scores found for selected sources")
 	}
 
 	engine, err := scoring.NewEngine()
@@ -196,7 +201,7 @@ func main() {
 	}
 }
 
-func loadSnapshots(ctx context.Context, dbPath string, limitPerTrack int, defaultTreeSlug string) ([]submissionSnapshot, error) {
+func loadSnapshots(ctx context.Context, dbPath string, limitPerTrack int, defaultTreeSlug string, scoreSources []string) ([]submissionSnapshot, error) {
 	sqlDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, err
@@ -221,10 +226,7 @@ func loadSnapshots(ctx context.Context, dbPath string, limitPerTrack int, defaul
 	if scoreEvidenceExists {
 		evidenceSelect = "COALESCE(score_evidence_json, '{}') AS score_evidence_json"
 	}
-	scoreSourceWhere := ""
-	if scoreSourceExists {
-		scoreSourceWhere = "WHERE score_source = 'deterministic'"
-	}
+	scoreSourceWhere, sourceArgs := buildScoreSourceWhere(scoreSourceExists, scoreSources)
 
 	query := fmt.Sprintf(`
 		WITH ranked_scores AS (
@@ -272,7 +274,10 @@ func loadSnapshots(ctx context.Context, dbPath string, limitPerTrack int, defaul
 		ORDER BY submission_id DESC
 	`, evidenceSelect, scoreSourceWhere)
 
-	rows, err := sqlDB.QueryContext(ctx, query, defaultTreeSlug, defaultTreeSlug, limitPerTrack)
+	args := make([]any, 0, len(sourceArgs)+3)
+	args = append(args, sourceArgs...)
+	args = append(args, defaultTreeSlug, defaultTreeSlug, limitPerTrack)
+	rows, err := sqlDB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -331,6 +336,45 @@ func resolveDBPath(projectRoot, configuredPath string) string {
 		return fallback
 	}
 	return configuredPath
+}
+
+func parseCSV(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	seen := map[string]bool{}
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value == "" {
+			continue
+		}
+		key := strings.ToLower(value)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		values = append(values, value)
+	}
+	return values
+}
+
+func buildScoreSourceWhere(scoreSourceExists bool, scoreSources []string) (string, []any) {
+	if !scoreSourceExists {
+		return "", nil
+	}
+	if len(scoreSources) == 1 && strings.EqualFold(strings.TrimSpace(scoreSources[0]), "any") {
+		return "", nil
+	}
+	placeholders := make([]string, 0, len(scoreSources))
+	args := make([]any, 0, len(scoreSources))
+	for _, source := range scoreSources {
+		placeholders = append(placeholders, "?")
+		args = append(args, source)
+	}
+	return "WHERE score_source IN (" + strings.Join(placeholders, ",") + ")", args
 }
 
 func hasColumn(ctx context.Context, db *sql.DB, tableName, columnName string) (bool, error) {
