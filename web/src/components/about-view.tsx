@@ -18,7 +18,7 @@ const openSourceCheckTools = [
   {
     titleKey: 'ossHeuristicTitle',
     bodyKey: 'ossHeuristicBody',
-    href: 'https://github.com/jamestomasino/writing-coach/tree/main/internal/analyzer',
+    href: '',
   },
   {
     titleKey: 'ossValeTitle',
@@ -170,17 +170,6 @@ export function AboutView() {
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard className="border-stone-200/80 bg-linear-to-br from-stone-50 via-white to-sky-50 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/30">
-        <Eyebrow>{t('howItWorksEyebrow')}</Eyebrow>
-        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('howItWorksTitle')}</Subheading>
-        <div className="mt-4 max-w-3xl space-y-4">
-          <Text>{t('howItWorksBody1')}</Text>
-          <Text>{t('howItWorksBody2')}</Text>
-          <Text>{t('howItWorksBody3')}</Text>
-          <Text>{t('howItWorksBody4')}</Text>
-        </div>
-      </WorkspaceCard>
-
       <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
         <Eyebrow>{t('deterministicDetailEyebrow')}</Eyebrow>
         <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('deterministicDetailTitle')}</Subheading>
@@ -213,11 +202,13 @@ export function AboutView() {
             >
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t(tool.titleKey)}</div>
               <Text className="mt-2">{t(tool.bodyKey)}</Text>
-              <Text className="mt-3 text-sm">
-                <TextLink href={tool.href} target="_blank" rel="noreferrer">
-                  {t('ossProjectLinkLabel')}
-                </TextLink>
-              </Text>
+              {tool.href ? (
+                <Text className="mt-3 text-sm">
+                  <TextLink href={tool.href} target="_blank" rel="noreferrer">
+                    {t('ossProjectLinkLabel')}
+                  </TextLink>
+                </Text>
+              ) : null}
             </div>
           ))}
         </div>
