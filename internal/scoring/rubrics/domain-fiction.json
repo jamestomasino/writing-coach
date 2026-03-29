@@ -94,7 +94,7 @@
         "require_no_findings": true,
         "min_metrics": {
           "word_count": 850,
-          "nlp_unique_token_ratio": 55
+          "nlp_unique_token_ratio": 54
         },
         "max_metrics": {
           "adverb_count": 5,

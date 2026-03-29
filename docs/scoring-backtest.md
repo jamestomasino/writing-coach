@@ -9,6 +9,7 @@ go run ./cmd/scoring-backtest --db ./.writing-coach/writing-coach.db --limit-per
 ```
 
 If `--db` is omitted, the tool first tries the configured `database_url`, then falls back to `./.writing-coach/writing-coach.db` if present.
+By default, the tool includes score sources `deterministic,llm_or_legacy` to support mixed historical datasets.
 
 ## Output
 
@@ -24,4 +25,5 @@ The report includes:
 - `--db`: sqlite path
 - `--limit-per-track`: max submissions per track (newest first)
 - `--min-samples`: minimum total submissions before treating results as stable
+- `--score-sources`: comma-separated `score_source` values to include, or `any`
 - `--out`: write report to file (optional)
