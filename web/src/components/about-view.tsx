@@ -6,6 +6,15 @@ import { Heading, Subheading } from '@/components/heading'
 import { Strong, Text, TextLink } from '@/components/text'
 import { WorkspaceCard } from '@/components/workspace-card'
 import { getSession } from '@/lib/api'
+import {
+  ArrowPathIcon,
+  ChartBarSquareIcon,
+  ChatBubbleLeftRightIcon,
+  ClipboardDocumentListIcon,
+  LinkIcon,
+  MapIcon,
+  Squares2X2Icon,
+} from '@heroicons/react/20/solid'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
@@ -129,11 +138,36 @@ export function AboutView() {
         <WorkspaceCard className="border-stone-200/80 bg-zinc-950 text-white dark:border-white/10">
           <Subheading className="text-xl/7 text-white sm:text-lg/7">{t('whatYouGetTitle')}</Subheading>
           <ul className="mt-4 space-y-3 text-sm/6 text-zinc-300">
-            <li>{t('whatYouGet1')}</li>
-            <li>{t('whatYouGet2')}</li>
-            <li>{t('whatYouGet3')}</li>
-            <li>{t('whatYouGet4')}</li>
-            <li>{t('whatYouGet5')}</li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex rounded-lg bg-amber-200/90 p-1.5 text-zinc-900">
+                <ClipboardDocumentListIcon className="size-4" />
+              </span>
+              <span>{t('whatYouGet1')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex rounded-lg bg-amber-200/90 p-1.5 text-zinc-900">
+                <ChatBubbleLeftRightIcon className="size-4" />
+              </span>
+              <span>{t('whatYouGet2')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex rounded-lg bg-amber-200/90 p-1.5 text-zinc-900">
+                <ArrowPathIcon className="size-4" />
+              </span>
+              <span>{t('whatYouGet3')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex rounded-lg bg-amber-200/90 p-1.5 text-zinc-900">
+                <ChartBarSquareIcon className="size-4" />
+              </span>
+              <span>{t('whatYouGet4')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex rounded-lg bg-amber-200/90 p-1.5 text-zinc-900">
+                <MapIcon className="size-4" />
+              </span>
+              <span>{t('whatYouGet5')}</span>
+            </li>
           </ul>
         </WorkspaceCard>
       </div>
@@ -160,10 +194,16 @@ export function AboutView() {
         <Subheading className="text-xl/7 sm:text-lg/7">{t('differentTitle')}</Subheading>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="mb-3 inline-flex rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-zinc-800 dark:text-amber-300">
+              <Squares2X2Icon className="size-5" />
+            </div>
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('differentCard1Title')}</div>
             <Text className="mt-2">{t('differentCard1Body')}</Text>
           </div>
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="mb-3 inline-flex rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-zinc-800 dark:text-amber-300">
+              <LinkIcon className="size-5" />
+            </div>
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('differentCard2Title')}</div>
             <Text className="mt-2">{t('differentCard2Body')}</Text>
           </div>
