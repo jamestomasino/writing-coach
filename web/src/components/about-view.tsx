@@ -427,22 +427,13 @@ export function AboutView() {
         </ul>
       </WorkspaceCard>
 
-      <WorkspaceCard className="border-stone-200/80 bg-stone-50 dark:border-white/10 dark:bg-white/5">
-        <Eyebrow>{t('legalEyebrow')}</Eyebrow>
-        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('legalTitle')}</Subheading>
-        <Text className="mt-3 text-sm/6">{t('legalIntro')}</Text>
-        <ul className="mt-4 space-y-2 text-sm/6 text-zinc-700 dark:text-zinc-300">
-          <li>
-            <TextLink href="/privacy">{t('legalPrivacy')}</TextLink>
-          </li>
-          <li>
-            <TextLink href="/terms">{t('legalTerms')}</TextLink>
-          </li>
-          <li>
-            <TextLink href="/third-party-notices">{t('legalThirdParty')}</TextLink>
-          </li>
-        </ul>
-      </WorkspaceCard>
+      <footer className="border-t border-stone-200/80 pt-6 dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm/6 text-zinc-600 dark:text-zinc-300">
+          <TextLink href="/privacy">{t('legalPrivacy')}</TextLink>
+          <TextLink href="/terms">{t('legalTerms')}</TextLink>
+          <TextLink href="/third-party-notices">{t('legalThirdParty')}</TextLink>
+        </div>
+      </footer>
     </div>
   )
 }
