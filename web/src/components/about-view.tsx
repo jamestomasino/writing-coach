@@ -23,6 +23,17 @@ type SessionState = {
   authenticated: boolean
 }
 
+function sectionIdFromTitle(title: string): string {
+  return title
+    .normalize('NFKD')
+    .replace(/\p{Mark}+/gu, '')
+    .toLowerCase()
+    .trim()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 const openSourceCheckTools = [
   {
     titleKey: 'ossHeuristicTitle',
@@ -140,9 +151,22 @@ const openSourceCredits = [
   },
 ] as const
 
-function AboutCard({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
+function AboutCard({
+  id,
+  eyebrow,
+  title,
+  body,
+}: {
+  id: string
+  eyebrow: string
+  title: string
+  body: string
+}) {
   return (
-    <WorkspaceCard className="border-stone-200/80 bg-white/90 dark:border-white/10 dark:bg-zinc-900">
+    <WorkspaceCard
+      id={id}
+      className="border-stone-200/80 bg-white/90 dark:border-white/10 dark:bg-zinc-900"
+    >
       <Eyebrow>{eyebrow}</Eyebrow>
       <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{title}</Subheading>
       <Text className="mt-3">{body}</Text>
@@ -153,6 +177,17 @@ function AboutCard({ eyebrow, title, body }: { eyebrow: string; title: string; b
 export function AboutView() {
   const t = useTranslations('aboutView')
   const [session, setSession] = useState<SessionState>({ checked: false, authenticated: false })
+  const heroTitle = t('heroTitle')
+  const skillsTitle = t('skillsTitle')
+  const whatYouGetTitle = t('whatYouGetTitle')
+  const focusTitle = t('focusTitle')
+  const feedbackTitle = t('feedbackTitle')
+  const progressTitle = t('progressTitle')
+  const differentTitle = t('differentTitle')
+  const deterministicDetailTitle = t('deterministicDetailTitle')
+  const ossToolsTitle = t('ossToolsTitle')
+  const aiBoundaryTitle = t('aiBoundaryTitle')
+  const openSourceCreditsTitle = t('openSourceCreditsTitle')
 
   useEffect(() => {
     let cancelled = false
@@ -178,10 +213,13 @@ export function AboutView() {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-[2rem] border border-stone-200 bg-linear-to-br from-stone-100 via-white to-sky-50 p-8 shadow-sm ring-1 ring-black/3 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/40 dark:ring-white/10">
+      <section
+        id={sectionIdFromTitle(heroTitle)}
+        className="overflow-hidden rounded-[2rem] border border-stone-200 bg-linear-to-br from-stone-100 via-white to-sky-50 p-8 shadow-sm ring-1 ring-black/3 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/40 dark:ring-white/10"
+      >
         <div className="max-w-3xl">
           <Eyebrow className="tracking-[0.22em]">{t('heroEyebrow')}</Eyebrow>
-          <Heading className="mt-4 text-4xl/11 sm:text-3xl/10">{t('heroTitle')}</Heading>
+          <Heading className="mt-4 text-4xl/11 sm:text-3xl/10">{heroTitle}</Heading>
           <Text className="mt-4 text-lg/8 text-zinc-600 dark:text-zinc-300">
             {t('heroBody')}
           </Text>
@@ -210,8 +248,11 @@ export function AboutView() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
-        <WorkspaceCard className="border-stone-200/80 bg-stone-50 dark:border-white/10 dark:bg-white/5">
-          <Subheading className="text-xl/7 sm:text-lg/7">{t('skillsTitle')}</Subheading>
+        <WorkspaceCard
+          id={sectionIdFromTitle(skillsTitle)}
+          className="border-stone-200/80 bg-stone-50 dark:border-white/10 dark:bg-white/5"
+        >
+          <Subheading className="text-xl/7 sm:text-lg/7">{skillsTitle}</Subheading>
           <div className="mt-4 space-y-4">
             <Text>{t('skillsBody1')}</Text>
             <Text>{t('skillsBody2')}</Text>
@@ -219,8 +260,11 @@ export function AboutView() {
           </div>
         </WorkspaceCard>
 
-        <WorkspaceCard className="border-stone-200/80 bg-zinc-950 text-white dark:border-white/10">
-          <Subheading className="text-xl/7 text-white sm:text-lg/7">{t('whatYouGetTitle')}</Subheading>
+        <WorkspaceCard
+          id={sectionIdFromTitle(whatYouGetTitle)}
+          className="border-stone-200/80 bg-zinc-950 text-white dark:border-white/10"
+        >
+          <Subheading className="text-xl/7 text-white sm:text-lg/7">{whatYouGetTitle}</Subheading>
           <ul className="mt-4 space-y-3 text-sm/6 text-zinc-300">
             <li className="flex items-start gap-3">
               <span className="mt-0.5 inline-flex rounded-lg bg-amber-200/90 p-1.5 text-zinc-900">
@@ -258,24 +302,30 @@ export function AboutView() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <AboutCard
+          id={sectionIdFromTitle(focusTitle)}
           eyebrow={t('focusEyebrow')}
-          title={t('focusTitle')}
+          title={focusTitle}
           body={t('focusBody')}
         />
         <AboutCard
+          id={sectionIdFromTitle(feedbackTitle)}
           eyebrow={t('feedbackEyebrow')}
-          title={t('feedbackTitle')}
+          title={feedbackTitle}
           body={t('feedbackBody')}
         />
         <AboutCard
+          id={sectionIdFromTitle(progressTitle)}
           eyebrow={t('progressEyebrow')}
-          title={t('progressTitle')}
+          title={progressTitle}
           body={t('progressBody')}
         />
       </div>
 
-      <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
-        <Subheading className="text-xl/7 sm:text-lg/7">{t('differentTitle')}</Subheading>
+      <WorkspaceCard
+        id={sectionIdFromTitle(differentTitle)}
+        className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900"
+      >
+        <Subheading className="text-xl/7 sm:text-lg/7">{differentTitle}</Subheading>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
             <div className="mb-3 inline-flex rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-zinc-800 dark:text-amber-300">
@@ -294,9 +344,12 @@ export function AboutView() {
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
+      <WorkspaceCard
+        id={sectionIdFromTitle(deterministicDetailTitle)}
+        className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900"
+      >
         <Eyebrow>{t('deterministicDetailEyebrow')}</Eyebrow>
-        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('deterministicDetailTitle')}</Subheading>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{deterministicDetailTitle}</Subheading>
         <Text className="mt-3">{t('deterministicDetailIntro')}</Text>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
@@ -314,9 +367,12 @@ export function AboutView() {
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
+      <WorkspaceCard
+        id={sectionIdFromTitle(ossToolsTitle)}
+        className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900"
+      >
         <Eyebrow>{t('ossToolsEyebrow')}</Eyebrow>
-        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('ossToolsTitle')}</Subheading>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{ossToolsTitle}</Subheading>
         <Text className="mt-3">{t('ossToolsIntro')}</Text>
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {openSourceCheckTools.map((tool) => (
@@ -341,9 +397,12 @@ export function AboutView() {
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard className="border-stone-200/80 bg-linear-to-br from-stone-50 via-white to-sky-50 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/30">
+      <WorkspaceCard
+        id={sectionIdFromTitle(aiBoundaryTitle)}
+        className="border-stone-200/80 bg-linear-to-br from-stone-50 via-white to-sky-50 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-sky-950/30"
+      >
         <Eyebrow>{t('aiBoundaryEyebrow')}</Eyebrow>
-        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('aiBoundaryTitle')}</Subheading>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{aiBoundaryTitle}</Subheading>
         <Text className="mt-4 max-w-3xl">{t('aiBoundaryIntro')}</Text>
 
         <div className="mt-6">
@@ -404,9 +463,12 @@ export function AboutView() {
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900">
+      <WorkspaceCard
+        id={sectionIdFromTitle(openSourceCreditsTitle)}
+        className="border-stone-200/80 bg-white dark:border-white/10 dark:bg-zinc-900"
+      >
         <Eyebrow>{t('openSourceCreditsEyebrow')}</Eyebrow>
-        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{t('openSourceCreditsTitle')}</Subheading>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{openSourceCreditsTitle}</Subheading>
         <Text className="mt-3 text-sm/6">{t('openSourceCreditsIntro')}</Text>
         <ul className="mt-4 space-y-2 text-xs/6 text-zinc-700 dark:text-zinc-300">
           {openSourceCredits.map((tool) => (
