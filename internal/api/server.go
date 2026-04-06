@@ -35,13 +35,21 @@ type Server struct {
 }
 
 const serverShutdownTimeout = 10 * time.Second
+const serverReadHeaderTimeout = 5 * time.Second
+const serverReadTimeout = 30 * time.Second
+const serverWriteTimeout = 120 * time.Second
+const serverIdleTimeout = 120 * time.Second
 
 func (s *Server) Serve(ctx context.Context) error {
 	s.startBackgroundWorkers(ctx)
 
 	server := &http.Server{
-		Addr:    s.Config.HTTPAddr,
-		Handler: s.routes(),
+		Addr:              s.Config.HTTPAddr,
+		Handler:           s.routes(),
+		ReadHeaderTimeout: serverReadHeaderTimeout,
+		ReadTimeout:       serverReadTimeout,
+		WriteTimeout:      serverWriteTimeout,
+		IdleTimeout:       serverIdleTimeout,
 	}
 
 	go func() {
