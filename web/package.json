@@ -27,7 +27,7 @@
     "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/dagre": "^0.7.54",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "^9.39.4",
