@@ -133,18 +133,7 @@ func (c *Client) GenerateExercise(ctx context.Context, input ExerciseRequest) (d
 		SchemaName:  "exercise_prompt",
 		Schema:      ExerciseSchema(),
 		SystemInput: ExerciseSystemPrompt(),
-		UserInput: fmt.Sprintf(
-			"Writing language: %s\nWriting track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
-			FormatWritingLanguage(input.WritingLanguage),
-			FormatOnboardingProfile(input.OnboardingProfile),
-			MeasurabilityGuidance(input.ActiveTGOs),
-			EmptyDefault(input.CurrentFocus, "none"),
-			input.DifficultyLevel,
-			JoinOrDefault(input.RecentTitles, "none"),
-			JoinOrDefault(input.RecentWeaknesses, "none"),
-			JoinOrDefault(input.RecurringFindings, "none"),
-			EmptyDefault(input.CoachingBrief, "none"),
-		),
+		UserInput:   ExerciseUserInput(input),
 	})
 	if err != nil {
 		return domain.Exercise{}, err
@@ -175,21 +164,7 @@ func (c *Client) GenerateRevisionExercise(ctx context.Context, input RevisionExe
 		SchemaName:  "revision_prompt",
 		Schema:      ExerciseSchema(),
 		SystemInput: RevisionSystemPrompt(),
-		UserInput: fmt.Sprintf(
-			"Writing language: %s\nCurrent focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
-			FormatWritingLanguage(input.WritingLanguage),
-			EmptyDefault(input.CurrentFocus, "prose precision"),
-			input.DifficultyLevel,
-			JoinTGOs(input.ActiveTGOs),
-			input.SubmissionID,
-			input.SubmissionContent,
-			JoinOrDefault(input.Weaknesses, "none"),
-			JoinOrDefault(input.AnalyzerFindings, "none"),
-			EmptyDefault(input.ComparisonSummary, "none"),
-			JoinOrDefault(input.RecentWeaknesses, "none"),
-			JoinOrDefault(input.RecurringFindings, "none"),
-			EmptyDefault(input.CoachingBrief, "none"),
-		),
+		UserInput:   RevisionUserInput(input),
 	})
 	if err != nil {
 		return domain.Exercise{}, err
@@ -219,18 +194,7 @@ func (c *Client) ReviewSubmission(ctx context.Context, input ReviewRequest) (dom
 		SchemaName:  "submission_review",
 		Schema:      ReviewSchema(),
 		SystemInput: ReviewSystemPrompt(),
-		UserInput: fmt.Sprintf(
-			"Writing language: %s\nSubmission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nCoaching context: %s\nSubmission:\n%s",
-			FormatWritingLanguage(input.WritingLanguage),
-			input.SubmissionID,
-			input.WordCount,
-			JoinTGOs(input.ActiveTGOs),
-			JoinTGOs(input.CompletedTGOs),
-			EmptyDefault(input.AnalysisSummary, "none"),
-			JoinOrDefault(input.AnalyzerFindings, "none"),
-			EmptyDefault(input.CoachingBrief, "none"),
-			input.Content,
-		),
+		UserInput:   ReviewUserInput(input),
 	})
 	if err != nil {
 		return domain.Review{}, nil, err
@@ -273,6 +237,54 @@ type requestSpec struct {
 	Schema      map[string]any
 	SystemInput string
 	UserInput   string
+}
+
+func ExerciseUserInput(input ExerciseRequest) string {
+	return fmt.Sprintf(
+		"Writing language: %s\nWriting track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+		FormatWritingLanguage(input.WritingLanguage),
+		FormatOnboardingProfile(input.OnboardingProfile),
+		MeasurabilityGuidance(input.ActiveTGOs),
+		EmptyDefault(input.CurrentFocus, "none"),
+		input.DifficultyLevel,
+		JoinOrDefault(input.RecentTitles, "none"),
+		JoinOrDefault(input.RecentWeaknesses, "none"),
+		JoinOrDefault(input.RecurringFindings, "none"),
+		EmptyDefault(input.CoachingBrief, "none"),
+	)
+}
+
+func RevisionUserInput(input RevisionExerciseRequest) string {
+	return fmt.Sprintf(
+		"Writing language: %s\nCurrent focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+		FormatWritingLanguage(input.WritingLanguage),
+		EmptyDefault(input.CurrentFocus, "prose precision"),
+		input.DifficultyLevel,
+		JoinTGOs(input.ActiveTGOs),
+		input.SubmissionID,
+		input.SubmissionContent,
+		JoinOrDefault(input.Weaknesses, "none"),
+		JoinOrDefault(input.AnalyzerFindings, "none"),
+		EmptyDefault(input.ComparisonSummary, "none"),
+		JoinOrDefault(input.RecentWeaknesses, "none"),
+		JoinOrDefault(input.RecurringFindings, "none"),
+		EmptyDefault(input.CoachingBrief, "none"),
+	)
+}
+
+func ReviewUserInput(input ReviewRequest) string {
+	return fmt.Sprintf(
+		"Writing language: %s\nSubmission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nCoaching context: %s\nSubmission:\n%s",
+		FormatWritingLanguage(input.WritingLanguage),
+		input.SubmissionID,
+		input.WordCount,
+		JoinTGOs(input.ActiveTGOs),
+		JoinTGOs(input.CompletedTGOs),
+		EmptyDefault(input.AnalysisSummary, "none"),
+		JoinOrDefault(input.AnalyzerFindings, "none"),
+		EmptyDefault(input.CoachingBrief, "none"),
+		input.Content,
+	)
 }
 
 type responsesRequest struct {

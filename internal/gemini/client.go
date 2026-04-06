@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -71,18 +70,7 @@ func (c *Client) ValidateCredentials(ctx context.Context) error {
 
 func (c *Client) GenerateExercise(ctx context.Context, input llm.ExerciseRequest) (domain.Exercise, error) {
 	payload, err := c.generateJSON(ctx, c.promptModel, openai.ExerciseSystemPrompt(), openai.ExerciseSchema(),
-		fmt.Sprintf(
-			"Writing language: %s\nWriting track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
-			openai.FormatWritingLanguage(input.WritingLanguage),
-			openai.FormatOnboardingProfile(input.OnboardingProfile),
-			openai.MeasurabilityGuidance(input.ActiveTGOs),
-			openai.EmptyDefault(input.CurrentFocus, "none"),
-			input.DifficultyLevel,
-			openai.JoinOrDefault(input.RecentTitles, "none"),
-			openai.JoinOrDefault(input.RecentWeaknesses, "none"),
-			openai.JoinOrDefault(input.RecurringFindings, "none"),
-			openai.EmptyDefault(input.CoachingBrief, "none"),
-		),
+		openai.ExerciseUserInput(input),
 	)
 	if err != nil {
 		return domain.Exercise{}, err
@@ -107,21 +95,7 @@ func (c *Client) GenerateExercise(ctx context.Context, input llm.ExerciseRequest
 
 func (c *Client) GenerateRevisionExercise(ctx context.Context, input llm.RevisionExerciseRequest) (domain.Exercise, error) {
 	payload, err := c.generateJSON(ctx, c.promptModel, openai.RevisionSystemPrompt(), openai.ExerciseSchema(),
-		fmt.Sprintf(
-			"Writing language: %s\nCurrent focus: %s\nDifficulty level: %d\nActive TGOs: %s\nSubmission ID: %d\nSubmission:\n%s\nCurrent weaknesses: %s\nAnalyzer findings: %s\nComparison summary: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
-			openai.FormatWritingLanguage(input.WritingLanguage),
-			openai.EmptyDefault(input.CurrentFocus, "prose precision"),
-			input.DifficultyLevel,
-			openai.JoinTGOs(input.ActiveTGOs),
-			input.SubmissionID,
-			input.SubmissionContent,
-			openai.JoinOrDefault(input.Weaknesses, "none"),
-			openai.JoinOrDefault(input.AnalyzerFindings, "none"),
-			openai.EmptyDefault(input.ComparisonSummary, "none"),
-			openai.JoinOrDefault(input.RecentWeaknesses, "none"),
-			openai.JoinOrDefault(input.RecurringFindings, "none"),
-			openai.EmptyDefault(input.CoachingBrief, "none"),
-		),
+		openai.RevisionUserInput(input),
 	)
 	if err != nil {
 		return domain.Exercise{}, err
@@ -145,18 +119,7 @@ func (c *Client) GenerateRevisionExercise(ctx context.Context, input llm.Revisio
 
 func (c *Client) ReviewSubmission(ctx context.Context, input llm.ReviewRequest) (domain.Review, []domain.SkillScore, error) {
 	payload, err := c.generateJSON(ctx, c.reviewModel, openai.ReviewSystemPrompt(), openai.ReviewSchema(),
-		fmt.Sprintf(
-			"Writing language: %s\nSubmission ID: %d\nWord count: %d\nActive TGOs: %s\nCompleted TGOs to monitor for regression: %s\nDeterministic analysis summary: %s\nDeterministic findings: %s\nCoaching context: %s\nSubmission:\n%s",
-			openai.FormatWritingLanguage(input.WritingLanguage),
-			input.SubmissionID,
-			input.WordCount,
-			openai.JoinTGOs(input.ActiveTGOs),
-			openai.JoinTGOs(input.CompletedTGOs),
-			openai.EmptyDefault(input.AnalysisSummary, "none"),
-			openai.JoinOrDefault(input.AnalyzerFindings, "none"),
-			openai.EmptyDefault(input.CoachingBrief, "none"),
-			input.Content,
-		),
+		openai.ReviewUserInput(input),
 	)
 	if err != nil {
 		return domain.Review{}, nil, err

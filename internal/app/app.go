@@ -91,22 +91,25 @@ func New(ctx context.Context) (*App, error) {
 		_ = store.Close()
 		return nil, err
 	}
+	promptService := prompt.NewService(openAIClient).WithGenerationTimeout(cfg.PromptGenerationTimeout)
+	reviewService := review.NewService(openAIClient, analyzerService)
+	curriculumService := curriculum.NewService()
 
 	return &App{
 		api: api.Server{
 			Config:     cfg,
 			Store:      store,
-			Prompts:    prompt.NewService(openAIClient).WithGenerationTimeout(cfg.PromptGenerationTimeout),
-			Reviews:    review.NewService(openAIClient, analyzerService),
-			Curriculum: curriculum.NewService(),
+			Prompts:    promptService,
+			Reviews:    reviewService,
+			Curriculum: curriculumService,
 		},
 		cli: cli.CLI{
 			Config:     cfg,
 			AppContext: appContext,
 			Store:      store,
-			Prompts:    prompt.NewService(openAIClient).WithGenerationTimeout(cfg.PromptGenerationTimeout),
-			Reviews:    review.NewService(openAIClient, analyzerService),
-			Curriculum: curriculum.NewService(),
+			Prompts:    promptService,
+			Reviews:    reviewService,
+			Curriculum: curriculumService,
 		},
 		store: store,
 	}, nil
