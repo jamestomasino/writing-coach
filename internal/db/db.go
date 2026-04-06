@@ -24,7 +24,25 @@ func Open(databasePath string) (*Store, error) {
 		return nil, err
 	}
 
+	// Keep a single shared connection for correctness with current migration/test patterns.
+	// Enable WAL/busy-timeout pragmas for better write behavior under contention.
 	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+
+	setupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	pragmas := []string{
+		`PRAGMA journal_mode = WAL`,
+		`PRAGMA synchronous = NORMAL`,
+		`PRAGMA busy_timeout = 5000`,
+	}
+	for _, stmt := range pragmas {
+		if _, err := sqlDB.ExecContext(setupCtx, stmt); err != nil {
+			_ = sqlDB.Close()
+			return nil, err
+		}
+	}
 
 	return &Store{SQL: sqlDB}, nil
 }
