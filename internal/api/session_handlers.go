@@ -142,27 +142,55 @@ func (s Server) resolveSession(ctx context.Context, r *http.Request) (session.Co
 }
 
 func (s Server) resolveUserSession(ctx context.Context, r *http.Request, userSlug, userName string) (session.Context, error) {
-	if err := s.Store.EnsureUser(ctx, userSlug, userName); err != nil {
-		return session.Context{}, err
-	}
 	user, err := s.Store.UserBySlug(ctx, userSlug)
-	if err != nil {
+	if err != nil && !db.IsNotFound(err) {
 		return session.Context{}, err
 	}
+	userExists := err == nil
 	treeSlug := strings.TrimSpace(firstNonEmpty(r.URL.Query().Get("tree"), r.Header.Get("X-Writing-Coach-Tree")))
 	if treeSlug == "" {
-		if nextUser, err := s.archiveLegacyBootstrapTrack(ctx, user); err != nil {
-			log.Printf("session: legacy track cleanup failed for user=%s: %v", userSlug, err)
-		} else {
-			user = nextUser
+		if userExists {
+			if nextUser, err := s.archiveLegacyBootstrapTrack(ctx, user); err != nil {
+				log.Printf("session: legacy track cleanup failed for user=%s: %v", userSlug, err)
+			} else {
+				user = nextUser
+			}
 		}
-		if strings.TrimSpace(user.ActiveTreeSlug) != "" {
+		if userExists && strings.TrimSpace(user.ActiveTreeSlug) != "" {
 			treeSlug = user.ActiveTreeSlug
 		} else {
 			treeSlug = s.Config.DefaultTreeSlug
 		}
 	}
 
+	if userExists {
+		tree, err := s.Store.TreeBySlug(ctx, treeSlug)
+		if err != nil {
+			if !db.IsNotFound(err) {
+				return session.Context{}, err
+			}
+			return s.bootstrapUserSession(ctx, userSlug, userName, treeSlug)
+		}
+		enrollmentID, err := s.Store.EnrollmentID(ctx, user.ID, tree.ID)
+		if err == nil {
+			return session.Context{
+				UserID:       user.ID,
+				TreeID:       tree.ID,
+				EnrollmentID: enrollmentID,
+				UserSlug:     userSlug,
+				TreeSlug:     treeSlug,
+			}, nil
+		}
+		if !db.IsNotFound(err) {
+			return session.Context{}, err
+		}
+		return s.bootstrapUserSession(ctx, userSlug, firstNonEmpty(userName, user.Name, s.Config.WriterName), treeSlug)
+	}
+
+	return s.bootstrapUserSession(ctx, userSlug, userName, treeSlug)
+}
+
+func (s Server) bootstrapUserSession(ctx context.Context, userSlug, userName, treeSlug string) (session.Context, error) {
 	userID, treeID, enrollmentID, err := s.Store.EnsureDefaultUserTree(ctx, userSlug, userName, treeSlug)
 	if err != nil {
 		return session.Context{}, err
