@@ -7,7 +7,6 @@ import { Description, Field, FieldGroup, Fieldset, Label } from '@/components/fi
 import { Input } from '@/components/input'
 import { PageHeader } from '@/components/page-header'
 import { ProviderProvenance } from '@/components/provider-provenance'
-import { SkillScoreMeter } from '@/components/skill-score-meter'
 import { AppErrorState, LoadingState, TaskProgressState } from '@/components/status-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/table'
 import { Text } from '@/components/text'
@@ -56,6 +55,15 @@ type ToolReportView = {
   findings: AnalyzerFindingView[]
   metrics: AnalyzerMetricView[]
   warnings: string[]
+}
+
+type AnalyzerReportPayload = {
+  findings?: unknown
+  Findings?: unknown
+  metrics?: unknown
+  Metrics?: unknown
+  warnings?: unknown
+  Warnings?: unknown
 }
 
 function localWordCount(value: string) {
@@ -155,11 +163,7 @@ function parseAnalyzerReport(value: unknown): ToolReportView[] {
   if (!value || typeof value !== 'object') {
     return []
   }
-  const payload = value as {
-    findings?: unknown
-    metrics?: unknown
-    warnings?: unknown
-  }
+  const payload = value as AnalyzerReportPayload
   const tools = new Map<string, ToolReportView>()
   const ensureTool = (id: string) => {
     const key = id || 'other'
@@ -178,29 +182,62 @@ function parseAnalyzerReport(value: unknown): ToolReportView[] {
     return created
   }
 
-  const findings = Array.isArray(payload.findings) ? payload.findings : []
+  const findings = Array.isArray(payload.findings)
+    ? payload.findings
+    : Array.isArray(payload.Findings)
+      ? payload.Findings
+      : []
   for (const item of findings) {
     if (!item || typeof item !== 'object') {
       continue
     }
     const finding = item as {
       analyzer?: unknown
+      Analyzer?: unknown
       category?: unknown
+      Category?: unknown
       severity?: unknown
+      Severity?: unknown
       message?: unknown
+      Message?: unknown
     }
-    const analyzer = typeof finding.analyzer === 'string' ? finding.analyzer.trim() : ''
+    const analyzerRaw = typeof finding.analyzer === 'string'
+      ? finding.analyzer
+      : typeof finding.Analyzer === 'string'
+        ? finding.Analyzer
+        : ''
+    const categoryRaw = typeof finding.category === 'string'
+      ? finding.category
+      : typeof finding.Category === 'string'
+        ? finding.Category
+        : ''
+    const severityRaw = typeof finding.severity === 'string'
+      ? finding.severity
+      : typeof finding.Severity === 'string'
+        ? finding.Severity
+        : ''
+    const messageRaw = typeof finding.message === 'string'
+      ? finding.message
+      : typeof finding.Message === 'string'
+        ? finding.Message
+        : ''
+    const analyzer = analyzerRaw.trim()
     const toolID = normalizeToolID(analyzer)
     ensureTool(toolID).findings.push({
       analyzer: analyzer || toolLabel(toolID),
-      category: typeof finding.category === 'string' ? finding.category.trim() : 'general',
-      severity: normalizeSeverity(typeof finding.severity === 'string' ? finding.severity : ''),
-      message: typeof finding.message === 'string' ? finding.message.trim() : '',
+      category: categoryRaw.trim() || 'general',
+      severity: normalizeSeverity(severityRaw),
+      message: messageRaw.trim(),
     })
   }
 
-  if (payload.metrics && typeof payload.metrics === 'object') {
-    for (const [key, raw] of Object.entries(payload.metrics as Record<string, unknown>)) {
+  const metricsRaw = payload.metrics && typeof payload.metrics === 'object'
+    ? payload.metrics
+    : payload.Metrics && typeof payload.Metrics === 'object'
+      ? payload.Metrics
+      : null
+  if (metricsRaw) {
+    for (const [key, raw] of Object.entries(metricsRaw as Record<string, unknown>)) {
       if (!Number.isFinite(raw)) {
         continue
       }
@@ -209,7 +246,11 @@ function parseAnalyzerReport(value: unknown): ToolReportView[] {
     }
   }
 
-  const warnings = Array.isArray(payload.warnings) ? payload.warnings : []
+  const warnings = Array.isArray(payload.warnings)
+    ? payload.warnings
+    : Array.isArray(payload.Warnings)
+      ? payload.Warnings
+      : []
   for (const warning of warnings) {
     if (typeof warning !== 'string' || warning.trim() === '') {
       continue
@@ -678,21 +719,6 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
             </WorkspaceCard>
 
             <div className="space-y-8">
-              <WorkspaceCard>
-                <CardHeader eyebrow={t('ratingsEyebrow')} title={t('ratingsTitle')} description={t('ratingsDescription')} />
-                <div className="mt-4 space-y-3">
-                  {currentReview.review.skill_scores.length === 0 ? (
-                    <Text>{t('noRatings')}</Text>
-                  ) : (
-                    currentReview.review.skill_scores.map((item) => (
-                      <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-                        <SkillScoreMeter score={item} />
-                      </div>
-                    ))
-                  )}
-                </div>
-              </WorkspaceCard>
-
               <WorkspaceCard>
                 <CardHeader eyebrow={t('signalsEyebrow')} title={t('signalsTitle')} />
                 <div className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
