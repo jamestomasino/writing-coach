@@ -122,3 +122,24 @@ func TestLoadReadsPromptGenerationTimeoutFromEnv(t *testing.T) {
 		t.Fatalf("prompt generation timeout = %s", loaded.PromptGenerationTimeout)
 	}
 }
+
+func TestLoadReadsDBPoolSettingsFromEnv(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("WRITING_COACH_DB_MAX_OPEN_CONNS", "7")
+	t.Setenv("WRITING_COACH_DB_MAX_IDLE_CONNS", "3")
+	t.Setenv("WRITING_COACH_DB_CONN_MAX_LIFETIME", "15m")
+
+	loaded, err := Load(root)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if loaded.DBMaxOpenConns != 7 {
+		t.Fatalf("db max open conns = %d", loaded.DBMaxOpenConns)
+	}
+	if loaded.DBMaxIdleConns != 3 {
+		t.Fatalf("db max idle conns = %d", loaded.DBMaxIdleConns)
+	}
+	if loaded.DBConnMaxLifetime != 15*time.Minute {
+		t.Fatalf("db conn max lifetime = %s", loaded.DBConnMaxLifetime)
+	}
+}

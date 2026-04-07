@@ -18,17 +18,41 @@ type Store struct {
 	SQL *sql.DB
 }
 
+type Options struct {
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+}
+
 func Open(databasePath string) (*Store, error) {
+	return OpenWithOptions(databasePath, defaultOptions(databasePath))
+}
+
+func OpenWithOptions(databasePath string, opts Options) (*Store, error) {
 	sqlDB, err := sql.Open("sqlite", databasePath)
 	if err != nil {
 		return nil, err
 	}
 
-	// Keep a single shared connection for correctness with current migration/test patterns.
-	// Enable WAL/busy-timeout pragmas for better write behavior under contention.
-	sqlDB.SetMaxOpenConns(1)
-	sqlDB.SetMaxIdleConns(1)
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	maxOpenConns := opts.MaxOpenConns
+	if maxOpenConns <= 0 {
+		maxOpenConns = 4
+	}
+	maxIdleConns := opts.MaxIdleConns
+	if maxIdleConns <= 0 {
+		maxIdleConns = maxOpenConns
+	}
+	if maxIdleConns > maxOpenConns {
+		maxIdleConns = maxOpenConns
+	}
+	connMaxLifetime := opts.ConnMaxLifetime
+	if connMaxLifetime <= 0 {
+		connMaxLifetime = 30 * time.Minute
+	}
+
+	sqlDB.SetMaxOpenConns(maxOpenConns)
+	sqlDB.SetMaxIdleConns(maxIdleConns)
+	sqlDB.SetConnMaxLifetime(connMaxLifetime)
 
 	setupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -45,6 +69,21 @@ func Open(databasePath string) (*Store, error) {
 	}
 
 	return &Store{SQL: sqlDB}, nil
+}
+
+func defaultOptions(databasePath string) Options {
+	if databasePath == ":memory:" || strings.Contains(databasePath, "mode=memory") {
+		return Options{
+			MaxOpenConns:    1,
+			MaxIdleConns:    1,
+			ConnMaxLifetime: 30 * time.Minute,
+		}
+	}
+	return Options{
+		MaxOpenConns:    4,
+		MaxIdleConns:    4,
+		ConnMaxLifetime: 30 * time.Minute,
+	}
 }
 
 func (s *Store) Close() error {

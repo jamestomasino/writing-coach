@@ -38,7 +38,11 @@ func New(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 
-	store, err := db.Open(cfg.DatabaseURL)
+	store, err := db.OpenWithOptions(cfg.DatabaseURL, db.Options{
+		MaxOpenConns:    cfg.DBMaxOpenConns,
+		MaxIdleConns:    cfg.DBMaxIdleConns,
+		ConnMaxLifetime: cfg.DBConnMaxLifetime,
+	})
 	if err != nil {
 		return nil, err
 	}
