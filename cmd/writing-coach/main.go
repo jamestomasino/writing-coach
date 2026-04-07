@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/tomasino/writing-coach/internal/app"
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	application, err := app.New(ctx)
 	if err != nil {
