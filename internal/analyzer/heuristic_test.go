@@ -37,3 +37,19 @@ func TestHeuristicAnalyzerUsesContextualMessages(t *testing.T) {
 		t.Fatalf("expected technical-writing message, got %#v", report.Findings)
 	}
 }
+
+func TestHeuristicAnalyzerSkipsDialogueCheckForPoetrySpecialty(t *testing.T) {
+	text := strings.Repeat("word ", 800)
+	report, err := (Heuristic{}).AnalyzeWithContext(context.Background(), text, ContextOptions{
+		WritingType:      "fiction poetry",
+		AssignmentFormat: "poem",
+	})
+	if err != nil {
+		t.Fatalf("analyze: %v", err)
+	}
+	for _, finding := range report.Findings {
+		if finding.Category == "dialogue intelligence" {
+			t.Fatalf("unexpected dialogue finding in poetry specialty: %#v", finding)
+		}
+	}
+}
