@@ -48,30 +48,36 @@ func (Heuristic) AnalyzeWithContext(_ context.Context, text string, options Cont
 	}
 
 	if avgSentenceLength > 24 {
-		report.Findings = append(report.Findings, Finding{
-			Analyzer: "heuristic",
-			Category: "clarity",
-			Severity: "warning",
-			Message:  averageSentenceLengthHighMessage(domain),
-		})
+		if shouldEvaluateHeuristicRule("heuristic.avg_sentence_length_high", options, wordCount) {
+			report.Findings = append(report.Findings, Finding{
+				Analyzer: "heuristic",
+				Category: "clarity",
+				Severity: "warning",
+				Message:  averageSentenceLengthHighMessage(domain),
+			})
+		}
 	}
 	if avgSentenceLength > 0 && avgSentenceLength < 8 {
-		report.Findings = append(report.Findings, Finding{
-			Analyzer: "heuristic",
-			Category: "rhythm",
-			Severity: "warning",
-			Message:  shortSentenceRhythmMessage(domain),
-		})
+		if shouldEvaluateHeuristicRule("heuristic.avg_sentence_length_low", options, wordCount) {
+			report.Findings = append(report.Findings, Finding{
+				Analyzer: "heuristic",
+				Category: "rhythm",
+				Severity: "warning",
+				Message:  shortSentenceRhythmMessage(domain),
+			})
+		}
 	}
 	if adverbCount > max(3, wordCount/120) {
-		report.Findings = append(report.Findings, Finding{
-			Analyzer: "heuristic",
-			Category: "prose precision",
-			Severity: "warning",
-			Message:  adverbDensityMessage(domain),
-		})
+		if shouldEvaluateHeuristicRule("heuristic.adverb_density", options, wordCount) {
+			report.Findings = append(report.Findings, Finding{
+				Analyzer: "heuristic",
+				Category: "prose precision",
+				Severity: "warning",
+				Message:  adverbDensityMessage(domain),
+			})
+		}
 	}
-	if asCount > 5 && (domain == DomainFiction || domain == DomainFantasy || domain == DomainThoughtLeadership || domain == DomainGeneral) {
+	if asCount > 5 && shouldEvaluateHeuristicRule("heuristic.comparison_as_density", options, wordCount) {
 		report.Findings = append(report.Findings, Finding{
 			Analyzer: "heuristic",
 			Category: "image freshness",
@@ -79,7 +85,7 @@ func (Heuristic) AnalyzeWithContext(_ context.Context, text string, options Cont
 			Message:  comparisonDensityMessage(domain),
 		})
 	}
-	if paragraphCount == 1 && wordCount > 250 {
+	if paragraphCount == 1 && wordCount > 250 && shouldEvaluateHeuristicRule("heuristic.long_single_paragraph", options, wordCount) {
 		report.Findings = append(report.Findings, Finding{
 			Analyzer: "heuristic",
 			Category: paragraphCategory(domain),
@@ -87,7 +93,7 @@ func (Heuristic) AnalyzeWithContext(_ context.Context, text string, options Cont
 			Message:  longSingleParagraphMessage(domain),
 		})
 	}
-	if dialogueLines == 0 && wordCount > 700 && (domain == DomainFiction || domain == DomainFantasy) {
+	if dialogueLines == 0 && wordCount > 700 && shouldEvaluateHeuristicRule("heuristic.dialogue_absence_long_scene", options, wordCount) {
 		report.Findings = append(report.Findings, Finding{
 			Analyzer: "heuristic",
 			Category: "dialogue intelligence",
@@ -95,7 +101,7 @@ func (Heuristic) AnalyzeWithContext(_ context.Context, text string, options Cont
 			Message:  "There is no quoted dialogue in a fairly long scene; confirm that silence is a deliberate choice.",
 		})
 	}
-	if wordCount < minimumExpectedWords(domain) {
+	if wordCount < minimumExpectedWords(domain) && shouldEvaluateHeuristicRule("heuristic.brief_draft_by_domain", options, wordCount) {
 		report.Findings = append(report.Findings, Finding{
 			Analyzer: "heuristic",
 			Category: brevityCategory(domain),
