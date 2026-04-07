@@ -208,6 +208,12 @@ If `WRITING_COACH_AI_KEY_SECRET` is missing, personal provider storage is unavai
   Minimum sampled submissions target used for calibration warnings.
 - `WRITING_COACH_CALIBRATION_LIMIT_PER_TRACK`
   Maximum submissions sampled per track during each run.
+- `WRITING_COACH_DB_MAX_OPEN_CONNS`
+  Maximum number of SQLite connections in the app pool (default `4`).
+- `WRITING_COACH_DB_MAX_IDLE_CONNS`
+  Maximum number of idle SQLite connections retained by the app (default `4`).
+- `WRITING_COACH_DB_CONN_MAX_LIFETIME`
+  Maximum lifetime of pooled SQLite connections before recycle (default `30m`).
 - `WRITING_COACH_NLP_ANALYZER_URL`
   Optional internal spaCy/TextDescriptives analyzer service URL.
 - `WRITING_COACH_WRITER_NAME`

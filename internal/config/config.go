@@ -19,6 +19,9 @@ type Config struct {
 	ConfigPath                     string        `json:"-"`
 	DataDir                        string        `json:"data_dir"`
 	DatabaseURL                    string        `json:"database_url"`
+	DBMaxOpenConns                 int           `json:"db_max_open_conns"`
+	DBMaxIdleConns                 int           `json:"db_max_idle_conns"`
+	DBConnMaxLifetime              time.Duration `json:"-"`
 	WriterName                     string        `json:"writer_name"`
 	DefaultUserSlug                string        `json:"default_user_slug"`
 	DefaultTreeSlug                string        `json:"default_tree_slug"`
@@ -52,6 +55,9 @@ func Default(projectRoot string) Config {
 		ConfigPath:                     filepath.Join(dataDir, "config.json"),
 		DataDir:                        dataDir,
 		DatabaseURL:                    filepath.Join(dataDir, "writing-coach.db"),
+		DBMaxOpenConns:                 4,
+		DBMaxIdleConns:                 4,
+		DBConnMaxLifetime:              30 * time.Minute,
 		WriterName:                     "Writer",
 		DefaultUserSlug:                "default",
 		DefaultTreeSlug:                domain.GlobalSkillGraphSlug,
@@ -92,6 +98,18 @@ func Load(projectRoot string) (Config, error) {
 	cfg.ConfigPath = filepath.Join(cfg.DataDir, "config.json")
 	if cfg.DatabaseURL == "" {
 		cfg.DatabaseURL = filepath.Join(cfg.DataDir, "writing-coach.db")
+	}
+	if cfg.DBMaxOpenConns <= 0 {
+		cfg.DBMaxOpenConns = 4
+	}
+	if cfg.DBMaxIdleConns <= 0 {
+		cfg.DBMaxIdleConns = cfg.DBMaxOpenConns
+	}
+	if cfg.DBMaxIdleConns > cfg.DBMaxOpenConns {
+		cfg.DBMaxIdleConns = cfg.DBMaxOpenConns
+	}
+	if cfg.DBConnMaxLifetime <= 0 {
+		cfg.DBConnMaxLifetime = 30 * time.Minute
 	}
 	if cfg.OpenAIBaseURL == "" {
 		cfg.OpenAIBaseURL = "https://api.openai.com/v1"
@@ -190,6 +208,18 @@ func Load(projectRoot string) (Config, error) {
 	if value := os.Getenv("WRITING_COACH_DATABASE_URL"); value != "" {
 		cfg.DatabaseURL = value
 	}
+	if value := os.Getenv("WRITING_COACH_DB_MAX_OPEN_CONNS"); value != "" {
+		cfg.DBMaxOpenConns = parsePositiveInt(value, cfg.DBMaxOpenConns)
+	}
+	if value := os.Getenv("WRITING_COACH_DB_MAX_IDLE_CONNS"); value != "" {
+		cfg.DBMaxIdleConns = parsePositiveInt(value, cfg.DBMaxIdleConns)
+	}
+	if value := os.Getenv("WRITING_COACH_DB_CONN_MAX_LIFETIME"); value != "" {
+		cfg.DBConnMaxLifetime = parseDuration(value, cfg.DBConnMaxLifetime)
+	}
+	if cfg.DBMaxIdleConns > cfg.DBMaxOpenConns {
+		cfg.DBMaxIdleConns = cfg.DBMaxOpenConns
+	}
 	if value := os.Getenv("WRITING_COACH_WRITER_NAME"); value != "" {
 		cfg.WriterName = value
 	}
@@ -223,6 +253,9 @@ func Save(cfg Config) error {
 	payload := struct {
 		DataDir                        string   `json:"data_dir"`
 		DatabaseURL                    string   `json:"database_url"`
+		DBMaxOpenConns                 int      `json:"db_max_open_conns"`
+		DBMaxIdleConns                 int      `json:"db_max_idle_conns"`
+		DBConnMaxLifetime              string   `json:"db_conn_max_lifetime"`
 		WriterName                     string   `json:"writer_name"`
 		DefaultUserSlug                string   `json:"default_user_slug"`
 		DefaultTreeSlug                string   `json:"default_tree_slug"`
@@ -247,6 +280,9 @@ func Save(cfg Config) error {
 	}{
 		DataDir:                        cfg.DataDir,
 		DatabaseURL:                    cfg.DatabaseURL,
+		DBMaxOpenConns:                 cfg.DBMaxOpenConns,
+		DBMaxIdleConns:                 cfg.DBMaxIdleConns,
+		DBConnMaxLifetime:              cfg.DBConnMaxLifetime.String(),
 		WriterName:                     cfg.WriterName,
 		DefaultUserSlug:                cfg.DefaultUserSlug,
 		DefaultTreeSlug:                cfg.DefaultTreeSlug,
