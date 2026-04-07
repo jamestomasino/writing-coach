@@ -13,7 +13,7 @@
 
 ## Coverage Gate
 For every stage:
-1. Run full repo tests: `go test ./...`
+1. Run full repo tests: `./scripts/test-go.sh`
 2. Run coverage suite for internal tested packages:
    - `go test ./internal/analyzer ./internal/api ./internal/config ./internal/curriculum ./internal/db ./internal/domain ./internal/openai ./internal/prompt ./internal/review ./internal/scoring ./internal/secrets -coverprofile=/tmp/writing_coach_cover_after.out`
 3. Verify total coverage is not below baseline (`53.8%`).
