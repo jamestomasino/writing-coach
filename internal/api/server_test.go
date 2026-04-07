@@ -4904,9 +4904,15 @@ type testHarness struct {
 func configureTestSQLite(t *testing.T, store *db.Store) {
 	t.Helper()
 
+	// Keep test writes single-connection to avoid intermittent SQLITE_BUSY
+	// when API background workers and handlers hit the same temporary DB.
+	store.SQL.SetMaxOpenConns(1)
+	store.SQL.SetMaxIdleConns(1)
+
 	pragmas := []string{
-		"PRAGMA journal_mode = MEMORY",
-		"PRAGMA synchronous = OFF",
+		"PRAGMA journal_mode = WAL",
+		"PRAGMA synchronous = NORMAL",
+		"PRAGMA busy_timeout = 15000",
 		"PRAGMA temp_store = MEMORY",
 	}
 	for _, pragma := range pragmas {
