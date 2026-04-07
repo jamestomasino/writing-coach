@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header'
 import { ProviderProvenance } from '@/components/provider-provenance'
 import { SkillScoreMeter } from '@/components/skill-score-meter'
 import { AppErrorState, LoadingState, TaskProgressState } from '@/components/status-state'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/table'
 import { Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { WorkspaceCard } from '@/components/workspace-card'
@@ -37,6 +38,26 @@ const initialForm: PlaygroundReviewInput = {
   coaching_brief: '',
 }
 
+type AnalyzerFindingView = {
+  analyzer: string
+  category: string
+  severity: string
+  message: string
+}
+
+type AnalyzerMetricView = {
+  key: string
+  value: number
+}
+
+type ToolReportView = {
+  id: string
+  label: string
+  findings: AnalyzerFindingView[]
+  metrics: AnalyzerMetricView[]
+  warnings: string[]
+}
+
 function localWordCount(value: string) {
   return value
     .trim()
@@ -51,6 +72,168 @@ function sessionToForm(session: PlaygroundSession): PlaygroundReviewInput {
     writing_type: session.writing_type ?? '',
     assignment_format: session.assignment_format ?? '',
     coaching_brief: session.coaching_brief ?? '',
+  }
+}
+
+function normalizeToolID(value: string) {
+  const normalized = value.trim().toLowerCase().replace(/[\s_-]+/g, '')
+  if (normalized === 'languagetool') {
+    return 'languagetool'
+  }
+  if (normalized === 'nlp') {
+    return 'nlp'
+  }
+  if (normalized === 'vale') {
+    return 'vale'
+  }
+  if (normalized === 'heuristic') {
+    return 'heuristic'
+  }
+  return 'other'
+}
+
+function toolLabel(toolID: string) {
+  switch (toolID) {
+    case 'heuristic':
+      return 'Heuristic'
+    case 'vale':
+      return 'Vale'
+    case 'languagetool':
+      return 'LanguageTool'
+    case 'nlp':
+      return 'NLP'
+    default:
+      return 'Other'
+  }
+}
+
+function metricToolID(metricKey: string) {
+  if (metricKey.startsWith('nlp_')) {
+    return 'nlp'
+  }
+  if (metricKey.startsWith('languagetool_')) {
+    return 'languagetool'
+  }
+  if (metricKey.startsWith('vale_')) {
+    return 'vale'
+  }
+  if (metricKey.startsWith('heuristic_')) {
+    return 'heuristic'
+  }
+  if (metricKey === 'word_count' || metricKey === 'avg_sentence_length' || metricKey === 'adverb_count') {
+    return 'heuristic'
+  }
+  return 'other'
+}
+
+function warningToolID(warning: string) {
+  const normalized = warning.trim().toLowerCase()
+  for (const tool of ['heuristic', 'vale', 'languagetool', 'nlp']) {
+    if (normalized.startsWith(tool + ':') || normalized.startsWith(tool + ' ')) {
+      return tool
+    }
+  }
+  return 'other'
+}
+
+function normalizeSeverity(value: string) {
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'error') {
+    return 'error'
+  }
+  if (normalized === 'warning' || normalized === 'warn') {
+    return 'warning'
+  }
+  return 'note'
+}
+
+function formatMetricLabel(metricKey: string) {
+  return metricKey.replaceAll('_', ' ')
+}
+
+function parseAnalyzerReport(value: unknown): ToolReportView[] {
+  if (!value || typeof value !== 'object') {
+    return []
+  }
+  const payload = value as {
+    findings?: unknown
+    metrics?: unknown
+    warnings?: unknown
+  }
+  const tools = new Map<string, ToolReportView>()
+  const ensureTool = (id: string) => {
+    const key = id || 'other'
+    const existing = tools.get(key)
+    if (existing) {
+      return existing
+    }
+    const created: ToolReportView = {
+      id: key,
+      label: toolLabel(key),
+      findings: [],
+      metrics: [],
+      warnings: [],
+    }
+    tools.set(key, created)
+    return created
+  }
+
+  const findings = Array.isArray(payload.findings) ? payload.findings : []
+  for (const item of findings) {
+    if (!item || typeof item !== 'object') {
+      continue
+    }
+    const finding = item as {
+      analyzer?: unknown
+      category?: unknown
+      severity?: unknown
+      message?: unknown
+    }
+    const analyzer = typeof finding.analyzer === 'string' ? finding.analyzer.trim() : ''
+    const toolID = normalizeToolID(analyzer)
+    ensureTool(toolID).findings.push({
+      analyzer: analyzer || toolLabel(toolID),
+      category: typeof finding.category === 'string' ? finding.category.trim() : 'general',
+      severity: normalizeSeverity(typeof finding.severity === 'string' ? finding.severity : ''),
+      message: typeof finding.message === 'string' ? finding.message.trim() : '',
+    })
+  }
+
+  if (payload.metrics && typeof payload.metrics === 'object') {
+    for (const [key, raw] of Object.entries(payload.metrics as Record<string, unknown>)) {
+      if (!Number.isFinite(raw)) {
+        continue
+      }
+      const metric: AnalyzerMetricView = { key, value: Number(raw) }
+      ensureTool(metricToolID(key)).metrics.push(metric)
+    }
+  }
+
+  const warnings = Array.isArray(payload.warnings) ? payload.warnings : []
+  for (const warning of warnings) {
+    if (typeof warning !== 'string' || warning.trim() === '') {
+      continue
+    }
+    ensureTool(warningToolID(warning)).warnings.push(warning.trim())
+  }
+
+  return Array.from(tools.values())
+    .filter((item) => item.findings.length > 0 || item.metrics.length > 0 || item.warnings.length > 0)
+    .sort((a, b) => a.label.localeCompare(b.label))
+}
+
+function severityCount(findings: AnalyzerFindingView[], severity: string) {
+  return findings.filter((item) => item.severity === severity).length
+}
+
+function severityTone(severity: string) {
+  switch (severity) {
+    case 'error':
+      return 'bg-rose-500'
+    case 'warning':
+      return 'bg-amber-500'
+    default:
+      return 'bg-sky-500'
   }
 }
 
@@ -114,6 +297,22 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
     }
     return reviews.find((item) => item.id === selectedReviewID) ?? reviews[0]
   }, [reviews, selectedReviewID])
+  const analyzerTools = useMemo(
+    () => parseAnalyzerReport(currentReview?.review.artifacts?.analyzer_report),
+    [currentReview],
+  )
+  const analyzerTotals = useMemo(
+    () =>
+      analyzerTools.reduce(
+        (totals, tool) => ({
+          findings: totals.findings + tool.findings.length,
+          metrics: totals.metrics + tool.metrics.length,
+          warnings: totals.warnings + tool.warnings.length,
+        }),
+        { findings: 0, metrics: 0, warnings: 0 },
+      ),
+    [analyzerTools],
+  )
 
   async function waitForReview(job: AIJob) {
     for (let attempt = 0; attempt < 120; attempt += 1) {
@@ -503,6 +702,136 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
                     currentReview.review.analyzer_findings.map((item) => <div key={item}>• {item}</div>)
                   )}
                 </div>
+              </WorkspaceCard>
+
+              <WorkspaceCard>
+                <CardHeader eyebrow={t('technicalEyebrow')} title={t('technicalTitle')} description={t('technicalDescription')} />
+                <details className="mt-4 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                  <summary className="cursor-pointer text-sm font-semibold text-zinc-900 dark:text-white">{t('technicalSummary')}</summary>
+                  {analyzerTools.length === 0 ? (
+                    <Text className="mt-3 text-sm">{t('technicalEmpty')}</Text>
+                  ) : (
+                    <div className="mt-3 space-y-4">
+                      <div className="grid gap-3 md:grid-cols-4">
+                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalTools')}</div>
+                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTools.length}</div>
+                        </div>
+                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalFindings')}</div>
+                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.findings}</div>
+                        </div>
+                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalMetrics')}</div>
+                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.metrics}</div>
+                        </div>
+                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalWarnings')}</div>
+                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.warnings}</div>
+                        </div>
+                      </div>
+
+                      {analyzerTools.map((tool) => {
+                        const errors = severityCount(tool.findings, 'error')
+                        const warnings = severityCount(tool.findings, 'warning')
+                        const notes = severityCount(tool.findings, 'note')
+                        const maxSeverity = Math.max(errors, warnings, notes, 1)
+
+                        return (
+                          <div key={tool.id} className="rounded-lg border border-stone-200 bg-white p-3 dark:border-white/10 dark:bg-zinc-950">
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-semibold text-zinc-900 dark:text-white">{tool.label}</div>
+                              <Badge color="zinc">{t('technicalFindingsBadge', { count: tool.findings.length })}</Badge>
+                              <Badge color="zinc">{t('technicalMetricsBadge', { count: tool.metrics.length })}</Badge>
+                              <Badge color="zinc">{t('technicalWarningsBadge', { count: tool.warnings.length })}</Badge>
+                            </div>
+
+                            {tool.findings.length > 0 ? (
+                              <div className="mb-4 space-y-2">
+                                {[
+                                  { id: 'error', count: errors },
+                                  { id: 'warning', count: warnings },
+                                  { id: 'note', count: notes },
+                                ].map((item) => (
+                                  <div key={item.id} className="grid grid-cols-[5.5rem_1fr_2.2rem] items-center gap-2 text-xs">
+                                    <div className="font-medium capitalize text-zinc-700 dark:text-zinc-300">{item.id}</div>
+                                    <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
+                                      <div
+                                        className={`h-2 rounded-full ${severityTone(item.id)}`}
+                                        style={{ width: `${(item.count / maxSeverity) * 100}%` }}
+                                      />
+                                    </div>
+                                    <div className="text-right text-zinc-600 dark:text-zinc-400">{item.count}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            {tool.metrics.length > 0 ? (
+                              <div className="mb-4">
+                                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalMetricsTable')}</div>
+                                <Table dense striped>
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableHeader>{t('technicalMetric')}</TableHeader>
+                                      <TableHeader>{t('technicalValue')}</TableHeader>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {tool.metrics
+                                      .slice()
+                                      .sort((a, b) => a.key.localeCompare(b.key))
+                                      .map((metric) => (
+                                        <TableRow key={metric.key}>
+                                          <TableCell className="capitalize">{formatMetricLabel(metric.key)}</TableCell>
+                                          <TableCell>{metric.value}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            ) : null}
+
+                            {tool.findings.length > 0 ? (
+                              <div className="mb-4">
+                                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalFindingsTable')}</div>
+                                <Table dense striped>
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableHeader>{t('technicalSeverity')}</TableHeader>
+                                      <TableHeader>{t('technicalCategory')}</TableHeader>
+                                      <TableHeader>{t('technicalMessage')}</TableHeader>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {tool.findings.map((finding, index) => (
+                                      <TableRow key={`${tool.id}-${index}`}>
+                                        <TableCell className="capitalize">{finding.severity}</TableCell>
+                                        <TableCell>{finding.category || 'general'}</TableCell>
+                                        <TableCell className="whitespace-normal">{finding.message || '-'}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            ) : null}
+
+                            {tool.warnings.length > 0 ? (
+                              <div>
+                                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalWarningsTable')}</div>
+                                <ul className="space-y-1 text-xs text-zinc-700 dark:text-zinc-300">
+                                  {tool.warnings.map((warning) => (
+                                    <li key={warning}>• {warning}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </details>
               </WorkspaceCard>
             </div>
           </div>
