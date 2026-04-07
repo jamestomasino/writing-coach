@@ -5,9 +5,8 @@
 
 ## Verification
 
-- [ ] `go test ./...`
-- [ ] `npm run lint`
-- [ ] `npm run build`
+- [ ] `./scripts/test-backend.sh`
+- [ ] `./scripts/test-frontend.sh`
 - [ ] Other verification noted below
 
 ## Notes
