@@ -2,4 +2,6 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec "${repo_root}/scripts/test-backend.sh"
+cd "${repo_root}"
+
+go test ./cmd/... ./internal/...

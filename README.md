@@ -68,6 +68,19 @@ Default localhost binding from `.env.example`:
 
 For a safer production release flow with copied-data staging and rollback scripts, see [docs/deployment-staging.md](/home/tomasino/writing-coach/docs/deployment-staging.md).
 
+## Developer Tooling Boundaries
+
+Use repo-root commands for backend and frontend independently:
+
+- Backend tests: `./scripts/test-backend.sh`
+- Frontend checks: `./scripts/test-frontend.sh`
+- Combined checks: `make test`
+
+Notes:
+
+- `scripts/test-go.sh` remains as a compatibility alias to backend tests.
+- Backend tooling intentionally targets `./cmd/...` and `./internal/...` instead of `go test ./...` to avoid scanning frontend dependency trees.
+
 The web container proxies `/api` and `/.ory/kratos/public` internally, so host `nginx` only needs one upstream:
 
 ```nginx
