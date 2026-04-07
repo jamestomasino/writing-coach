@@ -703,138 +703,138 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
                   )}
                 </div>
               </WorkspaceCard>
-
-              <WorkspaceCard>
-                <CardHeader eyebrow={t('technicalEyebrow')} title={t('technicalTitle')} description={t('technicalDescription')} />
-                <details className="mt-4 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <summary className="cursor-pointer text-sm font-semibold text-zinc-900 dark:text-white">{t('technicalSummary')}</summary>
-                  {analyzerTools.length === 0 ? (
-                    <Text className="mt-3 text-sm">{t('technicalEmpty')}</Text>
-                  ) : (
-                    <div className="mt-3 space-y-4">
-                      <div className="grid gap-3 md:grid-cols-4">
-                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
-                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalTools')}</div>
-                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTools.length}</div>
-                        </div>
-                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
-                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalFindings')}</div>
-                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.findings}</div>
-                        </div>
-                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
-                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalMetrics')}</div>
-                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.metrics}</div>
-                        </div>
-                        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
-                          <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalWarnings')}</div>
-                          <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.warnings}</div>
-                        </div>
-                      </div>
-
-                      {analyzerTools.map((tool) => {
-                        const errors = severityCount(tool.findings, 'error')
-                        const warnings = severityCount(tool.findings, 'warning')
-                        const notes = severityCount(tool.findings, 'note')
-                        const maxSeverity = Math.max(errors, warnings, notes, 1)
-
-                        return (
-                          <div key={tool.id} className="rounded-lg border border-stone-200 bg-white p-3 dark:border-white/10 dark:bg-zinc-950">
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-semibold text-zinc-900 dark:text-white">{tool.label}</div>
-                              <Badge color="zinc">{t('technicalFindingsBadge', { count: tool.findings.length })}</Badge>
-                              <Badge color="zinc">{t('technicalMetricsBadge', { count: tool.metrics.length })}</Badge>
-                              <Badge color="zinc">{t('technicalWarningsBadge', { count: tool.warnings.length })}</Badge>
-                            </div>
-
-                            {tool.findings.length > 0 ? (
-                              <div className="mb-4 space-y-2">
-                                {[
-                                  { id: 'error', count: errors },
-                                  { id: 'warning', count: warnings },
-                                  { id: 'note', count: notes },
-                                ].map((item) => (
-                                  <div key={item.id} className="grid grid-cols-[5.5rem_1fr_2.2rem] items-center gap-2 text-xs">
-                                    <div className="font-medium capitalize text-zinc-700 dark:text-zinc-300">{item.id}</div>
-                                    <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
-                                      <div
-                                        className={`h-2 rounded-full ${severityTone(item.id)}`}
-                                        style={{ width: `${(item.count / maxSeverity) * 100}%` }}
-                                      />
-                                    </div>
-                                    <div className="text-right text-zinc-600 dark:text-zinc-400">{item.count}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : null}
-
-                            {tool.metrics.length > 0 ? (
-                              <div className="mb-4">
-                                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalMetricsTable')}</div>
-                                <Table dense striped>
-                                  <TableHead>
-                                    <TableRow>
-                                      <TableHeader>{t('technicalMetric')}</TableHeader>
-                                      <TableHeader>{t('technicalValue')}</TableHeader>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    {tool.metrics
-                                      .slice()
-                                      .sort((a, b) => a.key.localeCompare(b.key))
-                                      .map((metric) => (
-                                        <TableRow key={metric.key}>
-                                          <TableCell className="capitalize">{formatMetricLabel(metric.key)}</TableCell>
-                                          <TableCell>{metric.value}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            ) : null}
-
-                            {tool.findings.length > 0 ? (
-                              <div className="mb-4">
-                                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalFindingsTable')}</div>
-                                <Table dense striped>
-                                  <TableHead>
-                                    <TableRow>
-                                      <TableHeader>{t('technicalSeverity')}</TableHeader>
-                                      <TableHeader>{t('technicalCategory')}</TableHeader>
-                                      <TableHeader>{t('technicalMessage')}</TableHeader>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    {tool.findings.map((finding, index) => (
-                                      <TableRow key={`${tool.id}-${index}`}>
-                                        <TableCell className="capitalize">{finding.severity}</TableCell>
-                                        <TableCell>{finding.category || 'general'}</TableCell>
-                                        <TableCell className="whitespace-normal">{finding.message || '-'}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            ) : null}
-
-                            {tool.warnings.length > 0 ? (
-                              <div>
-                                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalWarningsTable')}</div>
-                                <ul className="space-y-1 text-xs text-zinc-700 dark:text-zinc-300">
-                                  {tool.warnings.map((warning) => (
-                                    <li key={warning}>• {warning}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ) : null}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </details>
-              </WorkspaceCard>
             </div>
           </div>
+
+          <WorkspaceCard>
+            <CardHeader eyebrow={t('technicalEyebrow')} title={t('technicalTitle')} description={t('technicalDescription')} />
+            <details className="mt-4 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-900 dark:text-white">{t('technicalSummary')}</summary>
+              {analyzerTools.length === 0 ? (
+                <Text className="mt-3 text-sm">{t('technicalEmpty')}</Text>
+              ) : (
+                <div className="mt-3 space-y-4">
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                      <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalTools')}</div>
+                      <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTools.length}</div>
+                    </div>
+                    <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                      <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalFindings')}</div>
+                      <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.findings}</div>
+                    </div>
+                    <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                      <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalMetrics')}</div>
+                      <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.metrics}</div>
+                    </div>
+                    <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-zinc-950">
+                      <div className="font-semibold text-zinc-900 dark:text-white">{t('technicalWarnings')}</div>
+                      <div className="mt-1 text-zinc-700 dark:text-zinc-300">{analyzerTotals.warnings}</div>
+                    </div>
+                  </div>
+
+                  {analyzerTools.map((tool) => {
+                    const errors = severityCount(tool.findings, 'error')
+                    const warnings = severityCount(tool.findings, 'warning')
+                    const notes = severityCount(tool.findings, 'note')
+                    const maxSeverity = Math.max(errors, warnings, notes, 1)
+
+                    return (
+                      <div key={tool.id} className="rounded-lg border border-stone-200 bg-white p-3 dark:border-white/10 dark:bg-zinc-950">
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                          <div className="text-sm font-semibold text-zinc-900 dark:text-white">{tool.label}</div>
+                          <Badge color="zinc">{t('technicalFindingsBadge', { count: tool.findings.length })}</Badge>
+                          <Badge color="zinc">{t('technicalMetricsBadge', { count: tool.metrics.length })}</Badge>
+                          <Badge color="zinc">{t('technicalWarningsBadge', { count: tool.warnings.length })}</Badge>
+                        </div>
+
+                        {tool.findings.length > 0 ? (
+                          <div className="mb-4 space-y-2">
+                            {[
+                              { id: 'error', count: errors },
+                              { id: 'warning', count: warnings },
+                              { id: 'note', count: notes },
+                            ].map((item) => (
+                              <div key={item.id} className="grid grid-cols-[5.5rem_1fr_2.2rem] items-center gap-2 text-xs">
+                                <div className="font-medium capitalize text-zinc-700 dark:text-zinc-300">{item.id}</div>
+                                <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
+                                  <div
+                                    className={`h-2 rounded-full ${severityTone(item.id)}`}
+                                    style={{ width: `${(item.count / maxSeverity) * 100}%` }}
+                                  />
+                                </div>
+                                <div className="text-right text-zinc-600 dark:text-zinc-400">{item.count}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {tool.metrics.length > 0 ? (
+                          <div className="mb-4">
+                            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalMetricsTable')}</div>
+                            <Table dense striped>
+                              <TableHead>
+                                <TableRow>
+                                  <TableHeader>{t('technicalMetric')}</TableHeader>
+                                  <TableHeader>{t('technicalValue')}</TableHeader>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {tool.metrics
+                                  .slice()
+                                  .sort((a, b) => a.key.localeCompare(b.key))
+                                  .map((metric) => (
+                                    <TableRow key={metric.key}>
+                                      <TableCell className="capitalize">{formatMetricLabel(metric.key)}</TableCell>
+                                      <TableCell>{metric.value}</TableCell>
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : null}
+
+                        {tool.findings.length > 0 ? (
+                          <div className="mb-4">
+                            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalFindingsTable')}</div>
+                            <Table dense striped>
+                              <TableHead>
+                                <TableRow>
+                                  <TableHeader>{t('technicalSeverity')}</TableHeader>
+                                  <TableHeader>{t('technicalCategory')}</TableHeader>
+                                  <TableHeader>{t('technicalMessage')}</TableHeader>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {tool.findings.map((finding, index) => (
+                                  <TableRow key={`${tool.id}-${index}`}>
+                                    <TableCell className="capitalize">{finding.severity}</TableCell>
+                                    <TableCell>{finding.category || 'general'}</TableCell>
+                                    <TableCell className="whitespace-normal">{finding.message || '-'}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : null}
+
+                        {tool.warnings.length > 0 ? (
+                          <div>
+                            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalWarningsTable')}</div>
+                            <ul className="space-y-1 text-xs text-zinc-700 dark:text-zinc-300">
+                              {tool.warnings.map((warning) => (
+                                <li key={warning}>• {warning}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </details>
+          </WorkspaceCard>
         </div>
       )}
     </div>
