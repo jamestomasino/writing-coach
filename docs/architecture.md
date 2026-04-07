@@ -61,6 +61,8 @@ The deterministic analyzer stack currently includes:
 
 Vale, heuristics, the NLP sidecar, and deterministic fallback review language are domain-aware. The coaching pipeline is also now writing-language-aware, though English is the only shipped coaching language today.
 
+Coverage and ownership standards for deterministic analyzers are defined in [analyzer-coverage-model.md](/home/tomasino/Sites/personal/writing-coach/docs/analyzer-coverage-model.md).
+
 ### Curriculum updates
 
 The curriculum service updates enrollment-scoped progress after each review. It tracks:
