@@ -55,6 +55,10 @@ func (s *Store) GetPlaygroundSession(ctx context.Context, sessionID int64) (doma
 }
 
 func (s *Store) ListPlaygroundSessions(ctx context.Context, userID, treeID int64, limit int) ([]domain.PlaygroundSession, error) {
+	return s.ListPlaygroundSessionsPage(ctx, userID, treeID, limit, 0)
+}
+
+func (s *Store) ListPlaygroundSessionsPage(ctx context.Context, userID, treeID int64, limit int, cursorSessionID int64) ([]domain.PlaygroundSession, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -63,9 +67,27 @@ func (s *Store) ListPlaygroundSessions(ctx context.Context, userID, treeID int64
 			COALESCE(latest_draft_id, 0), COALESCE(latest_review_id, 0), latest_review_at, draft_count, review_count, created_at, updated_at
 		FROM playground_sessions
 		WHERE user_id = ? AND tree_id = ?
+			AND (
+				? = 0 OR
+				updated_at < (
+					SELECT updated_at
+					FROM playground_sessions
+					WHERE id = ? AND user_id = ? AND tree_id = ?
+				) OR (
+					updated_at = (
+						SELECT updated_at
+						FROM playground_sessions
+						WHERE id = ? AND user_id = ? AND tree_id = ?
+					) AND id < ?
+				)
+			)
 		ORDER BY updated_at DESC, id DESC
 		LIMIT ?
-	`, userID, treeID, limit)
+	`, userID, treeID,
+		cursorSessionID,
+		cursorSessionID, userID, treeID,
+		cursorSessionID, userID, treeID, cursorSessionID,
+		limit)
 	if err != nil {
 		return nil, err
 	}

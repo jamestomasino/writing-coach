@@ -17,8 +17,10 @@ export function PlaygroundHistoryView() {
   const t = useTranslations('playgroundHistoryView')
   const { loading: sessionLoading, error: sessionError } = useRequiredAppSession('/playground/history')
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sessions, setSessions] = useState<PlaygroundSession[]>([])
+  const [nextCursor, setNextCursor] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -27,7 +29,8 @@ export function PlaygroundHistoryView() {
       try {
         const next = await getPlaygroundSessions()
         if (!cancelled) {
-          setSessions(next)
+          setSessions(next.sessions)
+          setNextCursor(next.nextCursor ?? null)
           setError(null)
         }
       } catch (err) {
@@ -45,6 +48,25 @@ export function PlaygroundHistoryView() {
       cancelled = true
     }
   }, [t])
+
+  async function handleLoadMore() {
+    if (loadingMore || !nextCursor) {
+      return
+    }
+    setLoadingMore(true)
+    try {
+      const next = await getPlaygroundSessions(50, nextCursor)
+      const seen = new Set(sessions.map((item) => item.id))
+      const merged = sessions.concat(next.sessions.filter((item) => !seen.has(item.id)))
+      setSessions(merged)
+      setNextCursor(next.nextCursor ?? null)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('loadError'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   if (sessionLoading || loading) {
     return <LoadingState label={t('loading')} />
@@ -111,6 +133,13 @@ export function PlaygroundHistoryView() {
           </WorkspaceCard>
         ))}
       </div>
+      {nextCursor ? (
+        <div className="flex justify-center">
+          <Button onClick={handleLoadMore} outline disabled={loadingMore}>
+            {loadingMore ? t('loadingMore') : t('loadMore')}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }

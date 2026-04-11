@@ -26,19 +26,34 @@ func (s Server) handlePlaygroundSessionsList(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	sessions, err := s.Store.ListPlaygroundSessions(r.Context(), appContext.UserID, appContext.TreeID, listLimit(r, 50, 200))
+	limit := listLimit(r, 50, 200)
+	cursorSessionID, err := parseOptionalInt64(r.URL.Query().Get("cursor"))
+	if err != nil || cursorSessionID < 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid cursor"))
+		return
+	}
+	sessions, err := s.Store.ListPlaygroundSessionsPage(r.Context(), appContext.UserID, appContext.TreeID, limit+1, cursorSessionID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
+	}
+	nextCursor := int64(0)
+	if len(sessions) > limit {
+		sessions = sessions[:limit]
+		nextCursor = sessions[len(sessions)-1].ID
 	}
 	items := make([]playgroundSessionResponse, 0, len(sessions))
 	for _, session := range sessions {
 		items = append(items, toPlaygroundSessionResponse(session))
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	payload := map[string]any{
 		"context":  requestContextResponse{UserSlug: appContext.UserSlug, TreeSlug: appContext.TreeSlug, UserID: appContext.UserID, TreeID: appContext.TreeID},
 		"sessions": items,
-	})
+	}
+	if nextCursor > 0 {
+		payload["next_cursor"] = nextCursor
+	}
+	writeJSON(w, http.StatusOK, payload)
 }
 
 func (s Server) handlePlaygroundSessionCreate(w http.ResponseWriter, r *http.Request) {

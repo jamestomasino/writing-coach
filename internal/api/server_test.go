@@ -1415,6 +1415,71 @@ func TestPlaygroundSessionEndpointsSupportCreateUpdateAndReviewHistory(t *testin
 	}
 }
 
+func TestPlaygroundSessionsListSupportsCursorPagination(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	for i := 1; i <= 3; i++ {
+		resp, err := http.Post(
+			testServer.URL+"/api/playground/sessions?user=tester&tree=story-craft-track",
+			"application/json",
+			strings.NewReader(fmt.Sprintf(`{"content":"Playground draft %d.","writing_language":"en"}`, i)),
+		)
+		if err != nil {
+			t.Fatalf("create playground session %d: %v", i, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("create playground session %d status: %d", i, resp.StatusCode)
+		}
+	}
+
+	firstPageResp, err := http.Get(testServer.URL + "/api/playground/sessions?user=tester&tree=story-craft-track&limit=2")
+	if err != nil {
+		t.Fatalf("list first page: %v", err)
+	}
+	defer firstPageResp.Body.Close()
+	if firstPageResp.StatusCode != http.StatusOK {
+		t.Fatalf("list first page status: %d", firstPageResp.StatusCode)
+	}
+	var firstPage struct {
+		Sessions   []playgroundSessionResponse `json:"sessions"`
+		NextCursor int64                       `json:"next_cursor"`
+	}
+	if err := json.NewDecoder(firstPageResp.Body).Decode(&firstPage); err != nil {
+		t.Fatalf("decode first page: %v", err)
+	}
+	if len(firstPage.Sessions) != 2 {
+		t.Fatalf("first page session count = %d", len(firstPage.Sessions))
+	}
+	if firstPage.NextCursor == 0 {
+		t.Fatal("expected non-zero next_cursor for first page")
+	}
+
+	secondPageResp, err := http.Get(testServer.URL + "/api/playground/sessions?user=tester&tree=story-craft-track&limit=2&cursor=" + int64String(firstPage.NextCursor))
+	if err != nil {
+		t.Fatalf("list second page: %v", err)
+	}
+	defer secondPageResp.Body.Close()
+	if secondPageResp.StatusCode != http.StatusOK {
+		t.Fatalf("list second page status: %d", secondPageResp.StatusCode)
+	}
+	var secondPage struct {
+		Sessions   []playgroundSessionResponse `json:"sessions"`
+		NextCursor int64                       `json:"next_cursor"`
+	}
+	if err := json.NewDecoder(secondPageResp.Body).Decode(&secondPage); err != nil {
+		t.Fatalf("decode second page: %v", err)
+	}
+	if len(secondPage.Sessions) != 1 {
+		t.Fatalf("second page session count = %d", len(secondPage.Sessions))
+	}
+	if secondPage.NextCursor != 0 {
+		t.Fatalf("expected final page to have no next_cursor, got %d", secondPage.NextCursor)
+	}
+}
+
 func TestPlaygroundSessionReviewTracksDraftSnapshotsAndComparison(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
