@@ -2,6 +2,7 @@
 
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
 import { Callout } from '@/components/callout'
@@ -223,8 +224,24 @@ export function AssignmentTimelineView({
   showCompletionState?: boolean
 }) {
   const t = useTranslations('assignmentTimelineView')
+  const router = useRouter()
   const { sessionLoading, sessionError, loading, error, assignment, selectedStepID, selectStep } =
     useAssignmentTimeline(exerciseId)
+
+  function handleContinueInPlayground() {
+    if (!assignment) {
+      router.push('/playground')
+      return
+    }
+    const latestSubmission = [...assignment.steps]
+      .reverse()
+      .find((step) => step.kind === 'submission' && step.submission?.content)?.submission
+    if (latestSubmission?.content) {
+      window.sessionStorage.setItem('playground-seed-content', latestSubmission.content)
+      window.sessionStorage.setItem('playground-seed-source', `assignment:${assignment.root_exercise_id}`)
+    }
+    router.push('/playground?seed=assignment')
+  }
 
   if (sessionLoading || loading) {
     return <LoadingState label={t('loading')} />
@@ -262,7 +279,7 @@ export function AssignmentTimelineView({
               <Button href="/new-assignment" color="dark/zinc">
                 {t('startNextAssignment')}
               </Button>
-              <Button href="/playground" outline>
+              <Button outline onClick={handleContinueInPlayground}>
                 {t('continueInPlayground')}
               </Button>
             </div>
