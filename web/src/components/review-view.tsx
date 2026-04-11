@@ -194,6 +194,12 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                   className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm dark:border-white/10 dark:bg-white/5"
                 >
                   <div className="font-semibold text-zinc-950 dark:text-white">{tgo.title}</div>
+                  <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    {t('unlockEvidenceLine', {
+                      current: Math.max(0, tgo.mastery_evidence_count ?? 0),
+                      target: 3,
+                    })}
+                  </div>
                   <div className="mt-1 text-zinc-700 dark:text-zinc-300">
                     {state.mode === 'ready'
                       ? t('unlockReady')

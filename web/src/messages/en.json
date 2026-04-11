@@ -422,6 +422,7 @@
     "unlockEyebrow": "What unlocks next",
     "unlockTitle": "How your 3 target skills move forward",
     "unlockBody": "You do not need perfection. Keep showing clear control on these skills across reviews and assignments.",
+    "unlockEvidenceLine": "Evidence toward next step: {current}/{target} strong reviews",
     "unlockReady": "Almost there. Keep this skill steady in the next assignment so level-up can lock in.",
     "unlockBuildingHistory": "Needs about {count} more strong review(s) before it can move up.",
     "unlockConsolidating": "Has enough history. Keep this quality stable so the next step can be secured.",
