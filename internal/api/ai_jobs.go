@@ -201,6 +201,9 @@ func (s Server) processReviewSubmissionJob(ctx context.Context, job domain.AIJob
 	if err := s.Store.UpdateCurriculumState(ctx, job.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
 		return fmt.Errorf("update curriculum state: %w", err)
 	}
+	if err := s.Store.UpdateProgressionHoldState(ctx, job.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID); err != nil {
+		return fmt.Errorf("update progression hold state: %w", err)
+	}
 	return s.Store.CompleteAIJob(ctx, job.ID, 0, reviewID, "")
 }
 

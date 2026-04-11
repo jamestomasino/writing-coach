@@ -229,6 +229,11 @@ export type Dashboard = {
     current_focus: string
     difficulty_level: number
     last_review_id: number
+    progression_hold_active?: boolean
+    progression_hold_reason_code?: string
+    hold_trigger_review_id?: number
+    hold_cleared_review_id?: number
+    hold_updated_at?: string
     updated_at: string
   }
   active_tgos: TGO[]
