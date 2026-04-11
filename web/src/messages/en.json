@@ -272,6 +272,7 @@
     "title": "New review",
     "sessionTitle": "{title}",
     "intro": "Paste in a draft, save versions as you go, and get feedback without changing your practice path.",
+    "seededFromAssignmentNotice": "Loaded your latest assignment draft so you can keep experimenting here.",
     "reviewProgressTitle": "Review in progress",
     "reviewProgressBody": "Reading the draft and putting together feedback.",
     "reviewStep1": "Reading the text closely.",

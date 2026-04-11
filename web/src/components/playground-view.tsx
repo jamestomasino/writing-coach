@@ -27,7 +27,7 @@ import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import type { AIJob, PlaygroundDraft, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession } from '@/lib/types'
 import { useTranslations } from 'next-intl'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 const initialForm: PlaygroundReviewInput = {
   content: '',
@@ -325,6 +325,7 @@ function groupFindings(findings: AnalyzerFindingView[]): GroupedFindingView[] {
 export function PlaygroundView({ sessionId }: { sessionId?: number }) {
   const t = useTranslations('playgroundView')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { loading: sessionLoading, error: sessionError } = useRequiredAppSession(sessionId ? `/playground/${sessionId}` : '/playground')
   const [form, setForm] = useState<PlaygroundReviewInput>(initialForm)
   const [savedSession, setSavedSession] = useState<PlaygroundSession | null>(null)
@@ -335,6 +336,24 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
   const [loadingSession, setLoadingSession] = useState(Boolean(sessionId))
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [seededFromAssignment, setSeededFromAssignment] = useState(false)
+
+  useEffect(() => {
+    if (sessionId) {
+      return
+    }
+    const seeded = searchParams.get('seed') === 'assignment'
+    const seededContent = window.sessionStorage.getItem('playground-seed-content') ?? ''
+    if (seeded && seededContent.trim().length > 0) {
+      setForm((current) => ({
+        ...current,
+        content: current.content.trim().length > 0 ? current.content : seededContent,
+      }))
+      setSeededFromAssignment(true)
+    }
+    window.sessionStorage.removeItem('playground-seed-content')
+    window.sessionStorage.removeItem('playground-seed-source')
+  }, [searchParams, sessionId])
 
   useEffect(() => {
     if (!sessionId) {
@@ -532,6 +551,11 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
           title={t('inputTitle')}
           description={t('inputDescription')}
         />
+        {seededFromAssignment ? (
+          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100">
+            {t('seededFromAssignmentNotice')}
+          </div>
+        ) : null}
         <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           <Fieldset>
             <FieldGroup>
