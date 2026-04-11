@@ -14,7 +14,7 @@ export function AppProviders({
   messages: Record<string, unknown>
 }) {
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
       <ToastProvider>{children}</ToastProvider>
     </NextIntlClientProvider>
   )

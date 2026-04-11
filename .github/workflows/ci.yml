@@ -35,5 +35,7 @@ jobs:
         run: npm ci
       - name: Run lint
         run: npm run lint
+      - name: Check i18n timezone guard
+        run: npm run check:i18n-timezone
       - name: Run build
         run: npm run build

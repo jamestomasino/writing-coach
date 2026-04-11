@@ -13,7 +13,8 @@ export default defineConfig({
   expect: {
     timeout: 10_000,
   },
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: `http://127.0.0.1:${webPort}`,
@@ -38,6 +39,8 @@ export default defineConfig({
         WRITING_COACH_HTTP_ADDR: `127.0.0.1:${apiPort}`,
         WRITING_COACH_DATA_DIR: testDataDir,
         WRITING_COACH_DATABASE_URL: path.join(testDataDir, 'writing-coach-e2e.db'),
+        WRITING_COACH_DB_MAX_OPEN_CONNS: '1',
+        WRITING_COACH_DB_MAX_IDLE_CONNS: '1',
         WRITING_COACH_DEFAULT_TREE_SLUG: 'global-writing-skill-graph',
         WRITING_COACH_API_TOKEN: apiToken,
         WRITING_COACH_AI_KEY_SECRET: 'e2e-ai-key-secret',

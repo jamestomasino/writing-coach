@@ -9,4 +9,5 @@ if [[ ! -d node_modules ]]; then
 fi
 
 npm run lint
+npm run check:i18n-timezone
 npm run build

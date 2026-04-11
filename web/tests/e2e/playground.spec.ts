@@ -21,18 +21,18 @@ test('saves playground drafts, reviews twice, and shows history with comparison'
 
     await page.getByRole('button', { name: 'Save draft' }).click()
     await expect(page).toHaveURL(/\/playground\/\d+$/)
-    await expect(page.getByText(/Saved draft:/)).toBeVisible()
+    await expect(page.getByText('Saved versions: 1')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Review text' }).click()
-    await expect(page.getByRole('heading', { name: 'Playground feedback' })).toBeVisible()
+    await page.getByRole('button', { name: 'Get feedback' }).click()
+    await expect(page.getByRole('heading', { name: 'Feedback' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Saved drafts' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Earlier reviews' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Past feedback' })).toBeVisible()
 
     await content.fill('Writing Coach helps writers improve through focused assignments, clearer revision steps, and feedback they can act on quickly.')
     await page.getByRole('button', { name: 'Save draft' }).click()
     await expect(page.getByText('Draft #2')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Review text' }).click()
+    await page.getByRole('button', { name: 'Get feedback' }).click()
     await expect(page.getByRole('heading', { name: 'What changed' })).toBeVisible()
 
     await page.goto('/playground/history')
