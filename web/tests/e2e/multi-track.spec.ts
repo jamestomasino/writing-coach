@@ -25,9 +25,13 @@ test('creates the first track and enters the first assignment flow', async ({ br
     await createTrack(page, 'first')
     await expect(page).toHaveURL(/\/new-assignment/)
     await expect(page.getByText('Finish by generating your first assignment')).toBeVisible()
+    await expect(page.getByTestId('level-up-guidance-new-assignment')).toBeVisible()
+    await expect(page.getByText('How leveling works')).toBeVisible()
 
     await createFirstAssignment(page)
     await expect(page.getByTestId('draft-textarea')).toBeVisible()
+    await expect(page.getByTestId('level-up-guidance-current-assignment')).toBeVisible()
+    await expect(page.getByText('Level-up guidance')).toBeVisible()
 
     await openTrackMenu(page)
     await expect(page.locator('[data-testid^="track-option-"]')).toHaveCount(1)
