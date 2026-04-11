@@ -15,6 +15,25 @@ func TestCurrentHeuristicRuleSpecsUniqueIDs(t *testing.T) {
 	}
 }
 
+func TestCurrentDeterministicRuleSpecsIncludeAllOwners(t *testing.T) {
+	seen := map[RuleOwner]bool{
+		OwnerHeuristic:    false,
+		OwnerVale:         false,
+		OwnerLanguageTool: false,
+		OwnerNLP:          false,
+	}
+	for _, spec := range CurrentDeterministicRuleSpecs() {
+		if _, ok := seen[spec.Owner]; ok {
+			seen[spec.Owner] = true
+		}
+	}
+	for owner, present := range seen {
+		if !present {
+			t.Fatalf("missing deterministic coverage owner in registry: %s", owner)
+		}
+	}
+}
+
 func TestShouldEvaluateHeuristicRuleDialogueGuard(t *testing.T) {
 	fictionScene := ContextOptions{
 		WritingType:      "fiction",

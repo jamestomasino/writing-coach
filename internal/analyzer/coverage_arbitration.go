@@ -16,129 +16,32 @@ type analyzerReportResult struct {
 }
 
 func DeterministicCategoryOwnershipSpecs() []CategoryOwnershipSpec {
-	return []CategoryOwnershipSpec{
-		{
-			Category:       "clarity",
-			Layer:          LayerGlobal,
-			Owner:          OwnerNLP,
-			FallbackPolicy: FallbackWhenOwner,
-		},
-		{
-			Category:       "structure",
-			Layer:          LayerGlobal,
-			Owner:          OwnerNLP,
-			FallbackPolicy: FallbackWhenOwner,
-		},
-		{
-			Category:       "readability",
-			Layer:          LayerGlobal,
-			Owner:          OwnerNLP,
-			FallbackPolicy: FallbackWhenOwner,
-		},
-		{
-			Category:       "mechanics",
-			Layer:          LayerGlobal,
-			Owner:          OwnerLanguageTool,
-			FallbackPolicy: FallbackNever,
-		},
-		{
-			Category:       "style policy",
-			Layer:          LayerGlobal,
-			Owner:          OwnerVale,
-			FallbackPolicy: FallbackNever,
-		},
-		{
-			Category:       "narrative progression",
-			Layer:          LayerDomain,
-			Owner:          OwnerNLP,
-			FallbackPolicy: FallbackWhenOwner,
-			AppliesWhen: AppliesWhen{
-				Domains: []string{DomainFiction, DomainFantasy},
-			},
-		},
-		{
-			Category:       "instructional completeness",
-			Layer:          LayerDomain,
-			Owner:          OwnerNLP,
-			FallbackPolicy: FallbackWhenOwner,
-			AppliesWhen: AppliesWhen{
-				Domains: []string{DomainTechnical},
-			},
-		},
-		{
-			Category:       "argument support",
-			Layer:          LayerDomain,
-			Owner:          OwnerNLP,
-			FallbackPolicy: FallbackWhenOwner,
-			AppliesWhen: AppliesWhen{
-				Domains: []string{DomainAcademic, DomainThoughtLeadership},
-			},
-		},
-		{
-			Category:       "actionability",
-			Layer:          LayerDomain,
-			Owner:          OwnerHeuristic,
-			FallbackPolicy: FallbackNever,
-			AppliesWhen: AppliesWhen{
-				Domains: []string{DomainProfessional},
-			},
-		},
-		{
-			Category:       "message hierarchy",
-			Layer:          LayerDomain,
-			Owner:          OwnerNLP,
-			FallbackPolicy: FallbackWhenOwner,
-			AppliesWhen: AppliesWhen{
-				Domains: []string{DomainMarketing},
-			},
-		},
-		{
-			Category:       "memo execution",
-			Layer:          LayerSpecialty,
-			Owner:          OwnerHeuristic,
-			FallbackPolicy: FallbackNever,
-			AppliesWhen: AppliesWhen{
-				Specialties: []string{"memo"},
-			},
-		},
-		{
-			Category:       "cta architecture",
-			Layer:          LayerSpecialty,
-			Owner:          OwnerHeuristic,
-			FallbackPolicy: FallbackNever,
-			AppliesWhen: AppliesWhen{
-				Specialties: []string{"landing_page"},
-			},
-		},
-		{
-			Category:       "grant compliance framing",
-			Layer:          LayerSpecialty,
-			Owner:          OwnerHeuristic,
-			FallbackPolicy: FallbackNever,
-			AppliesWhen: AppliesWhen{
-				Specialties: []string{"grant"},
-			},
-		},
-		{
-			Category:       "poetic craft proxies",
-			Layer:          LayerSpecialty,
-			Owner:          OwnerHeuristic,
-			FallbackPolicy: FallbackNever,
-			AppliesWhen: AppliesWhen{
-				Specialties: []string{"poetry"},
-			},
-		},
-		// Specialty override of global structure ownership for poetry-focused work.
-		{
-			Category:       "structure",
-			Layer:          LayerSpecialty,
-			Owner:          OwnerHeuristic,
-			FallbackPolicy: FallbackNever,
-			AppliesWhen: AppliesWhen{
-				Specialties: []string{"poetry"},
-			},
-		},
+	specs := CurrentDeterministicRuleSpecs()
+	out := make([]CategoryOwnershipSpec, 0, len(specs))
+	for _, spec := range specs {
+		if normalizedValue(spec.Category) == "" {
+			continue
+		}
+		if !isOwnershipRegistrySpec(spec.ID) {
+			continue
+		}
+		out = append(out, CategoryOwnershipSpec{
+			Category:       spec.Category,
+			Layer:          spec.Layer,
+			Owner:          spec.Owner,
+			FallbackPolicy: spec.FallbackPolicy,
+			AppliesWhen:    spec.AppliesWhen,
+		})
 	}
+	return out
+}
+
+func isOwnershipRegistrySpec(ruleID string) bool {
+	id := normalizedValue(ruleID)
+	if strings.HasPrefix(id, "nlp.") || strings.HasPrefix(id, "vale.") || strings.HasPrefix(id, "languagetool.") {
+		return true
+	}
+	return strings.HasPrefix(id, "heuristic.domain.") || strings.HasPrefix(id, "heuristic.specialty.")
 }
 
 func mergeWithCoverageArbitration(options ContextOptions, reports ...analyzerReportResult) Report {
