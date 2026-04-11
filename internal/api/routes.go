@@ -42,6 +42,7 @@ func (s *Server) registerCoreRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/assignments", s.handleAssignmentsList)
 	mux.HandleFunc("GET /api/assignments/{id}", s.handleAssignmentGet)
 	mux.HandleFunc("POST /api/assignments/{id}/close", s.handleAssignmentClose)
+	mux.HandleFunc("POST /api/assignments/{id}/reopen", s.handleAssignmentReopen)
 	mux.HandleFunc("GET /api/exercises", s.handleExercisesList)
 	mux.HandleFunc("GET /api/exercises/{id}", s.handleExerciseGet)
 	mux.HandleFunc("POST /api/prompts/next", s.handlePromptNext)

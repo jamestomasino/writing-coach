@@ -30,9 +30,12 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     comparison,
     preparingRevision,
     closingAssignment,
+    reopeningAssignment,
     canActOnReview,
+    assignmentClosed,
     prepareRevisionPrompt,
     acceptAndCloseAssignment,
+    reopenClosedAssignment,
   } = useReviewWorkspace(reviewId)
   const [dismissedNotes, setDismissedNotes] = useState<Set<string>>(new Set())
   const [showDismissedNotes, setShowDismissedNotes] = useState(false)
@@ -89,6 +92,13 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     }
   }
 
+  async function handleReopenAssignment() {
+    const reopened = await reopenClosedAssignment()
+    if (reopened) {
+      window.location.reload()
+    }
+  }
+
   if (sessionLoading || loading) {
     return <LoadingState label={t('loading')} />
   }
@@ -137,8 +147,13 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
 
       {!canActOnReview ? (
         <WorkspaceCard>
-          <Text>{t('olderAssignmentBody')}</Text>
-          <div className="mt-4">
+          <Text>{assignmentClosed ? t('closedAssignmentBody') : t('olderAssignmentBody')}</Text>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {assignmentClosed ? (
+              <Button onClick={handleReopenAssignment} color="dark/zinc" disabled={reopeningAssignment}>
+                {reopeningAssignment ? t('reopeningAssignment') : t('reopenAssignment')}
+              </Button>
+            ) : null}
             <Button href="/playground" outline>
               {t('experimentInPlayground')}
             </Button>

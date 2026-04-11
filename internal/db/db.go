@@ -422,6 +422,25 @@ func (s *Store) CloseExercise(ctx context.Context, userID, treeID, exerciseID in
 	return nil
 }
 
+func (s *Store) ReopenExercise(ctx context.Context, userID, treeID, exerciseID int64) error {
+	res, err := s.SQL.ExecContext(ctx, `
+		UPDATE exercises
+		SET closed_at = NULL
+		WHERE id = ? AND user_id = ? AND tree_id = ? AND closed_at IS NOT NULL
+	`, exerciseID, userID, treeID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 func (s *Store) SaveSubmission(ctx context.Context, sub domain.Submission) (int64, error) {
 	if sub.DraftNumber == 0 {
 		nextDraft, err := s.NextDraftNumber(ctx, sub.ExerciseID, sub.UserID, sub.TreeID)

@@ -2,6 +2,7 @@
 
 import {
   closeAssignment,
+  reopenAssignment,
   getComparison,
   createRevisionAssignment,
   getAIJob,
@@ -26,7 +27,9 @@ export function useReviewWorkspace(reviewId: number) {
   const [comparison, setComparison] = useState<Comparison | null>(null)
   const [preparingRevision, setPreparingRevision] = useState(false)
   const [closingAssignment, setClosingAssignment] = useState(false)
+  const [reopeningAssignment, setReopeningAssignment] = useState(false)
   const [canActOnReview, setCanActOnReview] = useState(false)
+  const [assignmentClosed, setAssignmentClosed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -42,9 +45,11 @@ export function useReviewWorkspace(reviewId: number) {
         const dashboardData = await getDashboard()
         const comparisonData = await getComparison(submissionData.id).catch(() => null)
         let reviewIsActionable = false
+        let assignmentIsClosed = false
         try {
           const timeline = await getAssignmentTimeline(exerciseData.id)
-          reviewIsActionable = timeline.is_current === true && timeline.is_closed !== true && timeline.latest_step_id === `review-${reviewData.id}`
+          assignmentIsClosed = timeline.is_closed === true
+          reviewIsActionable = timeline.is_closed !== true && timeline.latest_step_id === `review-${reviewData.id}`
         } catch {
           reviewIsActionable = false
         }
@@ -55,6 +60,7 @@ export function useReviewWorkspace(reviewId: number) {
           setDashboard(dashboardData)
           setComparison(comparisonData)
           setCanActOnReview(reviewIsActionable)
+          setAssignmentClosed(assignmentIsClosed)
         }
       } catch (err) {
         if (!cancelled) {
@@ -117,6 +123,26 @@ export function useReviewWorkspace(reviewId: number) {
     }
   }
 
+  async function reopenClosedAssignment() {
+    if (!exercise) {
+      return false
+    }
+    try {
+      setReopeningAssignment(true)
+      setError(null)
+      await reopenAssignment(exercise.id)
+      const timeline = await getAssignmentTimeline(exercise.id)
+      setAssignmentClosed(timeline.is_closed === true)
+      setCanActOnReview(timeline.is_closed !== true && timeline.latest_step_id === `review-${reviewId}`)
+      return true
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not reopen assignment')
+      return false
+    } finally {
+      setReopeningAssignment(false)
+    }
+  }
+
   return {
     sessionLoading,
     sessionError,
@@ -129,8 +155,11 @@ export function useReviewWorkspace(reviewId: number) {
     comparison,
     preparingRevision,
     closingAssignment,
+    reopeningAssignment,
     canActOnReview,
+    assignmentClosed,
     prepareRevisionPrompt,
     acceptAndCloseAssignment,
+    reopenClosedAssignment,
   }
 }
