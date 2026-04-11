@@ -1,10 +1,11 @@
-# Audit Testization Plan (Post Full Audit)
+# Audit Testization Plan (Execution Record)
 
 - Date: 2026-04-11
 - Inputs:
   - `docs/audits/2026-04-11-pedagogy-implementation-audit.md`
   - `docs/audits/2026-04-11-failures-and-regressions.md`
 - Goal: convert stable audit checks into repeatable automated gates, while keeping judgment-heavy checks as periodic manual review.
+- Status: closed (core audit/test remediation executed).
 
 ## Current CI Baseline
 
@@ -54,29 +55,22 @@
 - UX truthfulness spot-checks against product messaging (`about` and onboarding narratives), at release milestones.
 - Governance intent reviews for analyzer ownership/precedence design changes.
 
-## New CI Stages To Add
+## Execution Outcome
 
-1. `backend-required` (existing): no change to trigger policy.
-2. `frontend-required` (existing + expanded): keep lint/build and add timezone-config guard.
-3. `e2e-required` (new, initially non-blocking for 1-2 PRs, then required):
-   - install Playwright browser (`npx playwright install chromium`)
-   - run `npm run test:e2e`
-   - retain traces/artifacts on failure.
-4. `load-advisory` (new nightly/scheduled):
-   - concurrency scenario focused on AI jobs + provider-event writes + dashboard reads against SQLite.
-   - objective: catch `SQLITE_BUSY` regressions and verify retry/backoff behavior.
+1. Completed: e2e contract drift and timezone guard remediation (`F-004`, `F-006`).
+2. Completed: high-risk backend regression guards (`PED-008`, `SCR-004`).
+3. Completed: analyzer governance enforcement and arbitration coverage (`ANL-003`, `ANL-004`, `ANL-005`).
+4. Completed: SQLite contention mitigation with retry/backoff and validation coverage (`F-005`).
+5. Completed: learner-facing transparency and evidence UX follow-ons captured in post-audit remediation PRs (`#100` through `#118`).
 
-## Sequenced Implementation Plan
+## CI Follow-on (Optional Operationalization)
 
-1. Stabilize and fix failing e2e contracts (`F-004`) and timezone config (`F-006`).
-2. Add missing high-risk backend regression tests (`PED-008`, `SCR-004`).
-3. Add e2e job to CI as non-blocking for a short burn-in period, then mark required.
-4. Implement analyzer governance enforcement (`ANL-003/004/005`) with tests.
-5. Add scheduled load/reliability checks for SQLite contention (`F-005`).
+1. Keep current required CI gates (`backend`, `frontend`) as baseline.
+2. Add required CI e2e stage when desired by release policy.
+3. Add scheduled load-advisory job when operational bandwidth is available.
 
 ## Ownership Suggestion
 
 - Backend platform: `PED-*`, `LANG-*`, `ANL-*`, `SCR-*`, `DATA-*`, `SEC-*`
 - Frontend platform: `OPS-002/003`, `I18N-001`, UX smoke assertions
 - QA/release owner: manual UX/pedagogy spot-check cadence and sign-off
-
