@@ -64,6 +64,7 @@ func (s *Store) TransferTrackData(ctx context.Context, userID, sourceEnrollmentI
 			progression_hold_reason_code,
 			hold_trigger_review_id,
 			hold_cleared_review_id,
+			hold_clear_streak,
 			hold_updated_at,
 			updated_at
 		)
@@ -76,6 +77,7 @@ func (s *Store) TransferTrackData(ctx context.Context, userID, sourceEnrollmentI
 			COALESCE(progression_hold_reason_code, ''),
 			hold_trigger_review_id,
 			hold_cleared_review_id,
+			COALESCE(hold_clear_streak, 0),
 			hold_updated_at,
 			updated_at
 		FROM user_curriculum_state
@@ -88,6 +90,7 @@ func (s *Store) TransferTrackData(ctx context.Context, userID, sourceEnrollmentI
 			progression_hold_reason_code = excluded.progression_hold_reason_code,
 			hold_trigger_review_id = excluded.hold_trigger_review_id,
 			hold_cleared_review_id = excluded.hold_cleared_review_id,
+			hold_clear_streak = excluded.hold_clear_streak,
 			hold_updated_at = excluded.hold_updated_at,
 			updated_at = excluded.updated_at
 	`, targetEnrollmentID, sourceEnrollmentID); err != nil {

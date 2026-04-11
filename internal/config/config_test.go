@@ -82,6 +82,9 @@ func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
 	t.Setenv("WRITING_COACH_CALIBRATION_MAINTENANCE_INTERVAL", "168h")
 	t.Setenv("WRITING_COACH_CALIBRATION_MIN_SAMPLES", "25")
 	t.Setenv("WRITING_COACH_CALIBRATION_LIMIT_PER_TRACK", "150")
+	t.Setenv("WRITING_COACH_PROGRESSION_HOLD_CLEAR_STREAK", "3")
+	t.Setenv("WRITING_COACH_INTEGRITY_HOLD_ACTIVATION_CLEAR_GAP", "4")
+	t.Setenv("WRITING_COACH_INTEGRITY_ACTIVE_HOLD_WARN_COUNT", "12")
 
 	loaded, err := Load(root)
 	if err != nil {
@@ -107,6 +110,15 @@ func TestLoadReadsAIValidationLimitsFromEnv(t *testing.T) {
 	}
 	if loaded.CalibrationLimitPerTrack != 150 {
 		t.Fatalf("calibration limit per track = %d", loaded.CalibrationLimitPerTrack)
+	}
+	if loaded.ProgressionHoldClearStreak != 3 {
+		t.Fatalf("progression hold clear streak = %d", loaded.ProgressionHoldClearStreak)
+	}
+	if loaded.IntegrityHoldActivationClearGap != 4 {
+		t.Fatalf("integrity hold activation clear gap = %d", loaded.IntegrityHoldActivationClearGap)
+	}
+	if loaded.IntegrityActiveHoldWarnCount != 12 {
+		t.Fatalf("integrity active hold warn count = %d", loaded.IntegrityActiveHoldWarnCount)
 	}
 }
 

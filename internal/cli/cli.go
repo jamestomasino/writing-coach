@@ -360,7 +360,11 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	if err := c.Store.UpdateCurriculumState(ctx, c.AppContext.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
 		return err
 	}
-	if err := c.Store.UpdateProgressionHoldState(ctx, c.AppContext.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID); err != nil {
+	if err := c.Store.UpdateProgressionHoldState(ctx, c.AppContext.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID, c.Config.ProgressionHoldClearStreak); err != nil {
+		return err
+	}
+	stateAfter, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
+	if err != nil {
 		return err
 	}
 	reviewScoredPayload, _ := json.Marshal(map[string]any{
@@ -402,17 +406,17 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	}); err != nil {
 		return err
 	}
-	if stateBefore.ProgressionHoldActive != recommendation.HoldActive {
+	if stateBefore.ProgressionHoldActive != stateAfter.ProgressionHoldActive {
 		eventType := "progression_hold_cleared"
 		ruleVersion := "progression-hold-clear-v1"
-		if recommendation.HoldActive {
+		if stateAfter.ProgressionHoldActive {
 			eventType = "progression_hold_activated"
 			ruleVersion = "progression-hold-activate-v1"
 		}
 		holdPayload, _ := json.Marshal(map[string]any{
 			"was_hold_active": stateBefore.ProgressionHoldActive,
-			"is_hold_active":  recommendation.HoldActive,
-			"reason_code":     recommendation.HoldReasonCode,
+			"is_hold_active":  stateAfter.ProgressionHoldActive,
+			"reason_code":     stateAfter.ProgressionHoldReasonCode,
 		})
 		if err := c.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
 			UserID:              c.AppContext.UserID,

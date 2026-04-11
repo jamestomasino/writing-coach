@@ -226,6 +226,7 @@ type CurriculumState struct {
 	ProgressionHoldReasonCode string
 	HoldTriggerReviewID       int64
 	HoldClearedReviewID       int64
+	HoldClearStreak           int
 	HoldUpdatedAt             time.Time
 	UpdatedAt                 time.Time
 }

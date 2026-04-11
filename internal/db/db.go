@@ -291,6 +291,7 @@ func (s *Store) GetCurriculumState(ctx context.Context, enrollmentID int64) (dom
 			COALESCE(progression_hold_reason_code, ''),
 			COALESCE(hold_trigger_review_id, 0),
 			COALESCE(hold_cleared_review_id, 0),
+			COALESCE(hold_clear_streak, 0),
 			hold_updated_at,
 			updated_at
 		FROM user_curriculum_state
@@ -304,6 +305,7 @@ func (s *Store) GetCurriculumState(ctx context.Context, enrollmentID int64) (dom
 		&state.ProgressionHoldReasonCode,
 		&state.HoldTriggerReviewID,
 		&state.HoldClearedReviewID,
+		&state.HoldClearStreak,
 		&holdUpdatedAt,
 		&state.UpdatedAt,
 	)
@@ -1186,8 +1188,11 @@ func (s *Store) UpdateCurriculumState(ctx context.Context, enrollmentID int64, f
 	return err
 }
 
-func (s *Store) UpdateProgressionHoldState(ctx context.Context, enrollmentID int64, holdActive bool, reasonCode string, reviewID int64) error {
-	if holdActive {
+func (s *Store) UpdateProgressionHoldState(ctx context.Context, enrollmentID int64, holdRequested bool, reasonCode string, reviewID int64, clearStreakRequired int) error {
+	if clearStreakRequired <= 0 {
+		clearStreakRequired = 1
+	}
+	if holdRequested {
 		_, err := s.SQL.ExecContext(ctx, `
 			UPDATE user_curriculum_state
 			SET
@@ -1198,6 +1203,7 @@ func (s *Store) UpdateProgressionHoldState(ctx context.Context, enrollmentID int
 					ELSE ?
 				END,
 				hold_cleared_review_id = NULL,
+				hold_clear_streak = 0,
 				hold_updated_at = CURRENT_TIMESTAMP
 			WHERE enrollment_id = ?
 		`, strings.TrimSpace(reasonCode), reviewID, enrollmentID)
@@ -1207,17 +1213,30 @@ func (s *Store) UpdateProgressionHoldState(ctx context.Context, enrollmentID int
 	_, err := s.SQL.ExecContext(ctx, `
 		UPDATE user_curriculum_state
 		SET
-			progression_hold_active = 0,
-			progression_hold_reason_code = '',
+			hold_clear_streak = CASE
+				WHEN progression_hold_active = 1 THEN CASE
+					WHEN (hold_clear_streak + 1) >= ? THEN 0
+					ELSE (hold_clear_streak + 1)
+				END
+				ELSE 0
+			END,
+			progression_hold_active = CASE
+				WHEN progression_hold_active = 1 AND (hold_clear_streak + 1) >= ? THEN 0
+				ELSE progression_hold_active
+			END,
+			progression_hold_reason_code = CASE
+				WHEN progression_hold_active = 1 AND (hold_clear_streak + 1) >= ? THEN ''
+				ELSE progression_hold_reason_code
+			END,
 			hold_cleared_review_id = CASE
-				WHEN progression_hold_active = 1 THEN ?
+				WHEN progression_hold_active = 1 AND (hold_clear_streak + 1) >= ? THEN ?
 				ELSE hold_cleared_review_id
 			END,
 			hold_updated_at = CASE
-				WHEN progression_hold_active = 1 THEN CURRENT_TIMESTAMP
+				WHEN progression_hold_active = 1 AND (hold_clear_streak + 1) >= ? THEN CURRENT_TIMESTAMP
 				ELSE hold_updated_at
 			END
 		WHERE enrollment_id = ?
-	`, reviewID, enrollmentID)
+	`, clearStreakRequired, clearStreakRequired, clearStreakRequired, clearStreakRequired, reviewID, clearStreakRequired, enrollmentID)
 	return err
 }

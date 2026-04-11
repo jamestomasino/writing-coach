@@ -466,6 +466,15 @@ export function AdminView() {
                 </Badge>
               ))}
             </div>
+            {pedagogyIntegrity.policy ? (
+              <div className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+                {t('integrityPolicyLine', {
+                  holdClear: pedagogyIntegrity.policy.hold_clear_streak_required,
+                  clearGap: pedagogyIntegrity.policy.hold_activation_clear_gap,
+                  holdWarn: pedagogyIntegrity.policy.active_hold_warn_count,
+                })}
+              </div>
+            ) : null}
             <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
               {pedagogyIntegrity.alerts.map((alert) => (
                 <li key={`${alert.code}-message`}>• {alert.message}</li>

@@ -595,7 +595,7 @@ func TestUpdateProgressionHoldStateActivatesAndClears(t *testing.T) {
 		t.Fatalf("default user tree: %v", err)
 	}
 
-	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 21); err != nil {
+	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 21, 2); err != nil {
 		t.Fatalf("activate hold: %v", err)
 	}
 	state, err := store.GetCurriculumState(ctx, enrollmentID)
@@ -615,15 +615,28 @@ func TestUpdateProgressionHoldStateActivatesAndClears(t *testing.T) {
 		t.Fatal("expected hold updated timestamp")
 	}
 
-	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, false, "", 22); err != nil {
-		t.Fatalf("clear hold: %v", err)
+	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, false, "", 22, 2); err != nil {
+		t.Fatalf("attempt hold clear (1): %v", err)
 	}
 	state, err = store.GetCurriculumState(ctx, enrollmentID)
 	if err != nil {
-		t.Fatalf("get curriculum state after clear: %v", err)
+		t.Fatalf("get curriculum state after clear attempt 1: %v", err)
+	}
+	if !state.ProgressionHoldActive {
+		t.Fatal("expected progression hold to remain active until streak threshold is reached")
+	}
+	if state.HoldClearStreak != 1 {
+		t.Fatalf("hold clear streak = %d", state.HoldClearStreak)
+	}
+	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, false, "", 23, 2); err != nil {
+		t.Fatalf("attempt hold clear (2): %v", err)
+	}
+	state, err = store.GetCurriculumState(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("get curriculum state after clear attempt 2: %v", err)
 	}
 	if state.ProgressionHoldActive {
-		t.Fatal("expected progression hold to be cleared")
+		t.Fatal("expected progression hold to be cleared after streak threshold")
 	}
 	if state.ProgressionHoldReasonCode != "" {
 		t.Fatalf("expected empty hold reason code, got %q", state.ProgressionHoldReasonCode)
@@ -631,7 +644,7 @@ func TestUpdateProgressionHoldStateActivatesAndClears(t *testing.T) {
 	if state.HoldTriggerReviewID != 21 {
 		t.Fatalf("expected trigger review id to remain 21, got %d", state.HoldTriggerReviewID)
 	}
-	if state.HoldClearedReviewID != 22 {
+	if state.HoldClearedReviewID != 23 {
 		t.Fatalf("hold cleared review id = %d", state.HoldClearedReviewID)
 	}
 }
@@ -661,7 +674,7 @@ func TestUpdateProgressionHoldStateIsEnrollmentScoped(t *testing.T) {
 		t.Fatalf("technical enrollment: %v", err)
 	}
 
-	if err := store.UpdateProgressionHoldState(ctx, storyEnrollmentID, true, "completed_tgo_slipping", 99); err != nil {
+	if err := store.UpdateProgressionHoldState(ctx, storyEnrollmentID, true, "completed_tgo_slipping", 99, 2); err != nil {
 		t.Fatalf("activate story hold: %v", err)
 	}
 
@@ -860,7 +873,7 @@ func TestPedagogyIntegritySnapshot(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("save blocked event: %v", err)
 	}
-	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", reviewID); err != nil {
+	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", reviewID, 2); err != nil {
 		t.Fatalf("activate hold state: %v", err)
 	}
 
