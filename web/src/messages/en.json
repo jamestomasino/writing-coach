@@ -703,6 +703,7 @@
     "completeTitle": "You finished this assignment",
     "completeBody": "Take a moment to review the full draft and feedback history, then start your next assignment when you're ready.",
     "startNextAssignment": "Start next assignment",
+    "continueInPlayground": "Keep experimenting in Playground",
     "navigationEyebrow": "Navigation",
     "navigationTitle": "Assignment flow",
     "navigationDescription": "Jump to any step in this assignment.",

@@ -258,9 +258,14 @@ export function AssignmentTimelineView({
           title={t('completeTitle')}
           body={t('completeBody')}
           actions={
-            <Button href="/new-assignment" color="dark/zinc">
-              {t('startNextAssignment')}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button href="/new-assignment" color="dark/zinc">
+                {t('startNextAssignment')}
+              </Button>
+              <Button href="/playground" outline>
+                {t('continueInPlayground')}
+              </Button>
+            </div>
           }
         />
       ) : null}
