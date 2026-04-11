@@ -343,7 +343,6 @@ export function CurrentAssignmentView() {
                             ? t('skillAdvanceBuildHistory', { count: levelState.remainingHistory })
                             : t('skillAdvanceConsolidate')}
                       </div>
-                      <div className="mt-1 text-zinc-600 dark:text-zinc-400">{t('skillAdvanceRule')}</div>
                     </div>
                   )
                 })()}
