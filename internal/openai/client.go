@@ -241,13 +241,14 @@ type requestSpec struct {
 
 func ExerciseUserInput(input ExerciseRequest) string {
 	return fmt.Sprintf(
-		"Writing language: %s\nWriting track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
+		"Writing language: %s\nWriting track profile:\n%s\nHidden review guidance: %s\nUse this guidance only to make the finished draft reviewable. Do not name it, quote it, or turn it into visible checklist items in the assignment.\nCurrent coaching emphasis: %s\nDifficulty level: %d\nRecent exercise titles: %s\nRecent assignment summaries: %s\nRecent weaknesses: %s\nRecurring analyzer findings: %s\nCoaching context: %s",
 		FormatWritingLanguage(input.WritingLanguage),
 		FormatOnboardingProfile(input.OnboardingProfile),
 		MeasurabilityGuidance(input.ActiveTGOs),
 		EmptyDefault(input.CurrentFocus, "none"),
 		input.DifficultyLevel,
 		JoinOrDefault(input.RecentTitles, "none"),
+		JoinOrDefault(input.RecentAssignments, "none"),
 		JoinOrDefault(input.RecentWeaknesses, "none"),
 		JoinOrDefault(input.RecurringFindings, "none"),
 		EmptyDefault(input.CoachingBrief, "none"),
@@ -422,6 +423,7 @@ Make the title specific enough to feel like a real assignment, not a category la
 The supplied review rubric skills are for later evaluation, not for choosing the assignment topic.
 If a review skill needs a visible feature to be measurable, quietly make room for that feature in the assignment.
 Example: if the review skill depends on dialogue quality, the assignment should create a natural reason for dialogue to appear.
+Use recent assignment summaries to avoid repeating the same core scenario pattern in consecutive assignments.
 Never copy the hidden review guidance into the visible brief, constraints, or success criteria.
 Do not turn the assignment into a beat sheet, rubric, or checklist derived from the review criteria.
 Do not let the constraints carry the whole assignment. The brief itself must contain the core situation.

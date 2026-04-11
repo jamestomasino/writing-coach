@@ -3,6 +3,7 @@ package prompt
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 	"unicode"
@@ -28,6 +29,7 @@ type Context struct {
 	ActiveTGOs         []domain.TGO
 	OnboardingProfile  *domain.OnboardingProfile
 	RecentTitles       []string
+	RecentAssignments  []string
 	RecentWeaknesses   []string
 	RecurringFindings  []string
 	CoachingBrief      string
@@ -63,20 +65,35 @@ func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercis
 	if s.client != nil && s.client.Enabled() {
 		generationCtx, cancel := s.generationContext(ctx)
 		defer cancel()
-		exercise, err := s.client.GenerateExercise(generationCtx, llm.ExerciseRequest{
+		request := llm.ExerciseRequest{
 			WritingLanguage:   writingLanguageForProfile(input.OnboardingProfile),
 			CurrentFocus:      input.CurriculumState.CurrentFocus,
 			DifficultyLevel:   input.CurriculumState.DifficultyLevel,
 			ActiveTGOs:        input.ActiveTGOs,
 			OnboardingProfile: input.OnboardingProfile,
 			RecentTitles:      input.RecentTitles,
+			RecentAssignments: input.RecentAssignments,
 			RecentWeaknesses:  input.RecentWeaknesses,
 			RecurringFindings: input.RecurringFindings,
 			CoachingBrief:     input.CoachingBrief,
-		})
+		}
+		exercise, err := s.client.GenerateExercise(generationCtx, request)
 		if err == nil {
-			exercise.GenerationKind = s.clientKind
-			exercise.ProviderNote = s.clientKind
+			if !isExercisePatternRepeat(exercise, input.RecentAssignments) {
+				exercise.GenerationKind = s.clientKind
+				exercise.ProviderNote = s.clientKind
+				return exercise
+			}
+			retryRequest := request
+			retryRequest.CoachingBrief = appendVarietyGuidance(request.CoachingBrief, input.RecentAssignments)
+			retryExercise, retryErr := s.client.GenerateExercise(generationCtx, retryRequest)
+			if retryErr == nil {
+				retryExercise.GenerationKind = s.clientKind
+				retryExercise.ProviderNote = s.clientKind
+				return retryExercise
+			}
+			exercise.GenerationKind = "deterministic-fallback"
+			exercise.ProviderNote = strings.TrimSpace(s.clientKind + ": " + retryErr.Error())
 			return exercise
 		}
 
@@ -89,6 +106,173 @@ func (s Service) NextExercise(ctx context.Context, input Context) domain.Exercis
 	exercise := s.fallback.NextExercise(ctx, input)
 	exercise.GenerationKind = "deterministic"
 	return exercise
+}
+
+func appendVarietyGuidance(existing string, recent []string) string {
+	base := strings.TrimSpace(existing)
+	history := joinOrDefault(recent, "none")
+	note := "Variety requirement: choose a different core scenario pattern than recent assignments. Avoid repeating the same premise structure from this history: " + history
+	if base == "" {
+		return note
+	}
+	return base + " " + note
+}
+
+func joinOrDefault(values []string, fallback string) string {
+	filtered := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		filtered = append(filtered, value)
+	}
+	if len(filtered) == 0 {
+		return fallback
+	}
+	return strings.Join(filtered, "; ")
+}
+
+func isExercisePatternRepeat(exercise domain.Exercise, recent []string) bool {
+	if len(recent) == 0 {
+		return false
+	}
+	candidateText := normalizePatternText(exercise.Title + " " + exercise.Brief)
+	if candidateText == "" {
+		return false
+	}
+	if hasChoiceUnderTimePressurePattern(candidateText) {
+		for _, item := range recent {
+			if hasChoiceUnderTimePressurePattern(normalizePatternText(item)) {
+				return true
+			}
+		}
+	}
+
+	candidateTokens := tokenSet(candidateText)
+	if len(candidateTokens) == 0 {
+		return false
+	}
+	candidateBigrams := ngrams(candidateText, 2)
+	for _, item := range recent {
+		other := normalizePatternText(item)
+		if other == "" {
+			continue
+		}
+		similarity := jaccard(candidateTokens, tokenSet(other))
+		if similarity >= 0.58 {
+			return true
+		}
+		if overlapCount(candidateBigrams, ngrams(other, 2)) >= 3 && similarity >= 0.42 {
+			return true
+		}
+	}
+	return false
+}
+
+func hasChoiceUnderTimePressurePattern(text string) bool {
+	if text == "" {
+		return false
+	}
+	choiceWords := []string{"choose", "choice", "decide", "decision", "pick", "must choose", "must decide", "forced to choose"}
+	timeWords := []string{"time pressure", "deadline", "before", "countdown", "minutes", "hours", "clock", "urgent", "by dawn", "by sunrise", "tonight"}
+	hasChoice := false
+	for _, word := range choiceWords {
+		if strings.Contains(text, word) {
+			hasChoice = true
+			break
+		}
+	}
+	if !hasChoice {
+		return false
+	}
+	for _, word := range timeWords {
+		if strings.Contains(text, word) {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizePatternText(value string) string {
+	value = strings.ToLower(value)
+	var b strings.Builder
+	b.Grow(len(value))
+	for _, r := range value {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsSpace(r) {
+			b.WriteRune(r)
+			continue
+		}
+		b.WriteRune(' ')
+	}
+	return strings.Join(strings.Fields(b.String()), " ")
+}
+
+func tokenSet(value string) map[string]struct{} {
+	parts := strings.Fields(value)
+	out := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		if len(part) <= 2 || isStopWord(part) {
+			continue
+		}
+		out[part] = struct{}{}
+	}
+	return out
+}
+
+func ngrams(value string, size int) map[string]struct{} {
+	if size <= 0 {
+		return map[string]struct{}{}
+	}
+	parts := strings.Fields(value)
+	if len(parts) < size {
+		return map[string]struct{}{}
+	}
+	out := make(map[string]struct{}, len(parts)-size+1)
+	for i := 0; i+size <= len(parts); i++ {
+		window := parts[i : i+size]
+		out[strings.Join(window, " ")] = struct{}{}
+	}
+	return out
+}
+
+func overlapCount(a, b map[string]struct{}) int {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	count := 0
+	for key := range a {
+		if _, ok := b[key]; ok {
+			count++
+		}
+	}
+	return count
+}
+
+func jaccard(a, b map[string]struct{}) float64 {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	intersection := 0
+	for key := range a {
+		if _, ok := b[key]; ok {
+			intersection++
+		}
+	}
+	union := len(a) + len(b) - intersection
+	if union == 0 {
+		return 0
+	}
+	return math.Abs(float64(intersection) / float64(union))
+}
+
+func isStopWord(token string) bool {
+	switch token {
+	case "the", "and", "for", "with", "from", "this", "that", "your", "into", "about", "after", "under", "when", "while", "then", "than":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s Service) RevisionExercise(ctx context.Context, input Context) domain.Exercise {
