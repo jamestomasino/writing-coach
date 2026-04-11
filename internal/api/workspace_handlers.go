@@ -868,9 +868,26 @@ func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext sessio
 	if err != nil {
 		return err
 	}
+	state, err := s.Store.GetCurriculumState(ctx, appContext.EnrollmentID)
+	if err != nil {
+		return err
+	}
 	completedTGOs, err := s.Store.CompletedTGOs(ctx, appContext.EnrollmentID)
 	if err != nil {
 		return err
+	}
+	if state.ProgressionHoldActive {
+		current := make([]string, 0, len(activeTGOs))
+		for _, tgo := range activeTGOs {
+			current = append(current, tgo.Code)
+		}
+		if !sameOrderedCodes(current, selected) {
+			reason := strings.TrimSpace(state.ProgressionHoldReasonCode)
+			if reason == "" {
+				reason = "progression_hold_active"
+			}
+			return fmt.Errorf("active objective changes are blocked while progression hold is active (%s)", reason)
+		}
 	}
 
 	completedSet := make(map[string]bool, len(completedTGOs))
@@ -895,6 +912,18 @@ func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext sessio
 		}
 	}
 	return s.Store.SetActiveTGOs(ctx, appContext.EnrollmentID, selected)
+}
+
+func sameOrderedCodes(left []string, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for idx := range left {
+		if strings.TrimSpace(left[idx]) != strings.TrimSpace(right[idx]) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s Server) createRevisionExercise(ctx context.Context, appContext session.Context, submissionID int64) (domain.Exercise, error) {
