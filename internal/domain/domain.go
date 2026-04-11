@@ -184,11 +184,16 @@ type WriterProfile struct {
 }
 
 type CurriculumState struct {
-	ID              int64
-	CurrentFocus    string
-	DifficultyLevel int
-	LastReviewID    int64
-	UpdatedAt       time.Time
+	ID                        int64
+	CurrentFocus              string
+	DifficultyLevel           int
+	LastReviewID              int64
+	ProgressionHoldActive     bool
+	ProgressionHoldReasonCode string
+	HoldTriggerReviewID       int64
+	HoldClearedReviewID       int64
+	HoldUpdatedAt             time.Time
+	UpdatedAt                 time.Time
 }
 
 type Exercise struct {

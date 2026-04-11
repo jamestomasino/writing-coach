@@ -574,3 +574,110 @@ func TestAIProviderEventsFilteringAndRetention(t *testing.T) {
 		t.Fatalf("provider events after retention = %d", len(allAfterRetention))
 	}
 }
+
+func TestUpdateProgressionHoldStateActivatesAndClears(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_, _, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+
+	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 21); err != nil {
+		t.Fatalf("activate hold: %v", err)
+	}
+	state, err := store.GetCurriculumState(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("get curriculum state after activation: %v", err)
+	}
+	if !state.ProgressionHoldActive {
+		t.Fatal("expected progression hold to be active")
+	}
+	if state.ProgressionHoldReasonCode != "completed_tgo_slipping" {
+		t.Fatalf("hold reason code = %q", state.ProgressionHoldReasonCode)
+	}
+	if state.HoldTriggerReviewID != 21 {
+		t.Fatalf("hold trigger review id = %d", state.HoldTriggerReviewID)
+	}
+	if state.HoldUpdatedAt.IsZero() {
+		t.Fatal("expected hold updated timestamp")
+	}
+
+	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, false, "", 22); err != nil {
+		t.Fatalf("clear hold: %v", err)
+	}
+	state, err = store.GetCurriculumState(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("get curriculum state after clear: %v", err)
+	}
+	if state.ProgressionHoldActive {
+		t.Fatal("expected progression hold to be cleared")
+	}
+	if state.ProgressionHoldReasonCode != "" {
+		t.Fatalf("expected empty hold reason code, got %q", state.ProgressionHoldReasonCode)
+	}
+	if state.HoldTriggerReviewID != 21 {
+		t.Fatalf("expected trigger review id to remain 21, got %d", state.HoldTriggerReviewID)
+	}
+	if state.HoldClearedReviewID != 22 {
+		t.Fatalf("hold cleared review id = %d", state.HoldClearedReviewID)
+	}
+}
+
+func TestUpdateProgressionHoldStateIsEnrollmentScoped(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	_, _, storyEnrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
+	if err != nil {
+		t.Fatalf("story enrollment: %v", err)
+	}
+	_, _, technicalEnrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "technical-writing-track")
+	if err != nil {
+		t.Fatalf("technical enrollment: %v", err)
+	}
+
+	if err := store.UpdateProgressionHoldState(ctx, storyEnrollmentID, true, "completed_tgo_slipping", 99); err != nil {
+		t.Fatalf("activate story hold: %v", err)
+	}
+
+	storyState, err := store.GetCurriculumState(ctx, storyEnrollmentID)
+	if err != nil {
+		t.Fatalf("get story curriculum state: %v", err)
+	}
+	if !storyState.ProgressionHoldActive {
+		t.Fatal("expected story enrollment hold to be active")
+	}
+
+	technicalState, err := store.GetCurriculumState(ctx, technicalEnrollmentID)
+	if err != nil {
+		t.Fatalf("get technical curriculum state: %v", err)
+	}
+	if technicalState.ProgressionHoldActive {
+		t.Fatal("expected technical enrollment hold to remain inactive")
+	}
+}

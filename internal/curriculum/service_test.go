@@ -47,6 +47,12 @@ func TestSyncTGOsBlocksAdvancementWhenCompletedTGOSlips(t *testing.T) {
 	if recommendation.Focus != "Causal Clarity" {
 		t.Fatalf("focus = %q", recommendation.Focus)
 	}
+	if !recommendation.HoldActive {
+		t.Fatal("expected hold to be active when completed TGO is slipping")
+	}
+	if recommendation.HoldReasonCode != HoldReasonCompletedTGOSlipping {
+		t.Fatalf("hold reason code = %q", recommendation.HoldReasonCode)
+	}
 	active, err := store.ActiveTGOs(ctx, enrollmentID)
 	if err != nil {
 		t.Fatalf("active tgos: %v", err)
@@ -137,6 +143,12 @@ func TestSyncTGOsDoesNotRotateActiveSkillsMidChainAfterMastery(t *testing.T) {
 	}
 	if recommendation.Focus == "" {
 		t.Fatal("expected recommendation focus")
+	}
+	if recommendation.HoldActive {
+		t.Fatal("did not expect hold to be active")
+	}
+	if recommendation.HoldReasonCode != "" {
+		t.Fatalf("expected empty hold reason code, got %q", recommendation.HoldReasonCode)
 	}
 
 	activeAfter, err := store.ActiveTGOs(ctx, enrollmentID)

@@ -147,11 +147,16 @@ type skillGraphNodeResponse struct {
 }
 
 type curriculumStateResponse struct {
-	ID              int64  `json:"id"`
-	CurrentFocus    string `json:"current_focus"`
-	DifficultyLevel int    `json:"difficulty_level"`
-	LastReviewID    int64  `json:"last_review_id"`
-	UpdatedAt       string `json:"updated_at"`
+	ID                    int64  `json:"id"`
+	CurrentFocus          string `json:"current_focus"`
+	DifficultyLevel       int    `json:"difficulty_level"`
+	LastReviewID          int64  `json:"last_review_id"`
+	ProgressionHoldActive bool   `json:"progression_hold_active"`
+	ProgressionHoldReason string `json:"progression_hold_reason_code,omitempty"`
+	HoldTriggerReviewID   int64  `json:"hold_trigger_review_id,omitempty"`
+	HoldClearedReviewID   int64  `json:"hold_cleared_review_id,omitempty"`
+	HoldUpdatedAt         string `json:"hold_updated_at,omitempty"`
+	UpdatedAt             string `json:"updated_at"`
 }
 
 type historyItemResponse struct {
@@ -680,6 +685,9 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	if err := s.Store.UpdateCurriculumState(ctx, job.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
 		return fmt.Errorf("update curriculum state: %w", err)
 	}
+	if err := s.Store.UpdateProgressionHoldState(ctx, job.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID); err != nil {
+		return fmt.Errorf("update progression hold state: %w", err)
+	}
 	if err := s.Store.CompleteReviewJob(ctx, job.ID, reviewID); err != nil {
 		return fmt.Errorf("complete review job: %w", err)
 	}
@@ -759,12 +767,21 @@ func toOnboardingOptionResponses(values []domain.OnboardingOption) []onboardingO
 }
 
 func toCurriculumStateResponse(state domain.CurriculumState) curriculumStateResponse {
+	holdUpdatedAt := ""
+	if !state.HoldUpdatedAt.IsZero() {
+		holdUpdatedAt = db.Since(state.HoldUpdatedAt)
+	}
 	return curriculumStateResponse{
-		ID:              state.ID,
-		CurrentFocus:    state.CurrentFocus,
-		DifficultyLevel: state.DifficultyLevel,
-		LastReviewID:    state.LastReviewID,
-		UpdatedAt:       db.Since(state.UpdatedAt),
+		ID:                    state.ID,
+		CurrentFocus:          state.CurrentFocus,
+		DifficultyLevel:       state.DifficultyLevel,
+		LastReviewID:          state.LastReviewID,
+		ProgressionHoldActive: state.ProgressionHoldActive,
+		ProgressionHoldReason: state.ProgressionHoldReasonCode,
+		HoldTriggerReviewID:   state.HoldTriggerReviewID,
+		HoldClearedReviewID:   state.HoldClearedReviewID,
+		HoldUpdatedAt:         holdUpdatedAt,
+		UpdatedAt:             db.Since(state.UpdatedAt),
 	}
 }
 

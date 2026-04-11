@@ -10,10 +10,14 @@ import (
 type Service struct{}
 
 type Recommendation struct {
-	Focus      string
-	Difficulty int
-	Rationale  string
+	Focus          string
+	Difficulty     int
+	Rationale      string
+	HoldActive     bool
+	HoldReasonCode string
 }
+
+const HoldReasonCompletedTGOSlipping = "completed_tgo_slipping"
 
 func NewService() Service {
 	return Service{}
@@ -50,15 +54,19 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 		}
 		if slipped, ok := domain.TGOByCode(check.TGOCode); ok {
 			return Recommendation{
-				Focus:      slipped.Title,
-				Difficulty: 1,
-				Rationale:  "Hold advancement while a completed TGO slips: " + slipped.Title + ". Evidence: " + check.Evidence,
+				Focus:          slipped.Title,
+				Difficulty:     1,
+				Rationale:      "Hold advancement while a completed TGO slips: " + slipped.Title + ". Evidence: " + check.Evidence,
+				HoldActive:     true,
+				HoldReasonCode: HoldReasonCompletedTGOSlipping,
 			}, nil
 		}
 		return Recommendation{
-			Focus:      review.NextFocus,
-			Difficulty: 1,
-			Rationale:  "Hold advancement while a completed TGO slips. Evidence: " + check.Evidence,
+			Focus:          review.NextFocus,
+			Difficulty:     1,
+			Rationale:      "Hold advancement while a completed TGO slips. Evidence: " + check.Evidence,
+			HoldActive:     true,
+			HoldReasonCode: HoldReasonCompletedTGOSlipping,
 		}, nil
 	}
 
@@ -95,9 +103,11 @@ func (Service) SyncTGOs(ctx context.Context, store *db.Store, treeSlug string, e
 	}
 
 	return Recommendation{
-		Focus:      primary,
-		Difficulty: 2,
-		Rationale:  rationale,
+		Focus:          primary,
+		Difficulty:     2,
+		Rationale:      rationale,
+		HoldActive:     false,
+		HoldReasonCode: "",
 	}, nil
 }
 

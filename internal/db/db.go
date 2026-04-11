@@ -279,13 +279,40 @@ func (s *Store) ArchiveUserTrack(ctx context.Context, userID int64, treeSlug str
 
 func (s *Store) GetCurriculumState(ctx context.Context, enrollmentID int64) (domain.CurriculumState, error) {
 	var state domain.CurriculumState
+	var holdActive int
+	var holdUpdatedAt sql.NullTime
 	err := s.SQL.QueryRowContext(ctx, `
-		SELECT enrollment_id, current_focus, difficulty_level, COALESCE(last_review_id, 0), updated_at
+		SELECT
+			enrollment_id,
+			current_focus,
+			difficulty_level,
+			COALESCE(last_review_id, 0),
+			COALESCE(progression_hold_active, 0),
+			COALESCE(progression_hold_reason_code, ''),
+			COALESCE(hold_trigger_review_id, 0),
+			COALESCE(hold_cleared_review_id, 0),
+			hold_updated_at,
+			updated_at
 		FROM user_curriculum_state
 		WHERE enrollment_id = ?
-	`, enrollmentID).Scan(&state.ID, &state.CurrentFocus, &state.DifficultyLevel, &state.LastReviewID, &state.UpdatedAt)
+	`, enrollmentID).Scan(
+		&state.ID,
+		&state.CurrentFocus,
+		&state.DifficultyLevel,
+		&state.LastReviewID,
+		&holdActive,
+		&state.ProgressionHoldReasonCode,
+		&state.HoldTriggerReviewID,
+		&state.HoldClearedReviewID,
+		&holdUpdatedAt,
+		&state.UpdatedAt,
+	)
 	if err != nil {
 		return domain.CurriculumState{}, err
+	}
+	state.ProgressionHoldActive = holdActive == 1
+	if holdUpdatedAt.Valid {
+		state.HoldUpdatedAt = holdUpdatedAt.Time
 	}
 	return state, nil
 }
@@ -1156,5 +1183,41 @@ func (s *Store) UpdateCurriculumState(ctx context.Context, enrollmentID int64, f
 		SET current_focus = ?, difficulty_level = ?, last_review_id = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE enrollment_id = ?
 	`, focus, difficulty, reviewID, enrollmentID)
+	return err
+}
+
+func (s *Store) UpdateProgressionHoldState(ctx context.Context, enrollmentID int64, holdActive bool, reasonCode string, reviewID int64) error {
+	if holdActive {
+		_, err := s.SQL.ExecContext(ctx, `
+			UPDATE user_curriculum_state
+			SET
+				progression_hold_active = 1,
+				progression_hold_reason_code = ?,
+				hold_trigger_review_id = CASE
+					WHEN progression_hold_active = 1 AND hold_trigger_review_id IS NOT NULL THEN hold_trigger_review_id
+					ELSE ?
+				END,
+				hold_cleared_review_id = NULL,
+				hold_updated_at = CURRENT_TIMESTAMP
+			WHERE enrollment_id = ?
+		`, strings.TrimSpace(reasonCode), reviewID, enrollmentID)
+		return err
+	}
+
+	_, err := s.SQL.ExecContext(ctx, `
+		UPDATE user_curriculum_state
+		SET
+			progression_hold_active = 0,
+			progression_hold_reason_code = '',
+			hold_cleared_review_id = CASE
+				WHEN progression_hold_active = 1 THEN ?
+				ELSE hold_cleared_review_id
+			END,
+			hold_updated_at = CASE
+				WHEN progression_hold_active = 1 THEN CURRENT_TIMESTAMP
+				ELSE hold_updated_at
+			END
+		WHERE enrollment_id = ?
+	`, reviewID, enrollmentID)
 	return err
 }

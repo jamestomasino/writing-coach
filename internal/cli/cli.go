@@ -355,6 +355,9 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	if err := c.Store.UpdateCurriculumState(ctx, c.AppContext.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
 		return err
 	}
+	if err := c.Store.UpdateProgressionHoldState(ctx, c.AppContext.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID); err != nil {
+		return err
+	}
 
 	state, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
 	if err != nil {
