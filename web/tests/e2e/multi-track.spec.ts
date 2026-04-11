@@ -32,6 +32,8 @@ test('creates the first track and enters the first assignment flow', async ({ br
     await expect(page.getByTestId('draft-textarea')).toBeVisible()
     await expect(page.getByTestId('level-up-guidance-current-assignment')).toBeVisible()
     await expect(page.getByText('Level-up guidance')).toBeVisible()
+    await expect(page.locator('[data-testid^="skill-level-up-"]')).toHaveCount(3)
+    await expect(page.getByText('How this skill advances').first()).toBeVisible()
 
     await openTrackMenu(page)
     await expect(page.locator('[data-testid^="track-option-"]')).toHaveCount(1)
@@ -78,7 +80,7 @@ test('guards unsaved drafts during track switching and switches when confirmed',
     await openTrackMenu(page)
     await switchToOtherTrack(page)
     await expect(page.getByTestId('active-track-button')).not.toHaveText(activeTrackWithDraft)
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(/\/(?:new-assignment)?$/)
   } finally {
     await closeContext(context)
   }

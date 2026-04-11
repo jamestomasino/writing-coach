@@ -7,6 +7,7 @@ import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import type { Tree } from '@/lib/types'
+import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useTrackDashboardData } from '@/lib/use-track-dashboard-data'
 import {
   ArrowTrendingDownIcon,
@@ -207,6 +208,22 @@ export function ProgressView() {
                       <Badge color="blue">{tierLabel(tgo.skill_tier, tgo.stage)}</Badge>
                     </div>
                     <MasteryProgress tgo={tgo} tone="blue" />
+                    {(() => {
+                      const levelState = skillLevelUpState(tgo)
+                      return (
+                        <div className="mt-3 rounded-lg border border-blue-200/70 bg-blue-50/70 px-3 py-2 text-sm text-blue-900/90 dark:border-blue-300/20 dark:bg-blue-500/10 dark:text-blue-100/90">
+                          <div className="font-semibold">{t('skillAdvanceLabel')}</div>
+                          <div className="mt-1">
+                            {levelState.mode === 'ready'
+                              ? t('skillAdvanceReady')
+                              : levelState.mode === 'building_history'
+                                ? t('skillAdvanceBuildHistory', { count: levelState.remainingHistory })
+                                : t('skillAdvanceConsolidate')}
+                          </div>
+                          <div className="mt-1 text-blue-900/70 dark:text-blue-200/80">{t('skillAdvanceRule')}</div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 ))}
               </div>
