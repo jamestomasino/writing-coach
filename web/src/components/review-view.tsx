@@ -131,6 +131,35 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                   </Badge>
                 </div>
                 <Text className="mt-2">{assessment.evidence}</Text>
+                {(() => {
+                  const relatedAnnotations = review.annotations
+                    .filter((item) => item.tgo_code === assessment.tgo_code)
+                    .slice(0, 2)
+
+                  if (relatedAnnotations.length === 0) {
+                    return <Text className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{t('evidenceFromDraftEmpty')}</Text>
+                  }
+
+                  return (
+                    <div className="mt-3 rounded-xl border border-stone-200 bg-stone-50/80 p-3 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-300">
+                        {t('evidenceFromDraftTitle')}
+                      </div>
+                      <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">{t('evidenceFromDraftBody')}</div>
+                      <div className="mt-3 space-y-2">
+                        {relatedAnnotations.map((item, index) => (
+                          <div
+                            key={`${assessment.tgo_code}-${index}-${item.quote}`}
+                            className="rounded-lg border border-stone-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-black/10"
+                          >
+                            <blockquote className="text-xs italic text-zinc-700 dark:text-zinc-200">“{item.quote}”</blockquote>
+                            <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{item.comment}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             ))}
           </div>
