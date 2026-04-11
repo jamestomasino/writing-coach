@@ -1,11 +1,11 @@
-# Failures and Regressions Log (For Remediation Planning)
+# Failures and Regressions Log (Resolved)
 
 - Audit date: 2026-04-11
 - Source worksheet: `docs/audits/2026-04-11-pedagogy-implementation-audit.md`
 
 ## Failure Status
 
-Status as of 2026-04-11 remediation pass:
+Status as of 2026-04-11 remediation closeout:
 
 - `Resolved`: `F-001`, `F-002`, `F-003`, `F-004`, `F-005`, `F-006`, `F-007`, `F-008`
 - `Open`: none
@@ -25,8 +25,10 @@ Status as of 2026-04-11 remediation pass:
 
 ## Notes
 
-- Backend tests passed in audit runs (`./scripts/test-backend.sh`).
-- Frontend lint/build passed (`./scripts/test-frontend.sh`), but current e2e suite fails and needs remediation (`npm run test:e2e`).
+- Backend suite is green (`./scripts/test-backend.sh`).
+- Frontend lint/build is green (`./scripts/test-frontend.sh`).
+- Frontend e2e is green (`cd web && npm run test:e2e`).
+- This remediation log is closed; follow-on product enhancements are tracked separately from audit failures.
 
 ## Deferred Feedback Backlog
 
