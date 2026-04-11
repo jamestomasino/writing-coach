@@ -27,6 +27,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     submission,
     exercise,
     dashboard,
+    comparison,
     preparingRevision,
     closingAssignment,
     canActOnReview,
@@ -286,6 +287,46 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
             ))}
           </div>
         </WorkspaceCard>
+        {comparison?.skill_deltas && comparison.skill_deltas.length > 0 ? (
+          <WorkspaceCard>
+            <CardHeader
+              eyebrow={t('scoreMovementEyebrow')}
+              title={t('scoreMovementTitle')}
+              description={t('scoreMovementDescription')}
+            />
+            <div className="mt-4 space-y-3">
+              {comparison.skill_deltas.map((item) => (
+                <div
+                  key={item.skill}
+                  className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold capitalize text-zinc-900 dark:text-white">{item.skill}</div>
+                    <Badge color={item.direction === 'up' ? 'green' : item.direction === 'down' ? 'amber' : 'zinc'}>
+                      {item.direction === 'up'
+                        ? t('scoreMovementUp')
+                        : item.direction === 'down'
+                          ? t('scoreMovementDown')
+                          : t('scoreMovementFlat')}
+                    </Badge>
+                  </div>
+                  <Text className="mt-2 text-sm">
+                    {t('scoreMovementLine', { baseline: item.baseline_score, current: item.current_score })}
+                  </Text>
+                  {item.evidence_quotes && item.evidence_quotes.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
+                      {item.evidence_quotes.slice(0, 2).map((quote) => (
+                        <li key={quote}>• “{quote}”</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Text className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{t('scoreMovementNoEvidence')}</Text>
+                  )}
+                </div>
+              ))}
+            </div>
+          </WorkspaceCard>
+        ) : null}
         <WorkspaceCard>
           <CardHeader eyebrow={t('workedEyebrow')} title={t('workedTitle')} />
           <ul className="mt-4 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
