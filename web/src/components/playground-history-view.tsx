@@ -89,24 +89,24 @@ export function PlaygroundHistoryView() {
                 </Button>
               }
             />
-            <div className="mt-4 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-              <Text className="text-sm">{session.content}</Text>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+            <div className="mt-4 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Reviews</div>
-                  <Text className="mt-2 text-sm">
+                  <Text className="mt-1.5 text-sm">
                     {session.review_count === 0 ? t('reviewCountZero') : session.review_count === 1 ? t('reviewCountOne') : t('reviewCount', { count: session.review_count })}
                   </Text>
                 </div>
-                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">{t('format')}</div>
-                  <Text className="mt-2 text-sm">{session.assignment_format || '-'}</Text>
+                  <Text className="mt-1.5 text-sm">{session.assignment_format || '-'}</Text>
                 </div>
-                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:col-span-2">
+                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 dark:border-white/10 dark:bg-white/5">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">{t('writingType')}</div>
-                  <Text className="mt-2 text-sm">{session.writing_type || '-'}</Text>
+                  <Text className="mt-1.5 text-sm">{session.writing_type || '-'}</Text>
                 </div>
               </div>
+              <Text className="text-sm">{session.content}</Text>
             </div>
           </WorkspaceCard>
         ))}
