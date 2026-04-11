@@ -436,6 +436,12 @@
     "lineNotesTitle": "Quoted lines with coaching notes",
     "lineNotesDescription": "Specific lines from the draft with notes on what to revise.",
     "noLineNotes": "No line-level notes came back for this review.",
+    "lineNotesIntentionalHint": "If a note reflects an intentional style choice, you can mark it and keep moving.",
+    "markAsIntentional": "Mark as intentional",
+    "intentionalChoice": "Intentional choice",
+    "showIntentionalNotes": "Show intentional notes ({count})",
+    "hideIntentionalNotes": "Hide intentional notes",
+    "restoreToActiveNotes": "Restore note",
     "signalsEyebrow": "Checks",
     "signalsTitle": "Draft checks"
   },

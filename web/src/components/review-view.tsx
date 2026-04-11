@@ -5,9 +5,11 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
+import type { ReviewAnnotation } from '@/lib/types'
 import { useReviewWorkspace } from '@/lib/use-review-workspace'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
+import { useEffect, useMemo, useState } from 'react'
 import { ProviderProvenance } from './provider-provenance'
 import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, LoadingState, TaskProgressState } from './status-state'
@@ -29,6 +31,46 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     prepareRevisionPrompt,
     acceptAndCloseAssignment,
   } = useReviewWorkspace(reviewId)
+  const [dismissedNotes, setDismissedNotes] = useState<Set<string>>(new Set())
+  const [showDismissedNotes, setShowDismissedNotes] = useState(false)
+
+  const dismissStorageKey = useMemo(() => `review-intentional-notes-${reviewId}`, [reviewId])
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(dismissStorageKey)
+      if (!stored) {
+        setDismissedNotes(new Set())
+        return
+      }
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) {
+        setDismissedNotes(new Set(parsed.filter((item): item is string => typeof item === 'string')))
+      }
+    } catch {
+      setDismissedNotes(new Set())
+    }
+  }, [dismissStorageKey])
+
+  function noteKey(item: ReviewAnnotation, index: number) {
+    return `${item.tgo_code}:${item.quote}:${index}`
+  }
+
+  function markNoteIntentional(item: ReviewAnnotation, index: number) {
+    const key = noteKey(item, index)
+    const next = new Set(dismissedNotes)
+    next.add(key)
+    setDismissedNotes(next)
+    window.localStorage.setItem(dismissStorageKey, JSON.stringify(Array.from(next)))
+  }
+
+  function restoreNote(item: ReviewAnnotation, index: number) {
+    const key = noteKey(item, index)
+    const next = new Set(dismissedNotes)
+    next.delete(key)
+    setDismissedNotes(next)
+    window.localStorage.setItem(dismissStorageKey, JSON.stringify(Array.from(next)))
+  }
 
   async function handleRevisionPrompt() {
     const revisionExercise = await prepareRevisionPrompt()
@@ -50,6 +92,10 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
   if (sessionError || error || !review || !submission || !exercise) {
     return <AppErrorState title={t('unavailableTitle')} error={sessionError ?? error ?? t('unavailableBody')} />
   }
+
+  const annotationEntries = review.annotations.map((item, index) => ({ item, index }))
+  const visibleAnnotations = annotationEntries.filter(({ item, index }) => !dismissedNotes.has(noteKey(item, index)))
+  const hiddenAnnotations = annotationEntries.filter(({ item, index }) => dismissedNotes.has(noteKey(item, index)))
 
   return (
     <div className="space-y-8">
@@ -280,7 +326,22 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           {review.annotations.length === 0 ? (
             <Text>{t('noLineNotes')}</Text>
           ) : (
-            review.annotations.map((item, index) => (
+            <>
+              <div className="flex items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+                <span>{t('lineNotesIntentionalHint')}</span>
+                {hiddenAnnotations.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDismissedNotes((value) => !value)}
+                    className="rounded-md border border-stone-300 px-2 py-1 font-medium text-zinc-700 hover:bg-stone-50 dark:border-white/15 dark:text-zinc-200 dark:hover:bg-white/5"
+                  >
+                    {showDismissedNotes
+                      ? t('hideIntentionalNotes')
+                      : t('showIntentionalNotes', { count: hiddenAnnotations.length })}
+                  </button>
+                ) : null}
+              </div>
+              {visibleAnnotations.map(({ item, index }) => (
               <div
                 key={`${item.quote}-${index}`}
                 className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
@@ -296,8 +357,44 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                   “{item.quote}”
                 </blockquote>
                 <Text className="mt-3">{item.comment}</Text>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => markNoteIntentional(item, index)}
+                    className="rounded-md border border-stone-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-stone-100 dark:border-white/15 dark:text-zinc-200 dark:hover:bg-white/10"
+                  >
+                    {t('markAsIntentional')}
+                  </button>
+                </div>
               </div>
-            ))
+              ))}
+              {showDismissedNotes
+                ? hiddenAnnotations.map(({ item, index }) => (
+                    <div
+                      key={`dismissed-${item.quote}-${index}`}
+                      className="rounded-xl border border-stone-200/80 bg-white/70 p-4 opacity-75 dark:border-white/10 dark:bg-white/5"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge color="zinc">{t('intentionalChoice')}</Badge>
+                        <Badge color="blue">{item.tgo_title ?? item.tgo_code}</Badge>
+                      </div>
+                      <blockquote className="mt-3 border-l-2 border-stone-300 pl-4 text-sm text-zinc-700 italic dark:border-white/15 dark:text-zinc-200">
+                        “{item.quote}”
+                      </blockquote>
+                      <Text className="mt-3">{item.comment}</Text>
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => restoreNote(item, index)}
+                          className="rounded-md border border-stone-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-stone-100 dark:border-white/15 dark:text-zinc-200 dark:hover:bg-white/10"
+                        >
+                          {t('restoreToActiveNotes')}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                : null}
+            </>
           )}
         </div>
         <div className="mt-6">
