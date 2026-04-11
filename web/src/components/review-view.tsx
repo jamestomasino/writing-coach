@@ -87,8 +87,22 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       {!canActOnReview ? (
         <WorkspaceCard>
           <Text>{t('olderAssignmentBody')}</Text>
+          <div className="mt-4">
+            <Button href="/playground" outline>
+              {t('experimentInPlayground')}
+            </Button>
+          </div>
         </WorkspaceCard>
       ) : null}
+
+      <WorkspaceCard>
+        <CardHeader eyebrow={t('guideEyebrow')} title={t('guideTitle')} description={t('guideBody')} />
+        <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <li>• {t('guideBullet1')}</li>
+          <li>• {t('guideBullet2')}</li>
+          <li>• {t('guideBullet3')}</li>
+        </ul>
+      </WorkspaceCard>
 
       <WorkspaceCard>
         <CardHeader eyebrow={t('aiDetailsEyebrow')} title={t('aiDetailsTitle')} />

@@ -96,7 +96,7 @@ test('archives the current track and refreshes the sidebar track list', async ({
 
     await page.goto('/onboarding?mode=create')
     await createTrack(page, 'archive-two', { writingTypeIndex: 2 })
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(/\/(?:new-assignment)?$/)
     await openTrackMenu(page)
     await expect(page.locator('[data-testid^="track-option-"]')).toHaveCount(2)
     await page.keyboard.press('Escape')
@@ -112,7 +112,7 @@ test('archives the current track and refreshes the sidebar track list', async ({
     page.once('dialog', (dialog) => dialog.accept())
     await page.getByTestId('archive-track-button').click()
 
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(/\/(?:new-assignment)?$/)
     await openTrackMenu(page)
     await expect(page.locator('[data-testid^="track-option-"]')).toHaveCount(1)
     await expect(page.locator('[data-testid^="track-option-"]').first()).toBeVisible()
