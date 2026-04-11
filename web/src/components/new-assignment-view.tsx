@@ -9,6 +9,7 @@ import { Subheading } from '@/components/heading'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { acceptAssignment, createAssignment, getAIJob, getDashboard } from '@/lib/api'
+import { computeLevelUpGuidance } from '@/lib/level-up-guidance'
 import type { Dashboard, Exercise } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { useTranslations } from 'next-intl'
@@ -149,6 +150,7 @@ export function NewAssignmentView() {
   if (!dashboard) {
     return <LoadingState />
   }
+  const guidance = computeLevelUpGuidance(dashboard)
 
   return (
     <div className="space-y-8">
@@ -178,6 +180,33 @@ export function NewAssignmentView() {
       ) : null}
 
       {error ? <EmptyState title={t('issueTitle')} body={error} /> : null}
+
+      <div data-testid="level-up-guidance-new-assignment">
+        <Callout
+          tone={guidance.mode === 'hold' ? 'warning' : 'active'}
+          eyebrow={t('levelUpEyebrow')}
+          title={
+            guidance.mode === 'hold'
+              ? t('levelUpTitleHold')
+              : guidance.mode === 'revise'
+                ? t('levelUpTitleRevise')
+                : t('levelUpTitleConsolidate')
+          }
+          body={
+            guidance.mode === 'hold'
+              ? t('levelUpBodyHold')
+              : guidance.mode === 'revise'
+                ? t('levelUpBodyRevise', { count: guidance.earlyCount })
+                : t('levelUpBodyConsolidate')
+          }
+        >
+          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <li>{t('levelUpBullet1')}</li>
+            <li>{t('levelUpBullet2')}</li>
+            <li>{t('levelUpBullet3')}</li>
+          </ul>
+        </Callout>
+      </div>
 
       <WorkspaceCard>
         <CardHeader

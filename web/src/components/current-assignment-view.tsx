@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header'
 import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { formatLocalDateTime } from '@/lib/datetime'
+import { computeLevelUpGuidance } from '@/lib/level-up-guidance'
 import { useCurrentAssignmentWorkspace } from '@/lib/use-current-assignment-workspace'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
@@ -74,6 +75,7 @@ export function CurrentAssignmentView() {
   }
 
   const { dashboard, exercise, review, sourceSubmission, sourceReview } = workspace
+  const guidance = computeLevelUpGuidance(dashboard)
   const isRevisionBrief = searchParams.get('revisionExercise') !== null
   const reviewPending = reviewJob?.status === 'queued' || reviewJob?.status === 'running'
   const reviewFailed = reviewJob?.status === 'failed'
@@ -127,6 +129,32 @@ export function CurrentAssignmentView() {
           </>
         }
       />
+      <div data-testid="level-up-guidance-current-assignment">
+        <Callout
+          tone={guidance.mode === 'hold' ? 'warning' : 'active'}
+          eyebrow={t('levelUpEyebrow')}
+          title={
+            guidance.mode === 'hold'
+              ? t('levelUpTitleHold')
+              : guidance.mode === 'revise'
+                ? t('levelUpTitleRevise')
+                : t('levelUpTitleConsolidate')
+          }
+          body={
+            guidance.mode === 'hold'
+              ? t('levelUpBodyHold')
+              : guidance.mode === 'revise'
+                ? t('levelUpBodyRevise', { count: guidance.earlyCount })
+                : t('levelUpBodyConsolidate')
+          }
+        >
+          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <li>{t('levelUpBullet1')}</li>
+            <li>{t('levelUpBullet2')}</li>
+            <li>{t('levelUpBullet3')}</li>
+          </ul>
+        </Callout>
+      </div>
       {reviewPending ? (
         <TaskProgressState
           title={t('reviewProgressTitle')}
