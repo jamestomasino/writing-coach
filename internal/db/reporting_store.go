@@ -384,3 +384,40 @@ func (s *Store) RecentExerciseTitles(ctx context.Context, userID, treeID int64, 
 	}
 	return titles, rows.Err()
 }
+
+func (s *Store) RecentExerciseSummaries(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT title, brief
+		FROM exercises
+		WHERE user_id = ? AND tree_id = ?
+		ORDER BY id DESC
+		LIMIT ?
+	`, userID, treeID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	summaries := make([]string, 0, limit)
+	for rows.Next() {
+		var title, brief string
+		if err := rows.Scan(&title, &brief); err != nil {
+			return nil, err
+		}
+		title = strings.TrimSpace(title)
+		brief = strings.TrimSpace(brief)
+		if title == "" && brief == "" {
+			continue
+		}
+		if title == "" {
+			summaries = append(summaries, brief)
+			continue
+		}
+		if brief == "" {
+			summaries = append(summaries, title)
+			continue
+		}
+		summaries = append(summaries, title+": "+brief)
+	}
+	return summaries, rows.Err()
+}

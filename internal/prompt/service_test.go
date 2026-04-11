@@ -198,3 +198,85 @@ func TestNextExerciseFallsBackWhenProviderGenerationTimesOut(t *testing.T) {
 		t.Fatalf("fallback took too long: %s", elapsed)
 	}
 }
+
+func TestNextExerciseRetriesWhenScenarioPatternRepeats(t *testing.T) {
+	callCount := 0
+	service := NewService(fakeLLMClient{
+		generateExercise: func(ctx context.Context, input llm.ExerciseRequest) (domain.Exercise, error) {
+			callCount++
+			if callCount == 1 {
+				return domain.Exercise{
+					Title:           "Choose Before Dawn",
+					Brief:           "Your hero must choose between saving a sibling or guarding the city before dawn.",
+					Constraints:     []string{"keep it concrete"},
+					FocusSkills:     []string{"narrative clarity"},
+					SuccessCriteria: []string{"decision is clear"},
+				}, nil
+			}
+			if !strings.Contains(strings.ToLower(input.CoachingBrief), "variety requirement") {
+				t.Fatalf("expected retry coaching brief to include variety guidance, got %q", input.CoachingBrief)
+			}
+			return domain.Exercise{
+				Title:           "Broken Treaty Meeting",
+				Brief:           "Two rivals negotiate a fragile ceasefire while both hide the same critical fact.",
+				Constraints:     []string{"keep it concrete"},
+				FocusSkills:     []string{"narrative clarity"},
+				SuccessCriteria: []string{"stakes are clear"},
+			}, nil
+		},
+	})
+
+	ex := service.NextExercise(context.Background(), Context{
+		CurriculumState: domain.CurriculumState{CurrentFocus: "narrative clarity"},
+		RecentAssignments: []string{
+			"Night Gate Ultimatum: The hero must choose between duty and family before sunrise.",
+		},
+	})
+
+	if callCount != 2 {
+		t.Fatalf("provider call count = %d", callCount)
+	}
+	if ex.Title != "Broken Treaty Meeting" {
+		t.Fatalf("exercise title = %q", ex.Title)
+	}
+}
+
+func TestNextExerciseDoesNotRetryWhenPatternIsDistinct(t *testing.T) {
+	callCount := 0
+	service := NewService(fakeLLMClient{
+		generateExercise: func(ctx context.Context, input llm.ExerciseRequest) (domain.Exercise, error) {
+			callCount++
+			return domain.Exercise{
+				Title:           "Shipyard Confession",
+				Brief:           "A mechanic admits a hidden sabotage to a captain moments before inspection.",
+				Constraints:     []string{"keep it concrete"},
+				FocusSkills:     []string{"narrative clarity"},
+				SuccessCriteria: []string{"conflict is concrete"},
+			}, nil
+		},
+	})
+
+	_ = service.NextExercise(context.Background(), Context{
+		CurriculumState: domain.CurriculumState{CurrentFocus: "narrative clarity"},
+		RecentAssignments: []string{
+			"Council Vote: The city clerk has one hour to persuade a hostile council to fund flood barriers.",
+		},
+	})
+
+	if callCount != 1 {
+		t.Fatalf("provider call count = %d", callCount)
+	}
+}
+
+func TestPatternDetectionChoiceUnderTimePressure(t *testing.T) {
+	text := normalizePatternText("The hero must choose between the crown and exile before dawn.")
+	if !hasChoiceUnderTimePressurePattern(text) {
+		t.Fatalf("expected choice-under-time-pressure pattern for %q", text)
+	}
+	if !isExercisePatternRepeat(domain.Exercise{
+		Title: "Choice at First Light",
+		Brief: "A courier must decide between two oaths by sunrise.",
+	}, []string{"City Oath: choose which gate to save before dawn."}) {
+		t.Fatal("expected repeated pattern to be detected")
+	}
+}

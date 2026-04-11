@@ -216,6 +216,9 @@ func TestCoverageEnrollmentAndProfileFlows(t *testing.T) {
 	if _, err := store.RecentExerciseTitles(ctx, userID, treeID, 10); err != nil {
 		t.Fatalf("recent exercise titles: %v", err)
 	}
+	if _, err := store.RecentExerciseSummaries(ctx, userID, treeID, 10); err != nil {
+		t.Fatalf("recent exercise summaries: %v", err)
+	}
 
 	if err := store.EnsureAdminEmails(ctx, []string{"admin@example.com"}); err != nil {
 		t.Fatalf("ensure admin emails: %v", err)

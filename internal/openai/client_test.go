@@ -84,6 +84,21 @@ func TestFormatWritingLanguageUsesNormalizedCode(t *testing.T) {
 	}
 }
 
+func TestExerciseUserInputIncludesRecentAssignments(t *testing.T) {
+	text := ExerciseUserInput(ExerciseRequest{
+		WritingLanguage:   "en",
+		CurrentFocus:      "narrative clarity",
+		DifficultyLevel:   2,
+		ActiveTGOs:        []domain.TGO{{Code: "story-causal-clarity"}},
+		RecentTitles:      []string{"Old title"},
+		RecentAssignments: []string{"Old title: hero chooses under deadline."},
+	})
+
+	if !strings.Contains(text, "Recent assignment summaries: Old title: hero chooses under deadline.") {
+		t.Fatalf("expected recent assignment summaries in exercise input, got %q", text)
+	}
+}
+
 func TestValidateCredentialsUsesModelsEndpoint(t *testing.T) {
 	var authHeader string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

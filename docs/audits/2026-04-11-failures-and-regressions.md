@@ -27,3 +27,12 @@ Status as of 2026-04-11 remediation pass:
 
 - Backend tests passed in audit runs (`./scripts/test-backend.sh`).
 - Frontend lint/build passed (`./scripts/test-frontend.sh`), but current e2e suite fails and needs remediation (`npm run test:e2e`).
+
+## Deferred Feedback Backlog
+
+These are not classified as regressions from the 2026-04-11 audit worksheet, but they are important pedagogy/product follow-ups requested for the next remediation cycle.
+
+| Feedback ID | Area | Finding | Why It Matters | Status | Suggested Acceptance Criteria |
+|---|---|---|---|---|---|
+| FB-001 | Assignment generation variety | Subsequent assignment prompts can repeat the same narrative pattern families too often (example: repeated “choice X vs Y under time pressure” framing early in fiction progression). | Repetition can reduce engagement and narrow deliberate practice transfer. Prompt diversity is part of sustained skill growth. | Resolved | Implemented recency-aware assignment summaries in prompt input, added pattern repeat detection (including choice-under-time-pressure), and auto-retry with explicit variety guidance when repetition is detected. Covered by prompt and provider-input unit tests. |
+| FB-002 | Learner progression transparency | Learners need clearer narrative guidance on what is required to level up current skills: whether to revise the same draft more, or continue demonstrating control across additional assignments. | Ambiguity in progression expectations can reduce trust and lead to misaligned effort. | Deferred | UX copy and progression surfaces explicitly communicate “what to do next” and “how mastery is recognized” for current objectives, with scenario coverage tests for revise-vs-new-assignment pathways and hold/clear states. |

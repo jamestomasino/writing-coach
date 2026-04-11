@@ -770,6 +770,11 @@ func (s Server) generateNextExercise(ctx context.Context, appContext session.Con
 		log.Printf("create exercise: recent titles lookup failed for user=%d tree=%d: %v", appContext.UserID, appContext.TreeID, err)
 		return domain.Exercise{}, err
 	}
+	recentAssignments, err := s.Store.RecentExerciseSummaries(ctx, appContext.UserID, appContext.TreeID, 5)
+	if err != nil {
+		log.Printf("create exercise: recent assignment summaries lookup failed for user=%d tree=%d: %v", appContext.UserID, appContext.TreeID, err)
+		return domain.Exercise{}, err
+	}
 	recentWeaknesses, err := s.Store.RecurringWeaknesses(ctx, appContext.UserID, appContext.TreeID, 5)
 	if err != nil {
 		log.Printf("create exercise: recurring weaknesses lookup failed for user=%d tree=%d: %v", appContext.UserID, appContext.TreeID, err)
@@ -796,6 +801,7 @@ func (s Server) generateNextExercise(ctx context.Context, appContext session.Con
 		ActiveTGOs:        activeTGOs,
 		OnboardingProfile: profile,
 		RecentTitles:      recentTitles,
+		RecentAssignments: recentAssignments,
 		RecentWeaknesses:  recentWeaknesses,
 		RecurringFindings: recurringFindings,
 		CoachingBrief:     coachingBrief,

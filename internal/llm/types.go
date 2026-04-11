@@ -38,6 +38,7 @@ type ExerciseRequest struct {
 	ActiveTGOs        []domain.TGO
 	OnboardingProfile *domain.OnboardingProfile
 	RecentTitles      []string
+	RecentAssignments []string
 	RecentWeaknesses  []string
 	RecurringFindings []string
 	CoachingBrief     string
