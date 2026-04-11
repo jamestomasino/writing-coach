@@ -10,26 +10,32 @@ import (
 )
 
 func (s *Store) SaveAIProviderEvent(ctx context.Context, event domain.AIProviderEvent) error {
-	_, err := s.SQL.ExecContext(ctx, `
-		INSERT INTO ai_provider_events (user_id, provider, event, category, status_code, detail_json, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`,
-		event.UserID,
-		strings.TrimSpace(event.Provider),
-		strings.TrimSpace(event.Event),
-		strings.TrimSpace(event.Category),
-		event.StatusCode,
-		strings.TrimSpace(event.DetailJSON),
-		event.CreatedAt.UTC(),
-	)
+	err := withSQLiteBusyRetry(ctx, func() error {
+		_, execErr := s.SQL.ExecContext(ctx, `
+			INSERT INTO ai_provider_events (user_id, provider, event, category, status_code, detail_json, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`,
+			event.UserID,
+			strings.TrimSpace(event.Provider),
+			strings.TrimSpace(event.Event),
+			strings.TrimSpace(event.Category),
+			event.StatusCode,
+			strings.TrimSpace(event.DetailJSON),
+			event.CreatedAt.UTC(),
+		)
+		return execErr
+	})
 	return err
 }
 
 func (s *Store) DeleteAIProviderEventsOlderThan(ctx context.Context, cutoff time.Time) error {
-	_, err := s.SQL.ExecContext(ctx, `
-		DELETE FROM ai_provider_events
-		WHERE created_at < ?
-	`, cutoff.UTC())
+	err := withSQLiteBusyRetry(ctx, func() error {
+		_, execErr := s.SQL.ExecContext(ctx, `
+			DELETE FROM ai_provider_events
+			WHERE created_at < ?
+		`, cutoff.UTC())
+		return execErr
+	})
 	return err
 }
 
