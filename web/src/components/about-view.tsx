@@ -188,6 +188,7 @@ export function AboutView() {
   const ossToolsTitle = t('ossToolsTitle')
   const aiBoundaryTitle = t('aiBoundaryTitle')
   const openSourceCreditsTitle = t('openSourceCreditsTitle')
+  const pedagogyTitle = t('pedagogyTitle')
 
   useEffect(() => {
     let cancelled = false
@@ -364,6 +365,20 @@ export function AboutView() {
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('skillCardTitle')}</div>
             <Text className="mt-2">{t('skillCardBody')}</Text>
           </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard
+        id={sectionIdFromTitle(pedagogyTitle)}
+        className="border-stone-200/80 bg-stone-50 dark:border-white/10 dark:bg-white/5"
+      >
+        <Eyebrow>{t('pedagogyEyebrow')}</Eyebrow>
+        <Subheading className="mt-3 text-xl/7 sm:text-lg/7">{pedagogyTitle}</Subheading>
+        <Text className="mt-3 max-w-3xl">{t('pedagogyBody')}</Text>
+        <div className="mt-4">
+          <Button href="/about/pedagogy" outline>
+            {t('pedagogyButton')}
+          </Button>
         </div>
       </WorkspaceCard>
 
