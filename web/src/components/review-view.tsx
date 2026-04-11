@@ -99,6 +99,8 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
   const annotationEntries = review.annotations.map((item, index) => ({ item, index }))
   const visibleAnnotations = annotationEntries.filter(({ item, index }) => !dismissedNotes.has(noteKey(item, index)))
   const hiddenAnnotations = annotationEntries.filter(({ item, index }) => dismissedNotes.has(noteKey(item, index)))
+  const developingCount = review.tgo_assessments.filter((item) => item.status !== 'mastered').length
+  const masteryCount = review.tgo_assessments.length - developingCount
 
   return (
     <div className="space-y-8">
@@ -150,6 +152,33 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <li>• {t('guideBullet1')}</li>
           <li>• {t('guideBullet2')}</li>
           <li>• {t('guideBullet3')}</li>
+        </ul>
+      </WorkspaceCard>
+
+      <WorkspaceCard>
+        <CardHeader
+          eyebrow={t('nextMoveEyebrow')}
+          title={developingCount > 0 ? t('nextMoveReviseTitle') : t('nextMoveAdvanceTitle')}
+          description={
+            developingCount > 0
+              ? t('nextMoveReviseBody', { count: developingCount })
+              : t('nextMoveAdvanceBody', { count: masteryCount })
+          }
+        />
+        <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+          {developingCount > 0 ? (
+            <>
+              <li>• {t('nextMoveReviseStep1')}</li>
+              <li>• {t('nextMoveReviseStep2')}</li>
+              <li>• {t('nextMoveReviseStep3')}</li>
+            </>
+          ) : (
+            <>
+              <li>• {t('nextMoveAdvanceStep1')}</li>
+              <li>• {t('nextMoveAdvanceStep2')}</li>
+              <li>• {t('nextMoveAdvanceStep3')}</li>
+            </>
+          )}
         </ul>
       </WorkspaceCard>
 
