@@ -449,6 +449,11 @@ export type PedagogyIntegrity = {
   hold_blocked_events: number
   active_hold_enrollments: number
   alerts: PedagogyIntegrityAlert[]
+  policy?: {
+    hold_clear_streak_required: number
+    hold_activation_clear_gap: number
+    active_hold_warn_count: number
+  }
 }
 
 export type OnboardingProfile = {

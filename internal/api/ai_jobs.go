@@ -205,14 +205,18 @@ func (s Server) processReviewSubmissionJob(ctx context.Context, job domain.AIJob
 	if err := s.Store.UpdateCurriculumState(ctx, job.EnrollmentID, recommendation.Focus, recommendation.Difficulty, reviewID); err != nil {
 		return fmt.Errorf("update curriculum state: %w", err)
 	}
-	if err := s.Store.UpdateProgressionHoldState(ctx, job.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID); err != nil {
+	if err := s.Store.UpdateProgressionHoldState(ctx, job.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID, s.Config.ProgressionHoldClearStreak); err != nil {
 		return fmt.Errorf("update progression hold state: %w", err)
+	}
+	stateAfter, err := s.Store.GetCurriculumState(ctx, job.EnrollmentID)
+	if err != nil {
+		return fmt.Errorf("load curriculum state after review sync: %w", err)
 	}
 	reviewResult.Review.ID = reviewID
 	if err := s.emitReviewDecisionEvents(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, recommendation, len(reviewResult.Scores)); err != nil {
 		return fmt.Errorf("save decision events: %w", err)
 	}
-	if err := s.emitProgressionHoldTransitionEvent(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, stateBefore.ProgressionHoldActive, recommendation.HoldActive, recommendation.HoldReasonCode); err != nil {
+	if err := s.emitProgressionHoldTransitionEvent(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, stateBefore.ProgressionHoldActive, stateAfter.ProgressionHoldActive, stateAfter.ProgressionHoldReasonCode); err != nil {
 		return fmt.Errorf("save progression hold transition event: %w", err)
 	}
 	return s.Store.CompleteAIJob(ctx, job.ID, 0, reviewID, "")

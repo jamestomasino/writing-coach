@@ -15,65 +15,71 @@ import (
 const dirName = ".writing-coach"
 
 type Config struct {
-	ProjectRoot                    string        `json:"-"`
-	ConfigPath                     string        `json:"-"`
-	DataDir                        string        `json:"data_dir"`
-	DatabaseURL                    string        `json:"database_url"`
-	DBMaxOpenConns                 int           `json:"db_max_open_conns"`
-	DBMaxIdleConns                 int           `json:"db_max_idle_conns"`
-	DBConnMaxLifetime              time.Duration `json:"-"`
-	WriterName                     string        `json:"writer_name"`
-	DefaultUserSlug                string        `json:"default_user_slug"`
-	DefaultTreeSlug                string        `json:"default_tree_slug"`
-	HTTPAddr                       string        `json:"http_addr"`
-	APIToken                       string        `json:"-"`
-	AllowInsecureAuth              bool          `json:"allow_insecure_auth"`
-	AdminEmails                    []string      `json:"admin_emails"`
-	KratosPublicURL                string        `json:"kratos_public_url"`
-	OpenAIAPIKey                   string        `json:"-"`
-	OpenAIBaseURL                  string        `json:"openai_base_url"`
-	AIKeySecret                    string        `json:"-"`
-	PromptModel                    string        `json:"prompt_model"`
-	ReviewModel                    string        `json:"review_model"`
-	PromptGenerationTimeout        time.Duration `json:"-"`
-	AIValidateLimitPerMinute       int           `json:"ai_validate_limit_per_minute"`
-	AIValidateGlobalLimitPerMinute int           `json:"ai_validate_global_limit_per_minute"`
-	AIProviderEventRetentionDays   int           `json:"ai_provider_event_retention_days"`
-	CalibrationMaintenanceEnabled  bool          `json:"calibration_maintenance_enabled"`
-	CalibrationMaintenanceInterval time.Duration `json:"-"`
-	CalibrationMinSamples          int           `json:"calibration_min_samples"`
-	CalibrationLimitPerTrack       int           `json:"calibration_limit_per_track"`
-	ValeBinary                     string        `json:"vale_binary"`
-	LanguageToolURL                string        `json:"languagetool_url"`
-	NLPAnalyzerURL                 string        `json:"nlp_analyzer_url"`
+	ProjectRoot                     string        `json:"-"`
+	ConfigPath                      string        `json:"-"`
+	DataDir                         string        `json:"data_dir"`
+	DatabaseURL                     string        `json:"database_url"`
+	DBMaxOpenConns                  int           `json:"db_max_open_conns"`
+	DBMaxIdleConns                  int           `json:"db_max_idle_conns"`
+	DBConnMaxLifetime               time.Duration `json:"-"`
+	WriterName                      string        `json:"writer_name"`
+	DefaultUserSlug                 string        `json:"default_user_slug"`
+	DefaultTreeSlug                 string        `json:"default_tree_slug"`
+	HTTPAddr                        string        `json:"http_addr"`
+	APIToken                        string        `json:"-"`
+	AllowInsecureAuth               bool          `json:"allow_insecure_auth"`
+	AdminEmails                     []string      `json:"admin_emails"`
+	KratosPublicURL                 string        `json:"kratos_public_url"`
+	OpenAIAPIKey                    string        `json:"-"`
+	OpenAIBaseURL                   string        `json:"openai_base_url"`
+	AIKeySecret                     string        `json:"-"`
+	PromptModel                     string        `json:"prompt_model"`
+	ReviewModel                     string        `json:"review_model"`
+	PromptGenerationTimeout         time.Duration `json:"-"`
+	AIValidateLimitPerMinute        int           `json:"ai_validate_limit_per_minute"`
+	AIValidateGlobalLimitPerMinute  int           `json:"ai_validate_global_limit_per_minute"`
+	AIProviderEventRetentionDays    int           `json:"ai_provider_event_retention_days"`
+	CalibrationMaintenanceEnabled   bool          `json:"calibration_maintenance_enabled"`
+	CalibrationMaintenanceInterval  time.Duration `json:"-"`
+	CalibrationMinSamples           int           `json:"calibration_min_samples"`
+	CalibrationLimitPerTrack        int           `json:"calibration_limit_per_track"`
+	ProgressionHoldClearStreak      int           `json:"progression_hold_clear_streak"`
+	IntegrityHoldActivationClearGap int           `json:"integrity_hold_activation_clear_gap"`
+	IntegrityActiveHoldWarnCount    int           `json:"integrity_active_hold_warn_count"`
+	ValeBinary                      string        `json:"vale_binary"`
+	LanguageToolURL                 string        `json:"languagetool_url"`
+	NLPAnalyzerURL                  string        `json:"nlp_analyzer_url"`
 }
 
 func Default(projectRoot string) Config {
 	dataDir := filepath.Join(projectRoot, dirName)
 	return Config{
-		ProjectRoot:                    projectRoot,
-		ConfigPath:                     filepath.Join(dataDir, "config.json"),
-		DataDir:                        dataDir,
-		DatabaseURL:                    filepath.Join(dataDir, "writing-coach.db"),
-		DBMaxOpenConns:                 4,
-		DBMaxIdleConns:                 4,
-		DBConnMaxLifetime:              30 * time.Minute,
-		WriterName:                     "Writer",
-		DefaultUserSlug:                "default",
-		DefaultTreeSlug:                domain.GlobalSkillGraphSlug,
-		HTTPAddr:                       ":8080",
-		KratosPublicURL:                "",
-		OpenAIBaseURL:                  "https://api.openai.com/v1",
-		PromptModel:                    "gpt-5-mini",
-		ReviewModel:                    "gpt-5-mini",
-		PromptGenerationTimeout:        45 * time.Second,
-		AIValidateLimitPerMinute:       6,
-		AIValidateGlobalLimitPerMinute: 60,
-		AIProviderEventRetentionDays:   30,
-		CalibrationMaintenanceEnabled:  true,
-		CalibrationMaintenanceInterval: 30 * 24 * time.Hour,
-		CalibrationMinSamples:          50,
-		CalibrationLimitPerTrack:       200,
+		ProjectRoot:                     projectRoot,
+		ConfigPath:                      filepath.Join(dataDir, "config.json"),
+		DataDir:                         dataDir,
+		DatabaseURL:                     filepath.Join(dataDir, "writing-coach.db"),
+		DBMaxOpenConns:                  4,
+		DBMaxIdleConns:                  4,
+		DBConnMaxLifetime:               30 * time.Minute,
+		WriterName:                      "Writer",
+		DefaultUserSlug:                 "default",
+		DefaultTreeSlug:                 domain.GlobalSkillGraphSlug,
+		HTTPAddr:                        ":8080",
+		KratosPublicURL:                 "",
+		OpenAIBaseURL:                   "https://api.openai.com/v1",
+		PromptModel:                     "gpt-5-mini",
+		ReviewModel:                     "gpt-5-mini",
+		PromptGenerationTimeout:         45 * time.Second,
+		AIValidateLimitPerMinute:        6,
+		AIValidateGlobalLimitPerMinute:  60,
+		AIProviderEventRetentionDays:    30,
+		CalibrationMaintenanceEnabled:   true,
+		CalibrationMaintenanceInterval:  30 * 24 * time.Hour,
+		CalibrationMinSamples:           50,
+		CalibrationLimitPerTrack:        200,
+		ProgressionHoldClearStreak:      2,
+		IntegrityHoldActivationClearGap: 3,
+		IntegrityActiveHoldWarnCount:    10,
 	}
 }
 
@@ -141,6 +147,15 @@ func Load(projectRoot string) (Config, error) {
 	if cfg.CalibrationLimitPerTrack <= 0 {
 		cfg.CalibrationLimitPerTrack = 200
 	}
+	if cfg.ProgressionHoldClearStreak <= 0 {
+		cfg.ProgressionHoldClearStreak = 2
+	}
+	if cfg.IntegrityHoldActivationClearGap <= 0 {
+		cfg.IntegrityHoldActivationClearGap = 3
+	}
+	if cfg.IntegrityActiveHoldWarnCount <= 0 {
+		cfg.IntegrityActiveHoldWarnCount = 10
+	}
 	if cfg.DefaultUserSlug == "" {
 		cfg.DefaultUserSlug = "default"
 	}
@@ -188,6 +203,15 @@ func Load(projectRoot string) (Config, error) {
 	}
 	if value := os.Getenv("WRITING_COACH_CALIBRATION_LIMIT_PER_TRACK"); value != "" {
 		cfg.CalibrationLimitPerTrack = parsePositiveInt(value, cfg.CalibrationLimitPerTrack)
+	}
+	if value := os.Getenv("WRITING_COACH_PROGRESSION_HOLD_CLEAR_STREAK"); value != "" {
+		cfg.ProgressionHoldClearStreak = parsePositiveInt(value, cfg.ProgressionHoldClearStreak)
+	}
+	if value := os.Getenv("WRITING_COACH_INTEGRITY_HOLD_ACTIVATION_CLEAR_GAP"); value != "" {
+		cfg.IntegrityHoldActivationClearGap = parsePositiveInt(value, cfg.IntegrityHoldActivationClearGap)
+	}
+	if value := os.Getenv("WRITING_COACH_INTEGRITY_ACTIVE_HOLD_WARN_COUNT"); value != "" {
+		cfg.IntegrityActiveHoldWarnCount = parsePositiveInt(value, cfg.IntegrityActiveHoldWarnCount)
 	}
 	if value := os.Getenv("VALE_BINARY"); value != "" {
 		cfg.ValeBinary = value
@@ -251,59 +275,65 @@ func Save(cfg Config) error {
 	}
 
 	payload := struct {
-		DataDir                        string   `json:"data_dir"`
-		DatabaseURL                    string   `json:"database_url"`
-		DBMaxOpenConns                 int      `json:"db_max_open_conns"`
-		DBMaxIdleConns                 int      `json:"db_max_idle_conns"`
-		DBConnMaxLifetime              string   `json:"db_conn_max_lifetime"`
-		WriterName                     string   `json:"writer_name"`
-		DefaultUserSlug                string   `json:"default_user_slug"`
-		DefaultTreeSlug                string   `json:"default_tree_slug"`
-		HTTPAddr                       string   `json:"http_addr"`
-		AllowInsecureAuth              bool     `json:"allow_insecure_auth"`
-		AdminEmails                    []string `json:"admin_emails"`
-		KratosPublicURL                string   `json:"kratos_public_url"`
-		OpenAIBaseURL                  string   `json:"openai_base_url"`
-		PromptModel                    string   `json:"prompt_model"`
-		ReviewModel                    string   `json:"review_model"`
-		PromptGenerationTimeout        string   `json:"prompt_generation_timeout"`
-		AIValidateLimitPerMinute       int      `json:"ai_validate_limit_per_minute"`
-		AIValidateGlobalLimitPerMinute int      `json:"ai_validate_global_limit_per_minute"`
-		AIProviderEventRetentionDays   int      `json:"ai_provider_event_retention_days"`
-		CalibrationMaintenanceEnabled  bool     `json:"calibration_maintenance_enabled"`
-		CalibrationMaintenanceInterval string   `json:"calibration_maintenance_interval"`
-		CalibrationMinSamples          int      `json:"calibration_min_samples"`
-		CalibrationLimitPerTrack       int      `json:"calibration_limit_per_track"`
-		ValeBinary                     string   `json:"vale_binary"`
-		LanguageToolURL                string   `json:"languagetool_url"`
-		NLPAnalyzerURL                 string   `json:"nlp_analyzer_url"`
+		DataDir                         string   `json:"data_dir"`
+		DatabaseURL                     string   `json:"database_url"`
+		DBMaxOpenConns                  int      `json:"db_max_open_conns"`
+		DBMaxIdleConns                  int      `json:"db_max_idle_conns"`
+		DBConnMaxLifetime               string   `json:"db_conn_max_lifetime"`
+		WriterName                      string   `json:"writer_name"`
+		DefaultUserSlug                 string   `json:"default_user_slug"`
+		DefaultTreeSlug                 string   `json:"default_tree_slug"`
+		HTTPAddr                        string   `json:"http_addr"`
+		AllowInsecureAuth               bool     `json:"allow_insecure_auth"`
+		AdminEmails                     []string `json:"admin_emails"`
+		KratosPublicURL                 string   `json:"kratos_public_url"`
+		OpenAIBaseURL                   string   `json:"openai_base_url"`
+		PromptModel                     string   `json:"prompt_model"`
+		ReviewModel                     string   `json:"review_model"`
+		PromptGenerationTimeout         string   `json:"prompt_generation_timeout"`
+		AIValidateLimitPerMinute        int      `json:"ai_validate_limit_per_minute"`
+		AIValidateGlobalLimitPerMinute  int      `json:"ai_validate_global_limit_per_minute"`
+		AIProviderEventRetentionDays    int      `json:"ai_provider_event_retention_days"`
+		CalibrationMaintenanceEnabled   bool     `json:"calibration_maintenance_enabled"`
+		CalibrationMaintenanceInterval  string   `json:"calibration_maintenance_interval"`
+		CalibrationMinSamples           int      `json:"calibration_min_samples"`
+		CalibrationLimitPerTrack        int      `json:"calibration_limit_per_track"`
+		ProgressionHoldClearStreak      int      `json:"progression_hold_clear_streak"`
+		IntegrityHoldActivationClearGap int      `json:"integrity_hold_activation_clear_gap"`
+		IntegrityActiveHoldWarnCount    int      `json:"integrity_active_hold_warn_count"`
+		ValeBinary                      string   `json:"vale_binary"`
+		LanguageToolURL                 string   `json:"languagetool_url"`
+		NLPAnalyzerURL                  string   `json:"nlp_analyzer_url"`
 	}{
-		DataDir:                        cfg.DataDir,
-		DatabaseURL:                    cfg.DatabaseURL,
-		DBMaxOpenConns:                 cfg.DBMaxOpenConns,
-		DBMaxIdleConns:                 cfg.DBMaxIdleConns,
-		DBConnMaxLifetime:              cfg.DBConnMaxLifetime.String(),
-		WriterName:                     cfg.WriterName,
-		DefaultUserSlug:                cfg.DefaultUserSlug,
-		DefaultTreeSlug:                cfg.DefaultTreeSlug,
-		HTTPAddr:                       cfg.HTTPAddr,
-		AllowInsecureAuth:              cfg.AllowInsecureAuth,
-		AdminEmails:                    cfg.AdminEmails,
-		KratosPublicURL:                cfg.KratosPublicURL,
-		OpenAIBaseURL:                  cfg.OpenAIBaseURL,
-		PromptModel:                    cfg.PromptModel,
-		ReviewModel:                    cfg.ReviewModel,
-		PromptGenerationTimeout:        cfg.PromptGenerationTimeout.String(),
-		AIValidateLimitPerMinute:       cfg.AIValidateLimitPerMinute,
-		AIValidateGlobalLimitPerMinute: cfg.AIValidateGlobalLimitPerMinute,
-		AIProviderEventRetentionDays:   cfg.AIProviderEventRetentionDays,
-		CalibrationMaintenanceEnabled:  cfg.CalibrationMaintenanceEnabled,
-		CalibrationMaintenanceInterval: cfg.CalibrationMaintenanceInterval.String(),
-		CalibrationMinSamples:          cfg.CalibrationMinSamples,
-		CalibrationLimitPerTrack:       cfg.CalibrationLimitPerTrack,
-		ValeBinary:                     cfg.ValeBinary,
-		LanguageToolURL:                cfg.LanguageToolURL,
-		NLPAnalyzerURL:                 cfg.NLPAnalyzerURL,
+		DataDir:                         cfg.DataDir,
+		DatabaseURL:                     cfg.DatabaseURL,
+		DBMaxOpenConns:                  cfg.DBMaxOpenConns,
+		DBMaxIdleConns:                  cfg.DBMaxIdleConns,
+		DBConnMaxLifetime:               cfg.DBConnMaxLifetime.String(),
+		WriterName:                      cfg.WriterName,
+		DefaultUserSlug:                 cfg.DefaultUserSlug,
+		DefaultTreeSlug:                 cfg.DefaultTreeSlug,
+		HTTPAddr:                        cfg.HTTPAddr,
+		AllowInsecureAuth:               cfg.AllowInsecureAuth,
+		AdminEmails:                     cfg.AdminEmails,
+		KratosPublicURL:                 cfg.KratosPublicURL,
+		OpenAIBaseURL:                   cfg.OpenAIBaseURL,
+		PromptModel:                     cfg.PromptModel,
+		ReviewModel:                     cfg.ReviewModel,
+		PromptGenerationTimeout:         cfg.PromptGenerationTimeout.String(),
+		AIValidateLimitPerMinute:        cfg.AIValidateLimitPerMinute,
+		AIValidateGlobalLimitPerMinute:  cfg.AIValidateGlobalLimitPerMinute,
+		AIProviderEventRetentionDays:    cfg.AIProviderEventRetentionDays,
+		CalibrationMaintenanceEnabled:   cfg.CalibrationMaintenanceEnabled,
+		CalibrationMaintenanceInterval:  cfg.CalibrationMaintenanceInterval.String(),
+		CalibrationMinSamples:           cfg.CalibrationMinSamples,
+		CalibrationLimitPerTrack:        cfg.CalibrationLimitPerTrack,
+		ProgressionHoldClearStreak:      cfg.ProgressionHoldClearStreak,
+		IntegrityHoldActivationClearGap: cfg.IntegrityHoldActivationClearGap,
+		IntegrityActiveHoldWarnCount:    cfg.IntegrityActiveHoldWarnCount,
+		ValeBinary:                      cfg.ValeBinary,
+		LanguageToolURL:                 cfg.LanguageToolURL,
+		NLPAnalyzerURL:                  cfg.NLPAnalyzerURL,
 	}
 
 	bytes, err := json.MarshalIndent(payload, "", "  ")

@@ -28,6 +28,7 @@ type pedagogyIntegrityResponse struct {
 	HoldBlockedEvents            int                              `json:"hold_blocked_events"`
 	ActiveHoldEnrollments        int                              `json:"active_hold_enrollments"`
 	Alerts                       []pedagogyIntegrityAlertResponse `json:"alerts"`
+	Policy                       map[string]int                   `json:"policy"`
 }
 
 func (s Server) handleAdminPedagogyIntegrity(w http.ResponseWriter, r *http.Request) {
@@ -52,13 +53,19 @@ func (s Server) handleAdminPedagogyIntegrity(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	snapshot.Alerts = pedagogyIntegrityAlerts(snapshot)
+	snapshot.Alerts = pedagogyIntegrityAlerts(snapshot, s.Config.IntegrityHoldActivationClearGap, s.Config.IntegrityActiveHoldWarnCount)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"integrity": toPedagogyIntegrityResponse(snapshot),
+		"integrity": toPedagogyIntegrityResponse(snapshot, s.Config.ProgressionHoldClearStreak, s.Config.IntegrityHoldActivationClearGap, s.Config.IntegrityActiveHoldWarnCount),
 	})
 }
 
-func pedagogyIntegrityAlerts(snapshot domain.PedagogyIntegritySnapshot) []domain.PedagogyIntegrityAlert {
+func pedagogyIntegrityAlerts(snapshot domain.PedagogyIntegritySnapshot, holdActivationClearGap int, activeHoldWarnCount int) []domain.PedagogyIntegrityAlert {
+	if holdActivationClearGap <= 0 {
+		holdActivationClearGap = 3
+	}
+	if activeHoldWarnCount <= 0 {
+		activeHoldWarnCount = 10
+	}
 	alerts := make([]domain.PedagogyIntegrityAlert, 0, 5)
 	if snapshot.TotalReviews > 0 && snapshot.ReviewsMissingDecisionEvents > 0 {
 		alerts = append(alerts, domain.PedagogyIntegrityAlert{
@@ -67,14 +74,14 @@ func pedagogyIntegrityAlerts(snapshot domain.PedagogyIntegritySnapshot) []domain
 			Message:  "Some reviews are missing required decision events (review_scored or recommendation_issued).",
 		})
 	}
-	if snapshot.HoldActivationEvents > snapshot.HoldClearEvents+3 {
+	if snapshot.HoldActivationEvents > snapshot.HoldClearEvents+holdActivationClearGap {
 		alerts = append(alerts, domain.PedagogyIntegrityAlert{
 			Severity: "medium",
 			Code:     "hold_clearance_lag",
 			Message:  "Hold activations are outpacing hold clears in the current window.",
 		})
 	}
-	if snapshot.ActiveHoldEnrollments >= 10 {
+	if snapshot.ActiveHoldEnrollments >= activeHoldWarnCount {
 		alerts = append(alerts, domain.PedagogyIntegrityAlert{
 			Severity: "medium",
 			Code:     "elevated_active_holds",
@@ -98,7 +105,16 @@ func pedagogyIntegrityAlerts(snapshot domain.PedagogyIntegritySnapshot) []domain
 	return alerts
 }
 
-func toPedagogyIntegrityResponse(snapshot domain.PedagogyIntegritySnapshot) pedagogyIntegrityResponse {
+func toPedagogyIntegrityResponse(snapshot domain.PedagogyIntegritySnapshot, holdClearStreakRequired int, holdActivationClearGap int, activeHoldWarnCount int) pedagogyIntegrityResponse {
+	if holdClearStreakRequired <= 0 {
+		holdClearStreakRequired = 2
+	}
+	if holdActivationClearGap <= 0 {
+		holdActivationClearGap = 3
+	}
+	if activeHoldWarnCount <= 0 {
+		activeHoldWarnCount = 10
+	}
 	alerts := make([]pedagogyIntegrityAlertResponse, 0, len(snapshot.Alerts))
 	for _, alert := range snapshot.Alerts {
 		alerts = append(alerts, pedagogyIntegrityAlertResponse{
@@ -119,5 +135,10 @@ func toPedagogyIntegrityResponse(snapshot domain.PedagogyIntegritySnapshot) peda
 		HoldBlockedEvents:            snapshot.HoldBlockedEvents,
 		ActiveHoldEnrollments:        snapshot.ActiveHoldEnrollments,
 		Alerts:                       alerts,
+		Policy: map[string]int{
+			"hold_clear_streak_required": holdClearStreakRequired,
+			"hold_activation_clear_gap":  holdActivationClearGap,
+			"active_hold_warn_count":     activeHoldWarnCount,
+		},
 	}
 }

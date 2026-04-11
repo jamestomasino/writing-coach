@@ -1166,7 +1166,11 @@ func TestReviewSubmissionEmitsDecisionEvents(t *testing.T) {
 
 func TestReviewSubmissionClearsHoldAndEmitsTransitionEvent(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
-	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	cfg := config.Default(t.TempDir())
+	cfg.AllowInsecureAuth = true
+	cfg.AIKeySecret = "test-ai-key-secret"
+	cfg.ProgressionHoldClearStreak = 1
+	testServer := newTestServerWithConfig(t, harness.Store, cfg)
 	defer testServer.Close()
 
 	ctx := context.Background()
@@ -1182,7 +1186,7 @@ func TestReviewSubmissionClearsHoldAndEmitsTransitionEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup enrollment: %v", err)
 	}
-	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 9001); err != nil {
+	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 9001, 1); err != nil {
 		t.Fatalf("activate hold: %v", err)
 	}
 
@@ -3567,7 +3571,7 @@ func TestPromptNextBlocksActiveTGOChangesWhenProgressionHoldActive(t *testing.T)
 	if err != nil {
 		t.Fatalf("lookup enrollment: %v", err)
 	}
-	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 77); err != nil {
+	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 77, 2); err != nil {
 		t.Fatalf("activate progression hold: %v", err)
 	}
 
@@ -3608,7 +3612,7 @@ func TestPromptNextAllowsNoopSelectionWhenProgressionHoldActive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup enrollment: %v", err)
 	}
-	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 88); err != nil {
+	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 88, 2); err != nil {
 		t.Fatalf("activate progression hold: %v", err)
 	}
 

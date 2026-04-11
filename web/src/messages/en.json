@@ -889,6 +889,7 @@
     "integrityMissingDecisionEvents": "Missing required trace",
     "integrityActiveHolds": "Active progression holds",
     "integrityHoldBlocks": "Blocked advancement attempts",
+    "integrityPolicyLine": "Current policy: a hold clears after {holdClear} stable review(s). Clearance lag alert triggers when activations exceed clears by more than {clearGap}. Active-hold alert starts at {holdWarn} enrollment(s).",
     "integrityEmpty": "No pedagogy integrity snapshot is available yet.",
     "runCalibrationNow": "Run calibration now",
     "calibrationRunning": "Running calibration…",
