@@ -5,11 +5,12 @@ import {
   createRevisionAssignment,
   getAIJob,
   getAssignmentTimeline,
+  getDashboard,
   getExercise,
   getReview,
   getSubmission,
 } from '@/lib/api'
-import type { Exercise, Review, Submission } from '@/lib/types'
+import type { Dashboard, Exercise, Review, Submission } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
 import { useEffect, useState } from 'react'
 
@@ -20,6 +21,7 @@ export function useReviewWorkspace(reviewId: number) {
   const [review, setReview] = useState<Review | null>(null)
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [preparingRevision, setPreparingRevision] = useState(false)
   const [closingAssignment, setClosingAssignment] = useState(false)
   const [canActOnReview, setCanActOnReview] = useState(false)
@@ -35,6 +37,7 @@ export function useReviewWorkspace(reviewId: number) {
         const reviewData = await getReview(reviewId)
         const submissionData = await getSubmission(reviewData.submission_id)
         const exerciseData = await getExercise(submissionData.exercise_id)
+        const dashboardData = await getDashboard()
         let reviewIsActionable = false
         try {
           const timeline = await getAssignmentTimeline(exerciseData.id)
@@ -46,6 +49,7 @@ export function useReviewWorkspace(reviewId: number) {
           setReview(reviewData)
           setSubmission(submissionData)
           setExercise(exerciseData)
+          setDashboard(dashboardData)
           setCanActOnReview(reviewIsActionable)
         }
       } catch (err) {
@@ -117,6 +121,7 @@ export function useReviewWorkspace(reviewId: number) {
     review,
     submission,
     exercise,
+    dashboard,
     preparingRevision,
     closingAssignment,
     canActOnReview,
