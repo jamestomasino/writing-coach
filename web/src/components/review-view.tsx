@@ -276,6 +276,16 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
             title={t('ratingsTitle')}
             description={t('ratingsDescription')}
           />
+          <div className="mt-4 rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm dark:border-white/10 dark:bg-white/5">
+            <div className="font-semibold text-zinc-900 dark:text-white">{t('scoreScaleTitle')}</div>
+            <div className="mt-2 space-y-1 text-zinc-700 dark:text-zinc-300">
+              <div>{t('scoreScaleFive')}</div>
+              <div>{t('scoreScaleFour')}</div>
+              <div>{t('scoreScaleThree')}</div>
+              <div>{t('scoreScaleTwoOrLess')}</div>
+            </div>
+            <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">{t('scoreScaleTrendHint')}</div>
+          </div>
           <div className="mt-4 space-y-3">
             {review.skill_scores.map((item) => (
               <div
