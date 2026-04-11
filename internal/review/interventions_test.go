@@ -76,3 +76,41 @@ func TestPrioritizeInterventionsIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildInterventionOutcomesTracksLifecycle(t *testing.T) {
+	current := []Intervention{
+		{Rank: 1, Target: "narrative clarity slips in the middle", Source: "comparison", ReasonCodes: []string{"persisting_weakness"}},
+		{Rank: 2, Target: "ending stakes stay abstract", Source: "review", ReasonCodes: []string{"current_weakness"}},
+	}
+	prior := []Intervention{
+		{Rank: 1, Target: "narrative clarity slips in the middle", Source: "review", ReasonCodes: []string{"current_weakness"}},
+		{Rank: 2, Target: "weak transitions between beats", Source: "review", ReasonCodes: []string{"current_weakness"}},
+	}
+	comparison := &Comparison{
+		PersistingWeaknesses: []string{"narrative clarity slips in the middle"},
+		AddressedWeaknesses:  []string{"weak transitions between beats"},
+	}
+
+	got := BuildInterventionOutcomes(current, prior, comparison, 77, 99)
+	if len(got) != 3 {
+		t.Fatalf("outcome count = %d", len(got))
+	}
+	if got[0].Status != "persisting" {
+		t.Fatalf("first status = %q", got[0].Status)
+	}
+	if got[0].IntroducedReviewID != 77 {
+		t.Fatalf("first introduced review id = %d", got[0].IntroducedReviewID)
+	}
+	if got[1].Status != "introduced" {
+		t.Fatalf("second status = %q", got[1].Status)
+	}
+	if got[1].IntroducedReviewID != 99 {
+		t.Fatalf("second introduced review id = %d", got[1].IntroducedReviewID)
+	}
+	if got[2].Status != "resolved" {
+		t.Fatalf("third status = %q", got[2].Status)
+	}
+	if got[2].ResolvedReviewID != 99 {
+		t.Fatalf("resolved review id = %d", got[2].ResolvedReviewID)
+	}
+}

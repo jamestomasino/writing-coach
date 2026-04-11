@@ -608,6 +608,61 @@ func recommendationArtifactPayload(recommendation curriculum.Recommendation, int
 	}
 }
 
+func recommendationArtifactPayloadWithOutcomes(recommendation curriculum.Recommendation, interventions []review.Intervention, outcomes []review.InterventionOutcome) map[string]any {
+	payload := recommendationArtifactPayload(recommendation, interventions)
+	payload["intervention_outcomes"] = outcomes
+	return payload
+}
+
+type reviewInterventionContext struct {
+	Comparison            *review.Comparison
+	PreviousReviewID      int64
+	PreviousInterventions []review.Intervention
+}
+
+func (s Server) reviewInterventionData(ctx context.Context, sub domain.Submission, currentReview domain.Review) reviewInterventionContext {
+	previous, err := s.Store.PreviousSubmission(ctx, sub)
+	if err != nil {
+		return reviewInterventionContext{}
+	}
+	previousReview, err := s.Store.LatestReviewForSubmission(ctx, previous.ID)
+	if err != nil {
+		return reviewInterventionContext{}
+	}
+	comparison := review.CompareSubmissions(sub, previous, currentReview, previousReview)
+	if comparison.SkillSetMismatch {
+		log.Printf("comparison skill set mismatch: current_submission=%d baseline_submission=%d", sub.ID, previous.ID)
+	}
+	context := reviewInterventionContext{
+		Comparison:       &comparison,
+		PreviousReviewID: previousReview.ID,
+	}
+	if artifacts, err := s.Store.GetReviewArtifacts(ctx, previousReview.ID); err == nil {
+		context.PreviousInterventions = decodeInterventionsFromRecommendationJSON(artifacts.RecommendationJSON)
+	}
+	return context
+}
+
+func decodeInterventionsFromRecommendationJSON(raw string) []review.Intervention {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var payload struct {
+		Interventions []review.Intervention `json:"interventions"`
+	}
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return nil
+	}
+	return payload.Interventions
+}
+
+func comparisonPayload(ctx reviewInterventionContext) map[string]any {
+	if ctx.Comparison == nil {
+		return nil
+	}
+	return reviewComparisonMap(*ctx.Comparison)
+}
+
 func (s Server) runReviewWorker(ctx context.Context) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
@@ -700,17 +755,14 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	if err != nil {
 		return fmt.Errorf("save review: %w", err)
 	}
-	comparison := s.reviewComparison(ctx, sub, reviewResult.Review)
-	comparisonPayload := map[string]any(nil)
-	if comparison != nil {
-		comparisonPayload = reviewComparisonMap(*comparison)
-	}
-	interventions := review.PrioritizeInterventions(reviewResult.Review, comparison)
+	interventionContext := s.reviewInterventionData(ctx, sub, reviewResult.Review)
+	interventions := review.PrioritizeInterventions(reviewResult.Review, interventionContext.Comparison)
+	outcomes := review.BuildInterventionOutcomes(interventions, interventionContext.PreviousInterventions, interventionContext.Comparison, interventionContext.PreviousReviewID, reviewID)
 	if err := s.Store.SaveReviewArtifacts(ctx, domain.ReviewArtifacts{
 		ReviewID:           reviewID,
 		AnalyzerReportJSON: mustJSON(reviewResult.AnalyzerReport),
-		RecommendationJSON: mustJSON(recommendationArtifactPayload(recommendation, interventions)),
-		ComparisonJSON:     mustJSON(comparisonPayload),
+		RecommendationJSON: mustJSON(recommendationArtifactPayloadWithOutcomes(recommendation, interventions, outcomes)),
+		ComparisonJSON:     mustJSON(comparisonPayload(interventionContext)),
 		AnnotationsJSON:    mustJSON(reviewResult.Review.Annotations),
 	}); err != nil {
 		return fmt.Errorf("save review artifacts: %w", err)

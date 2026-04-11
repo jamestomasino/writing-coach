@@ -193,17 +193,14 @@ func (s Server) processReviewSubmissionJob(ctx context.Context, job domain.AIJob
 	if err != nil {
 		return fmt.Errorf("save review: %w", err)
 	}
-	comparison := s.reviewComparison(ctx, sub, reviewResult.Review)
-	comparisonPayload := map[string]any(nil)
-	if comparison != nil {
-		comparisonPayload = reviewComparisonMap(*comparison)
-	}
-	interventions := review.PrioritizeInterventions(reviewResult.Review, comparison)
+	interventionContext := s.reviewInterventionData(ctx, sub, reviewResult.Review)
+	interventions := review.PrioritizeInterventions(reviewResult.Review, interventionContext.Comparison)
+	outcomes := review.BuildInterventionOutcomes(interventions, interventionContext.PreviousInterventions, interventionContext.Comparison, interventionContext.PreviousReviewID, reviewID)
 	if err := s.Store.SaveReviewArtifacts(ctx, domain.ReviewArtifacts{
 		ReviewID:           reviewID,
 		AnalyzerReportJSON: mustJSON(reviewResult.AnalyzerReport),
-		RecommendationJSON: mustJSON(recommendationArtifactPayload(recommendation, interventions)),
-		ComparisonJSON:     mustJSON(comparisonPayload),
+		RecommendationJSON: mustJSON(recommendationArtifactPayloadWithOutcomes(recommendation, interventions, outcomes)),
+		ComparisonJSON:     mustJSON(comparisonPayload(interventionContext)),
 		AnnotationsJSON:    mustJSON(reviewResult.Review.Annotations),
 	}); err != nil {
 		return fmt.Errorf("save review artifacts: %w", err)

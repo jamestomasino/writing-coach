@@ -17,6 +17,15 @@ type Intervention struct {
 	ReasonCodes []string `json:"reason_codes"`
 }
 
+type InterventionOutcome struct {
+	Target             string   `json:"target"`
+	Status             string   `json:"status"`
+	Source             string   `json:"source"`
+	ReasonCodes        []string `json:"reason_codes"`
+	IntroducedReviewID int64    `json:"introduced_review_id,omitempty"`
+	ResolvedReviewID   int64    `json:"resolved_review_id,omitempty"`
+}
+
 func PrioritizeInterventions(current domain.Review, comparison *Comparison) []Intervention {
 	type candidate struct {
 		target      string
@@ -105,6 +114,96 @@ func PrioritizeInterventions(current domain.Review, comparison *Comparison) []In
 			Confidence:  item.confidence,
 			ReasonCodes: item.reasonCodes,
 		})
+	}
+	return out
+}
+
+func BuildInterventionOutcomes(current []Intervention, prior []Intervention, comparison *Comparison, previousReviewID, currentReviewID int64) []InterventionOutcome {
+	currentByKey := map[string]Intervention{}
+	for _, item := range current {
+		currentByKey[normalizeInterventionKey(item.Target)] = item
+	}
+	priorByKey := map[string]Intervention{}
+	for _, item := range prior {
+		priorByKey[normalizeInterventionKey(item.Target)] = item
+	}
+
+	persisting := map[string]bool{}
+	addressed := map[string]bool{}
+	if comparison != nil {
+		for _, value := range comparison.PersistingWeaknesses {
+			key := normalizeInterventionKey(value)
+			if key != "" {
+				persisting[key] = true
+			}
+		}
+		for _, value := range comparison.AddressedWeaknesses {
+			key := normalizeInterventionKey(value)
+			if key != "" {
+				addressed[key] = true
+			}
+		}
+	}
+
+	outcomes := make([]InterventionOutcome, 0, len(current)+len(prior))
+	for _, item := range current {
+		key := normalizeInterventionKey(item.Target)
+		status := "introduced"
+		reasonCodes := append([]string{}, item.ReasonCodes...)
+		introducedReviewID := currentReviewID
+		if _, ok := priorByKey[key]; ok || persisting[key] {
+			status = "persisting"
+			if previousReviewID != 0 {
+				introducedReviewID = previousReviewID
+			}
+			reasonCodes = append(reasonCodes, "carried_from_prior_review")
+		}
+		outcomes = append(outcomes, InterventionOutcome{
+			Target:             item.Target,
+			Status:             status,
+			Source:             item.Source,
+			ReasonCodes:        dedupeReasonCodes(reasonCodes),
+			IntroducedReviewID: introducedReviewID,
+		})
+	}
+
+	resolved := make([]InterventionOutcome, 0, len(prior))
+	for key, item := range priorByKey {
+		if _, exists := currentByKey[key]; exists {
+			continue
+		}
+		if !addressed[key] {
+			continue
+		}
+		resolved = append(resolved, InterventionOutcome{
+			Target:             item.Target,
+			Status:             "resolved",
+			Source:             item.Source,
+			ReasonCodes:        []string{"addressed_in_comparison"},
+			IntroducedReviewID: previousReviewID,
+			ResolvedReviewID:   currentReviewID,
+		})
+	}
+	sort.Slice(resolved, func(i, j int) bool {
+		return strings.ToLower(resolved[i].Target) < strings.ToLower(resolved[j].Target)
+	})
+
+	return append(outcomes, resolved...)
+}
+
+func dedupeReasonCodes(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	seen := map[string]bool{}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
 	}
 	return out
 }
