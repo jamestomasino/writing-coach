@@ -6,4 +6,5 @@ cd "${repo_root}"
 
 echo "Running pedagogy integrity gates..."
 go test ./internal/api -run 'ReviewSubmissionEmitsDecisionEvents|ReviewSubmissionClearsHoldAndEmitsTransitionEvent|PromptNext.*ProgressionHold|EmitProgressionHoldTransitionEventWritesActivation' -count=1
-go test ./internal/db -run 'UpdateProgressionHoldStateActivatesAndClears|UpdateProgressionHoldStateIsEnrollmentScoped|SaveAndLoadDecisionEventsByReview' -count=1
+go test ./internal/api -run 'AdminPedagogyIntegrityEndpoint' -count=1
+go test ./internal/db -run 'UpdateProgressionHoldStateActivatesAndClears|UpdateProgressionHoldStateIsEnrollmentScoped|SaveAndLoadDecisionEventsByReview|PedagogyIntegritySnapshot' -count=1

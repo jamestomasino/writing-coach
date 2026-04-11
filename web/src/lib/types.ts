@@ -431,6 +431,26 @@ export type CalibrationSettings = {
   running: boolean
 }
 
+export type PedagogyIntegrityAlert = {
+  severity: 'ok' | 'info' | 'medium' | 'high' | string
+  code: string
+  message: string
+}
+
+export type PedagogyIntegrity = {
+  since: string
+  window_hours: number
+  total_reviews: number
+  reviews_missing_decision_events: number
+  review_scored_events: number
+  recommendation_events: number
+  hold_activation_events: number
+  hold_clear_events: number
+  hold_blocked_events: number
+  active_hold_enrollments: number
+  alerts: PedagogyIntegrityAlert[]
+}
+
 export type OnboardingProfile = {
   writing_language: string
   writing_type: string

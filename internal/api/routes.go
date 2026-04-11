@@ -67,6 +67,7 @@ func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/admin/calibration/notifications/{id}/read", s.handleAdminCalibrationNotificationRead)
 	mux.HandleFunc("POST /api/admin/calibration/runs/{id}/read", s.handleAdminCalibrationRunRead)
 	mux.HandleFunc("POST /api/admin/calibration/runs/{id}/approval", s.handleAdminCalibrationRunApproval)
+	mux.HandleFunc("GET /api/admin/pedagogy-integrity", s.handleAdminPedagogyIntegrity)
 }
 
 func (s *Server) registerTreeRoutes(mux *http.ServeMux) {

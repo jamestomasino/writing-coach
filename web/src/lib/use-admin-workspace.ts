@@ -3,6 +3,7 @@
 import { getAdminAIProviderEvents, getSession, listAdmins, listUsers } from '@/lib/api'
 import {
   getAdminCalibrationDashboard,
+  getAdminPedagogyIntegrity,
   markAdminCalibrationNotificationRead,
   markAdminCalibrationRunRead,
   setAdminCalibrationRunApproval,
@@ -16,6 +17,7 @@ import type {
   AuthSession,
   CalibrationRun,
   CalibrationSettings,
+  PedagogyIntegrity,
   UserRecord,
 } from '@/lib/types'
 import { useEffect, useState } from 'react'
@@ -37,6 +39,7 @@ export function useAdminWorkspace() {
   const [calibrationNotifications, setCalibrationNotifications] = useState<AdminNotification[]>([])
   const [calibrationUnreadCount, setCalibrationUnreadCount] = useState(0)
   const [calibrationSettings, setCalibrationSettings] = useState<CalibrationSettings | null>(null)
+  const [pedagogyIntegrity, setPedagogyIntegrity] = useState<PedagogyIntegrity | null>(null)
   const [loadingCalibration, setLoadingCalibration] = useState(false)
   const [runningCalibration, setRunningCalibration] = useState(false)
 
@@ -52,11 +55,12 @@ export function useAdminWorkspace() {
         if (!sessionData.is_admin) {
           return
         }
-        const [adminData, userData, providerData, calibrationData] = await Promise.all([
+        const [adminData, userData, providerData, calibrationData, integrityData] = await Promise.all([
           listAdmins(),
           listUsers(),
           getAdminAIProviderEvents(),
           getAdminCalibrationDashboard(),
+          getAdminPedagogyIntegrity(),
         ])
         if (!cancelled) {
           setAdmins(adminData.admins)
@@ -71,6 +75,7 @@ export function useAdminWorkspace() {
           setCalibrationNotifications(calibrationData.notifications)
           setCalibrationUnreadCount(calibrationData.unread_count)
           setCalibrationSettings(calibrationData.settings)
+          setPedagogyIntegrity(integrityData.integrity)
         }
       } catch (err) {
         if (!cancelled) {
@@ -128,10 +133,12 @@ export function useAdminWorkspace() {
     try {
       setLoadingCalibration(true)
       const calibrationData = await getAdminCalibrationDashboard()
+      const integrityData = await getAdminPedagogyIntegrity()
       setCalibrationRuns(calibrationData.runs)
       setCalibrationNotifications(calibrationData.notifications)
       setCalibrationUnreadCount(calibrationData.unread_count)
       setCalibrationSettings(calibrationData.settings)
+      setPedagogyIntegrity(integrityData.integrity)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load calibration dashboard')
     } finally {
@@ -199,6 +206,7 @@ export function useAdminWorkspace() {
     calibrationNotifications,
     calibrationUnreadCount,
     calibrationSettings,
+    pedagogyIntegrity,
     loadingCalibration,
     runningCalibration,
     triggerCalibrationRun,

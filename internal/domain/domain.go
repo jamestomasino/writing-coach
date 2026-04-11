@@ -147,6 +147,26 @@ type CalibrationHybridSignalSnapshot struct {
 	AdjustedCount    int
 }
 
+type PedagogyIntegrityAlert struct {
+	Severity string
+	Code     string
+	Message  string
+}
+
+type PedagogyIntegritySnapshot struct {
+	Since                        time.Time
+	WindowHours                  int
+	TotalReviews                 int
+	ReviewsMissingDecisionEvents int
+	ReviewScoredEvents           int
+	RecommendationEvents         int
+	HoldActivationEvents         int
+	HoldClearEvents              int
+	HoldBlockedEvents            int
+	ActiveHoldEnrollments        int
+	Alerts                       []PedagogyIntegrityAlert
+}
+
 type TGOTree struct {
 	ID          int64
 	Slug        string
