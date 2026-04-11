@@ -27,6 +27,13 @@ type pedagogyIntegrityResponse struct {
 	HoldClearEvents              int                              `json:"hold_clear_events"`
 	HoldBlockedEvents            int                              `json:"hold_blocked_events"`
 	ActiveHoldEnrollments        int                              `json:"active_hold_enrollments"`
+	AvgHoldClearHours            float64                          `json:"avg_hold_clear_hours"`
+	InterventionResolvedCount    int                              `json:"intervention_resolved_count"`
+	InterventionPersistingCount  int                              `json:"intervention_persisting_count"`
+	InterventionResolutionRate   float64                          `json:"intervention_resolution_rate"`
+	InterventionRecurrenceRate   float64                          `json:"intervention_recurrence_rate"`
+	MasteryCompletions           int                              `json:"mastery_completions"`
+	MasteryVelocityPer100Reviews float64                          `json:"mastery_velocity_per_100_reviews"`
 	Alerts                       []pedagogyIntegrityAlertResponse `json:"alerts"`
 	Policy                       map[string]int                   `json:"policy"`
 }
@@ -95,6 +102,21 @@ func pedagogyIntegrityAlerts(snapshot domain.PedagogyIntegritySnapshot, holdActi
 			Message:  "Progression hold has blocked active-objective changes in the current window.",
 		})
 	}
+	outcomeTotal := snapshot.InterventionResolvedCount + snapshot.InterventionPersistingCount
+	if outcomeTotal >= 6 && snapshot.InterventionResolutionRate < 35 {
+		alerts = append(alerts, domain.PedagogyIntegrityAlert{
+			Severity: "medium",
+			Code:     "intervention_resolution_low",
+			Message:  "Intervention resolution rate is low in the current window.",
+		})
+	}
+	if outcomeTotal >= 6 && snapshot.InterventionRecurrenceRate >= 65 {
+		alerts = append(alerts, domain.PedagogyIntegrityAlert{
+			Severity: "info",
+			Code:     "intervention_recurrence_high",
+			Message:  "Many interventions are persisting across consecutive reviews.",
+		})
+	}
 	if len(alerts) == 0 {
 		alerts = append(alerts, domain.PedagogyIntegrityAlert{
 			Severity: "ok",
@@ -134,6 +156,13 @@ func toPedagogyIntegrityResponse(snapshot domain.PedagogyIntegritySnapshot, hold
 		HoldClearEvents:              snapshot.HoldClearEvents,
 		HoldBlockedEvents:            snapshot.HoldBlockedEvents,
 		ActiveHoldEnrollments:        snapshot.ActiveHoldEnrollments,
+		AvgHoldClearHours:            snapshot.AvgHoldClearHours,
+		InterventionResolvedCount:    snapshot.InterventionResolvedCount,
+		InterventionPersistingCount:  snapshot.InterventionPersistingCount,
+		InterventionResolutionRate:   snapshot.InterventionResolutionRate,
+		InterventionRecurrenceRate:   snapshot.InterventionRecurrenceRate,
+		MasteryCompletions:           snapshot.MasteryCompletions,
+		MasteryVelocityPer100Reviews: snapshot.MasteryVelocityPer100Reviews,
 		Alerts:                       alerts,
 		Policy: map[string]int{
 			"hold_clear_streak_required": holdClearStreakRequired,

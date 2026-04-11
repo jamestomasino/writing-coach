@@ -448,6 +448,13 @@ export type PedagogyIntegrity = {
   hold_clear_events: number
   hold_blocked_events: number
   active_hold_enrollments: number
+  avg_hold_clear_hours: number
+  intervention_resolved_count: number
+  intervention_persisting_count: number
+  intervention_resolution_rate: number
+  intervention_recurrence_rate: number
+  mastery_completions: number
+  mastery_velocity_per_100_reviews: number
   alerts: PedagogyIntegrityAlert[]
   policy?: {
     hold_clear_streak_required: number

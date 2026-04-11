@@ -164,6 +164,13 @@ type PedagogyIntegritySnapshot struct {
 	HoldClearEvents              int
 	HoldBlockedEvents            int
 	ActiveHoldEnrollments        int
+	AvgHoldClearHours            float64
+	InterventionResolvedCount    int
+	InterventionPersistingCount  int
+	InterventionResolutionRate   float64
+	InterventionRecurrenceRate   float64
+	MasteryCompletions           int
+	MasteryVelocityPer100Reviews float64
 	Alerts                       []PedagogyIntegrityAlert
 }
 

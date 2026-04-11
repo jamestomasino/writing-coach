@@ -4997,6 +4997,18 @@ func TestAdminPedagogyIntegrityEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("save review: %v", err)
 	}
+	if err := harness.Store.SaveReviewArtifacts(ctx, domain.ReviewArtifacts{
+		ReviewID:           reviewID,
+		AnalyzerReportJSON: `{"summary":"ok"}`,
+		RecommendationJSON: `{"intervention_outcomes":[{"status":"resolved"},{"status":"persisting"}]}`,
+		ComparisonJSON:     `{"summary":"ok"}`,
+		AnnotationsJSON:    `[]`,
+	}); err != nil {
+		t.Fatalf("save review artifacts: %v", err)
+	}
+	if err := harness.Store.MarkTGOCompleted(ctx, enrollmentID, "story-causal-clarity"); err != nil {
+		t.Fatalf("mark tgo completed: %v", err)
+	}
 
 	// Deliberately incomplete event coverage for this review to force an alert.
 	if err := harness.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
@@ -5035,10 +5047,15 @@ func TestAdminPedagogyIntegrityEndpoint(t *testing.T) {
 
 	var payload struct {
 		Integrity struct {
-			WindowHours                  int `json:"window_hours"`
-			TotalReviews                 int `json:"total_reviews"`
-			ReviewsMissingDecisionEvents int `json:"reviews_missing_decision_events"`
-			HoldBlockedEvents            int `json:"hold_blocked_events"`
+			WindowHours                  int     `json:"window_hours"`
+			TotalReviews                 int     `json:"total_reviews"`
+			ReviewsMissingDecisionEvents int     `json:"reviews_missing_decision_events"`
+			HoldBlockedEvents            int     `json:"hold_blocked_events"`
+			InterventionResolvedCount    int     `json:"intervention_resolved_count"`
+			InterventionPersistingCount  int     `json:"intervention_persisting_count"`
+			InterventionResolutionRate   float64 `json:"intervention_resolution_rate"`
+			MasteryCompletions           int     `json:"mastery_completions"`
+			MasteryVelocityPer100Reviews float64 `json:"mastery_velocity_per_100_reviews"`
 			Alerts                       []struct {
 				Code string `json:"code"`
 			} `json:"alerts"`
@@ -5058,6 +5075,21 @@ func TestAdminPedagogyIntegrityEndpoint(t *testing.T) {
 	}
 	if payload.Integrity.HoldBlockedEvents < 1 {
 		t.Fatalf("hold blocked events = %d", payload.Integrity.HoldBlockedEvents)
+	}
+	if payload.Integrity.InterventionResolvedCount != 1 {
+		t.Fatalf("intervention resolved count = %d", payload.Integrity.InterventionResolvedCount)
+	}
+	if payload.Integrity.InterventionPersistingCount != 1 {
+		t.Fatalf("intervention persisting count = %d", payload.Integrity.InterventionPersistingCount)
+	}
+	if payload.Integrity.InterventionResolutionRate <= 0 {
+		t.Fatalf("intervention resolution rate = %f", payload.Integrity.InterventionResolutionRate)
+	}
+	if payload.Integrity.MasteryCompletions < 1 {
+		t.Fatalf("mastery completions = %d", payload.Integrity.MasteryCompletions)
+	}
+	if payload.Integrity.MasteryVelocityPer100Reviews <= 0 {
+		t.Fatalf("mastery velocity per 100 reviews = %f", payload.Integrity.MasteryVelocityPer100Reviews)
 	}
 	foundMissing := false
 	for _, alert := range payload.Integrity.Alerts {

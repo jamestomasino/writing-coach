@@ -876,6 +876,44 @@ func TestPedagogyIntegritySnapshot(t *testing.T) {
 	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", reviewID, 2); err != nil {
 		t.Fatalf("activate hold state: %v", err)
 	}
+	if err := store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              userID,
+		TreeID:              treeID,
+		EnrollmentID:        enrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        submissionID,
+		EventType:           "progression_hold_activated",
+		DecisionPayloadJSON: `{"reason_code":"completed_tgo_slipping"}`,
+		RuleVersion:         "progression-hold-activate-v1",
+		EvidenceRefsJSON:    `["completed_tgo_checks","user_curriculum_state"]`,
+	}); err != nil {
+		t.Fatalf("save hold activated event: %v", err)
+	}
+	if err := store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              userID,
+		TreeID:              treeID,
+		EnrollmentID:        enrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        submissionID,
+		EventType:           "progression_hold_cleared",
+		DecisionPayloadJSON: `{"reason_code":""}`,
+		RuleVersion:         "progression-hold-clear-v1",
+		EvidenceRefsJSON:    `["completed_tgo_checks","user_curriculum_state"]`,
+	}); err != nil {
+		t.Fatalf("save hold cleared event: %v", err)
+	}
+	if err := store.SaveReviewArtifacts(ctx, domain.ReviewArtifacts{
+		ReviewID:           reviewID,
+		AnalyzerReportJSON: `{"summary":"ok"}`,
+		RecommendationJSON: `{"intervention_outcomes":[{"status":"resolved"},{"status":"persisting"},{"status":"resolved"}]}`,
+		ComparisonJSON:     `{"summary":"ok"}`,
+		AnnotationsJSON:    `[]`,
+	}); err != nil {
+		t.Fatalf("save review artifacts: %v", err)
+	}
+	if err := store.MarkTGOCompleted(ctx, enrollmentID, "story-causal-clarity"); err != nil {
+		t.Fatalf("mark tgo completed: %v", err)
+	}
 
 	snapshot, err := store.PedagogyIntegritySnapshot(ctx, time.Now().UTC().Add(-24*time.Hour), 24)
 	if err != nil {
@@ -898,5 +936,23 @@ func TestPedagogyIntegritySnapshot(t *testing.T) {
 	}
 	if snapshot.ActiveHoldEnrollments < 1 {
 		t.Fatalf("active hold enrollments = %d", snapshot.ActiveHoldEnrollments)
+	}
+	if snapshot.AvgHoldClearHours < 0 {
+		t.Fatalf("avg hold clear hours = %f", snapshot.AvgHoldClearHours)
+	}
+	if snapshot.InterventionResolvedCount != 2 {
+		t.Fatalf("intervention resolved count = %d", snapshot.InterventionResolvedCount)
+	}
+	if snapshot.InterventionPersistingCount != 1 {
+		t.Fatalf("intervention persisting count = %d", snapshot.InterventionPersistingCount)
+	}
+	if snapshot.InterventionResolutionRate <= 0 {
+		t.Fatalf("intervention resolution rate = %f", snapshot.InterventionResolutionRate)
+	}
+	if snapshot.MasteryCompletions < 1 {
+		t.Fatalf("mastery completions = %d", snapshot.MasteryCompletions)
+	}
+	if snapshot.MasteryVelocityPer100Reviews <= 0 {
+		t.Fatalf("mastery velocity per 100 reviews = %f", snapshot.MasteryVelocityPer100Reviews)
 	}
 }
