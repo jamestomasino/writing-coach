@@ -98,7 +98,15 @@ function ExerciseStepSection({ step, t }: { step: AssignmentTimelineStep; t: Ret
   )
 }
 
-function SubmissionStepSection({ step, t }: { step: AssignmentTimelineStep; t: ReturnType<typeof useTranslations<'assignmentTimelineView'>> }) {
+function SubmissionStepSection({
+  step,
+  t,
+  onTryInPlayground,
+}: {
+  step: AssignmentTimelineStep
+  t: ReturnType<typeof useTranslations<'assignmentTimelineView'>>
+  onTryInPlayground: (content: string, stepId: string) => void
+}) {
   if (!step.submission) {
     return null
   }
@@ -108,6 +116,11 @@ function SubmissionStepSection({ step, t }: { step: AssignmentTimelineStep; t: R
         eyebrow={step.label}
         title={t('wordCountTitle', { count: step.submission.word_count })}
         description={t('savedAt', { datetime: formatLocalDateTime(step.created_at) ?? step.created_at })}
+        actions={
+          <Button outline onClick={() => onTryInPlayground(step.submission?.content ?? '', step.id)}>
+            {t('tryInPlayground')}
+          </Button>
+        }
       />
       <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
         <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-zinc-700 dark:text-zinc-200">{step.submission.content}</pre>
@@ -196,10 +209,12 @@ function StepSection({
   step,
   selected,
   t,
+  onTryInPlayground,
 }: {
   step: AssignmentTimelineStep
   selected: boolean
   t: ReturnType<typeof useTranslations<'assignmentTimelineView'>>
+  onTryInPlayground: (content: string, stepId: string) => void
 }) {
   return (
     <section id={step.id} className="scroll-mt-28">
@@ -209,7 +224,7 @@ function StepSection({
       </div>
       <div className={selected ? 'rounded-[2rem] bg-stone-100/70 p-3 dark:bg-white/5' : ''}>
         {step.kind === 'exercise' ? <ExerciseStepSection step={step} t={t} /> : null}
-        {step.kind === 'submission' ? <SubmissionStepSection step={step} t={t} /> : null}
+        {step.kind === 'submission' ? <SubmissionStepSection step={step} t={t} onTryInPlayground={onTryInPlayground} /> : null}
         {step.kind === 'review' ? <ReviewStepSection step={step} t={t} /> : null}
       </div>
     </section>
@@ -240,6 +255,16 @@ export function AssignmentTimelineView({
       window.sessionStorage.setItem('playground-seed-content', latestSubmission.content)
       window.sessionStorage.setItem('playground-seed-source', `assignment:${assignment.root_exercise_id}`)
     }
+    router.push('/playground?seed=assignment')
+  }
+
+  function handleTrySubmissionInPlayground(content: string, stepId: string) {
+    if (content.trim().length === 0) {
+      router.push('/playground')
+      return
+    }
+    window.sessionStorage.setItem('playground-seed-content', content)
+    window.sessionStorage.setItem('playground-seed-source', `assignment-step:${stepId}`)
     router.push('/playground?seed=assignment')
   }
 
@@ -300,7 +325,13 @@ export function AssignmentTimelineView({
 
       <div className="space-y-8">
         {assignment.steps.map((step) => (
-          <StepSection key={step.id} step={step} selected={selectedStepID === step.id} t={t} />
+          <StepSection
+            key={step.id}
+            step={step}
+            selected={selectedStepID === step.id}
+            t={t}
+            onTryInPlayground={handleTrySubmissionInPlayground}
+          />
         ))}
       </div>
     </div>
