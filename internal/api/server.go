@@ -561,6 +561,14 @@ func (s Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submission, currentReview domain.Review) map[string]any {
+	comparison := s.reviewComparison(ctx, sub, currentReview)
+	if comparison == nil {
+		return nil
+	}
+	return reviewComparisonMap(*comparison)
+}
+
+func (s Server) reviewComparison(ctx context.Context, sub domain.Submission, currentReview domain.Review) *review.Comparison {
 	previous, err := s.Store.PreviousSubmission(ctx, sub)
 	if err != nil {
 		return nil
@@ -573,6 +581,10 @@ func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submissi
 	if comparison.SkillSetMismatch {
 		log.Printf("comparison skill set mismatch: current_submission=%d baseline_submission=%d", sub.ID, previous.ID)
 	}
+	return &comparison
+}
+
+func reviewComparisonMap(comparison review.Comparison) map[string]any {
 	return map[string]any{
 		"summary":               comparison.Summary,
 		"word_delta":            comparison.WordDelta,
@@ -582,6 +594,17 @@ func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submissi
 		"persisting_weaknesses": comparison.PersistingWeaknesses,
 		"skill_set_mismatch":    comparison.SkillSetMismatch,
 		"skill_deltas":          comparison.SkillDeltas,
+	}
+}
+
+func recommendationArtifactPayload(recommendation curriculum.Recommendation, interventions []review.Intervention) map[string]any {
+	return map[string]any{
+		"focus":            recommendation.Focus,
+		"difficulty":       recommendation.Difficulty,
+		"rationale":        recommendation.Rationale,
+		"hold_active":      recommendation.HoldActive,
+		"hold_reason_code": recommendation.HoldReasonCode,
+		"interventions":    interventions,
 	}
 }
 
@@ -677,11 +700,17 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	if err != nil {
 		return fmt.Errorf("save review: %w", err)
 	}
+	comparison := s.reviewComparison(ctx, sub, reviewResult.Review)
+	comparisonPayload := map[string]any(nil)
+	if comparison != nil {
+		comparisonPayload = reviewComparisonMap(*comparison)
+	}
+	interventions := review.PrioritizeInterventions(reviewResult.Review, comparison)
 	if err := s.Store.SaveReviewArtifacts(ctx, domain.ReviewArtifacts{
 		ReviewID:           reviewID,
 		AnalyzerReportJSON: mustJSON(reviewResult.AnalyzerReport),
-		RecommendationJSON: mustJSON(recommendation),
-		ComparisonJSON:     mustJSON(s.reviewComparisonPayload(ctx, sub, reviewResult.Review)),
+		RecommendationJSON: mustJSON(recommendationArtifactPayload(recommendation, interventions)),
+		ComparisonJSON:     mustJSON(comparisonPayload),
 		AnnotationsJSON:    mustJSON(reviewResult.Review.Annotations),
 	}); err != nil {
 		return fmt.Errorf("save review artifacts: %w", err)
