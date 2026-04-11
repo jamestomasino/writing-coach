@@ -475,6 +475,27 @@ export function AdminView() {
                 })}
               </div>
             ) : null}
+            <div className="mt-4 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+              <div>
+                {t('integrityTelemetryHoldClear', {
+                  hours: pedagogyIntegrity.avg_hold_clear_hours.toFixed(1),
+                })}
+              </div>
+              <div>
+                {t('integrityTelemetryInterventions', {
+                  resolved: pedagogyIntegrity.intervention_resolved_count,
+                  persisting: pedagogyIntegrity.intervention_persisting_count,
+                  resolutionRate: pedagogyIntegrity.intervention_resolution_rate.toFixed(1),
+                  recurrenceRate: pedagogyIntegrity.intervention_recurrence_rate.toFixed(1),
+                })}
+              </div>
+              <div>
+                {t('integrityTelemetryMasteryVelocity', {
+                  completions: pedagogyIntegrity.mastery_completions,
+                  velocity: pedagogyIntegrity.mastery_velocity_per_100_reviews.toFixed(1),
+                })}
+              </div>
+            </div>
             <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
               {pedagogyIntegrity.alerts.map((alert) => (
                 <li key={`${alert.code}-message`}>• {alert.message}</li>
