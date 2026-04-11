@@ -919,6 +919,10 @@ func TestExerciseSubmissionAndReviewEndpoints(t *testing.T) {
 	if !ok || len(interventions) == 0 {
 		t.Fatalf("expected ranked interventions in recommendation artifact, got %#v", singleReviewPayload.Review.Artifacts.Recommendation["interventions"])
 	}
+	outcomes, ok := singleReviewPayload.Review.Artifacts.Recommendation["intervention_outcomes"].([]any)
+	if !ok || len(outcomes) == 0 {
+		t.Fatalf("expected intervention outcomes in recommendation artifact, got %#v", singleReviewPayload.Review.Artifacts.Recommendation["intervention_outcomes"])
+	}
 	if len(singleReviewPayload.Review.Annotations) == 0 {
 		t.Fatal("expected review annotations")
 	}
