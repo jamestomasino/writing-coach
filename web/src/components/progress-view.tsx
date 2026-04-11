@@ -220,7 +220,6 @@ export function ProgressView() {
                                 ? t('skillAdvanceBuildHistory', { count: levelState.remainingHistory })
                                 : t('skillAdvanceConsolidate')}
                           </div>
-                          <div className="mt-1 text-blue-900/70 dark:text-blue-200/80">{t('skillAdvanceRule')}</div>
                         </div>
                       )
                     })()}
