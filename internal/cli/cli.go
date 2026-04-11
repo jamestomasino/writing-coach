@@ -344,6 +344,10 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	})
 	reviewResult.UserID = c.AppContext.UserID
 	reviewResult.TreeID = c.AppContext.TreeID
+	stateBefore, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
+	if err != nil {
+		return err
+	}
 	recommendation, err := c.Curriculum.SyncTGOs(ctx, c.Store, c.AppContext.TreeSlug, c.AppContext.EnrollmentID, reviewResult)
 	if err != nil {
 		return err
@@ -397,6 +401,32 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		EvidenceRefsJSON:    `["recommendation","completed_tgo_checks","tgo_assessments"]`,
 	}); err != nil {
 		return err
+	}
+	if stateBefore.ProgressionHoldActive != recommendation.HoldActive {
+		eventType := "progression_hold_cleared"
+		ruleVersion := "progression-hold-clear-v1"
+		if recommendation.HoldActive {
+			eventType = "progression_hold_activated"
+			ruleVersion = "progression-hold-activate-v1"
+		}
+		holdPayload, _ := json.Marshal(map[string]any{
+			"was_hold_active": stateBefore.ProgressionHoldActive,
+			"is_hold_active":  recommendation.HoldActive,
+			"reason_code":     recommendation.HoldReasonCode,
+		})
+		if err := c.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+			UserID:              c.AppContext.UserID,
+			TreeID:              c.AppContext.TreeID,
+			EnrollmentID:        c.AppContext.EnrollmentID,
+			ReviewID:            reviewID,
+			SubmissionID:        reviewResult.SubmissionID,
+			EventType:           eventType,
+			DecisionPayloadJSON: string(holdPayload),
+			RuleVersion:         ruleVersion,
+			EvidenceRefsJSON:    `["completed_tgo_checks","user_curriculum_state"]`,
+		}); err != nil {
+			return err
+		}
 	}
 
 	state, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)

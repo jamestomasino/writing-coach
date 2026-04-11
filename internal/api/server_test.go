@@ -1164,6 +1164,101 @@ func TestReviewSubmissionEmitsDecisionEvents(t *testing.T) {
 	}
 }
 
+func TestReviewSubmissionClearsHoldAndEmitsTransitionEvent(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	enrollmentID, err := harness.Store.ActiveEnrollmentIDByUserID(ctx, user.ID)
+	if err != nil {
+		t.Fatalf("lookup enrollment: %v", err)
+	}
+	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 9001); err != nil {
+		t.Fatalf("activate hold: %v", err)
+	}
+
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Hold clear test",
+		Brief:           "Write a causal scene.",
+		Constraints:     []string{"120 words max"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity", "story-scene-architecture", "story-prose-precision"},
+		SuccessCriteria: []string{"Cause and consequence are easy to track."},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "He ignored the warning, missed the tide window, and stranded the crew overnight.",
+		WordCount:  13,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+
+	reviewResp, err := http.Post(
+		testServer.URL+"/api/reviews?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{"submission_id":`+int64String(submissionID)+`}`),
+	)
+	if err != nil {
+		t.Fatalf("enqueue review: %v", err)
+	}
+	defer reviewResp.Body.Close()
+	if reviewResp.StatusCode != http.StatusAccepted {
+		t.Fatalf("review enqueue status: %d", reviewResp.StatusCode)
+	}
+	var payload struct {
+		Job aiJobResponse `json:"job"`
+	}
+	if err := json.NewDecoder(reviewResp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode enqueue payload: %v", err)
+	}
+	completed := waitForAIJob(t, testServer.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Review == nil {
+		t.Fatal("expected completed review")
+	}
+	reviewID := completed.Result.Review.ID
+
+	events, err := harness.Store.DecisionEventsByReview(ctx, reviewID)
+	if err != nil {
+		t.Fatalf("load decision events: %v", err)
+	}
+	foundClear := false
+	for _, event := range events {
+		if event.EventType == "progression_hold_cleared" {
+			foundClear = true
+			break
+		}
+	}
+	if !foundClear {
+		t.Fatalf("expected progression_hold_cleared event, got %#v", events)
+	}
+
+	stateAfter, err := harness.Store.GetCurriculumState(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("load curriculum state after review: %v", err)
+	}
+	if stateAfter.ProgressionHoldActive {
+		t.Fatal("expected progression hold to be cleared after review")
+	}
+}
+
 func TestPlaygroundSessionEndpointsSupportCreateUpdateAndReviewHistory(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")

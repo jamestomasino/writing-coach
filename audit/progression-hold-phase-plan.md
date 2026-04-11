@@ -45,6 +45,18 @@ Exit criteria:
 - Decision provenance for progression is machine-auditable.
 - Integrity checks fail fast on missing pedagogical traces.
 
+### Phase 4: CI pedagogy gate suite
+- Create explicit integrity-gate tests focused on pedagogy contracts:
+  - completed review must emit required decision events
+  - hold transition events must align with hold state transitions
+  - hold-active enrollment must block advancement selection changes
+- Add a dedicated test entrypoint script for CI readability and local repeatability.
+- Wire the integrity-gate script into backend CI execution path.
+
+Exit criteria:
+- CI fails on pedagogy-contract regressions even when generic tests still pass.
+- Integrity-gate test output is easy to identify in local and CI logs.
+
 ## Design constraints
 - Enrollment-scoped only: no global user hold.
 - O(1) request-path checks: read materialized hold state, do not scan history.
