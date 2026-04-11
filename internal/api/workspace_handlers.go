@@ -110,6 +110,37 @@ func (s Server) handleAssignmentClose(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+func (s Server) handleAssignmentReopen(w http.ResponseWriter, r *http.Request) {
+	appContext, err := s.resolveSession(r.Context(), r)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id == 0 {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid assignment id"))
+		return
+	}
+	rootID, _, err := s.assignmentRootID(r.Context(), appContext, id)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if db.IsNotFound(err) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	if err := s.Store.ReopenExercise(r.Context(), appContext.UserID, appContext.TreeID, rootID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s Server) handleExercisesList(w http.ResponseWriter, r *http.Request) {
 	appContext, err := s.resolveSession(r.Context(), r)
 	if err != nil {

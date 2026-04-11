@@ -2225,6 +2225,49 @@ func TestClosingAssignmentMarksChainClosedAndBlocksRevision(t *testing.T) {
 	if reviseResp.StatusCode != http.StatusConflict {
 		t.Fatalf("revise status = %d", reviseResp.StatusCode)
 	}
+
+	reopenReq, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/assignments/"+int64String(exerciseID)+"/reopen?user=tester&tree=story-craft-track", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("reopen request: %v", err)
+	}
+	reopenReq.Header.Set("Content-Type", "application/json")
+	reopenResp, err := http.DefaultClient.Do(reopenReq)
+	if err != nil {
+		t.Fatalf("reopen assignment: %v", err)
+	}
+	defer reopenResp.Body.Close()
+	if reopenResp.StatusCode != http.StatusOK {
+		t.Fatalf("reopen assignment status: %d", reopenResp.StatusCode)
+	}
+
+	reopenedTimelineResp, err := http.Get(testServer.URL + "/api/assignments/" + int64String(exerciseID) + "?user=tester&tree=story-craft-track")
+	if err != nil {
+		t.Fatalf("get reopened assignment timeline: %v", err)
+	}
+	defer reopenedTimelineResp.Body.Close()
+	if reopenedTimelineResp.StatusCode != http.StatusOK {
+		t.Fatalf("reopened timeline status: %d", reopenedTimelineResp.StatusCode)
+	}
+	var reopenedTimelinePayload struct {
+		Assignment struct {
+			IsClosed bool `json:"is_closed"`
+		} `json:"assignment"`
+	}
+	if err := json.NewDecoder(reopenedTimelineResp.Body).Decode(&reopenedTimelinePayload); err != nil {
+		t.Fatalf("decode reopened timeline: %v", err)
+	}
+	if reopenedTimelinePayload.Assignment.IsClosed {
+		t.Fatal("reopened assignment should not report is_closed")
+	}
+
+	postReopenReviseResp, err := http.Post(testServer.URL+"/api/prompts/revise?user=tester&tree=story-craft-track", "application/json", strings.NewReader(`{"submission_id":`+int64String(submissionID)+`}`))
+	if err != nil {
+		t.Fatalf("post-reopen revise request: %v", err)
+	}
+	defer postReopenReviseResp.Body.Close()
+	if postReopenReviseResp.StatusCode != http.StatusAccepted {
+		t.Fatalf("post-reopen revise status = %d", postReopenReviseResp.StatusCode)
+	}
 }
 
 func TestAISettingsLifecycleEndpoint(t *testing.T) {
