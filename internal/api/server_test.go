@@ -3367,6 +3367,87 @@ func TestPromptNextUsesSelectedTGOsForSuccessCriteria(t *testing.T) {
 	}
 }
 
+func TestPromptNextBlocksActiveTGOChangesWhenProgressionHoldActive(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	enrollmentID, err := harness.Store.ActiveEnrollmentIDByUserID(ctx, user.ID)
+	if err != nil {
+		t.Fatalf("lookup enrollment: %v", err)
+	}
+	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 77); err != nil {
+		t.Fatalf("activate progression hold: %v", err)
+	}
+
+	resp, err := http.Post(
+		testServer.URL+"/api/prompts/next?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{"tgo_codes":["story-scene-architecture","story-prose-precision","story-causal-clarity"]}`),
+	)
+	if err != nil {
+		t.Fatalf("prompt next with selection: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("prompt status: %d", resp.StatusCode)
+	}
+	var payload struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode prompt error response: %v", err)
+	}
+	if !strings.Contains(payload.Error, "completed_tgo_slipping") {
+		t.Fatalf("expected hold reason in error, got %q", payload.Error)
+	}
+}
+
+func TestPromptNextAllowsNoopSelectionWhenProgressionHoldActive(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	enrollmentID, err := harness.Store.ActiveEnrollmentIDByUserID(ctx, user.ID)
+	if err != nil {
+		t.Fatalf("lookup enrollment: %v", err)
+	}
+	if err := harness.Store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", 88); err != nil {
+		t.Fatalf("activate progression hold: %v", err)
+	}
+
+	active, err := harness.Store.ActiveTGOs(ctx, enrollmentID)
+	if err != nil {
+		t.Fatalf("active tgos: %v", err)
+	}
+	if len(active) != 3 {
+		t.Fatalf("expected 3 active TGOs, got %d", len(active))
+	}
+	payload := fmt.Sprintf(`{"tgo_codes":["%s","%s","%s"]}`, active[0].Code, active[1].Code, active[2].Code)
+	resp, err := http.Post(
+		testServer.URL+"/api/prompts/next?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(payload),
+	)
+	if err != nil {
+		t.Fatalf("prompt next with no-op selection: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("prompt status: %d", resp.StatusCode)
+	}
+}
+
 func TestPromptPreviewDoesNotPersistUntilAccepted(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")
