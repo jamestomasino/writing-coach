@@ -6,6 +6,7 @@ import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import type { ReviewAnnotation } from '@/lib/types'
+import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useReviewWorkspace } from '@/lib/use-review-workspace'
 import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
@@ -25,6 +26,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
     review,
     submission,
     exercise,
+    dashboard,
     preparingRevision,
     closingAssignment,
     canActOnReview,
@@ -149,6 +151,32 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <li>• {t('guideBullet3')}</li>
         </ul>
       </WorkspaceCard>
+
+      {dashboard?.active_tgos?.length ? (
+        <WorkspaceCard>
+          <CardHeader eyebrow={t('unlockEyebrow')} title={t('unlockTitle')} description={t('unlockBody')} />
+          <div className="mt-4 space-y-3">
+            {dashboard.active_tgos.slice(0, 3).map((tgo) => {
+              const state = skillLevelUpState(tgo)
+              return (
+                <div
+                  key={tgo.code}
+                  className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm dark:border-white/10 dark:bg-white/5"
+                >
+                  <div className="font-semibold text-zinc-950 dark:text-white">{tgo.title}</div>
+                  <div className="mt-1 text-zinc-700 dark:text-zinc-300">
+                    {state.mode === 'ready'
+                      ? t('unlockReady')
+                      : state.mode === 'building_history'
+                        ? t('unlockBuildingHistory', { count: state.remainingHistory })
+                        : t('unlockConsolidating')}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </WorkspaceCard>
+      ) : null}
 
       <WorkspaceCard>
         <CardHeader eyebrow={t('aiDetailsEyebrow')} title={t('aiDetailsTitle')} />
