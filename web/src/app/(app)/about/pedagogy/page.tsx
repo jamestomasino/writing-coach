@@ -140,7 +140,7 @@ export default function HybridMethodologyPage() {
             NAVMC 1553.2 Marine Corps Formal School Management Policy Guidance. Definitions and
             policy language for Terminal and Enabling Learning Objectives (TLO/ELO).{' '}
             <TextLink href="https://www.trngcmd.marines.mil/Portals/207/Docs/FLW/EEIC/NAVMC%201553.2%20Marine%20Corps%20Formal%20School%20Management%20Policy%20Guidance.pdf">
-              https://www.trngcmd.marines.mil/Portals/207/Docs/FLW/EEIC/NAVMC%201553.2%20Marine%20Corps%20Formal%20School%20Management%20Policy%20Guidance.pdf
+              trngcmd.marines.mil/.../NAVMC%201553.2...Policy%20Guidance.pdf
             </TextLink>
           </li>
         </ol>
