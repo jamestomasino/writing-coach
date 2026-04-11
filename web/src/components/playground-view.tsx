@@ -49,6 +49,11 @@ type AnalyzerMetricView = {
   value: number
 }
 
+type GroupedFindingView = AnalyzerFindingView & {
+  count: number
+  indexes: number[]
+}
+
 type ToolReportView = {
   id: string
   label: string
@@ -276,6 +281,45 @@ function severityTone(severity: string) {
     default:
       return 'bg-sky-500'
   }
+}
+
+function severityRank(severity: string) {
+  switch (severity) {
+    case 'error':
+      return 0
+    case 'warning':
+      return 1
+    default:
+      return 2
+  }
+}
+
+function groupFindings(findings: AnalyzerFindingView[]): GroupedFindingView[] {
+  const grouped = new Map<string, GroupedFindingView>()
+  for (const [index, finding] of findings.entries()) {
+    const key = `${finding.severity}\u0000${finding.category}\u0000${finding.message}`
+    const existing = grouped.get(key)
+    if (existing) {
+      existing.count += 1
+      existing.indexes.push(index + 1)
+      continue
+    }
+    grouped.set(key, {
+      ...finding,
+      count: 1,
+      indexes: [index + 1],
+    })
+  }
+  return Array.from(grouped.values()).sort((a, b) => {
+    const severityDelta = severityRank(a.severity) - severityRank(b.severity)
+    if (severityDelta !== 0) {
+      return severityDelta
+    }
+    if (b.count !== a.count) {
+      return b.count - a.count
+    }
+    return a.indexes[0] - b.indexes[0]
+  })
 }
 
 export function PlaygroundView({ sessionId }: { sessionId?: number }) {
@@ -764,6 +808,7 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
                     const warnings = severityCount(tool.findings, 'warning')
                     const notes = severityCount(tool.findings, 'note')
                     const maxSeverity = Math.max(errors, warnings, notes, 1)
+                    const groupedFindings = groupFindings(tool.findings)
 
                     return (
                       <div key={tool.id} className="rounded-lg border border-stone-200 bg-white p-3 dark:border-white/10 dark:bg-zinc-950">
@@ -822,21 +867,30 @@ export function PlaygroundView({ sessionId }: { sessionId?: number }) {
 
                         {tool.findings.length > 0 ? (
                           <div className="mb-4">
-                            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalFindingsTable')}</div>
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('technicalFindingsTable')}</div>
+                              <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                                {t('technicalCoverageHint', { raw: tool.findings.length, unique: groupedFindings.length })}
+                              </div>
+                            </div>
                             <Table dense striped>
                               <TableHead>
                                 <TableRow>
                                   <TableHeader>{t('technicalSeverity')}</TableHeader>
                                   <TableHeader>{t('technicalCategory')}</TableHeader>
                                   <TableHeader>{t('technicalMessage')}</TableHeader>
+                                  <TableHeader>{t('technicalCount')}</TableHeader>
+                                  <TableHeader>{t('technicalIndexes')}</TableHeader>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {tool.findings.map((finding, index) => (
-                                  <TableRow key={`${tool.id}-${index}`}>
+                                {groupedFindings.map((finding, index) => (
+                                  <TableRow key={`${tool.id}-${index}-${finding.severity}-${finding.category}-${finding.message}`}>
                                     <TableCell className="capitalize">{finding.severity}</TableCell>
                                     <TableCell>{finding.category || 'general'}</TableCell>
                                     <TableCell className="whitespace-normal">{finding.message || '-'}</TableCell>
+                                    <TableCell>{finding.count}</TableCell>
+                                    <TableCell>{finding.indexes.join(', ')}</TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
