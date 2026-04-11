@@ -177,6 +177,180 @@ func CurrentHeuristicRuleSpecs() []RuleSpec {
 	}
 }
 
+// CurrentDeterministicRuleSpecs is the shared metadata registry for deterministic
+// analyzer ownership and applicability across heuristic + third-party analyzers.
+func CurrentDeterministicRuleSpecs() []RuleSpec {
+	specs := append([]RuleSpec{}, CurrentHeuristicRuleSpecs()...)
+	specs = append(specs,
+		RuleSpec{
+			ID:             "nlp.global.clarity",
+			Title:          "Global Clarity Ownership",
+			Layer:          LayerGlobal,
+			Owner:          OwnerNLP,
+			Category:       "clarity",
+			Purpose:        "Primary owner for discourse-level clarity findings.",
+			FallbackPolicy: FallbackWhenOwner,
+		},
+		RuleSpec{
+			ID:             "nlp.global.structure",
+			Title:          "Global Structure Ownership",
+			Layer:          LayerGlobal,
+			Owner:          OwnerNLP,
+			Category:       "structure",
+			Purpose:        "Primary owner for discourse-level structural findings.",
+			FallbackPolicy: FallbackWhenOwner,
+		},
+		RuleSpec{
+			ID:             "nlp.global.readability",
+			Title:          "Global Readability Ownership",
+			Layer:          LayerGlobal,
+			Owner:          OwnerNLP,
+			Category:       "readability",
+			Purpose:        "Primary owner for readability and flow findings.",
+			FallbackPolicy: FallbackWhenOwner,
+		},
+		RuleSpec{
+			ID:             "languagetool.global.mechanics",
+			Title:          "Global Mechanics Ownership",
+			Layer:          LayerGlobal,
+			Owner:          OwnerLanguageTool,
+			Category:       "mechanics",
+			Purpose:        "Primary owner for grammar/spelling/punctuation findings.",
+			FallbackPolicy: FallbackNever,
+		},
+		RuleSpec{
+			ID:             "vale.global.style_policy",
+			Title:          "Global Style Policy Ownership",
+			Layer:          LayerGlobal,
+			Owner:          OwnerVale,
+			Category:       "style policy",
+			Purpose:        "Primary owner for style-guide policy findings.",
+			FallbackPolicy: FallbackNever,
+		},
+		RuleSpec{
+			ID:       "nlp.domain.narrative_progression",
+			Title:    "Domain Narrative Progression Ownership",
+			Layer:    LayerDomain,
+			Owner:    OwnerNLP,
+			Category: "narrative progression",
+			AppliesWhen: AppliesWhen{
+				Domains: []string{DomainFiction, DomainFantasy},
+			},
+			Purpose:        "Primary owner for fiction/fantasy progression findings.",
+			FallbackPolicy: FallbackWhenOwner,
+		},
+		RuleSpec{
+			ID:       "nlp.domain.instructional_completeness",
+			Title:    "Domain Instructional Completeness Ownership",
+			Layer:    LayerDomain,
+			Owner:    OwnerNLP,
+			Category: "instructional completeness",
+			AppliesWhen: AppliesWhen{
+				Domains: []string{DomainTechnical},
+			},
+			Purpose:        "Primary owner for technical instructional completeness findings.",
+			FallbackPolicy: FallbackWhenOwner,
+		},
+		RuleSpec{
+			ID:       "nlp.domain.argument_support",
+			Title:    "Domain Argument Support Ownership",
+			Layer:    LayerDomain,
+			Owner:    OwnerNLP,
+			Category: "argument support",
+			AppliesWhen: AppliesWhen{
+				Domains: []string{DomainAcademic, DomainThoughtLeadership},
+			},
+			Purpose:        "Primary owner for claim/evidence support findings.",
+			FallbackPolicy: FallbackWhenOwner,
+		},
+		RuleSpec{
+			ID:       "heuristic.domain.actionability",
+			Title:    "Domain Actionability Ownership",
+			Layer:    LayerDomain,
+			Owner:    OwnerHeuristic,
+			Category: "actionability",
+			AppliesWhen: AppliesWhen{
+				Domains: []string{DomainProfessional},
+			},
+			Purpose:        "Primary owner for professional writing actionability findings.",
+			FallbackPolicy: FallbackNever,
+		},
+		RuleSpec{
+			ID:       "nlp.domain.message_hierarchy",
+			Title:    "Domain Message Hierarchy Ownership",
+			Layer:    LayerDomain,
+			Owner:    OwnerNLP,
+			Category: "message hierarchy",
+			AppliesWhen: AppliesWhen{
+				Domains: []string{DomainMarketing},
+			},
+			Purpose:        "Primary owner for message hierarchy findings in marketing contexts.",
+			FallbackPolicy: FallbackWhenOwner,
+		},
+		RuleSpec{
+			ID:       "heuristic.specialty.memo_execution",
+			Title:    "Specialty Memo Execution Ownership",
+			Layer:    LayerSpecialty,
+			Owner:    OwnerHeuristic,
+			Category: "memo execution",
+			AppliesWhen: AppliesWhen{
+				Specialties: []string{"memo"},
+			},
+			Purpose:        "Primary owner for memo-specific execution findings.",
+			FallbackPolicy: FallbackNever,
+		},
+		RuleSpec{
+			ID:       "heuristic.specialty.cta_architecture",
+			Title:    "Specialty CTA Architecture Ownership",
+			Layer:    LayerSpecialty,
+			Owner:    OwnerHeuristic,
+			Category: "cta architecture",
+			AppliesWhen: AppliesWhen{
+				Specialties: []string{"landing_page"},
+			},
+			Purpose:        "Primary owner for landing-page CTA architecture findings.",
+			FallbackPolicy: FallbackNever,
+		},
+		RuleSpec{
+			ID:       "heuristic.specialty.grant_compliance_framing",
+			Title:    "Specialty Grant Compliance Framing Ownership",
+			Layer:    LayerSpecialty,
+			Owner:    OwnerHeuristic,
+			Category: "grant compliance framing",
+			AppliesWhen: AppliesWhen{
+				Specialties: []string{"grant"},
+			},
+			Purpose:        "Primary owner for grant framing findings.",
+			FallbackPolicy: FallbackNever,
+		},
+		RuleSpec{
+			ID:       "heuristic.specialty.poetic_craft_proxies",
+			Title:    "Specialty Poetic Craft Proxy Ownership",
+			Layer:    LayerSpecialty,
+			Owner:    OwnerHeuristic,
+			Category: "poetic craft proxies",
+			AppliesWhen: AppliesWhen{
+				Specialties: []string{"poetry"},
+			},
+			Purpose:        "Primary owner for poetry specialty deterministic proxies.",
+			FallbackPolicy: FallbackNever,
+		},
+		RuleSpec{
+			ID:       "heuristic.specialty.structure_poetry_override",
+			Title:    "Specialty Structure Ownership Override (Poetry)",
+			Layer:    LayerSpecialty,
+			Owner:    OwnerHeuristic,
+			Category: "structure",
+			AppliesWhen: AppliesWhen{
+				Specialties: []string{"poetry"},
+			},
+			Purpose:        "Poetry specialty overrides global structure ownership.",
+			FallbackPolicy: FallbackNever,
+		},
+	)
+	return specs
+}
+
 func heuristicRuleIndex() map[string]RuleSpec {
 	index := make(map[string]RuleSpec)
 	for _, spec := range CurrentHeuristicRuleSpecs() {

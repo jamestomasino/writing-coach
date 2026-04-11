@@ -365,6 +365,45 @@ func TestThoughtLeadershipSignpostingPenalizesTopicDrift(t *testing.T) {
 	}
 }
 
+func TestTopScoreGateFailureIgnoresMissingOptionalMetrics(t *testing.T) {
+	gate := TopScoreGate{
+		MinMetrics: map[string]int{
+			"nlp_claim_evidence_coverage": 60,
+		},
+		MaxMetrics: map[string]int{
+			"nlp_topic_drift_score": 45,
+		},
+	}
+
+	evidence := &ScoreEvidence{MetricSnapshot: map[string]int{}}
+	reportMissing := analyzer.Report{
+		Metrics: map[string]int{
+			"word_count": 700,
+		},
+	}
+	if reason := topScoreGateFailure(gate, reportMissing, map[string]int{}, evidence); reason != "" {
+		t.Fatalf("expected missing optional gate metrics to pass, got reason %q", reason)
+	}
+
+	reportMinViolation := analyzer.Report{
+		Metrics: map[string]int{
+			"nlp_claim_evidence_coverage": 20,
+		},
+	}
+	if reason := topScoreGateFailure(gate, reportMinViolation, map[string]int{}, evidence); reason == "" {
+		t.Fatal("expected min-metric violation to fail top score gate")
+	}
+
+	reportMaxViolation := analyzer.Report{
+		Metrics: map[string]int{
+			"nlp_topic_drift_score": 90,
+		},
+	}
+	if reason := topScoreGateFailure(gate, reportMaxViolation, map[string]int{}, evidence); reason == "" {
+		t.Fatal("expected max-metric violation to fail top score gate")
+	}
+}
+
 func cloneMetrics(input map[string]int) map[string]int {
 	out := make(map[string]int, len(input))
 	for key, value := range input {

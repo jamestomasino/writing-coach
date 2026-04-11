@@ -33,11 +33,14 @@ export async function fillTrackForm(page: Page, suffix: string) {
   await page.getByRole('checkbox', { name: 'build revision discipline' }).check()
 }
 
-export async function createTrack(page: Page, suffix: string) {
+export async function createTrack(page: Page, suffix: string, options?: { writingTypeIndex?: number }) {
   await fillTrackForm(page, suffix)
+  if (typeof options?.writingTypeIndex === 'number') {
+    await page.getByLabel('What kind of writing is this for?').selectOption({ index: options.writingTypeIndex })
+  }
   await Promise.all([
-    page.waitForURL(/\/new-assignment/),
     page.getByTestId('save-track-button').click(),
+    page.waitForURL(/\/(?:new-assignment)?$/),
   ])
 }
 
@@ -68,4 +71,26 @@ export async function createFirstAssignment(page: Page) {
 
 export async function openTrackMenu(page: Page) {
   await page.getByTestId('active-track-button').click()
+}
+
+export async function switchToOtherTrack(page: Page, options?: { requireChange?: boolean }) {
+  const requireChange = options?.requireChange ?? true
+  const activeLabel = ((await page.getByTestId('active-track-button').textContent()) ?? '').trim()
+  const trackOptions = page.locator('[data-testid^="track-option-"]')
+  const count = await trackOptions.count()
+  for (let index = 0; index < count; index += 1) {
+    await trackOptions.nth(index).click()
+    await page.waitForTimeout(150)
+    const nextLabel = ((await page.getByTestId('active-track-button').textContent()) ?? '').trim()
+    if (nextLabel !== '' && nextLabel !== activeLabel) {
+      return true
+    }
+    if (index < count - 1) {
+      await openTrackMenu(page)
+    }
+  }
+  if (requireChange) {
+    throw new Error('No non-active track option found to switch to')
+  }
+  return false
 }

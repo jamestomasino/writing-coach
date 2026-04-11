@@ -19,18 +19,24 @@ func (s Service) Analyze(ctx context.Context, text string) Report {
 }
 
 func (s Service) AnalyzeWithContext(ctx context.Context, text string, options ContextOptions) Report {
-	var reports []Report
+	var results []analyzerReportResult
 	for _, analyzer := range s.analyzers {
 		report, err := analyzeWithOptions(ctx, analyzer, text, options)
 		if err != nil {
-			reports = append(reports, Report{
-				Warnings: []string{analyzer.Name() + ": " + err.Error()},
+			results = append(results, analyzerReportResult{
+				analyzer: analyzer.Name(),
+				report: Report{
+					Warnings: []string{analyzer.Name() + ": " + err.Error()},
+				},
 			})
 			continue
 		}
-		reports = append(reports, report)
+		results = append(results, analyzerReportResult{
+			analyzer: analyzer.Name(),
+			report:   report,
+		})
 	}
-	return Merge(reports...)
+	return mergeWithCoverageArbitration(options, results...)
 }
 
 func analyzeWithOptions(ctx context.Context, analyzer Analyzer, text string, options ContextOptions) (Report, error) {

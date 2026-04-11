@@ -522,16 +522,10 @@ func deterministicAssessments(activeTGOs []domain.TGO, report analyzer.Report) [
 }
 
 func reviewTGOs(active []domain.TGO, allowUnscoped bool) []domain.TGO {
-	if len(active) == 3 || (allowUnscoped && len(active) == 0) {
+	if len(active) > 0 || (allowUnscoped && len(active) == 0) {
 		return active
 	}
-	var out []domain.TGO
-	for _, code := range []string{"story-causal-clarity", "story-scene-architecture", "story-prose-precision"} {
-		if tgo, ok := domain.TGOByCode(code); ok {
-			out = append(out, tgo)
-		}
-	}
-	return out
+	return nil
 }
 
 func deterministicCompletedChecks(completedTGOs []domain.TGO, report analyzer.Report) []domain.TGOAssessment {

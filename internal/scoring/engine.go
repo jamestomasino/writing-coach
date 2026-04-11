@@ -419,10 +419,11 @@ func topScoreGateFailure(gate TopScoreGate, report analyzer.Report, categoryHist
 		for _, metric := range keys {
 			min := gate.MinMetrics[metric]
 			value, ok := report.Metrics[metric]
-			if ok {
-				evidence.MetricSnapshot[metric] = value
+			if !ok {
+				continue
 			}
-			if !ok || value < min {
+			evidence.MetricSnapshot[metric] = value
+			if value < min {
 				return fmt.Sprintf("%s >= %d required", metric, min)
 			}
 		}
@@ -432,10 +433,11 @@ func topScoreGateFailure(gate TopScoreGate, report analyzer.Report, categoryHist
 		for _, metric := range keys {
 			max := gate.MaxMetrics[metric]
 			value, ok := report.Metrics[metric]
-			if ok {
-				evidence.MetricSnapshot[metric] = value
+			if !ok {
+				continue
 			}
-			if !ok || value > max {
+			evidence.MetricSnapshot[metric] = value
+			if value > max {
 				return fmt.Sprintf("%s <= %d required", metric, max)
 			}
 		}

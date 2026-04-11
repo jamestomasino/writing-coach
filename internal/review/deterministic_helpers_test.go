@@ -93,7 +93,17 @@ func TestDeterministicReviewerReviewSubmissionLanguageFallbackAndDefaultScope(t 
 	}
 
 	scoped := reviewTGOs([]domain.TGO{{Code: "a"}}, false)
-	if len(scoped) != 3 {
-		t.Fatalf("reviewTGOs fallback = %#v", scoped)
+	if len(scoped) != 1 || scoped[0].Code != "a" {
+		t.Fatalf("reviewTGOs scoped = %#v", scoped)
+	}
+
+	unscopedDisallowed := reviewTGOs(nil, false)
+	if len(unscopedDisallowed) != 0 {
+		t.Fatalf("reviewTGOs unscoped disallowed = %#v", unscopedDisallowed)
+	}
+
+	unscopedAllowed := reviewTGOs(nil, true)
+	if len(unscopedAllowed) != 0 {
+		t.Fatalf("reviewTGOs unscoped allowed = %#v", unscopedAllowed)
 	}
 }
