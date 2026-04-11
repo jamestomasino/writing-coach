@@ -171,9 +171,17 @@ export async function updatePlaygroundSession(sessionId: number, input: Playgrou
   return payload.session
 }
 
-export async function getPlaygroundSessions(limit = 50) {
-  const payload = await request<{ sessions: PlaygroundSession[] }>(`/api/playground/sessions?limit=${limit}`)
-  return arrayOrEmpty(payload.sessions)
+export async function getPlaygroundSessions(limit = 50, cursor?: number) {
+  const query = new URLSearchParams()
+  query.set('limit', String(limit))
+  if (typeof cursor === 'number' && Number.isFinite(cursor) && cursor > 0) {
+    query.set('cursor', String(cursor))
+  }
+  const payload = await request<{ sessions: PlaygroundSession[]; next_cursor?: number }>(`/api/playground/sessions?${query.toString()}`)
+  return {
+    sessions: arrayOrEmpty(payload.sessions),
+    nextCursor: typeof payload.next_cursor === 'number' ? payload.next_cursor : undefined,
+  }
 }
 
 export async function getPlaygroundSession(sessionId: number) {

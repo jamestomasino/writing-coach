@@ -378,6 +378,8 @@
     "emptyBody": "Saved Playground drafts and reviews will show up here.",
     "startNewReview": "Start new review",
     "openSession": "Open",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more…",
     "latestReview": "Latest review {datetime}",
     "updated": "Updated {datetime}",
     "reviewCount": "{count} reviews",
