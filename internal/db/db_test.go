@@ -681,3 +681,100 @@ func TestUpdateProgressionHoldStateIsEnrollmentScoped(t *testing.T) {
 		t.Fatal("expected technical enrollment hold to remain inactive")
 	}
 }
+
+func TestSaveAndLoadDecisionEventsByReview(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, treeID, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+	exerciseID, err := store.SaveExercise(ctx, domain.Exercise{
+		UserID:          userID,
+		TreeID:          treeID,
+		Title:           "Decision events",
+		Brief:           "Test payload.",
+		Constraints:     []string{"one paragraph"},
+		FocusSkills:     []string{"narrative clarity"},
+		SuccessCriteria: []string{"show cause and consequence"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := store.SaveSubmission(ctx, domain.Submission{
+		UserID:     userID,
+		TreeID:     treeID,
+		ExerciseID: exerciseID,
+		Content:    "A short draft.",
+		WordCount:  3,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	reviewID, err := store.SaveReview(ctx, domain.Review{
+		UserID:           userID,
+		TreeID:           treeID,
+		SubmissionID:     submissionID,
+		ReviewKind:       "deterministic",
+		Summary:          "ok",
+		Strengths:        []string{"clear"},
+		Weaknesses:       []string{"thin detail"},
+		AnalyzerFindings: []string{"finding"},
+		NextFocus:        "Causal Clarity",
+		MetricWordCount:  3,
+	}, []domain.SkillScore{{SubmissionID: submissionID, Skill: "narrative clarity", Score: 3}})
+	if err != nil {
+		t.Fatalf("save review: %v", err)
+	}
+
+	if err := store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              userID,
+		TreeID:              treeID,
+		EnrollmentID:        enrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        submissionID,
+		EventType:           "review_scored",
+		DecisionPayloadJSON: `{"review_kind":"deterministic"}`,
+		RuleVersion:         "deterministic-scoring-v1",
+		EvidenceRefsJSON:    `["submission_skill_scores"]`,
+	}); err != nil {
+		t.Fatalf("save decision event review_scored: %v", err)
+	}
+	if err := store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              userID,
+		TreeID:              treeID,
+		EnrollmentID:        enrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        submissionID,
+		EventType:           "recommendation_issued",
+		DecisionPayloadJSON: `{"focus":"Causal Clarity"}`,
+		RuleVersion:         "curriculum-sync-v1",
+		EvidenceRefsJSON:    `["recommendation"]`,
+	}); err != nil {
+		t.Fatalf("save decision event recommendation_issued: %v", err)
+	}
+
+	events, err := store.DecisionEventsByReview(ctx, reviewID)
+	if err != nil {
+		t.Fatalf("decision events by review: %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("decision events len = %d", len(events))
+	}
+	if events[0].EventType != "review_scored" || events[1].EventType != "recommendation_issued" {
+		t.Fatalf("unexpected decision events = %#v", events)
+	}
+}

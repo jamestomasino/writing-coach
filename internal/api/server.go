@@ -688,6 +688,10 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	if err := s.Store.UpdateProgressionHoldState(ctx, job.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID); err != nil {
 		return fmt.Errorf("update progression hold state: %w", err)
 	}
+	reviewResult.Review.ID = reviewID
+	if err := s.emitReviewDecisionEvents(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, recommendation, len(reviewResult.Scores)); err != nil {
+		return fmt.Errorf("save decision events: %w", err)
+	}
 	if err := s.Store.CompleteReviewJob(ctx, job.ID, reviewID); err != nil {
 		return fmt.Errorf("complete review job: %w", err)
 	}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -356,6 +357,45 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		return err
 	}
 	if err := c.Store.UpdateProgressionHoldState(ctx, c.AppContext.EnrollmentID, recommendation.HoldActive, recommendation.HoldReasonCode, reviewID); err != nil {
+		return err
+	}
+	reviewScoredPayload, _ := json.Marshal(map[string]any{
+		"review_kind":       reviewResult.ReviewKind,
+		"provider_note":     reviewResult.ProviderNote,
+		"score_row_count":   len(scores),
+		"analyzer_findings": len(reviewResult.AnalyzerFindings),
+	})
+	if err := c.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              c.AppContext.UserID,
+		TreeID:              c.AppContext.TreeID,
+		EnrollmentID:        c.AppContext.EnrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        reviewResult.SubmissionID,
+		EventType:           "review_scored",
+		DecisionPayloadJSON: string(reviewScoredPayload),
+		RuleVersion:         "deterministic-scoring-v1",
+		EvidenceRefsJSON:    `["analyzer_report","submission_skill_scores"]`,
+	}); err != nil {
+		return err
+	}
+	recommendationPayload, _ := json.Marshal(map[string]any{
+		"focus":            recommendation.Focus,
+		"difficulty":       recommendation.Difficulty,
+		"hold_active":      recommendation.HoldActive,
+		"hold_reason_code": recommendation.HoldReasonCode,
+		"rationale":        recommendation.Rationale,
+	})
+	if err := c.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              c.AppContext.UserID,
+		TreeID:              c.AppContext.TreeID,
+		EnrollmentID:        c.AppContext.EnrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        reviewResult.SubmissionID,
+		EventType:           "recommendation_issued",
+		DecisionPayloadJSON: string(recommendationPayload),
+		RuleVersion:         "curriculum-sync-v1",
+		EvidenceRefsJSON:    `["recommendation","completed_tgo_checks","tgo_assessments"]`,
+	}); err != nil {
 		return err
 	}
 
