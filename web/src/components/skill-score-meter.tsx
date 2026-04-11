@@ -1,4 +1,5 @@
 import type { SkillScore } from '@/lib/types'
+import { useTranslations } from 'next-intl'
 
 function toneClasses(score: number) {
   switch (score) {
@@ -42,6 +43,7 @@ export function SkillScoreMeter({
   score: Pick<SkillScore, 'skill' | 'score' | 'score_source' | 'score_version' | 'score_evidence'>
   compact?: boolean
 }) {
+  const t = useTranslations('skillScoreMeter')
   const value = Math.max(1, Math.min(5, score.score))
   const tone = toneClasses(value)
   const source = typeof score.score_source === 'string' ? score.score_source.trim() : ''
@@ -52,6 +54,7 @@ export function SkillScoreMeter({
     : []
   const domain = typeof evidence?.domain === 'string' ? evidence.domain : ''
   const findings = typeof evidence?.finding_count === 'number' ? evidence.finding_count : undefined
+  const meaning = value >= 4 ? t('meaningStrong') : value === 3 ? t('meaningMixed') : t('meaningNeedsWork')
 
   return (
     <div className={compact ? 'space-y-2' : 'space-y-2.5'}>
@@ -70,15 +73,17 @@ export function SkillScoreMeter({
           <div key={index} className={`h-2 rounded-full ${index < value ? tone.filled : tone.empty}`} />
         ))}
       </div>
+      {!compact ? <div className="text-xs text-zinc-600 dark:text-zinc-400">{meaning}</div> : null}
       {!compact && evidence ? (
         <details className="rounded-lg border border-stone-200 px-3 py-2 text-xs text-zinc-700 dark:border-white/10 dark:text-zinc-300">
-          <summary className="cursor-pointer font-medium text-zinc-900 dark:text-white">Evidence</summary>
+          <summary className="cursor-pointer font-medium text-zinc-900 dark:text-white">{t('whyThisScore')}</summary>
           <div className="mt-2 space-y-1">
-            {domain ? <div>Domain: {domain}</div> : null}
-            {typeof findings === 'number' ? <div>Findings: {findings}</div> : null}
+            <div>{t('evidenceIntro')}</div>
+            {domain ? <div>{t('domainLabel', { value: domain })}</div> : null}
+            {typeof findings === 'number' ? <div>{t('findingsLabel', { count: findings })}</div> : null}
             {appliedRules.length > 0 ? (
               <div>
-                <div>Rules:</div>
+                <div>{t('checksLabel')}</div>
                 <ul className="ml-4 list-disc">
                   {appliedRules.slice(0, 3).map((rule) => (
                     <li key={rule}>{rule}</li>
@@ -86,6 +91,7 @@ export function SkillScoreMeter({
                 </ul>
               </div>
             ) : null}
+            <div className="pt-1 text-zinc-600 dark:text-zinc-400">{t('voiceNote')}</div>
           </div>
         </details>
       ) : null}
