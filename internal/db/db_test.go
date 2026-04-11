@@ -778,3 +778,112 @@ func TestSaveAndLoadDecisionEventsByReview(t *testing.T) {
 		t.Fatalf("unexpected decision events = %#v", events)
 	}
 }
+
+func TestPedagogyIntegritySnapshot(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, treeID, enrollmentID, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+	exerciseID, err := store.SaveExercise(ctx, domain.Exercise{
+		UserID:          userID,
+		TreeID:          treeID,
+		Title:           "Snapshot",
+		Brief:           "brief",
+		Constraints:     []string{"one paragraph"},
+		FocusSkills:     []string{"narrative clarity"},
+		SuccessCriteria: []string{"clear causality"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := store.SaveSubmission(ctx, domain.Submission{
+		UserID:     userID,
+		TreeID:     treeID,
+		ExerciseID: exerciseID,
+		Content:    "test",
+		WordCount:  1,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	reviewID, err := store.SaveReview(ctx, domain.Review{
+		UserID:           userID,
+		TreeID:           treeID,
+		SubmissionID:     submissionID,
+		ReviewKind:       "deterministic",
+		Summary:          "ok",
+		Strengths:        []string{"s"},
+		Weaknesses:       []string{"w"},
+		AnalyzerFindings: []string{"f"},
+		NextFocus:        "Causal Clarity",
+		MetricWordCount:  1,
+	}, nil)
+	if err != nil {
+		t.Fatalf("save review: %v", err)
+	}
+	if err := store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              userID,
+		TreeID:              treeID,
+		EnrollmentID:        enrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        submissionID,
+		EventType:           "review_scored",
+		DecisionPayloadJSON: `{"review_kind":"deterministic"}`,
+		RuleVersion:         "deterministic-scoring-v1",
+		EvidenceRefsJSON:    `["submission_skill_scores"]`,
+	}); err != nil {
+		t.Fatalf("save review_scored event: %v", err)
+	}
+	if err := store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              userID,
+		TreeID:              treeID,
+		EnrollmentID:        enrollmentID,
+		EventType:           "progression_hold_blocked",
+		DecisionPayloadJSON: `{"reason_code":"completed_tgo_slipping"}`,
+		RuleVersion:         "progression-hold-block-v1",
+		EvidenceRefsJSON:    `["user_curriculum_state"]`,
+	}); err != nil {
+		t.Fatalf("save blocked event: %v", err)
+	}
+	if err := store.UpdateProgressionHoldState(ctx, enrollmentID, true, "completed_tgo_slipping", reviewID); err != nil {
+		t.Fatalf("activate hold state: %v", err)
+	}
+
+	snapshot, err := store.PedagogyIntegritySnapshot(ctx, time.Now().UTC().Add(-24*time.Hour), 24)
+	if err != nil {
+		t.Fatalf("pedagogy integrity snapshot: %v", err)
+	}
+	if snapshot.TotalReviews < 1 {
+		t.Fatalf("total reviews = %d", snapshot.TotalReviews)
+	}
+	if snapshot.ReviewScoredEvents < 1 {
+		t.Fatalf("review scored events = %d", snapshot.ReviewScoredEvents)
+	}
+	if snapshot.RecommendationEvents != 0 {
+		t.Fatalf("recommendation events = %d", snapshot.RecommendationEvents)
+	}
+	if snapshot.ReviewsMissingDecisionEvents < 1 {
+		t.Fatalf("missing decision events = %d", snapshot.ReviewsMissingDecisionEvents)
+	}
+	if snapshot.HoldBlockedEvents < 1 {
+		t.Fatalf("hold blocked events = %d", snapshot.HoldBlockedEvents)
+	}
+	if snapshot.ActiveHoldEnrollments < 1 {
+		t.Fatalf("active hold enrollments = %d", snapshot.ActiveHoldEnrollments)
+	}
+}

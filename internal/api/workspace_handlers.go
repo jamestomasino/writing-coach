@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -885,6 +886,22 @@ func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext sessio
 			reason := strings.TrimSpace(state.ProgressionHoldReasonCode)
 			if reason == "" {
 				reason = "progression_hold_active"
+			}
+			payload, _ := json.Marshal(map[string]any{
+				"reason_code":         reason,
+				"current_tgo_codes":   current,
+				"requested_tgo_codes": selected,
+			})
+			if err := s.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+				UserID:              appContext.UserID,
+				TreeID:              appContext.TreeID,
+				EnrollmentID:        appContext.EnrollmentID,
+				EventType:           "progression_hold_blocked",
+				DecisionPayloadJSON: string(payload),
+				RuleVersion:         "progression-hold-block-v1",
+				EvidenceRefsJSON:    `["user_curriculum_state","enrollment_active_tgos"]`,
+			}); err != nil {
+				log.Printf("progression hold blocked event: user=%d enrollment=%d err=%v", appContext.UserID, appContext.EnrollmentID, err)
 			}
 			return fmt.Errorf("active objective changes are blocked while progression hold is active (%s)", reason)
 		}

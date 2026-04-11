@@ -108,6 +108,21 @@ function approvalBadgeColor(status: string) {
   }
 }
 
+function integritySeverityBadgeColor(status: string) {
+  switch (status) {
+    case 'high':
+      return 'rose'
+    case 'medium':
+      return 'amber'
+    case 'info':
+      return 'sky'
+    case 'ok':
+      return 'green'
+    default:
+      return 'zinc'
+  }
+}
+
 type EventSortKey = 'created_at' | 'provider' | 'event' | 'category' | 'status_code' | 'user'
 
 function compareValues(left: string | number, right: string | number) {
@@ -149,6 +164,7 @@ export function AdminView() {
     calibrationNotifications,
     calibrationUnreadCount,
     calibrationSettings,
+    pedagogyIntegrity,
     loadingCalibration,
     runningCalibration,
     triggerCalibrationRun,
@@ -411,6 +427,53 @@ export function AdminView() {
           </>
         ) : (
           <Text className="mt-4 text-sm">{t('noProviderActivity')}</Text>
+        )}
+      </WorkspaceCard>
+
+      <WorkspaceCard>
+        <CardHeader
+          eyebrow={t('integrityEyebrow')}
+          title={t('integrityTitle')}
+          description={t('integrityDescription')}
+        />
+        {pedagogyIntegrity ? (
+          <>
+            <div className="mt-5 grid gap-4 md:grid-cols-4">
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('integrityReviews')}</div>
+                <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{pedagogyIntegrity.total_reviews}</div>
+                <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  {t('integritySince', { time: formatLocalDateTime(pedagogyIntegrity.since) ?? pedagogyIntegrity.since })}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('integrityMissingDecisionEvents')}</div>
+                <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{pedagogyIntegrity.reviews_missing_decision_events}</div>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('integrityActiveHolds')}</div>
+                <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{pedagogyIntegrity.active_hold_enrollments}</div>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t('integrityHoldBlocks')}</div>
+                <div className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">{pedagogyIntegrity.hold_blocked_events}</div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {pedagogyIntegrity.alerts.map((alert) => (
+                <Badge key={`${alert.code}-${alert.severity}`} color={integritySeverityBadgeColor(alert.severity)}>
+                  {alert.severity}: {alert.code}
+                </Badge>
+              ))}
+            </div>
+            <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+              {pedagogyIntegrity.alerts.map((alert) => (
+                <li key={`${alert.code}-message`}>• {alert.message}</li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <Text className="mt-4 text-sm">{t('integrityEmpty')}</Text>
         )}
       </WorkspaceCard>
 

@@ -4927,6 +4927,138 @@ func TestAdminCalibrationEndpointsRunAndReadNotifications(t *testing.T) {
 	}
 }
 
+func TestAdminPedagogyIntegrityEndpoint(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	enrollmentID, err := harness.Store.ActiveEnrollmentIDByUserID(ctx, user.ID)
+	if err != nil {
+		t.Fatalf("lookup enrollment: %v", err)
+	}
+
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Integrity sample",
+		Brief:           "Sample brief",
+		Constraints:     []string{"single paragraph"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity"},
+		SuccessCriteria: []string{"clear turn"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "A focused scene with a clear turn.",
+		WordCount:  8,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	reviewID, err := harness.Store.SaveReview(ctx, domain.Review{
+		UserID:           user.ID,
+		TreeID:           tree.ID,
+		SubmissionID:     submissionID,
+		ReviewKind:       "deterministic",
+		Summary:          "Summary",
+		Strengths:        []string{"s"},
+		Weaknesses:       []string{"w"},
+		AnalyzerFindings: []string{"f"},
+		NextFocus:        "narrative clarity",
+		MetricWordCount:  8,
+	}, []domain.SkillScore{{SubmissionID: submissionID, Skill: "narrative clarity", Score: 3}})
+	if err != nil {
+		t.Fatalf("save review: %v", err)
+	}
+
+	// Deliberately incomplete event coverage for this review to force an alert.
+	if err := harness.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              user.ID,
+		TreeID:              tree.ID,
+		EnrollmentID:        enrollmentID,
+		ReviewID:            reviewID,
+		SubmissionID:        submissionID,
+		EventType:           "review_scored",
+		DecisionPayloadJSON: `{"review_kind":"deterministic"}`,
+		RuleVersion:         "deterministic-scoring-v1",
+		EvidenceRefsJSON:    `["submission_skill_scores"]`,
+	}); err != nil {
+		t.Fatalf("save decision event: %v", err)
+	}
+	if err := harness.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              user.ID,
+		TreeID:              tree.ID,
+		EnrollmentID:        enrollmentID,
+		EventType:           "progression_hold_blocked",
+		DecisionPayloadJSON: `{"reason_code":"completed_tgo_slipping"}`,
+		RuleVersion:         "progression-hold-block-v1",
+		EvidenceRefsJSON:    `["user_curriculum_state"]`,
+	}); err != nil {
+		t.Fatalf("save blocked event: %v", err)
+	}
+
+	resp, err := http.Get(testServer.URL + "/api/admin/pedagogy-integrity?hours=168")
+	if err != nil {
+		t.Fatalf("get pedagogy integrity: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("pedagogy integrity status = %d", resp.StatusCode)
+	}
+
+	var payload struct {
+		Integrity struct {
+			WindowHours                  int `json:"window_hours"`
+			TotalReviews                 int `json:"total_reviews"`
+			ReviewsMissingDecisionEvents int `json:"reviews_missing_decision_events"`
+			HoldBlockedEvents            int `json:"hold_blocked_events"`
+			Alerts                       []struct {
+				Code string `json:"code"`
+			} `json:"alerts"`
+		} `json:"integrity"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode pedagogy integrity payload: %v", err)
+	}
+	if payload.Integrity.WindowHours != 168 {
+		t.Fatalf("window hours = %d", payload.Integrity.WindowHours)
+	}
+	if payload.Integrity.TotalReviews < 1 {
+		t.Fatalf("total reviews = %d", payload.Integrity.TotalReviews)
+	}
+	if payload.Integrity.ReviewsMissingDecisionEvents < 1 {
+		t.Fatalf("missing decision events = %d", payload.Integrity.ReviewsMissingDecisionEvents)
+	}
+	if payload.Integrity.HoldBlockedEvents < 1 {
+		t.Fatalf("hold blocked events = %d", payload.Integrity.HoldBlockedEvents)
+	}
+	foundMissing := false
+	for _, alert := range payload.Integrity.Alerts {
+		if alert.Code == "missing_decision_events" {
+			foundMissing = true
+			break
+		}
+	}
+	if !foundMissing {
+		t.Fatalf("expected missing_decision_events alert, got %#v", payload.Integrity.Alerts)
+	}
+}
+
 func TestKratosWhoamiAuthMiddleware(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	user, err := harness.Store.UserBySlug(context.Background(), "tester")

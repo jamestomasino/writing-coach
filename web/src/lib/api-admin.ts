@@ -6,6 +6,7 @@ import type {
   AdminNotification,
   CalibrationRun,
   CalibrationSettings,
+  PedagogyIntegrity,
   UserRecord,
 } from './types'
 
@@ -56,6 +57,13 @@ export async function getAdminCalibrationDashboard(limit = 20, notificationsLimi
 
 export async function runAdminCalibration() {
   return request<{ run: CalibrationRun }>('/api/admin/calibration/run', { method: 'POST' })
+}
+
+export async function getAdminPedagogyIntegrity(hours = 24 * 7) {
+  const params = new URLSearchParams({
+    hours: String(hours),
+  })
+  return request<{ integrity: PedagogyIntegrity }>(`/api/admin/pedagogy-integrity?${params.toString()}`)
 }
 
 export async function markAdminCalibrationNotificationRead(id: number) {
