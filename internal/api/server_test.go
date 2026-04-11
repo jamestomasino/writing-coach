@@ -1073,6 +1073,97 @@ func TestPlaygroundReviewEndpointPersistsSessionAndKeepsAssignmentReviewHistoryC
 	}
 }
 
+func TestReviewSubmissionEmitsDecisionEvents(t *testing.T) {
+	harness := newTestHarnessWithAuth(t, "", "")
+	testServer := newTestServerWithStore(t, harness.Store, "", "")
+	defer testServer.Close()
+
+	ctx := context.Background()
+	user, err := harness.Store.UserBySlug(ctx, "tester")
+	if err != nil {
+		t.Fatalf("lookup user: %v", err)
+	}
+	tree, err := harness.Store.TreeBySlug(ctx, "story-craft-track")
+	if err != nil {
+		t.Fatalf("lookup tree: %v", err)
+	}
+	exerciseID, err := harness.Store.SaveExercise(ctx, domain.Exercise{
+		UserID:          user.ID,
+		TreeID:          tree.ID,
+		Title:           "Decision trace test",
+		Brief:           "Write a short scene with clear causal flow.",
+		Constraints:     []string{"100-160 words"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity", "story-scene-architecture", "story-prose-precision"},
+		SuccessCriteria: []string{"Make consequence legible."},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := harness.Store.SaveSubmission(ctx, domain.Submission{
+		UserID:     user.ID,
+		TreeID:     tree.ID,
+		ExerciseID: exerciseID,
+		Content:    "He lied to buy time. The delay cost them the bridge, and the team split under pressure.",
+		WordCount:  17,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+
+	reviewResp, err := http.Post(
+		testServer.URL+"/api/reviews?user=tester&tree=story-craft-track",
+		"application/json",
+		strings.NewReader(`{"submission_id":`+int64String(submissionID)+`}`),
+	)
+	if err != nil {
+		t.Fatalf("enqueue review: %v", err)
+	}
+	defer reviewResp.Body.Close()
+	if reviewResp.StatusCode != http.StatusAccepted {
+		t.Fatalf("review enqueue status: %d", reviewResp.StatusCode)
+	}
+
+	var payload struct {
+		Job aiJobResponse `json:"job"`
+	}
+	if err := json.NewDecoder(reviewResp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode enqueue payload: %v", err)
+	}
+	completed := waitForAIJob(t, testServer.URL, payload.Job.ID)
+	if completed.Result == nil || completed.Result.Review == nil {
+		t.Fatal("expected completed review result")
+	}
+	reviewID := completed.Result.Review.ID
+	if reviewID == 0 {
+		t.Fatal("expected review id")
+	}
+
+	events, err := harness.Store.DecisionEventsByReview(ctx, reviewID)
+	if err != nil {
+		t.Fatalf("load decision events: %v", err)
+	}
+	if len(events) < 2 {
+		t.Fatalf("expected at least 2 decision events, got %d", len(events))
+	}
+	seen := map[string]bool{}
+	for _, event := range events {
+		seen[event.EventType] = true
+		if strings.TrimSpace(event.DecisionPayloadJSON) == "" {
+			t.Fatalf("empty decision payload for event %q", event.EventType)
+		}
+		if strings.TrimSpace(event.EvidenceRefsJSON) == "" {
+			t.Fatalf("empty evidence refs for event %q", event.EventType)
+		}
+	}
+	for _, required := range []string{"review_scored", "recommendation_issued"} {
+		if !seen[required] {
+			t.Fatalf("missing required decision event %q (events=%v)", required, events)
+		}
+	}
+}
+
 func TestPlaygroundSessionEndpointsSupportCreateUpdateAndReviewHistory(t *testing.T) {
 	harness := newTestHarnessWithAuth(t, "", "")
 	testServer := newTestServerWithStore(t, harness.Store, "", "")

@@ -118,6 +118,20 @@ type AdminNotification struct {
 	ReadAt       time.Time
 }
 
+type DecisionEvent struct {
+	ID                  int64
+	UserID              int64
+	TreeID              int64
+	EnrollmentID        int64
+	ReviewID            int64
+	SubmissionID        int64
+	EventType           string
+	DecisionPayloadJSON string
+	RuleVersion         string
+	EvidenceRefsJSON    string
+	CreatedAt           time.Time
+}
+
 type CalibrationTrackSnapshot struct {
 	TreeSlug                string
 	SubmissionCount         int
