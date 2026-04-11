@@ -9,6 +9,7 @@ import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { formatLocalDateTime } from '@/lib/datetime'
 import { computeLevelUpGuidance } from '@/lib/level-up-guidance'
+import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useCurrentAssignmentWorkspace } from '@/lib/use-current-assignment-workspace'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
@@ -330,6 +331,22 @@ export function CurrentAssignmentView() {
                 </div>
                 <Text className="mt-2">{tgo.description}</Text>
                 <MasteryProgress tgo={tgo} />
+                {(() => {
+                  const levelState = skillLevelUpState(tgo)
+                  return (
+                    <div data-testid={`skill-level-up-${tgo.code}`} className="mt-3 rounded-lg border border-stone-200 bg-white/70 px-3 py-2 text-sm text-zinc-700 dark:border-white/10 dark:bg-black/10 dark:text-zinc-300">
+                      <div className="font-semibold text-zinc-900 dark:text-white">{t('skillAdvanceLabel')}</div>
+                      <div className="mt-1">
+                        {levelState.mode === 'ready'
+                          ? t('skillAdvanceReady')
+                          : levelState.mode === 'building_history'
+                            ? t('skillAdvanceBuildHistory', { count: levelState.remainingHistory })
+                            : t('skillAdvanceConsolidate')}
+                      </div>
+                      <div className="mt-1 text-zinc-600 dark:text-zinc-400">{t('skillAdvanceRule')}</div>
+                    </div>
+                  )
+                })()}
               </div>
             ))}
           </div>
