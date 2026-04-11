@@ -664,6 +664,10 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	}
 	reviewResult.Review.UserID = job.UserID
 	reviewResult.Review.TreeID = job.TreeID
+	stateBefore, err := s.Store.GetCurriculumState(ctx, job.EnrollmentID)
+	if err != nil {
+		return fmt.Errorf("load curriculum state before review sync: %w", err)
+	}
 	recommendation, err := s.Curriculum.SyncTGOs(ctx, s.Store, treeSlug, job.EnrollmentID, reviewResult.Review)
 	if err != nil {
 		return fmt.Errorf("sync curriculum: %w", err)
@@ -691,6 +695,9 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 	reviewResult.Review.ID = reviewID
 	if err := s.emitReviewDecisionEvents(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, recommendation, len(reviewResult.Scores)); err != nil {
 		return fmt.Errorf("save decision events: %w", err)
+	}
+	if err := s.emitProgressionHoldTransitionEvent(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, stateBefore.ProgressionHoldActive, recommendation.HoldActive, recommendation.HoldReasonCode); err != nil {
+		return fmt.Errorf("save progression hold transition event: %w", err)
 	}
 	if err := s.Store.CompleteReviewJob(ctx, job.ID, reviewID); err != nil {
 		return fmt.Errorf("complete review job: %w", err)

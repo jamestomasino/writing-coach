@@ -48,3 +48,31 @@ func (s Server) emitReviewDecisionEvents(ctx context.Context, userID, treeID, en
 		EvidenceRefsJSON:    `["recommendation","completed_tgo_checks","tgo_assessments"]`,
 	})
 }
+
+func (s Server) emitProgressionHoldTransitionEvent(ctx context.Context, userID, treeID, enrollmentID int64, review domain.Review, wasHoldActive bool, isHoldActive bool, reasonCode string) error {
+	if wasHoldActive == isHoldActive {
+		return nil
+	}
+	eventType := "progression_hold_cleared"
+	ruleVersion := "progression-hold-clear-v1"
+	if isHoldActive {
+		eventType = "progression_hold_activated"
+		ruleVersion = "progression-hold-activate-v1"
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"was_hold_active": wasHoldActive,
+		"is_hold_active":  isHoldActive,
+		"reason_code":     reasonCode,
+	})
+	return s.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
+		UserID:              userID,
+		TreeID:              treeID,
+		EnrollmentID:        enrollmentID,
+		ReviewID:            review.ID,
+		SubmissionID:        review.SubmissionID,
+		EventType:           eventType,
+		DecisionPayloadJSON: string(payload),
+		RuleVersion:         ruleVersion,
+		EvidenceRefsJSON:    `["completed_tgo_checks","user_curriculum_state"]`,
+	})
+}
