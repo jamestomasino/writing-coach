@@ -72,3 +72,15 @@ func TestAllProfessionalPublicObjectivesHaveManifestCoverage(t *testing.T) {
 		}
 	}
 }
+
+func TestAllThoughtLeadershipPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("thought-leadership-track")
+	if !ok {
+		t.Fatal("missing thought leadership track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainThoughtLeadership) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
