@@ -1,0 +1,932 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "category_rules": [
+        {
+          "category": "clarity",
+          "delta": -1,
+          "id": "objective.content.actionability.clarity-overload",
+          "max_hits": 1,
+          "reason": "actionability penalty: clarity findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "actionability",
+        "ask",
+        "next-step"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.actionability.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 7,
+          "reason": "actionability reward: explicit action language"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.actionability.action-density-low",
+          "max": 2,
+          "metric": "nlp_action_verb_density",
+          "reason": "actionability penalty: weak action language"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.actionability.temporal-clarity-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 70,
+          "reason": "actionability reward: timing and urgency are explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.actionability.temporal-clarity-low",
+          "max": 45,
+          "metric": "nlp_temporal_clarity_score",
+          "reason": "actionability penalty: timing is unclear"
+        }
+      ],
+      "rule_id": "objective.content.actionability",
+      "tgo_codes": [
+        "content-persuasive-action-target",
+        "content-persuasive-call-to-action",
+        "content-persuasive-campaign-thinking",
+        "content-persuasive-conclusion"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_action_verb_density": 5
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "coverage",
+          "delta": -1,
+          "id": "objective.content.audience-alignment.coverage-overload",
+          "max_hits": 1,
+          "reason": "audience-alignment penalty: coverage findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "audience-alignment",
+        "fit",
+        "reader"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.audience-alignment.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "reason": "audience-alignment reward: audience context is specific"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.audience-alignment.reference-specificity-low",
+          "max": 45,
+          "metric": "nlp_reference_specificity_score",
+          "reason": "audience-alignment penalty: audience context is generic"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.audience-alignment.topic-drift-low",
+          "max": 45,
+          "metric": "nlp_topic_drift_score",
+          "reason": "audience-alignment reward: stays aligned to reader concerns"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.audience-alignment.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "reason": "audience-alignment penalty: drifts away from reader concerns"
+        }
+      ],
+      "rule_id": "objective.content.audience-alignment",
+      "tgo_codes": [
+        "content-persuasive-audience",
+        "content-persuasive-audience-segmentation",
+        "content-persuasive-medium-fit",
+        "content-persuasive-positioning"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "clarity",
+          "delta": -1,
+          "id": "objective.content.claim-clarity.clarity-overload",
+          "max_hits": 1,
+          "reason": "claim-clarity penalty: clarity findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "claim-clarity",
+        "thesis",
+        "stakes"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.claim-clarity.claim-count-high",
+          "metric": "nlp_claim_count",
+          "min": 2,
+          "reason": "claim-clarity reward: argument spine is explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.claim-clarity.claim-count-low",
+          "max": 1,
+          "metric": "nlp_claim_count",
+          "reason": "claim-clarity penalty: argument spine is weak"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.claim-clarity.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "reason": "claim-clarity reward: core claim is supported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.claim-clarity.claim-support-low",
+          "max": 40,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "claim-clarity penalty: core claim is weakly supported"
+        }
+      ],
+      "rule_id": "objective.content.claim-clarity",
+      "tgo_codes": [
+        "content-persuasive-claim",
+        "content-persuasive-headline",
+        "content-persuasive-stakes",
+        "content-persuasive-thesis-narrowing"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.content.clarity-and-coherence.readability-overload",
+          "max_hits": 1,
+          "reason": "clarity-and-coherence penalty: readability findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "clarity-and-coherence",
+        "plainstyle",
+        "signal"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.clarity-and-coherence.readability-good",
+          "max": 11,
+          "metric": "nlp_readability_grade",
+          "reason": "clarity-and-coherence reward: readability supports uptake"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.clarity-and-coherence.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "reason": "clarity-and-coherence penalty: readability too dense"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.clarity-and-coherence.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "reason": "clarity-and-coherence penalty: inflated language weakens signal"
+        }
+      ],
+      "rule_id": "objective.content.clarity-and-coherence",
+      "tgo_codes": [
+        "content-persuasive-plainstyle",
+        "content-persuasive-slogan-restraint"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "coverage",
+          "delta": -1,
+          "id": "objective.content.evidence-integration.coverage-overload",
+          "max_hits": 1,
+          "reason": "evidence-integration penalty: coverage findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "evidence-integration",
+        "support",
+        "proof"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.evidence-integration.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "reason": "evidence-integration reward: support strengthens claims"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.evidence-integration.claim-support-low",
+          "max": 40,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "evidence-integration penalty: support is weak"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.evidence-integration.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 3,
+          "reason": "evidence-integration reward: support markers are present"
+        }
+      ],
+      "rule_id": "objective.content.evidence-integration",
+      "tgo_codes": [
+        "content-persuasive-case-study",
+        "content-persuasive-data-use",
+        "content-persuasive-evidence-basics",
+        "content-persuasive-example-selection",
+        "content-persuasive-quote-restraint",
+        "content-persuasive-sourced-authority"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "clarity",
+          "delta": -1,
+          "id": "objective.content.objection-handling.clarity-overload",
+          "max_hits": 1,
+          "reason": "objection-handling penalty: clarity findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "objection-handling",
+        "resistance",
+        "rebuttal"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.objection-handling.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "reason": "objection-handling reward: rebuttals are supported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.objection-handling.claim-support-low",
+          "max": 40,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "objection-handling penalty: rebuttals are unsupported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.objection-handling.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "reason": "objection-handling penalty: pushback handling loses thread"
+        }
+      ],
+      "rule_id": "objective.content.objection-handling",
+      "tgo_codes": [
+        "content-persuasive-concession",
+        "content-persuasive-counterargument",
+        "content-persuasive-ethical-pressure",
+        "content-persuasive-objection-forecast"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.content.reasoning-quality.structure-overload",
+          "max_hits": 1,
+          "reason": "reasoning-quality penalty: structure findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "reasoning-quality",
+        "logic",
+        "coherence"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.reasoning-quality.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "reason": "reasoning-quality reward: logic is supported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.reasoning-quality.claim-support-low",
+          "max": 40,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "reasoning-quality penalty: logic is weakly supported"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.reasoning-quality.paragraph-focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "reason": "reasoning-quality reward: paragraphs carry one clear move"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.reasoning-quality.paragraph-focus-low",
+          "max": 45,
+          "metric": "nlp_paragraph_focus_score",
+          "reason": "reasoning-quality penalty: paragraphs blur moves"
+        }
+      ],
+      "rule_id": "objective.content.reasoning-quality",
+      "tgo_codes": [
+        "content-persuasive-analogy",
+        "content-persuasive-comparison",
+        "content-persuasive-consequence-modeling",
+        "content-persuasive-fallacy-avoidance",
+        "content-persuasive-logos",
+        "content-persuasive-paragraph-unity",
+        "content-persuasive-reason-order",
+        "content-persuasive-reasoning",
+        "content-persuasive-tradeoffs"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.content.revision-habits.readability-overload",
+          "max_hits": 1,
+          "reason": "revision-habits penalty: readability findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "revision-habits",
+        "passes",
+        "triage"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.revision-habits.readability-good",
+          "max": 11,
+          "metric": "nlp_readability_grade",
+          "reason": "revision-habits reward: final readability is controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.revision-habits.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "reason": "revision-habits penalty: readability remains too dense"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.revision-habits.repetition-low",
+          "max": 40,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "revision-habits reward: repetition reduced"
+        }
+      ],
+      "rule_id": "objective.content.revision-habits",
+      "tgo_codes": [
+        "content-persuasive-evidence-pass",
+        "content-persuasive-logic-pass",
+        "content-persuasive-objection-pass",
+        "content-persuasive-revision-triage",
+        "content-persuasive-rhetoric-pass"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.content.rhetorical-force.readability-overload",
+          "max_hits": 1,
+          "reason": "rhetorical-force penalty: readability findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "rhetorical-force",
+        "cadence",
+        "pressure"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.rhetorical-force.passive-low",
+          "max": 2,
+          "metric": "nlp_passive_sentences",
+          "reason": "rhetorical-force reward: active syntax improves force"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.rhetorical-force.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "reason": "rhetorical-force penalty: passive syntax blunts force"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.rhetorical-force.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "reason": "rhetorical-force penalty: inflated language weakens trust"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.rhetorical-force.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 8,
+          "reason": "rhetorical-force reward: verbs carry urgency"
+        }
+      ],
+      "rule_id": "objective.content.rhetorical-force",
+      "tgo_codes": [
+        "content-persuasive-cadence",
+        "content-persuasive-ethos",
+        "content-persuasive-memory-line",
+        "content-persuasive-moral-language",
+        "content-persuasive-opening-hook",
+        "content-persuasive-pathos",
+        "content-persuasive-reframing",
+        "content-persuasive-repetition",
+        "content-persuasive-story-use",
+        "content-persuasive-tone-basics",
+        "content-persuasive-verb-force"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.content.structural-signposting.structure-overload",
+          "max_hits": 1,
+          "reason": "structural-signposting penalty: structure findings"
+        }
+      ],
+      "domain": "marketing",
+      "evidence_labels": [
+        "structural-signposting",
+        "arc",
+        "progression"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.structural-signposting.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "reason": "structural-signposting reward: argument turns are visible"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.structural-signposting.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "structural-signposting penalty: argument turns are obscured"
+        },
+        {
+          "delta": 1,
+          "id": "objective.content.structural-signposting.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "reason": "structural-signposting reward: transitions carry reasoning"
+        }
+      ],
+      "rule_id": "objective.content.structural-signposting",
+      "tgo_codes": [
+        "content-persuasive-pivot-lines",
+        "content-persuasive-structure",
+        "content-persuasive-transitions"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-claim",
+        "thesis",
+        "position"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.claim-clarity.claim-specific.claim-count-high",
+          "metric": "nlp_claim_count",
+          "min": 3,
+          "reason": "persuasive-claim reward: central claim is explicit and repeated"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.claim-clarity.claim-specific.claim-count-low",
+          "max": 1,
+          "metric": "nlp_claim_count",
+          "reason": "persuasive-claim penalty: central claim is underdeveloped"
+        }
+      ],
+      "rule_id": "objective.content.claim-clarity.claim-specific",
+      "tgo_codes": [
+        "content-persuasive-claim"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-stakes",
+        "consequence",
+        "urgency"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.claim-clarity.stakes-specific.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 72,
+          "reason": "persuasive-stakes reward: consequence claims are supported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.claim-clarity.stakes-specific.claim-support-low",
+          "max": 45,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "persuasive-stakes penalty: consequences are asserted not grounded"
+        }
+      ],
+      "rule_id": "objective.content.claim-clarity.stakes-specific",
+      "tgo_codes": [
+        "content-persuasive-stakes"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-reason-order",
+        "sequencing",
+        "logic-flow"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.reasoning-quality.reason-order-specific.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 8,
+          "reason": "persuasive-reason-order reward: reasons are explicitly sequenced"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.reasoning-quality.reason-order-specific.transition-density-low",
+          "max": 3,
+          "metric": "nlp_transition_marker_density",
+          "reason": "persuasive-reason-order penalty: sequencing logic is weak"
+        }
+      ],
+      "rule_id": "objective.content.reasoning-quality.reason-order-specific",
+      "tgo_codes": [
+        "content-persuasive-reason-order"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-consequence-modeling",
+        "outcomes",
+        "if-then"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.reasoning-quality.consequence-specific.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 75,
+          "reason": "persuasive-consequence-modeling reward: consequence chain is grounded"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.reasoning-quality.consequence-specific.claim-support-low",
+          "max": 45,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "persuasive-consequence-modeling penalty: consequence chain is weak"
+        }
+      ],
+      "rule_id": "objective.content.reasoning-quality.consequence-specific",
+      "tgo_codes": [
+        "content-persuasive-consequence-modeling"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-structure",
+        "macro-arc",
+        "architecture"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.structural-signposting.structure-specific.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "reason": "persuasive-structure reward: macro-arc is highly legible"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.structural-signposting.structure-specific.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "persuasive-structure penalty: macro-arc is unclear"
+        }
+      ],
+      "rule_id": "objective.content.structural-signposting.structure-specific",
+      "tgo_codes": [
+        "content-persuasive-structure"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-pivot-lines",
+        "turns",
+        "phase-shifts"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.structural-signposting.pivot-specific.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 8,
+          "reason": "persuasive-pivot-lines reward: turning points are explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.structural-signposting.pivot-specific.transition-density-low",
+          "max": 3,
+          "metric": "nlp_transition_marker_density",
+          "reason": "persuasive-pivot-lines penalty: turns are abrupt or hidden"
+        }
+      ],
+      "rule_id": "objective.content.structural-signposting.pivot-specific",
+      "tgo_codes": [
+        "content-persuasive-pivot-lines"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-example-selection",
+        "examples",
+        "specificity"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.evidence-integration.example-specific.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 72,
+          "reason": "persuasive-example-selection reward: examples are strategically specific"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.evidence-integration.example-specific.reference-specificity-low",
+          "max": 45,
+          "metric": "nlp_reference_specificity_score",
+          "reason": "persuasive-example-selection penalty: examples are generic"
+        }
+      ],
+      "rule_id": "objective.content.evidence-integration.example-specific",
+      "tgo_codes": [
+        "content-persuasive-example-selection"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "marketing",
+      "evidence_labels": [
+        "persuasive-quote-restraint",
+        "quotation-load",
+        "authorial-control"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.content.evidence-integration.quote-restraint-specific.evidence-markers-low",
+          "max": 1,
+          "metric": "nlp_evidence_marker_count",
+          "reason": "persuasive-quote-restraint reward: quotation load remains controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.content.evidence-integration.quote-restraint-specific.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 5,
+          "reason": "persuasive-quote-restraint penalty: quotation load overwhelms argument"
+        }
+      ],
+      "rule_id": "objective.content.evidence-integration.quote-restraint-specific",
+      "tgo_codes": [
+        "content-persuasive-quote-restraint"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "content-marketing-track"
+      ]
+    }
+  ]
+}

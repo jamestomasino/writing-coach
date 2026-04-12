@@ -1,0 +1,900 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "category_rules": [
+        {
+          "category": "clarity",
+          "delta": -1,
+          "id": "objective.grant.actionability.clarity-overload",
+          "max_hits": 1,
+          "reason": "actionability penalty: clarity findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "actionability",
+        "ask",
+        "next-step"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.actionability.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 7,
+          "reason": "actionability reward: request language is directive"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.actionability.action-density-low",
+          "max": 2,
+          "metric": "nlp_action_verb_density",
+          "reason": "actionability penalty: action language is too weak"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.actionability.temporal-clarity-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 70,
+          "reason": "actionability reward: timing is explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.actionability.temporal-clarity-low",
+          "max": 45,
+          "metric": "nlp_temporal_clarity_score",
+          "reason": "actionability penalty: timing and urgency are unclear"
+        }
+      ],
+      "rule_id": "objective.grant.actionability",
+      "tgo_codes": [
+        "grant-ask-visibility",
+        "grant-deadline-clarity",
+        "grant-decision-framing",
+        "grant-decision-language",
+        "grant-document-closings",
+        "grant-ownership-clarity",
+        "grant-proof-of-action"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_action_verb_density": 5
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "coverage",
+          "delta": -1,
+          "id": "objective.grant.audience-alignment.coverage-overload",
+          "max_hits": 1,
+          "reason": "audience-alignment penalty: coverage findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "audience-alignment",
+        "stakeholder",
+        "translation"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.audience-alignment.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "reason": "audience-alignment reward: references are audience-ready"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.audience-alignment.reference-specificity-low",
+          "max": 45,
+          "metric": "nlp_reference_specificity_score",
+          "reason": "audience-alignment penalty: references are vague"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.audience-alignment.topic-drift-low",
+          "max": 45,
+          "metric": "nlp_topic_drift_score",
+          "reason": "audience-alignment reward: message stays reader-focused"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.audience-alignment.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "reason": "audience-alignment penalty: message drifts away from reader needs"
+        }
+      ],
+      "rule_id": "objective.grant.audience-alignment",
+      "tgo_codes": [
+        "grant-cross-functional-translation",
+        "grant-professional-audience-alignment",
+        "grant-stakeholder-sensitivity"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.grant.clarity-and-coherence.structure-overload",
+          "max_hits": 1,
+          "reason": "clarity-and-coherence penalty: structure findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "clarity",
+        "coherence",
+        "orientation"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.clarity-and-coherence.paragraph-focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "reason": "clarity-and-coherence reward: paragraph focus supports comprehension"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.clarity-and-coherence.paragraph-focus-low",
+          "max": 45,
+          "metric": "nlp_paragraph_focus_score",
+          "reason": "clarity-and-coherence penalty: paragraph focus is weak"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.clarity-and-coherence.topic-drift-low",
+          "max": 45,
+          "metric": "nlp_topic_drift_score",
+          "reason": "clarity-and-coherence reward: document stays on-task"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.clarity-and-coherence.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "reason": "clarity-and-coherence penalty: off-topic drift causes ambiguity"
+        }
+      ],
+      "rule_id": "objective.grant.clarity-and-coherence",
+      "tgo_codes": [
+        "grant-alignment-language",
+        "grant-assumption-marking",
+        "grant-context-first",
+        "grant-objective-clarity",
+        "grant-risk-articulation",
+        "grant-spec-clarity",
+        "grant-status-update-control",
+        "grant-terminology-consistency",
+        "grant-tradeoff-language"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_paragraph_focus_score": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "coverage",
+          "delta": -1,
+          "id": "objective.grant.evidence-integration.coverage-overload",
+          "max_hits": 1,
+          "reason": "evidence-integration penalty: coverage findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "evidence",
+        "rationale",
+        "support"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.evidence-integration.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "reason": "evidence-integration reward: claims are supported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.evidence-integration.claim-support-low",
+          "max": 40,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "evidence-integration penalty: claims are weakly supported"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.evidence-integration.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 3,
+          "reason": "evidence-integration reward: support markers are present"
+        }
+      ],
+      "rule_id": "objective.grant.evidence-integration",
+      "tgo_codes": [
+        "grant-professional-evidence-integration",
+        "grant-quantification-basics",
+        "grant-supporting-rationale"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.grant.revision-habits.readability-overload",
+          "max_hits": 1,
+          "reason": "revision-habits penalty: readability findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "revision-habits",
+        "passes",
+        "draft-control"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.revision-habits.readability-good",
+          "max": 11,
+          "metric": "nlp_readability_grade",
+          "reason": "revision-habits reward: final readability is controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.revision-habits.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "reason": "revision-habits penalty: readability remains too dense"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.revision-habits.repetition-low",
+          "max": 40,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "revision-habits reward: repetition cleaned up"
+        }
+      ],
+      "rule_id": "objective.grant.revision-habits",
+      "tgo_codes": [
+        "grant-clarity-pass-professional",
+        "grant-format-pass-professional",
+        "grant-revision-triage-professional",
+        "grant-tone-pass-professional"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.grant.scannability.structure-overload",
+          "max_hits": 1,
+          "reason": "scannability penalty: structure findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "scannability",
+        "layout",
+        "navigation"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.scannability.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "reason": "scannability reward: signposting supports skim behavior"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.scannability.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "scannability penalty: signposting is thin"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.scannability.markers-high",
+          "metric": "nlp_scannability_marker_count",
+          "min": 6,
+          "reason": "scannability reward: marker density helps navigation"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.scannability.markers-low",
+          "max": 2,
+          "metric": "nlp_scannability_marker_count",
+          "reason": "scannability penalty: marker density is weak"
+        }
+      ],
+      "rule_id": "objective.grant.scannability",
+      "tgo_codes": [
+        "grant-annotation-restraint",
+        "grant-bullet-discipline",
+        "grant-email-thread-discipline",
+        "grant-front-loaded-summary",
+        "grant-heading-discipline",
+        "grant-professional-scannability",
+        "grant-reader-load-control",
+        "grant-summary-vs-detail-balance",
+        "grant-table-use",
+        "grant-visual-grouping"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_scannability_marker_count": 5
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "sentence control",
+          "delta": -1,
+          "id": "objective.grant.sentence-economy.sentence-overload",
+          "max_hits": 1,
+          "reason": "sentence-economy penalty: sentence-control findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "sentence-economy",
+        "concision",
+        "line-level"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.sentence-economy.readability-good",
+          "max": 10,
+          "metric": "nlp_readability_grade",
+          "reason": "sentence-economy reward: readability target met"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.sentence-economy.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "reason": "sentence-economy penalty: readability too dense"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.sentence-economy.repetition-low",
+          "max": 35,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "sentence-economy reward: repetition controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.sentence-economy.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "reason": "sentence-economy penalty: repetition overload"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.sentence-economy.passive-low",
+          "max": 2,
+          "metric": "nlp_passive_sentences",
+          "reason": "sentence-economy reward: active sentence control"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.sentence-economy.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "reason": "sentence-economy penalty: passive load is high"
+        }
+      ],
+      "rule_id": "objective.grant.sentence-economy",
+      "tgo_codes": [
+        "grant-active-voice-control",
+        "grant-professional-sentence-economy"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_readability_grade": 10
+        },
+        "min_metrics": {
+          "word_count": 250
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.grant.structural-signposting.structure-overload",
+          "max_hits": 1,
+          "reason": "structural-signposting penalty: structure findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "structural-signposting",
+        "sections",
+        "sequence"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.structural-signposting.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "reason": "structural-signposting reward: section signals are explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.structural-signposting.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "structural-signposting penalty: section signals are weak"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.structural-signposting.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "reason": "structural-signposting reward: transitions connect major sections"
+        }
+      ],
+      "rule_id": "objective.grant.structural-signposting",
+      "tgo_codes": [
+        "grant-bridge-lines",
+        "grant-meeting-note-clarity",
+        "grant-professional-structural-signposting",
+        "grant-proposal-structure",
+        "grant-reusable-template-thinking",
+        "grant-section-order"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.grant.tone-calibration.readability-overload",
+          "max_hits": 1,
+          "reason": "tone-calibration penalty: readability findings"
+        }
+      ],
+      "domain": "professional",
+      "evidence_labels": [
+        "tone-calibration",
+        "directness",
+        "professionalism"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.tone-calibration.passive-low",
+          "max": 2,
+          "metric": "nlp_passive_sentences",
+          "reason": "tone-calibration reward: direct voice supports accountability"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.tone-calibration.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "reason": "tone-calibration penalty: indirect voice obscures responsibility"
+        },
+        {
+          "delta": 1,
+          "id": "objective.grant.tone-calibration.modifier-overload-low",
+          "max": 18,
+          "metric": "nlp_modifier_overload_ratio",
+          "reason": "tone-calibration reward: tone remains controlled and precise"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.tone-calibration.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "reason": "tone-calibration penalty: hedging and intensifiers weaken signal"
+        }
+      ],
+      "rule_id": "objective.grant.tone-calibration",
+      "tgo_codes": [
+        "grant-bad-news-delivery",
+        "grant-confidence-without-overclaiming",
+        "grant-conflict-de-escalation",
+        "grant-directness-with-respect",
+        "grant-document-openings",
+        "grant-executive-briefing-style",
+        "grant-persuasion-with-restraint",
+        "grant-professional-tone-calibration"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "ask-visibility",
+        "request",
+        "directive"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.actionability.ask-visibility.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 8,
+          "reason": "ask-visibility reward: explicit action language"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.actionability.ask-visibility.action-density-low",
+          "max": 2,
+          "metric": "nlp_action_verb_density",
+          "reason": "ask-visibility penalty: weak action language"
+        }
+      ],
+      "rule_id": "objective.grant.actionability.ask-visibility-specific",
+      "tgo_codes": [
+        "grant-ask-visibility"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "ownership-clarity",
+        "owner",
+        "responsibility"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.actionability.ownership-clarity.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 70,
+          "reason": "ownership-clarity reward: owners and entities are explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.actionability.ownership-clarity.reference-specificity-low",
+          "max": 45,
+          "metric": "nlp_reference_specificity_score",
+          "reason": "ownership-clarity penalty: accountable owner is vague"
+        }
+      ],
+      "rule_id": "objective.grant.actionability.ownership-clarity-specific",
+      "tgo_codes": [
+        "grant-ownership-clarity"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "active-voice-control",
+        "agency",
+        "responsibility"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.sentence-economy.active-voice.passive-low",
+          "max": 1,
+          "metric": "nlp_passive_sentences",
+          "reason": "active-voice reward: passive usage controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.sentence-economy.active-voice.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 4,
+          "reason": "active-voice penalty: passive usage high"
+        }
+      ],
+      "rule_id": "objective.grant.sentence-economy.active-voice-specific",
+      "tgo_codes": [
+        "grant-active-voice-control"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "sentence-economy",
+        "concision",
+        "signal"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.sentence-economy.sentence-economy.repetition-low",
+          "max": 30,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "sentence-economy reward: low repetition"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.sentence-economy.sentence-economy.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 58,
+          "reason": "sentence-economy penalty: repetition high"
+        }
+      ],
+      "rule_id": "objective.grant.sentence-economy.sentence-economy-specific",
+      "tgo_codes": [
+        "grant-professional-sentence-economy"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "front-loaded-summary",
+        "opening",
+        "summary"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.scannability.front-loaded-summary.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "reason": "front-loaded-summary reward: opening signposts are strong"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.scannability.front-loaded-summary.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "front-loaded-summary penalty: opening signposts are weak"
+        }
+      ],
+      "rule_id": "objective.grant.scannability.front-loaded-summary-specific",
+      "tgo_codes": [
+        "grant-front-loaded-summary"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "heading-discipline",
+        "headings",
+        "scan-path"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.scannability.heading-discipline.markers-high",
+          "metric": "nlp_scannability_marker_count",
+          "min": 8,
+          "reason": "heading-discipline reward: headings and markers support navigation"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.scannability.heading-discipline.markers-low",
+          "max": 2,
+          "metric": "nlp_scannability_marker_count",
+          "reason": "heading-discipline penalty: headings and markers are sparse"
+        }
+      ],
+      "rule_id": "objective.grant.scannability.heading-discipline-specific",
+      "tgo_codes": [
+        "grant-heading-discipline"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "supporting-rationale",
+        "constraints",
+        "justification"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.evidence-integration.supporting-rationale.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 72,
+          "reason": "supporting-rationale reward: recommendation support is explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.evidence-integration.supporting-rationale.claim-support-low",
+          "max": 45,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "supporting-rationale penalty: recommendation support is weak"
+        }
+      ],
+      "rule_id": "objective.grant.evidence-integration.supporting-rationale-specific",
+      "tgo_codes": [
+        "grant-supporting-rationale"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "professional",
+      "evidence_labels": [
+        "quantification-basics",
+        "numbers",
+        "precision"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.grant.evidence-integration.quantification-basics.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 4,
+          "reason": "quantification-basics reward: numerical support is present"
+        },
+        {
+          "delta": -1,
+          "id": "objective.grant.evidence-integration.quantification-basics.evidence-markers-low",
+          "max": 1,
+          "metric": "nlp_evidence_marker_count",
+          "reason": "quantification-basics penalty: numerical support is missing"
+        }
+      ],
+      "rule_id": "objective.grant.evidence-integration.quantification-basics-specific",
+      "tgo_codes": [
+        "grant-quantification-basics"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "grant-writing-track"
+      ]
+    }
+  ]
+}

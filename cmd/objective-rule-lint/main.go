@@ -71,6 +71,21 @@ func main() {
 			if tree.Slug == "memoir-personal-narrative-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFiction) {
 				failures = append(failures, fmt.Sprintf("objective=%s missing memoir objective-rules manifest coverage", code))
 			}
+			if tree.Slug == "marketing-writing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainMarketing) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing marketing objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "content-marketing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainMarketing) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing content-marketing objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "journalism-reporting-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainThoughtLeadership) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing journalism objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "educational-writing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainTechnical) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing educational objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "grant-writing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainProfessional) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing grant-writing objective-rules manifest coverage", code))
+			}
 		}
 	}
 

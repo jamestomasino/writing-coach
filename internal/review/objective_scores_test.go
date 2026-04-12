@@ -1484,6 +1484,259 @@ func TestBuildObjectiveScoresMemoirMetamorphicMonotonicity(t *testing.T) {
 	}
 }
 
+func TestBuildObjectiveScoresCloneTrackPairwiseDiscrimination(t *testing.T) {
+	cases := []struct {
+		name       string
+		treeSlug   string
+		writing    string
+		skill      string
+		leftCode   string
+		rightCode  string
+		leftWins   analyzer.Report
+		rightWins  analyzer.Report
+	}{
+		{
+			name:      "marketing claim vs stakes",
+			treeSlug:  "marketing-writing-track",
+			writing:   "marketing writing",
+			skill:     "claim clarity",
+			leftCode:  "marketing-claim-clarity",
+			rightCode: "marketing-stakes-articulation",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_count":             4,
+				"nlp_claim_support_alignment": 45,
+				"nlp_topic_drift_score":       35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_count":             1,
+				"nlp_claim_support_alignment": 78,
+				"nlp_topic_drift_score":       35,
+			}},
+		},
+		{
+			name:      "content structure vs pivot lines",
+			treeSlug:  "content-marketing-track",
+			writing:   "content marketing",
+			skill:     "structural signposting",
+			leftCode:  "content-persuasive-structure",
+			rightCode: "content-persuasive-pivot-lines",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_transition_marker_density": 4,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 3,
+				"nlp_transition_marker_density": 9,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "journalism example selection vs quote restraint",
+			treeSlug:  "journalism-reporting-track",
+			writing:   "journalism",
+			skill:     "evidence integration",
+			leftCode:  "journalism-example-selection",
+			rightCode: "journalism-quote-restraint",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_reference_specificity_score": 78,
+				"nlp_evidence_marker_count":       2,
+				"nlp_claim_support_alignment":     55,
+				"nlp_topic_drift_score":           35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_reference_specificity_score": 50,
+				"nlp_evidence_marker_count":       1,
+				"nlp_claim_support_alignment":     55,
+				"nlp_topic_drift_score":           35,
+			}},
+		},
+		{
+			name:      "education quote integration vs source selection",
+			treeSlug:  "educational-writing-track",
+			writing:   "educational writing",
+			skill:     "source handling",
+			leftCode:  "education-academic-quote-integration",
+			rightCode: "education-academic-source-selection",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_evidence_coverage": 60,
+				"nlp_evidence_marker_count":   4,
+				"nlp_unique_token_ratio":      38,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_evidence_coverage": 60,
+				"nlp_evidence_marker_count":   0,
+				"nlp_unique_token_ratio":      60,
+			}},
+		},
+		{
+			name:      "grant ask visibility vs ownership clarity",
+			treeSlug:  "grant-writing-track",
+			writing:   "grant writing",
+			skill:     "actionability",
+			leftCode:  "grant-ask-visibility",
+			rightCode: "grant-ownership-clarity",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_action_verb_density":         12,
+				"nlp_reference_specificity_score": 50,
+				"nlp_topic_drift_score":           35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_action_verb_density":         2,
+				"nlp_reference_specificity_score": 78,
+				"nlp_topic_drift_score":           35,
+			}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			options := analyzer.ContextOptions{TreeSlug: tc.treeSlug, WritingType: tc.writing}
+			active := []domain.TGO{{Code: tc.leftCode}, {Code: tc.rightCode}}
+			assessments := []domain.TGOAssessment{
+				{TGOCode: tc.leftCode, Status: "developing"},
+				{TGOCode: tc.rightCode, Status: "developing"},
+			}
+			scores := []domain.SkillScore{
+				{
+					SubmissionID:      98,
+					Skill:             tc.skill,
+					Score:             3,
+					ScoreSource:       "deterministic",
+					ScoreVersion:      "det-v1",
+					ScoreEvidenceJSON: `{"rubric_id":"clone-track-pairwise-fixture"}`,
+				},
+			}
+
+			leftPass := BuildObjectiveScores(98, active, assessments, scores, tc.leftWins, options)
+			leftMap := objectiveScoreByCode(leftPass)
+			if leftMap[tc.leftCode].Score <= leftMap[tc.rightCode].Score {
+				t.Fatalf("expected %s score > %s score in leftWins scenario, got %d <= %d", tc.leftCode, tc.rightCode, leftMap[tc.leftCode].Score, leftMap[tc.rightCode].Score)
+			}
+
+			rightPass := BuildObjectiveScores(98, active, assessments, scores, tc.rightWins, options)
+			rightMap := objectiveScoreByCode(rightPass)
+			if rightMap[tc.rightCode].Score <= rightMap[tc.leftCode].Score {
+				t.Fatalf("expected %s score > %s score in rightWins scenario, got %d <= %d", tc.rightCode, tc.leftCode, rightMap[tc.rightCode].Score, rightMap[tc.leftCode].Score)
+			}
+		})
+	}
+}
+
+func TestBuildObjectiveScoresCloneTrackMetamorphicMonotonicity(t *testing.T) {
+	cases := []struct {
+		name        string
+		treeSlug    string
+		writing     string
+		code        string
+		skill       string
+		lowMetrics  map[string]int
+		highMetrics map[string]int
+	}{
+		{
+			name:     "marketing claim clarity improves with claim count",
+			treeSlug: "marketing-writing-track",
+			writing:  "marketing writing",
+			code:     "marketing-claim-clarity",
+			skill:    "claim clarity",
+			lowMetrics: map[string]int{
+				"nlp_claim_count":             1,
+				"nlp_claim_support_alignment": 62,
+			},
+			highMetrics: map[string]int{
+				"nlp_claim_count":             4,
+				"nlp_claim_support_alignment": 62,
+			},
+		},
+		{
+			name:     "content pivot lines improve with transition density",
+			treeSlug: "content-marketing-track",
+			writing:  "content marketing",
+			code:     "content-persuasive-pivot-lines",
+			skill:    "structural signposting",
+			lowMetrics: map[string]int{
+				"nlp_transition_marker_density": 2,
+				"nlp_structural_signpost_count": 4,
+			},
+			highMetrics: map[string]int{
+				"nlp_transition_marker_density": 9,
+				"nlp_structural_signpost_count": 4,
+			},
+		},
+		{
+			name:     "journalism example selection improves with reference specificity",
+			treeSlug: "journalism-reporting-track",
+			writing:  "journalism",
+			code:     "journalism-example-selection",
+			skill:    "evidence integration",
+			lowMetrics: map[string]int{
+				"nlp_reference_specificity_score": 45,
+				"nlp_claim_support_alignment":     65,
+			},
+			highMetrics: map[string]int{
+				"nlp_reference_specificity_score": 78,
+				"nlp_claim_support_alignment":     65,
+			},
+		},
+		{
+			name:     "education transitions improve with transition density",
+			treeSlug: "educational-writing-track",
+			writing:  "educational writing",
+			code:     "education-academic-transitions",
+			skill:    "structural signposting",
+			lowMetrics: map[string]int{
+				"nlp_transition_marker_density": 2,
+				"nlp_structural_signpost_count": 4,
+			},
+			highMetrics: map[string]int{
+				"nlp_transition_marker_density": 9,
+				"nlp_structural_signpost_count": 4,
+			},
+		},
+		{
+			name:     "grant ask visibility improves with action density",
+			treeSlug: "grant-writing-track",
+			writing:  "grant writing",
+			code:     "grant-ask-visibility",
+			skill:    "actionability",
+			lowMetrics: map[string]int{
+				"nlp_action_verb_density":         2,
+				"nlp_reference_specificity_score": 60,
+			},
+			highMetrics: map[string]int{
+				"nlp_action_verb_density":         12,
+				"nlp_reference_specificity_score": 60,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			options := analyzer.ContextOptions{TreeSlug: tc.treeSlug, WritingType: tc.writing}
+			active := []domain.TGO{{Code: tc.code}}
+			assessments := []domain.TGOAssessment{{TGOCode: tc.code, Status: "developing"}}
+			scores := []domain.SkillScore{
+				{
+					SubmissionID:      99,
+					Skill:             tc.skill,
+					Score:             3,
+					ScoreSource:       "deterministic",
+					ScoreVersion:      "det-v1",
+					ScoreEvidenceJSON: `{"rubric_id":"clone-track-metamorphic-fixture"}`,
+				},
+			}
+
+			low := BuildObjectiveScores(99, active, assessments, scores, analyzer.Report{Metrics: tc.lowMetrics}, options)
+			high := BuildObjectiveScores(99, active, assessments, scores, analyzer.Report{Metrics: tc.highMetrics}, options)
+			lowScore := objectiveScoreByCode(low)[tc.code].Score
+			highScore := objectiveScoreByCode(high)[tc.code].Score
+			if highScore < lowScore {
+				t.Fatalf("metamorphic monotonicity violated for %s: %d -> %d", tc.code, lowScore, highScore)
+			}
+		})
+	}
+}
+
 func objectiveScoreByCode(scores []domain.ObjectiveScore) map[string]domain.ObjectiveScore {
 	out := map[string]domain.ObjectiveScore{}
 	for _, score := range scores {

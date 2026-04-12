@@ -1,0 +1,843 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "category_rules": [
+        {
+          "category": "clarity",
+          "delta": -1,
+          "id": "objective.education.claim-architecture.clarity-overload",
+          "max_hits": 1,
+          "reason": "claim architecture penalty: clarity findings"
+        },
+        {
+          "category": "development",
+          "delta": -1,
+          "id": "objective.education.claim-architecture.development-overload",
+          "max_hits": 1,
+          "reason": "claim architecture penalty: development findings"
+        }
+      ],
+      "domain": "technical",
+      "evidence_labels": [
+        "claim",
+        "architecture",
+        "argument"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.claim-architecture.coverage-strong",
+          "metric": "nlp_claim_evidence_coverage",
+          "min": 60,
+          "reason": "claim architecture reward: claims are matched with support"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.claim-architecture.coverage-weak",
+          "max": 35,
+          "metric": "nlp_claim_evidence_coverage",
+          "reason": "claim architecture penalty: claims outrun support"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.claim-architecture.claim-volume-low",
+          "max": 1,
+          "metric": "nlp_claim_count",
+          "reason": "claim architecture penalty: too few explicit claims"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.claim-architecture.topic-drift",
+          "metric": "nlp_topic_drift_score",
+          "min": 70,
+          "reason": "claim architecture penalty: topic drift weakens line of argument"
+        }
+      ],
+      "rule_id": "objective.education.claim-architecture",
+      "tgo_codes": [
+        "education-academic-thesis-clarity",
+        "education-academic-scope-control",
+        "education-academic-claim-ladder",
+        "education-academic-stakes-articulation",
+        "education-academic-introduction-function",
+        "education-academic-conclusion-function",
+        "education-academic-title-framing",
+        "education-academic-abstract-writing",
+        "education-academic-oral-defense",
+        "education-academic-final-resonance",
+        "education-academic-independent-voice"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 45
+        },
+        "min_metrics": {
+          "word_count": 650
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "evidence",
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.evidence-overload",
+          "max_hits": 1,
+          "reason": "evidence/source penalty: evidence findings"
+        },
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.structure-overload",
+          "max_hits": 1,
+          "reason": "evidence/source penalty: structure findings"
+        }
+      ],
+      "domain": "technical",
+      "evidence_labels": [
+        "evidence",
+        "sources",
+        "support"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.coverage-strong",
+          "metric": "nlp_claim_evidence_coverage",
+          "min": 60,
+          "reason": "evidence/source reward: high claim-evidence alignment"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.coverage-weak",
+          "max": 35,
+          "metric": "nlp_claim_evidence_coverage",
+          "reason": "evidence/source penalty: low claim-evidence alignment"
+        },
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.marker-density",
+          "metric": "nlp_evidence_marker_count",
+          "min": 2,
+          "reason": "evidence/source reward: explicit support markers"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.marker-missing",
+          "max": 0,
+          "metric": "nlp_evidence_marker_count",
+          "reason": "evidence/source penalty: no explicit support markers"
+        }
+      ],
+      "rule_id": "objective.education.evidence-and-sources",
+      "tgo_codes": [
+        "education-academic-evidence-basics",
+        "education-academic-quote-integration",
+        "education-academic-quotation-restraint",
+        "education-academic-source-selection",
+        "education-academic-source-evaluation",
+        "education-academic-synthesis",
+        "education-academic-citation-discipline",
+        "education-academic-paraphrase-control",
+        "education-academic-literature-positioning",
+        "education-academic-method-signaling",
+        "education-academic-evidence-proportion",
+        "education-academic-footnote-judgment",
+        "education-academic-source-pass",
+        "education-academic-summary-restraint"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_evidence_marker_count": 2
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "clarity",
+          "delta": -1,
+          "id": "objective.education.analysis-and-concepts.clarity-overload",
+          "max_hits": 1,
+          "reason": "analysis penalty: clarity findings"
+        },
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.education.analysis-and-concepts.readability-overload",
+          "max_hits": 1,
+          "reason": "analysis penalty: readability findings"
+        }
+      ],
+      "domain": "technical",
+      "evidence_labels": [
+        "analysis",
+        "concepts",
+        "interpretation"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.analysis-and-concepts.lexical-density-good",
+          "metric": "nlp_lexical_density",
+          "min": 45,
+          "reason": "analysis reward: lexical density supports analytical signal"
+        },
+        {
+          "delta": 1,
+          "id": "objective.education.analysis-and-concepts.paragraph-focus-good",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "reason": "analysis reward: paragraph focus is stable"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.analysis-and-concepts.paragraph-focus-low",
+          "max": 45,
+          "metric": "nlp_paragraph_focus_score",
+          "reason": "analysis penalty: paragraph focus is weak"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.analysis-and-concepts.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 70,
+          "reason": "analysis penalty: topic drift weakens interpretation chain"
+        }
+      ],
+      "rule_id": "objective.education.analysis-and-concepts",
+      "tgo_codes": [
+        "education-academic-analysis-basics",
+        "education-academic-counterreading",
+        "education-academic-close-reading",
+        "education-academic-pattern-recognition",
+        "education-academic-concept-definition",
+        "education-academic-context-use",
+        "education-academic-significance-lines",
+        "education-academic-analysis-pass"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_paragraph_focus_score": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.education.structure-and-flow.structure-overload",
+          "max_hits": 1,
+          "reason": "structure penalty: structure findings"
+        }
+      ],
+      "domain": "technical",
+      "evidence_labels": [
+        "structure",
+        "flow",
+        "organization"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.structure-and-flow.signposts-strong",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "reason": "structure reward: signposting present"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.structure-and-flow.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "structure penalty: weak signposting"
+        },
+        {
+          "delta": 1,
+          "id": "objective.education.structure-and-flow.topic-drift-low",
+          "max": 45,
+          "metric": "nlp_topic_drift_score",
+          "reason": "structure reward: low topic drift"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.structure-and-flow.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 70,
+          "reason": "structure penalty: high topic drift"
+        }
+      ],
+      "rule_id": "objective.education.structure-and-flow",
+      "tgo_codes": [
+        "education-academic-structure-basics",
+        "education-academic-paragraph-focus",
+        "education-academic-topic-sentences",
+        "education-academic-section-order",
+        "education-academic-transitions",
+        "education-academic-pivot-control",
+        "education-academic-draft-outline",
+        "education-academic-prompt-reading"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 45
+        },
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.education.style-and-editing.readability-overload",
+          "max_hits": 1,
+          "reason": "style/editing penalty: readability findings"
+        },
+        {
+          "category": "sentence control",
+          "delta": -1,
+          "id": "objective.education.style-and-editing.sentence-overload",
+          "max_hits": 1,
+          "reason": "style/editing penalty: sentence-control findings"
+        }
+      ],
+      "domain": "technical",
+      "evidence_labels": [
+        "style",
+        "editing",
+        "clarity"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.style-and-editing.readability-good",
+          "max": 10,
+          "metric": "nlp_readability_grade",
+          "reason": "style/editing reward: readability within target"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.style-and-editing.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "reason": "style/editing penalty: readability too high"
+        },
+        {
+          "delta": 1,
+          "id": "objective.education.style-and-editing.repetition-low",
+          "max": 35,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "style/editing reward: low semantic repetition"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.style-and-editing.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "reason": "style/editing penalty: high semantic repetition"
+        }
+      ],
+      "rule_id": "objective.education.style-and-editing",
+      "tgo_codes": [
+        "education-academic-precision-diction",
+        "education-academic-sentence-control",
+        "education-academic-style-consistency",
+        "education-academic-hedging-control",
+        "education-academic-active-voice",
+        "education-academic-abstract-noun-control",
+        "education-academic-rhythm",
+        "education-academic-revision-triage",
+        "education-academic-clarity-pass",
+        "education-academic-line-editing",
+        "education-academic-proofreading"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_readability_grade": 9
+        },
+        "min_metrics": {
+          "word_count": 500
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "style",
+        "voice",
+        "agency"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.style-and-editing.active-voice.passive-low",
+          "max": 1,
+          "metric": "nlp_passive_sentences",
+          "reason": "active-voice reward: passive constructions controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.style-and-editing.active-voice.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 4,
+          "reason": "active-voice penalty: passive constructions dominate"
+        }
+      ],
+      "rule_id": "objective.education.style-and-editing.active-voice-specific",
+      "tgo_codes": [
+        "education-academic-active-voice"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_passive_sentences": 1
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "style",
+        "hedging",
+        "certainty"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.style-and-editing.hedging.modifier-good",
+          "max": 10,
+          "metric": "nlp_modifier_overload_ratio",
+          "reason": "hedging reward: modifier load is controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.style-and-editing.hedging.modifier-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 18,
+          "reason": "hedging penalty: modifier load weakens claim force"
+        }
+      ],
+      "rule_id": "objective.education.style-and-editing.hedging-specific",
+      "tgo_codes": [
+        "education-academic-hedging-control"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_modifier_overload_ratio": 12
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "quote",
+        "integration",
+        "evidence"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.quote-integration.markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 3,
+          "reason": "quote-integration reward: evidence markers support framed integration"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.quote-integration.markers-low",
+          "max": 1,
+          "metric": "nlp_evidence_marker_count",
+          "reason": "quote-integration penalty: weak evidence markers for quote framing"
+        }
+      ],
+      "rule_id": "objective.education.evidence-and-sources.quote-integration-specific",
+      "tgo_codes": [
+        "education-academic-quote-integration"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "sources",
+        "selection",
+        "coverage"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.source-selection.lexical-variety-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 56,
+          "reason": "source-selection reward: lexical variety suggests broader source range"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.source-selection.lexical-variety-low",
+          "max": 40,
+          "metric": "nlp_unique_token_ratio",
+          "reason": "source-selection penalty: low lexical variety suggests narrow sourcing"
+        }
+      ],
+      "rule_id": "objective.education.evidence-and-sources.source-selection-specific",
+      "tgo_codes": [
+        "education-academic-source-selection"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "evidence",
+        "support",
+        "basics"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.evidence-basics.markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 3,
+          "reason": "evidence-basics reward: explicit support markers are frequent"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.evidence-basics.markers-low",
+          "max": 1,
+          "metric": "nlp_evidence_marker_count",
+          "reason": "evidence-basics penalty: explicit support markers are scarce"
+        }
+      ],
+      "rule_id": "objective.education.evidence-and-sources.evidence-basics-specific",
+      "tgo_codes": [
+        "education-academic-evidence-basics"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "evidence",
+        "proportion",
+        "alignment"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.evidence-proportion.alignment-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 70,
+          "reason": "evidence-proportion reward: support aligns with claim weight"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.evidence-proportion.alignment-low",
+          "max": 45,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "evidence-proportion penalty: support misaligned with claim weight"
+        }
+      ],
+      "rule_id": "objective.education.evidence-and-sources.evidence-proportion-specific",
+      "tgo_codes": [
+        "education-academic-evidence-proportion"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "sources",
+        "evaluation",
+        "fit"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.source-evaluation.alignment-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 68,
+          "reason": "source-evaluation reward: support alignment indicates source fit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.source-evaluation.alignment-low",
+          "max": 45,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "source-evaluation penalty: support alignment indicates weak source fit"
+        }
+      ],
+      "rule_id": "objective.education.evidence-and-sources.source-evaluation-specific",
+      "tgo_codes": [
+        "education-academic-source-evaluation"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "citation",
+        "discipline",
+        "traceability"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.evidence-and-sources.citation-discipline.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 70,
+          "reason": "citation-discipline reward: reference specificity is high"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.evidence-and-sources.citation-discipline.reference-specificity-low",
+          "max": 45,
+          "metric": "nlp_reference_specificity_score",
+          "reason": "citation-discipline penalty: reference specificity is low"
+        }
+      ],
+      "rule_id": "objective.education.evidence-and-sources.citation-discipline-specific",
+      "tgo_codes": [
+        "education-academic-citation-discipline"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "introduction",
+        "framing",
+        "orientation"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.structure-and-flow.introduction.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "reason": "introduction reward: framing signposts are present"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.structure-and-flow.introduction.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 70,
+          "reason": "introduction penalty: high drift weakens opening orientation"
+        }
+      ],
+      "rule_id": "objective.education.structure-and-flow.introduction-specific",
+      "tgo_codes": [
+        "education-academic-introduction-function"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "abstract",
+        "compression",
+        "scope"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.structure-and-flow.abstract.paragraph-compact",
+          "max": 3,
+          "metric": "paragraph_count",
+          "reason": "abstract reward: compact paragraph footprint"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.structure-and-flow.abstract.paragraph-sprawl",
+          "metric": "paragraph_count",
+          "min": 7,
+          "reason": "abstract penalty: scope sprawl beyond compact summary form"
+        }
+      ],
+      "rule_id": "objective.education.structure-and-flow.abstract-specific",
+      "tgo_codes": [
+        "education-academic-abstract-writing"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "section-order",
+        "sequence",
+        "flow"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.structure-and-flow.section-order.topic-drift-low",
+          "max": 40,
+          "metric": "nlp_topic_drift_score",
+          "reason": "section-order reward: low drift supports cumulative sequence"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.structure-and-flow.section-order.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 75,
+          "reason": "section-order penalty: drift weakens section sequencing"
+        }
+      ],
+      "rule_id": "objective.education.structure-and-flow.section-order-specific",
+      "tgo_codes": [
+        "education-academic-section-order"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "technical",
+      "evidence_labels": [
+        "transitions",
+        "connective",
+        "flow"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.education.structure-and-flow.transitions.marker-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "reason": "transitions reward: marker density supports connective flow"
+        },
+        {
+          "delta": -1,
+          "id": "objective.education.structure-and-flow.transitions.marker-density-low",
+          "max": 2,
+          "metric": "nlp_transition_marker_density",
+          "reason": "transitions penalty: marker density too low for connective flow"
+        }
+      ],
+      "rule_id": "objective.education.structure-and-flow.transitions-specific",
+      "tgo_codes": [
+        "education-academic-transitions"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "educational-writing-track"
+      ]
+    }
+  ]
+}
