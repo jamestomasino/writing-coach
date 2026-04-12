@@ -117,19 +117,6 @@ export function TGODetailView({ code }: { code: string }) {
             </div>
           </div>
 
-          <Subheading className="mt-6">Next revision moves</Subheading>
-          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            {objectiveDetail.revisionMoves.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
-
-          <Subheading className="mt-6">Deterministic assessment focus</Subheading>
-          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            {objectiveDetail.assessmentFocus.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
         </WorkspaceCard>
       ) : null}
 
