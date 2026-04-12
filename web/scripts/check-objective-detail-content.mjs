@@ -10,7 +10,24 @@ const objectiveDetailsPath = path.resolve(webRoot, 'src/lib/objective-details.ts
 const skillDetailsPath = path.resolve(webRoot, 'src/lib/skill-details.ts')
 const treeCatalogPath = path.resolve(repoRoot, 'internal/domain/tree_catalog.go')
 
+const moduleCache = new Map()
+
+function resolveLocalModulePath(baseFile, specifier) {
+  const candidate = path.resolve(path.dirname(baseFile), specifier)
+  const withTs = candidate.endsWith('.ts') ? candidate : `${candidate}.ts`
+  if (fs.existsSync(withTs)) {
+    return withTs
+  }
+  if (fs.existsSync(candidate)) {
+    return candidate
+  }
+  throw new Error(`Cannot resolve local module ${specifier} from ${baseFile}`)
+}
+
 function loadTsModule(filePath) {
+  if (moduleCache.has(filePath)) {
+    return moduleCache.get(filePath)
+  }
   const source = fs.readFileSync(filePath, 'utf8')
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -21,15 +38,21 @@ function loadTsModule(filePath) {
   }).outputText
 
   const cjsModule = { exports: {} }
+  moduleCache.set(filePath, cjsModule.exports)
   const context = vm.createContext({
     module: cjsModule,
     exports: cjsModule.exports,
-    require: () => {
-      throw new Error(`Unexpected require in transpiled module: ${filePath}`)
+    require: (specifier) => {
+      if (typeof specifier === 'string' && (specifier.startsWith('./') || specifier.startsWith('../'))) {
+        const resolved = resolveLocalModulePath(filePath, specifier)
+        return loadTsModule(resolved)
+      }
+      throw new Error(`Unexpected require in transpiled module: ${specifier}`)
     },
     console,
   })
   vm.runInContext(compiled, context, { filename: filePath })
+  moduleCache.set(filePath, cjsModule.exports)
   return cjsModule.exports
 }
 
@@ -58,6 +81,10 @@ function parseObjectiveNodes(filePath) {
 
 function words(text) {
   return (text.match(/[A-Za-z]+/g) ?? []).length
+}
+
+function removeExampleLabel(text) {
+  return text.replace(/^Good:\s*/i, '').replace(/^Needs work:\s*/i, '').trim()
 }
 
 function sentenceChunks(text) {
@@ -128,6 +155,26 @@ function main() {
     }
     if (!/^Needs work:/i.test(detail.badExample.trim())) {
       failures.push(`${node.code}: badExample must begin with "Needs work:"`)
+    }
+    const goodBody = removeExampleLabel(detail.goodExample)
+    const badBody = removeExampleLabel(detail.badExample)
+    if (words(goodBody) < 12) {
+      failures.push(`${node.code}: goodExample must include concrete detail (>= 12 words after label)`)
+    }
+    if (words(badBody) < 12) {
+      failures.push(`${node.code}: badExample must include concrete detail (>= 12 words after label)`)
+    }
+
+    const stalePatterns = [
+      /clearly demonstrates/i,
+      /in a way the reader can track/i,
+      /gestures at/i,
+      /reader has to guess what changed/i,
+    ]
+    for (const pattern of stalePatterns) {
+      if (pattern.test(detail.goodExample) || pattern.test(detail.badExample)) {
+        failures.push(`${node.code}: example text still matches deprecated catch-all phrasing`)
+      }
     }
 
     for (const field of ['objectiveGoal', 'whyThisObjective']) {

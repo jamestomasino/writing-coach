@@ -134,6 +134,23 @@ function main() {
       failures.push(`${item.name}: weakExample must begin with "Weak:"`)
     }
 
+    const stalePatterns = [
+      /helps readers understand your writing faster\./i,
+      /In plain words: make .* clear and steady from start to end\./i,
+      /Aim for simple, clear lines\. Clear is strong\./i,
+      /The bus was late, so Maya called her mom/i,
+      /Things happened and it was kind of bad and stuff changed/i,
+    ]
+    const staleFields = [item.oneLine, item.whatItMeans, item.strongExample, item.weakExample, item.coachTip]
+      .filter((value) => typeof value === 'string')
+      .join(' ')
+    for (const pattern of stalePatterns) {
+      if (pattern.test(staleFields)) {
+        failures.push(`${item.name}: contains generic fallback language that must be replaced`)
+        break
+      }
+    }
+
     if (Array.isArray(item.revisionMoves)) {
       for (const [index, move] of item.revisionMoves.entries()) {
         if (!hasActionVerb(move)) {
