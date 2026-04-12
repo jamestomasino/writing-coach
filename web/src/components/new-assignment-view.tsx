@@ -6,12 +6,14 @@ import { CardHeader } from '@/components/card-header'
 import { Callout } from '@/components/callout'
 import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
+import { Link } from '@/components/link'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { acceptAssignment, createAssignment, getAIJob, getDashboard } from '@/lib/api'
-import { computeLevelUpGuidance } from '@/lib/level-up-guidance'
+import { objectiveConceptKey } from '@/lib/objective-concepts'
 import type { Dashboard, Exercise } from '@/lib/types'
 import { useRequiredAppSession } from '@/lib/use-required-app-session'
+import { InformationCircleIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -150,7 +152,6 @@ export function NewAssignmentView() {
   if (!dashboard) {
     return <LoadingState />
   }
-  const guidance = computeLevelUpGuidance(dashboard)
 
   return (
     <div className="space-y-8">
@@ -181,33 +182,6 @@ export function NewAssignmentView() {
 
       {error ? <EmptyState title={t('issueTitle')} body={error} /> : null}
 
-      <div data-testid="level-up-guidance-new-assignment">
-        <Callout
-          tone={guidance.mode === 'hold' ? 'warning' : 'active'}
-          eyebrow={t('levelUpEyebrow')}
-          title={
-            guidance.mode === 'hold'
-              ? t('levelUpTitleHold')
-              : guidance.mode === 'revise'
-                ? t('levelUpTitleRevise')
-                : t('levelUpTitleConsolidate')
-          }
-          body={
-            guidance.mode === 'hold'
-              ? t('levelUpBodyHold')
-              : guidance.mode === 'revise'
-                ? t('levelUpBodyRevise', { count: guidance.earlyCount })
-                : t('levelUpBodyConsolidate')
-          }
-        >
-          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <li>{t('levelUpBullet1')}</li>
-            <li>{t('levelUpBullet2')}</li>
-            <li>{t('levelUpBullet3')}</li>
-          </ul>
-        </Callout>
-      </div>
-
       <WorkspaceCard>
         <CardHeader
           eyebrow={t('focusEyebrow')}
@@ -218,27 +192,35 @@ export function NewAssignmentView() {
           {selectable.map((tgo) => {
             const active = selected.includes(tgo.code)
             return (
-              <button
-                key={tgo.code}
-                type="button"
-                data-testid={`skill-option-${tgo.code}`}
-                data-skill-code={tgo.code}
-                onClick={() => toggle(tgo.code)}
-                disabled={generating}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  active
-                    ? 'border-stone-800 bg-stone-900 text-white'
-                    : 'border-stone-200 bg-stone-50 text-zinc-900 hover:border-stone-400 dark:border-white/10 dark:bg-white/5 dark:text-white'
-                } ${generating ? 'cursor-not-allowed opacity-60' : ''}`}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <span className="font-semibold">{tgo.title}</span>
-                  <Badge color={active ? 'amber' : 'zinc'}>{tgo.stage}</Badge>
-                </div>
-                <p className={`mt-2 text-sm ${active ? 'text-stone-200' : 'text-zinc-600 dark:text-zinc-300'}`}>
-                  {tgo.description}
-                </p>
-              </button>
+              <div key={tgo.code} className="relative">
+                <button
+                  type="button"
+                  data-testid={`skill-option-${tgo.code}`}
+                  data-skill-code={tgo.code}
+                  onClick={() => toggle(tgo.code)}
+                  disabled={generating}
+                  className={`w-full rounded-2xl border p-4 pr-12 text-left transition ${
+                    active
+                      ? 'border-stone-800 bg-stone-900 text-white'
+                      : 'border-stone-200 bg-stone-50 text-zinc-900 hover:border-stone-400 dark:border-white/10 dark:bg-white/5 dark:text-white'
+                  } ${generating ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="font-semibold">{tgo.title}</span>
+                    <Badge color={active ? 'amber' : 'zinc'}>{tgo.stage}</Badge>
+                  </div>
+                  <p className={`mt-2 text-sm ${active ? 'text-stone-200' : 'text-zinc-600 dark:text-zinc-300'}`}>
+                    {tgo.description}
+                  </p>
+                </button>
+                <Link
+                  href={`/skills/${encodeURIComponent(objectiveConceptKey(tgo.title))}`}
+                  aria-label={`Open ${tgo.title} details`}
+                  className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-0.5 text-zinc-500 data-hover:text-zinc-900 dark:border-white/15 dark:bg-black/10 dark:text-zinc-400 dark:data-hover:text-zinc-100"
+                >
+                  <InformationCircleIcon className="size-4" aria-hidden="true" />
+                </Link>
+              </div>
             )
           })}
         </div>

@@ -10,9 +10,11 @@ import { getSkillGraph } from '@/lib/api'
 import { buildObjectiveConcepts } from '@/lib/objective-concepts'
 import { buildObjectiveDetail } from '@/lib/objective-details'
 import type { SkillGraphNode } from '@/lib/types'
+import { useRouter } from 'next/navigation'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 
 export function TGODetailView({ code }: { code: string }) {
+  const router = useRouter()
   const [nodes, setNodes] = useState<SkillGraphNode[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -48,6 +50,16 @@ export function TGODetailView({ code }: { code: string }) {
   const concept = conceptData.conceptByKey.get(code) ?? conceptData.conceptByKey.get(conceptData.conceptByCode.get(code) ?? '')
   const node = concept?.representative
   const objectiveDetail = node ? buildObjectiveDetail(node) : null
+
+  useEffect(() => {
+    if (!concept?.key) {
+      return
+    }
+    if (code === concept.key) {
+      return
+    }
+    router.replace(`/skills/${encodeURIComponent(concept.key)}`)
+  }, [code, concept?.key, router])
 
   if (loading) {
     return <LoadingState label="Loading objective guide..." />
