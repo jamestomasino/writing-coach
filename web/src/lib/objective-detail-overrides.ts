@@ -67,6 +67,64 @@ const ACADEMIC_SOURCES = {
 }
 
 export const OBJECTIVE_DETAIL_OVERRIDES: Record<string, ObjectiveDetailOverride> = {
+  'causal-clarity': {
+    skillOverview:
+      'This skill helps readers track why each event happens and what it changes. It turns a chain of moments into a chain of consequences.',
+    objectiveGoal:
+      'Make each major beat readable as choice -> consequence -> next pressure. Keep cause-and-effect links close enough that readers do not have to infer missing steps.',
+    whyThisObjective:
+      'This matters because story momentum collapses when outcomes feel random or disconnected. Strong control here makes stakes feel earned and keeps readers emotionally invested.',
+    successLooksLike: [
+      'Readers can explain what decision triggered each major turn.',
+      'Big outcomes are prepared by visible earlier actions, not surprise author intervention.',
+      'Chronology and causation stay clear even when the narrative moves quickly.',
+    ],
+    goodExample:
+      'Good: Mara burns the ledger to hide her theft; the smoke triggers the alarm; the guard seals the south gate; now her only exit is through the flooded tunnel she cannot swim.',
+    badExample:
+      'Needs work: Mara is suddenly trapped at the chapter end, but no prior action explains the lockdown, and the danger feels imposed rather than caused by her choices.',
+    revisionMoves: [
+      'Mark each major turn and write the exact action that causes it.',
+      'Add one bridge sentence where a consequence currently appears without setup.',
+      'Cut or rewrite outcomes that cannot be traced to earlier decisions.',
+    ],
+    assessmentFocus: [
+      'Every major turn should have a visible trigger inside the draft.',
+      'Consequences should escalate pressure rather than reset the story.',
+      'Reader orientation should hold without reconstructing hidden steps.',
+    ],
+    exampleSources: [ACADEMIC_SOURCES.purdueParagraphs],
+    exampleStrategy: 'Teach event logic as an explicit cause-and-effect chain.',
+  },
+  'scene-architecture': {
+    skillOverview:
+      'This skill shapes each scene so it has structure, pressure, and movement. It controls how entrances, exits, turns, and power shifts are staged on the page.',
+    objectiveGoal:
+      'Design scenes with a clear starting pressure, a contested middle, and a changed endpoint. Keep spatial orientation and power movement legible throughout the scene.',
+    whyThisObjective:
+      'This matters because scenes feel flat when characters speak without goals, resistance, or change. Strong structure makes scenes dramatic, readable, and necessary to the larger story.',
+    successLooksLike: [
+      'Each scene begins with a clear immediate objective under pressure.',
+      'At least one turn changes leverage, information, or options before the scene ends.',
+      'Entrances, exits, and object positions remain trackable while tension rises.',
+    ],
+    goodExample:
+      'Good: Eli enters to secure funding, learns the donor already promised support to his rival, then leaves with a forged letter that flips his leverage for the next confrontation.',
+    badExample:
+      'Needs work: Two characters discuss plans for three pages, but no one pushes against the other, nothing changes by the exit, and the scene could be removed without consequence.',
+    revisionMoves: [
+      'Write the scene goal, obstacle, and turn in one line each before revision.',
+      'Add one action beat where power visibly shifts between characters.',
+      'Re-stage movement cues so readers can track who is where during conflict.',
+    ],
+    assessmentFocus: [
+      'Scenes should produce change, not only conversation.',
+      'Spatial and dramatic orientation should stay clear under pressure.',
+      'Scene endings should alter the next decision landscape.',
+    ],
+    exampleSources: [ACADEMIC_SOURCES.purdueParagraphs],
+    exampleStrategy: 'Teach scene design as pressure + turn + changed state.',
+  },
   'academic-abstract-noun-control': {
     skillOverview:
       'Academic readers need concrete claims, not vague abstraction piles. This skill keeps your nouns precise enough to test and discuss.',
