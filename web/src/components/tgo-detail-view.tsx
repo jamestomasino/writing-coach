@@ -117,35 +117,6 @@ export function TGODetailView({ code }: { code: string }) {
             </div>
           </div>
 
-          <Subheading className="mt-6">Revision moves</Subheading>
-          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            {objectiveDetail.revisionMoves.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
-
-          <Subheading className="mt-6">Assessment focus</Subheading>
-          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            {objectiveDetail.assessmentFocus.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
-
-          {objectiveDetail.exampleSources?.length ? (
-            <>
-              <Subheading className="mt-6">Example sources</Subheading>
-              <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-                {objectiveDetail.exampleSources.map((source) => (
-                  <li key={`${source.label}:${source.url}`}>
-                    •{' '}
-                    <a className="underline decoration-zinc-400 underline-offset-2 hover:decoration-zinc-700 dark:decoration-zinc-500 dark:hover:decoration-zinc-200" href={source.url} target="_blank" rel="noreferrer">
-                      {source.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
         </WorkspaceCard>
       ) : null}
 
