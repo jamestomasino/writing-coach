@@ -614,24 +614,28 @@ func (s *Store) SaveReviewWithObjectiveScores(ctx context.Context, review domain
 		return 0, err
 	}
 
-	for _, score := range scores {
-		scoreSource := strings.TrimSpace(score.ScoreSource)
-		if scoreSource == "" {
-			scoreSource = "deterministic"
-		}
-		scoreVersion := strings.TrimSpace(score.ScoreVersion)
-		if scoreVersion == "" {
-			scoreVersion = "det-v1"
-		}
-		scoreEvidence := strings.TrimSpace(score.ScoreEvidenceJSON)
-		if scoreEvidence == "" {
-			scoreEvidence = "{}"
-		}
-		if _, err = tx.ExecContext(ctx, `
-			INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
-			VALUES (?, ?, ?, ?, ?, ?)
-		`, review.SubmissionID, score.Skill, score.Score, scoreSource, scoreVersion, scoreEvidence); err != nil {
-			return 0, err
+	// Legacy family-score writes are preserved only for legacy-only paths.
+	// When objective scores are present, objective rows are the source of truth.
+	if len(objectiveScores) == 0 {
+		for _, score := range scores {
+			scoreSource := strings.TrimSpace(score.ScoreSource)
+			if scoreSource == "" {
+				scoreSource = "deterministic"
+			}
+			scoreVersion := strings.TrimSpace(score.ScoreVersion)
+			if scoreVersion == "" {
+				scoreVersion = "det-v1"
+			}
+			scoreEvidence := strings.TrimSpace(score.ScoreEvidenceJSON)
+			if scoreEvidence == "" {
+				scoreEvidence = "{}"
+			}
+			if _, err = tx.ExecContext(ctx, `
+				INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
+				VALUES (?, ?, ?, ?, ?, ?)
+			`, review.SubmissionID, score.Skill, score.Score, scoreSource, scoreVersion, scoreEvidence); err != nil {
+				return 0, err
+			}
 		}
 	}
 	for _, score := range objectiveScores {
@@ -1041,7 +1045,17 @@ func (s *Store) SubmissionSkillScores(ctx context.Context, submissionID int64) (
 		}
 		scores = append(scores, score)
 	}
-	return scores, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(scores) > 0 {
+		return scores, nil
+	}
+	objectiveScores, err := s.SubmissionObjectiveScores(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
+	return objectiveScoresToSkillScores(objectiveScores), nil
 }
 
 func (s *Store) SubmissionObjectiveScores(ctx context.Context, submissionID int64) ([]domain.ObjectiveScore, error) {
