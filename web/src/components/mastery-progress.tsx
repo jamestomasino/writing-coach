@@ -75,7 +75,7 @@ export function MasteryProgress({
     return (
       <div className="mt-3">
         <div className={`flex items-center justify-between gap-4 text-xs font-medium uppercase tracking-[0.16em] ${palette.text}`}>
-          <span>Mastery</span>
+          <span>Mastery stage</span>
           <span>{percent}%</span>
         </div>
         <div className={`mt-2 h-2 rounded-full ${palette.track}`}>
@@ -83,7 +83,8 @@ export function MasteryProgress({
         </div>
         {evidence > 0 ? (
           <Text className={`mt-2 text-sm ${palette.meta}`}>
-            {label} across {evidence} review{evidence === 1 ? '' : 's'}
+            Stage: {label}
+            {` across ${evidence} review${evidence === 1 ? '' : 's'}`}
           </Text>
         ) : null}
       </div>
@@ -92,7 +93,7 @@ export function MasteryProgress({
 
   return (
     <div className="mt-3">
-      <div className={`text-xs font-medium uppercase tracking-[0.16em] ${palette.text}`}>Mastery</div>
+      <div className={`text-xs font-medium uppercase tracking-[0.16em] ${palette.text}`}>Mastery stage</div>
       <div className="mt-2 grid grid-cols-4 gap-1.5">
         {stageOrder.map((segment, index) => (
           <div
@@ -102,7 +103,7 @@ export function MasteryProgress({
         ))}
       </div>
       <Text className={`mt-2 text-sm ${palette.meta}`}>
-        <span className={`font-semibold ${palette.body}`}>{label}</span>
+        <span className={`font-semibold ${palette.body}`}>Stage: {label}</span>
         {evidence > 0 ? ` across ${evidence} review${evidence === 1 ? '' : 's'}` : ''}
       </Text>
     </div>
