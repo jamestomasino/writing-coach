@@ -15,24 +15,32 @@ import (
 )
 
 type corpus struct {
-	Version     string     `json:"version"`
-	MinPassRate float64    `json:"min_pass_rate"`
-	Cases       []evalCase `json:"cases"`
+	Version            string        `json:"version"`
+	MinPassRate        float64       `json:"min_pass_rate"`
+	MaxPairwiseTieRate *float64      `json:"max_pairwise_tie_rate,omitempty"`
+	TrackPolicies      []trackPolicy `json:"track_policies,omitempty"`
+	Cases              []evalCase    `json:"cases"`
+}
+
+type trackPolicy struct {
+	TreeSlug    string   `json:"tree_slug"`
+	MinPassRate *float64 `json:"min_pass_rate,omitempty"`
+	MinChecks   *int     `json:"min_checks,omitempty"`
 }
 
 type evalCase struct {
-	Name            string         `json:"name"`
-	Type            string         `json:"type"`
-	TreeSlug        string         `json:"tree_slug"`
-	WritingType     string         `json:"writing_type"`
-	SkillScores     []skillFixture `json:"skill_scores"`
-	LeftCode        string         `json:"left_code"`
-	RightCode       string         `json:"right_code"`
-	LeftWinsMetrics map[string]int `json:"left_wins_metrics"`
+	Name             string         `json:"name"`
+	Type             string         `json:"type"`
+	TreeSlug         string         `json:"tree_slug"`
+	WritingType      string         `json:"writing_type"`
+	SkillScores      []skillFixture `json:"skill_scores"`
+	LeftCode         string         `json:"left_code"`
+	RightCode        string         `json:"right_code"`
+	LeftWinsMetrics  map[string]int `json:"left_wins_metrics"`
 	RightWinsMetrics map[string]int `json:"right_wins_metrics"`
-	Code            string         `json:"code"`
-	LowMetrics      map[string]int `json:"low_metrics"`
-	HighMetrics     map[string]int `json:"high_metrics"`
+	Code             string         `json:"code"`
+	LowMetrics       map[string]int `json:"low_metrics"`
+	HighMetrics      map[string]int `json:"high_metrics"`
 }
 
 type skillFixture struct {
@@ -43,6 +51,11 @@ type skillFixture struct {
 type failure struct {
 	Case   string
 	Detail string
+}
+
+type trackAggregate struct {
+	Checks int
+	Passes int
 }
 
 func main() {
@@ -72,12 +85,24 @@ func main() {
 	if c.MinPassRate <= 0 || c.MinPassRate > 1 {
 		dieMsg("min_pass_rate must be within (0,1]")
 	}
+	if c.MaxPairwiseTieRate != nil && (*c.MaxPairwiseTieRate < 0 || *c.MaxPairwiseTieRate > 1) {
+		dieMsg("max_pairwise_tie_rate must be within [0,1]")
+	}
 
 	totalChecks := 0
 	passedChecks := 0
+	pairwiseChecks := 0
+	pairwiseTies := 0
 	var failures []failure
-	trackChecks := map[string]int{}
-	trackPasses := map[string]int{}
+	trackAgg := map[string]*trackAggregate{}
+	trackPolicyBySlug := map[string]trackPolicy{}
+	for _, policy := range c.TrackPolicies {
+		slug := strings.TrimSpace(policy.TreeSlug)
+		if slug == "" {
+			continue
+		}
+		trackPolicyBySlug[slug] = policy
+	}
 
 	for idx, tc := range c.Cases {
 		caseName := strings.TrimSpace(tc.Name)
@@ -105,10 +130,15 @@ func main() {
 			leftPass := review.BuildObjectiveScores(900, active, assessments, skillScores, analyzer.Report{Metrics: tc.LeftWinsMetrics}, options)
 			leftMap := objectiveScoreByCode(leftPass)
 			totalChecks++
-			trackChecks[options.TreeSlug]++
+			pairwiseChecks++
+			agg := ensureTrackAggregate(trackAgg, options.TreeSlug)
+			agg.Checks++
+			if leftMap[leftCode].Score == leftMap[rightCode].Score {
+				pairwiseTies++
+			}
 			if leftMap[leftCode].Score > leftMap[rightCode].Score {
 				passedChecks++
-				trackPasses[options.TreeSlug]++
+				agg.Passes++
 			} else {
 				failures = append(failures, failure{Case: caseName, Detail: fmt.Sprintf("leftWins expected %s>%s got %d<=%d", leftCode, rightCode, leftMap[leftCode].Score, leftMap[rightCode].Score)})
 			}
@@ -116,10 +146,15 @@ func main() {
 			rightPass := review.BuildObjectiveScores(900, active, assessments, skillScores, analyzer.Report{Metrics: tc.RightWinsMetrics}, options)
 			rightMap := objectiveScoreByCode(rightPass)
 			totalChecks++
-			trackChecks[options.TreeSlug]++
+			pairwiseChecks++
+			agg = ensureTrackAggregate(trackAgg, options.TreeSlug)
+			agg.Checks++
+			if rightMap[rightCode].Score == rightMap[leftCode].Score {
+				pairwiseTies++
+			}
 			if rightMap[rightCode].Score > rightMap[leftCode].Score {
 				passedChecks++
-				trackPasses[options.TreeSlug]++
+				agg.Passes++
 			} else {
 				failures = append(failures, failure{Case: caseName, Detail: fmt.Sprintf("rightWins expected %s>%s got %d<=%d", rightCode, leftCode, rightMap[rightCode].Score, rightMap[leftCode].Score)})
 			}
@@ -136,10 +171,11 @@ func main() {
 			lowScore := objectiveScoreByCode(low)[code].Score
 			highScore := objectiveScoreByCode(high)[code].Score
 			totalChecks++
-			trackChecks[options.TreeSlug]++
+			agg := ensureTrackAggregate(trackAgg, options.TreeSlug)
+			agg.Checks++
 			if highScore >= lowScore {
 				passedChecks++
-				trackPasses[options.TreeSlug]++
+				agg.Passes++
 			} else {
 				failures = append(failures, failure{Case: caseName, Detail: fmt.Sprintf("monotonic expected high>=low got %d<%d", highScore, lowScore)})
 			}
@@ -149,18 +185,28 @@ func main() {
 	}
 
 	passRate := float64(passedChecks) / float64(totalChecks)
+	pairwiseTieRate := 0.0
+	if pairwiseChecks > 0 {
+		pairwiseTieRate = float64(pairwiseTies) / float64(pairwiseChecks)
+	}
 	fmt.Printf("objective-score-eval: corpus=%s version=%s\n", abs, strings.TrimSpace(c.Version))
 	fmt.Printf("objective-score-eval: checks=%d passed=%d failed=%d pass_rate=%.3f required=%.3f\n", totalChecks, passedChecks, totalChecks-passedChecks, passRate, c.MinPassRate)
+	if c.MaxPairwiseTieRate != nil {
+		fmt.Printf("objective-score-eval: pairwise_checks=%d ties=%d tie_rate=%.3f allowed<=%.3f\n", pairwiseChecks, pairwiseTies, pairwiseTieRate, *c.MaxPairwiseTieRate)
+	}
 
-	slugs := make([]string, 0, len(trackChecks))
-	for slug := range trackChecks {
+	slugs := make([]string, 0, len(trackAgg))
+	for slug := range trackAgg {
 		slugs = append(slugs, slug)
 	}
 	sort.Strings(slugs)
 	for _, slug := range slugs {
-		checks := trackChecks[slug]
-		passes := trackPasses[slug]
-		fmt.Printf("objective-score-eval: track=%s checks=%d passed=%d failed=%d\n", slug, checks, passes, checks-passes)
+		agg := trackAgg[slug]
+		trackPassRate := 0.0
+		if agg.Checks > 0 {
+			trackPassRate = float64(agg.Passes) / float64(agg.Checks)
+		}
+		fmt.Printf("objective-score-eval: track=%s checks=%d passed=%d failed=%d pass_rate=%.3f\n", slug, agg.Checks, agg.Passes, agg.Checks-agg.Passes, trackPassRate)
 	}
 
 	if len(failures) > 0 {
@@ -170,6 +216,28 @@ func main() {
 	}
 	if passRate < c.MinPassRate {
 		dieMsg(fmt.Sprintf("pass rate %.3f below required %.3f", passRate, c.MinPassRate))
+	}
+	if c.MaxPairwiseTieRate != nil && pairwiseTieRate > *c.MaxPairwiseTieRate {
+		dieMsg(fmt.Sprintf("pairwise tie rate %.3f above allowed %.3f", pairwiseTieRate, *c.MaxPairwiseTieRate))
+	}
+	for _, policy := range c.TrackPolicies {
+		slug := strings.TrimSpace(policy.TreeSlug)
+		if slug == "" {
+			continue
+		}
+		agg := ensureTrackAggregate(trackAgg, slug)
+		if policy.MinChecks != nil && agg.Checks < *policy.MinChecks {
+			dieMsg(fmt.Sprintf("track %s has %d checks below required min_checks %d", slug, agg.Checks, *policy.MinChecks))
+		}
+		if policy.MinPassRate != nil {
+			trackPassRate := 0.0
+			if agg.Checks > 0 {
+				trackPassRate = float64(agg.Passes) / float64(agg.Checks)
+			}
+			if trackPassRate < *policy.MinPassRate {
+				dieMsg(fmt.Sprintf("track %s pass rate %.3f below required %.3f", slug, trackPassRate, *policy.MinPassRate))
+			}
+		}
 	}
 	fmt.Println("objective-score-eval: ok")
 }
@@ -205,6 +273,19 @@ func objectiveScoreByCode(scores []domain.ObjectiveScore) map[string]domain.Obje
 		out[score.TGOCode] = score
 	}
 	return out
+}
+
+func ensureTrackAggregate(store map[string]*trackAggregate, slug string) *trackAggregate {
+	trim := strings.TrimSpace(slug)
+	if trim == "" {
+		trim = "unknown"
+	}
+	agg := store[trim]
+	if agg == nil {
+		agg = &trackAggregate{}
+		store[trim] = agg
+	}
+	return agg
 }
 
 func die(msg string, err error) {
