@@ -96,3 +96,36 @@ func TestCompareSubmissionsFlagsSkillSetMismatch(t *testing.T) {
 		t.Fatalf("expected overlap delta only, got %+v", got.SkillDeltas)
 	}
 }
+
+func TestCompareSubmissionsFiltersSkillDeltasToActiveAssessmentSkills(t *testing.T) {
+	baseline := domain.Submission{ID: 20, WordCount: 200, Content: "baseline content"}
+	current := domain.Submission{ID: 21, WordCount: 240, Content: "current content"}
+	baselineReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 3, ScoreSource: "deterministic"},
+			{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+			{Skill: "image freshness", Score: 4, ScoreSource: "deterministic"},
+		},
+	}
+	currentReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic"},
+			{Skill: "scene architecture", Score: 2, ScoreSource: "deterministic"},
+			{Skill: "image freshness", Score: 2, ScoreSource: "deterministic"},
+		},
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "story-causal-clarity", Status: "developing"},
+			{TGOCode: "story-scene-architecture", Status: "developing"},
+		},
+	}
+
+	got := CompareSubmissions(current, baseline, currentReview, baselineReview)
+	if len(got.SkillDeltas) != 2 {
+		t.Fatalf("expected only active assessment skill deltas, got %+v", got.SkillDeltas)
+	}
+	for _, delta := range got.SkillDeltas {
+		if delta.Skill == "image freshness" {
+			t.Fatalf("unexpected non-active skill delta: %+v", delta)
+		}
+	}
+}

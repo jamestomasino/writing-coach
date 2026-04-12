@@ -12,7 +12,7 @@ func TestToScoreResponsesPrefersDeterministic(t *testing.T) {
 		{Skill: "claim clarity", Score: 4, ScoreSource: "deterministic", ScoreVersion: "det-v1", ScoreEvidenceJSON: `{"domain":"technical","applied_rules":["word_count within [300,1200]: +1"]}`},
 	}
 
-	out := toScoreResponses(in)
+	out := toScoreResponses(in, nil)
 	if len(out) != 1 {
 		t.Fatalf("expected 1 score, got %d", len(out))
 	}
@@ -36,8 +36,29 @@ func TestToScoreResponsesFallsBackToLegacy(t *testing.T) {
 		{Skill: "scene architecture", Score: 4, ScoreSource: "", ScoreVersion: ""},
 	}
 
-	out := toScoreResponses(in)
+	out := toScoreResponses(in, nil)
 	if len(out) != 2 {
 		t.Fatalf("expected legacy fallback set, got %d", len(out))
+	}
+}
+
+func TestToScoreResponsesFiltersToAssessmentSkills(t *testing.T) {
+	in := []domain.SkillScore{
+		{Skill: "narrative clarity", Score: 3, ScoreSource: "deterministic", ScoreVersion: "det-v1"},
+		{Skill: "scene architecture", Score: 4, ScoreSource: "deterministic", ScoreVersion: "det-v1"},
+		{Skill: "image freshness", Score: 4, ScoreSource: "deterministic", ScoreVersion: "det-v1"},
+	}
+	assessments := []domain.TGOAssessment{
+		{TGOCode: "story-causal-clarity", Status: "developing"},
+		{TGOCode: "story-scene-architecture", Status: "secure"},
+	}
+	out := toScoreResponses(in, assessments)
+	if len(out) != 2 {
+		t.Fatalf("expected only focused assessment scores, got %d", len(out))
+	}
+	for _, score := range out {
+		if score.Skill == "image freshness" {
+			t.Fatalf("unexpected non-focused score included: %+v", score)
+		}
 	}
 }

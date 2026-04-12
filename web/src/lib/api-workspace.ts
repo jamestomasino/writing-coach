@@ -1,6 +1,6 @@
 import { request } from './api-core'
 import { arrayOrEmpty, normalizeAssignmentTimeline, normalizeDashboard, normalizePlaygroundReview, normalizeReview, normalizeTree } from './api-normalizers'
-import type { AIJob, AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundDraft, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession, Review, Submission, Tree } from './types'
+import type { AIJob, AssignmentSummary, AssignmentTimeline, Comparison, Dashboard, Exercise, PlaygroundDraft, PlaygroundReview, PlaygroundReviewInput, PlaygroundSession, Review, SkillGraph, Submission, Tree } from './types'
 
 export function getDashboard() {
   return request<Dashboard>('/api/dashboard').then(normalizeDashboard)
@@ -9,6 +9,11 @@ export function getDashboard() {
 export async function getTree(slug: string) {
   const payload = await request<{ tree: Tree }>(`/api/trees/${slug}`)
   return normalizeTree(payload.tree)
+}
+
+export async function getSkillGraph() {
+  const payload = await request<{ graph: SkillGraph }>('/api/skill-graph')
+  return payload.graph
 }
 
 export async function getExercises(limit = 10) {

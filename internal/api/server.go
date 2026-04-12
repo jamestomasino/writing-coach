@@ -209,6 +209,7 @@ type tgoResponse struct {
 	Code           string   `json:"code"`
 	Title          string   `json:"title"`
 	Description    string   `json:"description"`
+	SkillName      string   `json:"skill_name,omitempty"`
 	Stage          string   `json:"stage"`
 	SkillTier      string   `json:"skill_tier,omitempty"`
 	StageOrder     int      `json:"stage_order"`
@@ -403,6 +404,7 @@ func (s Server) handleSkillGraph(w http.ResponseWriter, r *http.Request) {
 				Code:          node.Code,
 				Title:         node.Title,
 				Description:   node.Description,
+				SkillName:     strings.TrimSpace(domain.TGOCodeToSkill[node.Code]),
 				Stage:         node.Stage,
 				SkillTier:     skillTierForTGOCode(node.Code),
 				StageOrder:    node.StageOrder,
@@ -889,6 +891,7 @@ func toTGOResponses(tgos []domain.TGO) []tgoResponse {
 			Code:           tgo.Code,
 			Title:          tgo.Title,
 			Description:    tgo.Description,
+			SkillName:      strings.TrimSpace(domain.TGOCodeToSkill[tgo.Code]),
 			Stage:          tgo.Stage,
 			SkillTier:      skillTierForTGOCode(tgo.Code),
 			StageOrder:     tgo.StageOrder,
@@ -1399,7 +1402,7 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 		AnalyzerFindings: reviewResult.AnalyzerFindings,
 		NextFocus:        reviewResult.NextFocus,
 		MetricWordCount:  reviewResult.MetricWordCount,
-		SkillScores:      toScoreResponses(reviewResult.SkillScores),
+		SkillScores:      toScoreResponses(reviewResult.SkillScores, reviewResult.TGOAssessments),
 	}
 	for _, assessment := range reviewResult.TGOAssessments {
 		out.TGOAssessments = append(out.TGOAssessments, tgoAssessmentResponse{
@@ -1488,7 +1491,8 @@ func toPlaygroundReviewResponse(item domain.PlaygroundReview) playgroundReviewRe
 	}
 }
 
-func toScoreResponses(scores []domain.SkillScore) []scoreResponse {
+func toScoreResponses(scores []domain.SkillScore, assessments []domain.TGOAssessment) []scoreResponse {
+	allowedSkills := focusedSkillsFromAssessments(assessments)
 	filtered := make([]domain.SkillScore, 0, len(scores))
 	for _, score := range scores {
 		if score.ScoreSource == "deterministic" {
@@ -1504,6 +1508,17 @@ func toScoreResponses(scores []domain.SkillScore) []scoreResponse {
 	}
 	if len(filtered) == 0 {
 		filtered = scores
+	}
+	if len(allowedSkills) > 0 {
+		focused := make([]domain.SkillScore, 0, len(filtered))
+		for _, score := range filtered {
+			key := strings.ToLower(strings.TrimSpace(score.Skill))
+			if key == "" || !allowedSkills[key] {
+				continue
+			}
+			focused = append(focused, score)
+		}
+		filtered = focused
 	}
 
 	var out []scoreResponse
@@ -1521,6 +1536,24 @@ func toScoreResponses(scores []domain.SkillScore) []scoreResponse {
 			}
 		}
 		out = append(out, item)
+	}
+	return out
+}
+
+func focusedSkillsFromAssessments(assessments []domain.TGOAssessment) map[string]bool {
+	if len(assessments) == 0 {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, assessment := range assessments {
+		skill := strings.TrimSpace(domain.TGOCodeToSkill[assessment.TGOCode])
+		if skill == "" {
+			continue
+		}
+		out[strings.ToLower(skill)] = true
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }

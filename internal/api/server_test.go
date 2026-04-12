@@ -5689,3 +5689,39 @@ func waitForAIJob(t *testing.T, baseURL string, jobID int64) aiJobResponse {
 	t.Fatalf("timed out waiting for ai job %d", jobID)
 	return aiJobResponse{}
 }
+
+func TestToReviewResponseFiltersSkillScoresToAssessmentSkills(t *testing.T) {
+	reviewInput := domain.Review{
+		SubmissionID: 1,
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic"},
+			{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+			{Skill: "image freshness", Score: 5, ScoreSource: "deterministic"},
+		},
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "story-causal-clarity", Status: "secure"},
+			{TGOCode: "story-scene-architecture", Status: "developing"},
+		},
+	}
+
+	resp := toReviewResponse(reviewInput)
+	if len(resp.SkillScores) != 2 {
+		t.Fatalf("expected 2 focused skill scores, got %d (%+v)", len(resp.SkillScores), resp.SkillScores)
+	}
+	for _, item := range resp.SkillScores {
+		if item.Skill == "image freshness" {
+			t.Fatalf("unexpected non-focused skill score in response: %+v", item)
+		}
+	}
+}
+
+func TestToScoreResponsesKeepsAllWithoutAssessmentFilter(t *testing.T) {
+	scores := []domain.SkillScore{
+		{Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic"},
+		{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+	}
+	resp := toScoreResponses(scores, nil)
+	if len(resp) != 2 {
+		t.Fatalf("expected all scores to remain without assessments, got %d", len(resp))
+	}
+}

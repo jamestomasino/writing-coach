@@ -361,7 +361,9 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                   className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-semibold capitalize text-zinc-900 dark:text-white">{item.skill}</div>
+                    <div className="text-sm font-semibold capitalize text-zinc-900 dark:text-white">
+                      {t('scoreSignalLabel', { skill: item.skill })}
+                    </div>
                     <Badge color={item.direction === 'up' ? 'green' : item.direction === 'down' ? 'amber' : 'zinc'}>
                       {item.direction === 'up'
                         ? t('scoreMovementUp')

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "check:i18n-timezone": "node ./scripts/check-i18n-timezone.mjs",
+    "check:skill-details": "node ./scripts/check-skill-detail-content.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },

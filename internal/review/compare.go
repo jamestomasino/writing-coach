@@ -38,7 +38,8 @@ type SkillDelta struct {
 func CompareSubmissions(current, baseline domain.Submission, currentReview domain.Review, baselineReview domain.Review) Comparison {
 	added, removed := diffWordSets(baseline.Content, current.Content)
 	persisting, addressed := weaknessDelta(baselineReview.Weaknesses, currentReview.Weaknesses)
-	skillDeltas, skillSetMismatch := scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations)
+	allowedSkills := allowedSignalSkills(currentReview.TGOAssessments)
+	skillDeltas, skillSetMismatch := scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations, allowedSkills)
 
 	summary := "Revision changes are mixed."
 	switch {
@@ -135,9 +136,13 @@ func normalizeWeaknessKey(value string) string {
 	return strings.Join(parts, " ")
 }
 
-func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.ReviewAnnotation) ([]SkillDelta, bool) {
+func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.ReviewAnnotation, allowed map[string]bool) ([]SkillDelta, bool) {
 	baselineMap := authoritativeSkillMap(baseline)
 	currentMap := authoritativeSkillMap(current)
+	if len(allowed) > 0 {
+		baselineMap = filterSkillMap(baselineMap, allowed)
+		currentMap = filterSkillMap(currentMap, allowed)
+	}
 	if len(currentMap) == 0 {
 		return nil, false
 	}
@@ -180,6 +185,38 @@ func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.Revi
 		})
 	}
 	return out, skillSetMismatch
+}
+
+func filterSkillMap(input map[string]domain.SkillScore, allowed map[string]bool) map[string]domain.SkillScore {
+	if len(input) == 0 || len(allowed) == 0 {
+		return input
+	}
+	out := make(map[string]domain.SkillScore, len(input))
+	for skill, score := range input {
+		if !allowed[strings.ToLower(strings.TrimSpace(skill))] {
+			continue
+		}
+		out[skill] = score
+	}
+	return out
+}
+
+func allowedSignalSkills(assessments []domain.TGOAssessment) map[string]bool {
+	if len(assessments) == 0 {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, assessment := range assessments {
+		skill := strings.TrimSpace(domain.TGOCodeToSkill[assessment.TGOCode])
+		if skill == "" {
+			continue
+		}
+		out[strings.ToLower(skill)] = true
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func authoritativeSkillMap(scores []domain.SkillScore) map[string]domain.SkillScore {
