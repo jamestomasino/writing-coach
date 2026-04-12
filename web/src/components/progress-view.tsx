@@ -14,10 +14,12 @@ import {
   ArrowTrendingUpIcon,
   CheckBadgeIcon,
   ExclamationTriangleIcon,
+  InformationCircleIcon,
   SparklesIcon,
 } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
+import { Link } from './link'
 import { MasteryProgress } from './mastery-progress'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
@@ -204,7 +206,16 @@ export function ProgressView() {
                     className="rounded-xl border border-blue-200/80 bg-white/70 px-3 py-3 dark:border-blue-400/20 dark:bg-black/10"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-semibold text-blue-950 dark:text-blue-100">{tgo.title}</span>
+                      <span className="flex items-center gap-2 text-sm font-semibold text-blue-950 dark:text-blue-100">
+                        <span>{tgo.title}</span>
+                        <Link
+                          href={`/skills/${encodeURIComponent(tgo.code)}`}
+                          aria-label={`Open ${tgo.title} details`}
+                          className="inline-flex items-center justify-center rounded-full border border-blue-300 bg-white p-0.5 text-blue-600 data-hover:text-blue-900 dark:border-blue-300/30 dark:bg-black/10 dark:text-blue-300 dark:data-hover:text-blue-100"
+                        >
+                          <InformationCircleIcon className="size-4" aria-hidden="true" />
+                        </Link>
+                      </span>
                       <Badge color="blue">{stageLabel(tgo.stage)}</Badge>
                     </div>
                     <MasteryProgress tgo={tgo} tone="blue" />
