@@ -13,8 +13,7 @@ import { formatLocalDateTime } from '@/lib/datetime'
 import { useAssignmentTimeline } from '@/lib/use-assignment-timeline'
 import type { AssignmentTimelineStep } from '@/lib/types'
 import { ProviderProvenance } from './provider-provenance'
-import { SkillScoreMeter } from './skill-score-meter'
-import { AppErrorState, EmptyState, LoadingState } from './status-state'
+import { AppErrorState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 function railTone(step: AssignmentTimelineStep) {
@@ -183,16 +182,6 @@ function ReviewStepSection({ step, t }: { step: AssignmentTimelineStep; t: Retur
             <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('nextFocus')}</div>
             <Text className="mt-3">{step.review.next_focus}</Text>
           </div>
-          {step.review.skill_scores.length ? (
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('skillRatings')}</div>
-              <div className="mt-3 space-y-3">
-                {step.review.skill_scores.map((item) => (
-                  <SkillScoreMeter key={item.skill} score={item} compact />
-                ))}
-              </div>
-            </div>
-          ) : null}
           {step.review.artifacts?.comparison ? (
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 dark:border-white/10 dark:bg-white/5">
               <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('whatChangedAcrossDrafts')}</div>

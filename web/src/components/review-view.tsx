@@ -12,7 +12,6 @@ import { ArrowPathIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 import { ProviderProvenance } from './provider-provenance'
-import { SkillScoreMeter } from './skill-score-meter'
 import { AppErrorState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -320,33 +319,6 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
       </div>
 
       <div className="grid gap-8 xl:grid-cols-2">
-        <WorkspaceCard>
-          <CardHeader
-            eyebrow={t('ratingsEyebrow')}
-            title={t('ratingsTitle')}
-            description={t('ratingsDescription')}
-          />
-          <div className="mt-4 rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm dark:border-white/10 dark:bg-white/5">
-            <div className="font-semibold text-zinc-900 dark:text-white">{t('scoreScaleTitle')}</div>
-            <div className="mt-2 space-y-1 text-zinc-700 dark:text-zinc-300">
-              <div>{t('scoreScaleFive')}</div>
-              <div>{t('scoreScaleFour')}</div>
-              <div>{t('scoreScaleThree')}</div>
-              <div>{t('scoreScaleTwoOrLess')}</div>
-            </div>
-            <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">{t('scoreScaleTrendHint')}</div>
-          </div>
-          <div className="mt-4 space-y-3">
-            {review.skill_scores.map((item) => (
-              <div
-                key={item.skill}
-                className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
-              >
-                <SkillScoreMeter score={item} />
-              </div>
-            ))}
-          </div>
-        </WorkspaceCard>
         {comparison?.skill_deltas && comparison.skill_deltas.length > 0 ? (
           <WorkspaceCard>
             <CardHeader
