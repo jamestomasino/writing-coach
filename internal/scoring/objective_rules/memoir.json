@@ -1,0 +1,648 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "rule_id": "objective.memoir.scene-architecture",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": [
+        "memoir-chapter-pressure",
+        "memoir-relationship-portraiture",
+        "memoir-scene-entry-exit",
+        "memoir-scene-grounding",
+        "memoir-scene-turn",
+        "memoir-scene-vs-summary",
+        "memoir-setting-pressure",
+        "memoir-structure-framing"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.scene-architecture.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "scene-architecture reward: scene progression is explicit"
+        },
+        {
+          "id": "objective.memoir.scene-architecture.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "scene-architecture penalty: scene progression is unclear"
+        },
+        {
+          "id": "objective.memoir.scene-architecture.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "delta": 1,
+          "reason": "scene-architecture reward: scene transitions are legible"
+        },
+        {
+          "id": "objective.memoir.scene-architecture.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "scene-architecture penalty: narrative thread drifts"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.memoir.scene-architecture.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "scene-architecture penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["scene-architecture", "scene-control", "turns"]
+    },
+    {
+      "rule_id": "objective.memoir.voice-presence",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": [
+        "memoir-dialogic-tension",
+        "memoir-dialogue-use",
+        "memoir-diction-precision",
+        "memoir-humor-control",
+        "memoir-narrator-position",
+        "memoir-opening-pressure",
+        "memoir-repetition-control",
+        "memoir-rhythm",
+        "memoir-self-portraiture",
+        "memoir-voice-presence",
+        "memoir-voice-texture"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.voice-presence.unique-token-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 40,
+          "delta": 1,
+          "reason": "voice-presence reward: language feels authored and specific"
+        },
+        {
+          "id": "objective.memoir.voice-presence.unique-token-low",
+          "metric": "nlp_unique_token_ratio",
+          "max": 28,
+          "delta": -1,
+          "reason": "voice-presence penalty: diction is generic"
+        },
+        {
+          "id": "objective.memoir.voice-presence.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 38,
+          "delta": 1,
+          "reason": "voice-presence reward: repetition is controlled"
+        },
+        {
+          "id": "objective.memoir.voice-presence.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 62,
+          "delta": -1,
+          "reason": "voice-presence penalty: repetitive phrasing flattens voice"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.memoir.voice-presence.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "voice-presence penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 35
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["voice-presence", "diction", "cadence"]
+    },
+    {
+      "rule_id": "objective.memoir.reflection-depth",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": [
+        "memoir-character-complexity",
+        "memoir-ending-resonance",
+        "memoir-loyalty-pressure",
+        "memoir-memory-honesty",
+        "memoir-pattern-linking",
+        "memoir-present-insight",
+        "memoir-question-holding",
+        "memoir-reflection-basics",
+        "memoir-reflection-depth",
+        "memoir-reflective-pivot",
+        "memoir-self-myth-avoidance",
+        "memoir-theme-pressure",
+        "memoir-vulnerability"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.reflection-depth.lexical-density-high",
+          "metric": "nlp_lexical_density",
+          "min": 47,
+          "delta": 1,
+          "reason": "reflection-depth reward: interpretive signal is dense"
+        },
+        {
+          "id": "objective.memoir.reflection-depth.lexical-density-low",
+          "metric": "nlp_lexical_density",
+          "max": 34,
+          "delta": -1,
+          "reason": "reflection-depth penalty: reflection stays thin"
+        },
+        {
+          "id": "objective.memoir.reflection-depth.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "reflection-depth reward: interpretation is grounded"
+        },
+        {
+          "id": "objective.memoir.reflection-depth.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 40,
+          "delta": -1,
+          "reason": "reflection-depth penalty: interpretation feels asserted"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.memoir.reflection-depth.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "reflection-depth penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_lexical_density": 44
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["reflection-depth", "insight", "interpretation"]
+    },
+    {
+      "rule_id": "objective.memoir.emotional-compression",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": [
+        "memoir-emotional-compression",
+        "memoir-gesture-subtext",
+        "memoir-shame-handling"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.emotional-compression.modifier-overload-low",
+          "metric": "nlp_modifier_overload_ratio",
+          "max": 18,
+          "delta": 1,
+          "reason": "emotional-compression reward: emotion shown without inflation"
+        },
+        {
+          "id": "objective.memoir.emotional-compression.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "emotional-compression penalty: language overstates feeling"
+        },
+        {
+          "id": "objective.memoir.emotional-compression.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "delta": -1,
+          "reason": "emotional-compression penalty: distance weakens felt immediacy"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["emotional-compression", "subtext", "restraint"]
+    },
+    {
+      "rule_id": "objective.memoir.narrative-clarity",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": [
+        "memoir-causal-thread",
+        "memoir-memory-fragment",
+        "memoir-status-awareness",
+        "memoir-structure-braiding",
+        "memoir-structure-linearity",
+        "memoir-summary-compression",
+        "memoir-time-awareness"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.narrative-clarity.temporal-clarity-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 70,
+          "delta": 1,
+          "reason": "narrative-clarity reward: timeline is legible"
+        },
+        {
+          "id": "objective.memoir.narrative-clarity.temporal-clarity-low",
+          "metric": "nlp_temporal_clarity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "narrative-clarity penalty: timeline is confusing"
+        },
+        {
+          "id": "objective.memoir.narrative-clarity.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "delta": 1,
+          "reason": "narrative-clarity reward: movement across moments is explicit"
+        },
+        {
+          "id": "objective.memoir.narrative-clarity.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "narrative-clarity penalty: thread drift disorients reader"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.memoir.narrative-clarity.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "narrative-clarity penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_temporal_clarity_score": 65
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["narrative-clarity", "timeline", "orientation"]
+    },
+    {
+      "rule_id": "objective.memoir.image-freshness",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": [
+        "memoir-body-awareness",
+        "memoir-image-freshness",
+        "memoir-metaphor-restraint",
+        "memoir-selective-detail"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.image-freshness.unique-token-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 40,
+          "delta": 1,
+          "reason": "image-freshness reward: imagery is specific"
+        },
+        {
+          "id": "objective.memoir.image-freshness.unique-token-low",
+          "metric": "nlp_unique_token_ratio",
+          "max": 28,
+          "delta": -1,
+          "reason": "image-freshness penalty: imagery is generic"
+        },
+        {
+          "id": "objective.memoir.image-freshness.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "image-freshness penalty: figurative overstatement blurs image"
+        },
+        {
+          "id": "objective.memoir.image-freshness.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "image-freshness penalty: repeated imagery loses force"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 35
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["image-freshness", "imagery", "detail"]
+    },
+    {
+      "rule_id": "objective.memoir.revision-habits",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": [
+        "memoir-clarity-pass",
+        "memoir-ethical-pass",
+        "memoir-final-shape",
+        "memoir-line-editing",
+        "memoir-reflection-pass",
+        "memoir-revision-triage"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.revision-habits.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 11,
+          "delta": 1,
+          "reason": "revision-habits reward: final readability is controlled"
+        },
+        {
+          "id": "objective.memoir.revision-habits.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "revision-habits penalty: readability remains too dense"
+        },
+        {
+          "id": "objective.memoir.revision-habits.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 40,
+          "delta": 1,
+          "reason": "revision-habits reward: redundancy reduced"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.memoir.revision-habits.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "revision-habits penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["revision-habits", "passes", "shape"]
+    },
+
+    {
+      "rule_id": "objective.memoir.scene-architecture.scene-turn-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-scene-turn"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.scene-architecture.scene-turn-specific.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "delta": 1,
+          "reason": "memoir-scene-turn reward: turn points are explicit"
+        },
+        {
+          "id": "objective.memoir.scene-architecture.scene-turn-specific.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "memoir-scene-turn penalty: turn points are weak"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-scene-turn", "turn", "pressure-shift"]
+    },
+    {
+      "rule_id": "objective.memoir.scene-architecture.scene-entry-exit-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-scene-entry-exit"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.scene-architecture.scene-entry-exit-specific.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 8,
+          "delta": 1,
+          "reason": "memoir-scene-entry-exit reward: entry/exit logic is explicit"
+        },
+        {
+          "id": "objective.memoir.scene-architecture.scene-entry-exit-specific.transition-density-low",
+          "metric": "nlp_transition_marker_density",
+          "max": 3,
+          "delta": -1,
+          "reason": "memoir-scene-entry-exit penalty: entry/exit logic is abrupt"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-scene-entry-exit", "entry-exit", "scene-boundary"]
+    },
+    {
+      "rule_id": "objective.memoir.voice-presence.voice-texture-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-voice-texture"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.voice-presence.voice-texture-specific.unique-token-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 44,
+          "delta": 1,
+          "reason": "memoir-voice-texture reward: language signature is strong"
+        },
+        {
+          "id": "objective.memoir.voice-presence.voice-texture-specific.unique-token-low",
+          "metric": "nlp_unique_token_ratio",
+          "max": 30,
+          "delta": -1,
+          "reason": "memoir-voice-texture penalty: language signature is flat"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-voice-texture", "texture", "authorial-sound"]
+    },
+    {
+      "rule_id": "objective.memoir.voice-presence.repetition-control-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-repetition-control"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.voice-presence.repetition-control-specific.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 32,
+          "delta": 1,
+          "reason": "memoir-repetition-control reward: recurrence feels intentional"
+        },
+        {
+          "id": "objective.memoir.voice-presence.repetition-control-specific.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "memoir-repetition-control penalty: recurrence drags"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-repetition-control", "recurrence", "pattern"]
+    },
+    {
+      "rule_id": "objective.memoir.narrative-clarity.time-awareness-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-time-awareness"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.narrative-clarity.time-awareness-specific.temporal-clarity-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 75,
+          "delta": 1,
+          "reason": "memoir-time-awareness reward: timeline shifts are explicit"
+        },
+        {
+          "id": "objective.memoir.narrative-clarity.time-awareness-specific.temporal-clarity-low",
+          "metric": "nlp_temporal_clarity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "memoir-time-awareness penalty: timeline shifts are muddy"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-time-awareness", "timeline", "orientation"]
+    },
+    {
+      "rule_id": "objective.memoir.narrative-clarity.structure-braiding-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-structure-braiding"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.narrative-clarity.structure-braiding-specific.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 8,
+          "delta": 1,
+          "reason": "memoir-structure-braiding reward: braid movement is legible"
+        },
+        {
+          "id": "objective.memoir.narrative-clarity.structure-braiding-specific.transition-density-low",
+          "metric": "nlp_transition_marker_density",
+          "max": 3,
+          "delta": -1,
+          "reason": "memoir-structure-braiding penalty: braid movement is abrupt"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-structure-braiding", "braid", "threading"]
+    },
+    {
+      "rule_id": "objective.memoir.image-freshness.image-freshness-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-image-freshness"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.image-freshness.image-freshness-specific.unique-token-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 44,
+          "delta": 1,
+          "reason": "memoir-image-freshness reward: image field is specific"
+        },
+        {
+          "id": "objective.memoir.image-freshness.image-freshness-specific.unique-token-low",
+          "metric": "nlp_unique_token_ratio",
+          "max": 30,
+          "delta": -1,
+          "reason": "memoir-image-freshness penalty: image field is generic"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-image-freshness", "imagery", "novelty"]
+    },
+    {
+      "rule_id": "objective.memoir.image-freshness.metaphor-restraint-specific",
+      "domain": "fiction",
+      "track_slugs": ["memoir-personal-narrative-track"],
+      "tgo_codes": ["memoir-metaphor-restraint"],
+      "metric_rules": [
+        {
+          "id": "objective.memoir.image-freshness.metaphor-restraint-specific.modifier-overload-low",
+          "metric": "nlp_modifier_overload_ratio",
+          "max": 16,
+          "delta": 1,
+          "reason": "memoir-metaphor-restraint reward: figurative language is controlled"
+        },
+        {
+          "id": "objective.memoir.image-freshness.metaphor-restraint-specific.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "memoir-metaphor-restraint penalty: figurative language overreaches"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["memoir-metaphor-restraint", "figurative-control", "restraint"]
+    }
+  ]
+}

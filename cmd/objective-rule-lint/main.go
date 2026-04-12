@@ -68,6 +68,9 @@ func main() {
 			if tree.Slug == "persuasive-writing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainThoughtLeadership) {
 				failures = append(failures, fmt.Sprintf("objective=%s missing persuasive objective-rules manifest coverage", code))
 			}
+			if tree.Slug == "memoir-personal-narrative-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFiction) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing memoir objective-rules manifest coverage", code))
+			}
 		}
 	}
 

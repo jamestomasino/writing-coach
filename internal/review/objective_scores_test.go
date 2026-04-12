@@ -1266,6 +1266,224 @@ func TestBuildObjectiveScoresPersuasiveMetamorphicMonotonicity(t *testing.T) {
 	}
 }
 
+func TestBuildObjectiveScoresMemoirPairwiseDiscrimination(t *testing.T) {
+	options := analyzer.ContextOptions{TreeSlug: "memoir-personal-narrative-track", WritingType: "memoir"}
+	shared := []domain.SkillScore{
+		{
+			SubmissionID:      96,
+			Skill:             "scene architecture",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-memoir-scene-architecture"}`,
+		},
+		{
+			SubmissionID:      96,
+			Skill:             "voice presence",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-memoir-voice-presence"}`,
+		},
+		{
+			SubmissionID:      96,
+			Skill:             "narrative clarity",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-memoir-narrative-clarity"}`,
+		},
+		{
+			SubmissionID:      96,
+			Skill:             "image freshness",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-memoir-image-freshness"}`,
+		},
+	}
+
+	cases := []struct {
+		name      string
+		leftCode  string
+		rightCode string
+		leftWins  analyzer.Report
+		rightWins analyzer.Report
+	}{
+		{
+			name:      "scene turn vs scene entry exit",
+			leftCode:  "memoir-scene-turn",
+			rightCode: "memoir-scene-entry-exit",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_transition_marker_density": 2,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 3,
+				"nlp_transition_marker_density": 9,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "voice texture vs repetition control",
+			leftCode:  "memoir-voice-texture",
+			rightCode: "memoir-repetition-control",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_unique_token_ratio":       46,
+				"nlp_semantic_repetition_ratio": 70,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_unique_token_ratio":       30,
+				"nlp_semantic_repetition_ratio": 20,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "time awareness vs structure braiding",
+			leftCode:  "memoir-time-awareness",
+			rightCode: "memoir-structure-braiding",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_temporal_clarity_score":   76,
+				"nlp_transition_marker_density": 2,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_temporal_clarity_score":   45,
+				"nlp_transition_marker_density": 8,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "image freshness vs metaphor restraint",
+			leftCode:  "memoir-image-freshness",
+			rightCode: "memoir-metaphor-restraint",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_unique_token_ratio":     46,
+				"nlp_modifier_overload_ratio": 32,
+				"nlp_topic_drift_score":       35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_unique_token_ratio":     30,
+				"nlp_modifier_overload_ratio": 12,
+				"nlp_topic_drift_score":       35,
+			}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			active := []domain.TGO{{Code: tc.leftCode}, {Code: tc.rightCode}}
+			assessments := []domain.TGOAssessment{
+				{TGOCode: tc.leftCode, Status: "developing"},
+				{TGOCode: tc.rightCode, Status: "developing"},
+			}
+
+			leftPass := BuildObjectiveScores(96, active, assessments, shared, tc.leftWins, options)
+			leftMap := objectiveScoreByCode(leftPass)
+			if leftMap[tc.leftCode].Score <= leftMap[tc.rightCode].Score {
+				t.Fatalf("expected %s score > %s score in leftWins scenario, got %d <= %d", tc.leftCode, tc.rightCode, leftMap[tc.leftCode].Score, leftMap[tc.rightCode].Score)
+			}
+
+			rightPass := BuildObjectiveScores(96, active, assessments, shared, tc.rightWins, options)
+			rightMap := objectiveScoreByCode(rightPass)
+			if rightMap[tc.rightCode].Score <= rightMap[tc.leftCode].Score {
+				t.Fatalf("expected %s score > %s score in rightWins scenario, got %d <= %d", tc.rightCode, tc.leftCode, rightMap[tc.rightCode].Score, rightMap[tc.leftCode].Score)
+			}
+		})
+	}
+}
+
+func TestBuildObjectiveScoresMemoirMetamorphicMonotonicity(t *testing.T) {
+	options := analyzer.ContextOptions{TreeSlug: "memoir-personal-narrative-track", WritingType: "memoir"}
+	cases := []struct {
+		name        string
+		code        string
+		skill       string
+		lowMetrics  map[string]int
+		highMetrics map[string]int
+	}{
+		{
+			name:  "scene turn improves with signposts",
+			code:  "memoir-scene-turn",
+			skill: "scene architecture",
+			lowMetrics: map[string]int{
+				"nlp_structural_signpost_count": 1,
+				"nlp_transition_marker_density": 6,
+			},
+			highMetrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_transition_marker_density": 6,
+			},
+		},
+		{
+			name:  "voice texture improves with unique token ratio",
+			code:  "memoir-voice-texture",
+			skill: "voice presence",
+			lowMetrics: map[string]int{
+				"nlp_unique_token_ratio":       28,
+				"nlp_semantic_repetition_ratio": 45,
+			},
+			highMetrics: map[string]int{
+				"nlp_unique_token_ratio":       46,
+				"nlp_semantic_repetition_ratio": 45,
+			},
+		},
+		{
+			name:  "time awareness improves with temporal clarity",
+			code:  "memoir-time-awareness",
+			skill: "narrative clarity",
+			lowMetrics: map[string]int{
+				"nlp_temporal_clarity_score":   40,
+				"nlp_transition_marker_density": 6,
+			},
+			highMetrics: map[string]int{
+				"nlp_temporal_clarity_score":   76,
+				"nlp_transition_marker_density": 6,
+			},
+		},
+		{
+			name:  "metaphor restraint improves with lower modifier overload",
+			code:  "memoir-metaphor-restraint",
+			skill: "image freshness",
+			lowMetrics: map[string]int{
+				"nlp_modifier_overload_ratio": 34,
+				"nlp_unique_token_ratio":      38,
+			},
+			highMetrics: map[string]int{
+				"nlp_modifier_overload_ratio": 12,
+				"nlp_unique_token_ratio":      38,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			active := []domain.TGO{{Code: tc.code}}
+			assessments := []domain.TGOAssessment{{TGOCode: tc.code, Status: "developing"}}
+			scores := []domain.SkillScore{
+				{
+					SubmissionID:      97,
+					Skill:             tc.skill,
+					Score:             3,
+					ScoreSource:       "deterministic",
+					ScoreVersion:      "det-v1",
+					ScoreEvidenceJSON: `{"rubric_id":"metamorphic-memoir-fixture"}`,
+				},
+			}
+
+			low := BuildObjectiveScores(97, active, assessments, scores, analyzer.Report{Metrics: tc.lowMetrics}, options)
+			high := BuildObjectiveScores(97, active, assessments, scores, analyzer.Report{Metrics: tc.highMetrics}, options)
+			lowScore := objectiveScoreByCode(low)[tc.code].Score
+			highScore := objectiveScoreByCode(high)[tc.code].Score
+			if highScore < lowScore {
+				t.Fatalf("metamorphic monotonicity violated for %s: %d -> %d", tc.code, lowScore, highScore)
+			}
+		})
+	}
+}
+
 func objectiveScoreByCode(scores []domain.ObjectiveScore) map[string]domain.ObjectiveScore {
 	out := map[string]domain.ObjectiveScore{}
 	for _, score := range scores {
