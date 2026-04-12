@@ -10,8 +10,7 @@ import { Text } from '@/components/text'
 import { useCompareWorkspace } from '@/lib/use-compare-workspace'
 import { useTranslations } from 'next-intl'
 import { ProviderProvenance } from './provider-provenance'
-import { SkillScoreMeter } from './skill-score-meter'
-import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
+import { AppErrorState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 export function CompareView({ submissionId }: { submissionId: number }) {
@@ -124,7 +123,6 @@ export function CompareView({ submissionId }: { submissionId: number }) {
                     {t('scoreSignalLabel', { skill: item.skill })}
                   </div>
                   <div className="flex items-center gap-2">
-                    {item.deterministic_delta ? <Badge color="cyan">{t('scoreDeltaDeterministic')}</Badge> : null}
                     <Badge color={item.delta > 0 ? 'green' : item.delta < 0 ? 'amber' : 'zinc'}>
                       {item.delta > 0 ? `+${item.delta}` : item.delta}
                     </Badge>
@@ -191,18 +189,6 @@ export function CompareView({ submissionId }: { submissionId: number }) {
         </div>
       ) : null}
 
-      {review?.skill_scores.length ? (
-        <WorkspaceCard>
-          <CardHeader eyebrow={t('ratingsEyebrow')} title={t('ratingsTitle')} />
-          <div className="mt-4 grid gap-4 lg:grid-cols-3">
-            {review.skill_scores.map((item) => (
-              <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
-                <SkillScoreMeter score={item} compact />
-              </div>
-            ))}
-          </div>
-        </WorkspaceCard>
-      ) : null}
     </div>
   )
 }
