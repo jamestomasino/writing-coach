@@ -262,7 +262,9 @@ State is stored in Docker volumes:
 - provider activity events are retained for `30` days by default
 - admin users can inspect provider activity in the admin workspace
 - calibration maintenance runs can be scheduled and manually triggered from the admin workspace
-- calibration runs include confidence/adequacy guardrails and hybrid conflict telemetry
+- calibration runs include confidence/adequacy guardrails, hybrid conflict telemetry, and deterministic objective-eval gating
+- objective-eval enforces global, per-track, and per-family policy checks from `internal/review/testdata/objective_eval_corpus.json`
+- admin approval is blocked when calibration data/objective gates fail unless explicit override notes are provided (`override:` prefix, minimum detail length)
 - admin can mark calibration runs approved/rejected before acting on rubric changes
 
 ## Deterministic Analysis

@@ -1,8 +1,9 @@
-# Objective-Level Assessment Migration Plan
+# Objective-Level Assessment Migration Plan (Closed Record)
 
 - Status: Complete (Phases 0-4 complete)
 - Date: 2026-04-12
 - Owner: Product + Engineering
+- Note: This document is retained as a historical migration record, not an active implementation plan.
 
 ## 1) Purpose
 
