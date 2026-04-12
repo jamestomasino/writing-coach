@@ -604,6 +604,224 @@ func TestBuildObjectiveScoresTechnicalMetamorphicMonotonicity(t *testing.T) {
 	}
 }
 
+func TestBuildObjectiveScoresProfessionalPairwiseDiscrimination(t *testing.T) {
+	options := analyzer.ContextOptions{TreeSlug: "professional-writing-track", WritingType: "professional writing"}
+	shared := []domain.SkillScore{
+		{
+			SubmissionID:      90,
+			Skill:             "actionability",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-professional-actionability"}`,
+		},
+		{
+			SubmissionID:      90,
+			Skill:             "sentence economy",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-professional-sentence-economy"}`,
+		},
+		{
+			SubmissionID:      90,
+			Skill:             "scannability",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-professional-scannability"}`,
+		},
+		{
+			SubmissionID:      90,
+			Skill:             "evidence integration",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-professional-evidence"}`,
+		},
+	}
+
+	cases := []struct {
+		name      string
+		leftCode  string
+		rightCode string
+		leftWins  analyzer.Report
+		rightWins analyzer.Report
+	}{
+		{
+			name:      "ask visibility vs ownership clarity",
+			leftCode:  "ask-visibility",
+			rightCode: "ownership-clarity",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_action_verb_density":         12,
+				"nlp_reference_specificity_score": 50,
+				"nlp_topic_drift_score":           35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_action_verb_density":         2,
+				"nlp_reference_specificity_score": 78,
+				"nlp_topic_drift_score":           35,
+			}},
+		},
+		{
+			name:      "active voice vs sentence economy",
+			leftCode:  "active-voice-control",
+			rightCode: "professional-sentence-economy",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_readability_grade":         9,
+				"nlp_passive_sentences":         0,
+				"nlp_semantic_repetition_ratio": 70,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_readability_grade":         9,
+				"nlp_passive_sentences":         5,
+				"nlp_semantic_repetition_ratio": 22,
+			}},
+		},
+		{
+			name:      "front loaded summary vs heading discipline",
+			leftCode:  "front-loaded-summary",
+			rightCode: "heading-discipline",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_scannability_marker_count": 2,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 1,
+				"nlp_scannability_marker_count": 9,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "supporting rationale vs quantification basics",
+			leftCode:  "supporting-rationale",
+			rightCode: "quantification-basics",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_support_alignment": 78,
+				"nlp_evidence_marker_count":   2,
+				"nlp_topic_drift_score":       35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_support_alignment": 60,
+				"nlp_evidence_marker_count":   5,
+				"nlp_topic_drift_score":       35,
+			}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			active := []domain.TGO{{Code: tc.leftCode}, {Code: tc.rightCode}}
+			assessments := []domain.TGOAssessment{
+				{TGOCode: tc.leftCode, Status: "developing"},
+				{TGOCode: tc.rightCode, Status: "developing"},
+			}
+
+			leftPass := BuildObjectiveScores(90, active, assessments, shared, tc.leftWins, options)
+			leftMap := objectiveScoreByCode(leftPass)
+			if leftMap[tc.leftCode].Score <= leftMap[tc.rightCode].Score {
+				t.Fatalf("expected %s score > %s score in leftWins scenario, got %d <= %d", tc.leftCode, tc.rightCode, leftMap[tc.leftCode].Score, leftMap[tc.rightCode].Score)
+			}
+
+			rightPass := BuildObjectiveScores(90, active, assessments, shared, tc.rightWins, options)
+			rightMap := objectiveScoreByCode(rightPass)
+			if rightMap[tc.rightCode].Score <= rightMap[tc.leftCode].Score {
+				t.Fatalf("expected %s score > %s score in rightWins scenario, got %d <= %d", tc.rightCode, tc.leftCode, rightMap[tc.rightCode].Score, rightMap[tc.leftCode].Score)
+			}
+		})
+	}
+}
+
+func TestBuildObjectiveScoresProfessionalMetamorphicMonotonicity(t *testing.T) {
+	options := analyzer.ContextOptions{TreeSlug: "professional-writing-track", WritingType: "professional writing"}
+	cases := []struct {
+		name        string
+		code        string
+		skill       string
+		lowMetrics  map[string]int
+		highMetrics map[string]int
+	}{
+		{
+			name:  "ask visibility improves with action density",
+			code:  "ask-visibility",
+			skill: "actionability",
+			lowMetrics: map[string]int{
+				"nlp_action_verb_density":         2,
+				"nlp_reference_specificity_score": 60,
+			},
+			highMetrics: map[string]int{
+				"nlp_action_verb_density":         12,
+				"nlp_reference_specificity_score": 60,
+			},
+		},
+		{
+			name:  "sentence economy improves with lower repetition",
+			code:  "professional-sentence-economy",
+			skill: "sentence economy",
+			lowMetrics: map[string]int{
+				"nlp_readability_grade":         9,
+				"nlp_semantic_repetition_ratio": 72,
+			},
+			highMetrics: map[string]int{
+				"nlp_readability_grade":         9,
+				"nlp_semantic_repetition_ratio": 22,
+			},
+		},
+		{
+			name:  "heading discipline improves with markers",
+			code:  "heading-discipline",
+			skill: "scannability",
+			lowMetrics: map[string]int{
+				"nlp_scannability_marker_count": 2,
+				"nlp_structural_signpost_count": 4,
+			},
+			highMetrics: map[string]int{
+				"nlp_scannability_marker_count": 9,
+				"nlp_structural_signpost_count": 4,
+			},
+		},
+		{
+			name:  "quantification basics improves with evidence markers",
+			code:  "quantification-basics",
+			skill: "evidence integration",
+			lowMetrics: map[string]int{
+				"nlp_evidence_marker_count":   1,
+				"nlp_claim_support_alignment": 60,
+			},
+			highMetrics: map[string]int{
+				"nlp_evidence_marker_count":   5,
+				"nlp_claim_support_alignment": 60,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			active := []domain.TGO{{Code: tc.code}}
+			assessments := []domain.TGOAssessment{{TGOCode: tc.code, Status: "developing"}}
+			scores := []domain.SkillScore{
+				{
+					SubmissionID:      91,
+					Skill:             tc.skill,
+					Score:             3,
+					ScoreSource:       "deterministic",
+					ScoreVersion:      "det-v1",
+					ScoreEvidenceJSON: `{"rubric_id":"metamorphic-professional-fixture"}`,
+				},
+			}
+
+			low := BuildObjectiveScores(91, active, assessments, scores, analyzer.Report{Metrics: tc.lowMetrics}, options)
+			high := BuildObjectiveScores(91, active, assessments, scores, analyzer.Report{Metrics: tc.highMetrics}, options)
+			lowScore := objectiveScoreByCode(low)[tc.code].Score
+			highScore := objectiveScoreByCode(high)[tc.code].Score
+			if highScore < lowScore {
+				t.Fatalf("metamorphic monotonicity violated for %s: %d -> %d", tc.code, lowScore, highScore)
+			}
+		})
+	}
+}
+
 func objectiveScoreByCode(scores []domain.ObjectiveScore) map[string]domain.ObjectiveScore {
 	out := map[string]domain.ObjectiveScore{}
 	for _, score := range scores {
