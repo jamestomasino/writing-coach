@@ -393,6 +393,172 @@ function pick<T>(items: T[], key: string) {
   return items[hash(key) % items.length]
 }
 
+function sentence(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ''
+  }
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`
+}
+
+function removeObjectiveName(text: string, objectiveTitle: string) {
+  if (!text.trim() || !objectiveTitle.trim()) {
+    return text.trim()
+  }
+  const escaped = objectiveTitle
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+')
+  return text.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), 'this skill').replace(/\s{2,}/g, ' ').trim()
+}
+
+function clipWords(text: string, maxWords: number) {
+  const words = text.trim().split(/\s+/).filter(Boolean)
+  if (words.length <= maxWords) {
+    return text.trim()
+  }
+  return words.slice(0, maxWords).join(' ').trim()
+}
+
+function objectiveMove(node: SkillGraphNode) {
+  const source = node.description?.trim() || `Make the objective visible in the draft`
+  const cleaned = removeObjectiveName(source, node.title)
+    .replace(/\breally\b/gi, '')
+    .replace(/\bvery\b/gi, '')
+    .replace(/\bkind of\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+  return sentence(clipWords(cleaned, 22))
+}
+
+function clause(text: string) {
+  const trimmed = text.trim().replace(/[.!?]+$/, '')
+  if (!trimmed) {
+    return ''
+  }
+  return trimmed[0].toLowerCase() + trimmed.slice(1)
+}
+
+function objectiveMarker(node: SkillGraphNode, mode: 'met' | 'missing') {
+  const markerRaw = node.mastery_hint?.trim() || 'Reader orientation should improve in a visible way'
+  const marker = sentence(
+    removeObjectiveName(markerRaw, node.title)
+      .replace(/\breally\b/gi, '')
+      .replace(/\bvery\b/gi, '')
+      .replace(/\bkind of\b/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  )
+  if (mode === 'met') {
+    return sentence(`Mastery marker visible: ${marker}`)
+  }
+  return sentence(`Missing marker: ${marker}`)
+}
+
+function focusElement(node: SkillGraphNode) {
+  const bag = `${node.code} ${node.description} ${node.skill_name ?? ''}`.toLowerCase()
+  if (/(backstory|worldbuilding|history|social structure)/.test(bag)) return 'a setting-pressure detail'
+  if (/(time|timeline|chronology|sequence|linear|braid)/.test(bag)) return 'a time anchor'
+  if (/(causal|cause|effect|consequence|trigger)/.test(bag)) return 'a cause-to-consequence link'
+  if (/(scene|reversal|entrance|exit|status)/.test(bag)) return 'a scene turn'
+  if (/(dialogue|subtext|speaker|voice difference)/.test(bag)) return 'a pressure-bearing exchange'
+  if (/(thesis|claim|scope|position)/.test(bag)) return 'a testable central claim'
+  if (/(evidence|example|data|quantification)/.test(bag)) return 'a claim-matched evidence line'
+  if (/(source|citation|quote|paraphrase|synthesis)/.test(bag)) return 'a framed source contribution'
+  if (/(audience|tone|voice|platform|positioning)/.test(bag)) return 'an audience-calibrated phrasing choice'
+  if (/(action|owner|deadline|instruction|ask|result)/.test(bag)) return 'an explicit next-step line'
+  if (/(scan|heading|list|table|front-loaded|layout)/.test(bag)) return 'a front-loaded navigation cue'
+  if (/(paragraph|transition|structure|pivot|section)/.test(bag)) return 'a structural bridge line'
+  if (/(analysis|reasoning|counterreading|pattern|insight)/.test(bag)) return 'an inference step'
+  if (/(grammar|spelling|mechanics|comma|tense|agreement)/.test(bag)) return 'a sentence-level control point'
+  if (/(revision|triage|proofreading|pass|line editing)/.test(bag)) return 'a high-leverage revision target'
+  return 'a key line-level move'
+}
+
+const CONTEXT_BANK_BY_CLUSTER: Record<string, string[]> = {
+  narrative: ['a chapter draft', 'a turning-point scene', 'a revision of story pages', 'a memoir passage'],
+  scene: ['a confrontation scene', 'a scene-blocking revision', 'a draft with a new entrance beat', 'a midpoint scene'],
+  dialogue: ['a dialogue-heavy scene', 'a two-character exchange', 'a revision of spoken beats', 'a tense interview scene'],
+  claim: ['an argument essay draft', 'a thesis paragraph', 'a position statement', 'an analytical introduction'],
+  evidence: ['an evidence paragraph', 'a data-supported recommendation', 'a literature-based argument', 'a source integration pass'],
+  sourceQuality: ['a source-based essay', 'a literature review paragraph', 'a citation-heavy draft', 'a synthesis section'],
+  reasoning: ['an analysis section', 'a counterargument paragraph', 'a logic revision pass', 'a recommendation memo'],
+  actionability: ['a project update memo', 'a workflow handoff note', 'an operations email', 'a next-steps section'],
+  scannability: ['a policy brief draft', 'a status report', 'a decision note for stakeholders', 'a reader-facing FAQ'],
+  sentenceControl: ['a line-editing pass', 'a dense paragraph rewrite', 'a concise rewrite draft', 'a clarity-first revision'],
+  paragraph: ['a body paragraph revision', 'a multi-paragraph section', 'a transition-heavy draft', 'a structural rewrite'],
+  voiceTone: ['a persuasive memo', 'a formal recommendation', 'a stakeholder letter', 'a high-stakes response draft'],
+  grammarMechanics: ['a proofreading pass', 'a final submission check', 'a sentence-level cleanup pass', 'a copyedit revision'],
+  revision: ['a second draft', 'a targeted revision cycle', 'a post-feedback rewrite', 'a final revision pass'],
+  clarity: ['a project brief', 'a reflection paragraph', 'a first full draft', 'a revision pass before submission'],
+  precision: ['a technical explanation draft', 'a methods paragraph', 'a definition-heavy section', 'a revision for specificity'],
+  audience: ['a cross-team update', 'an executive summary', 'a client-facing message', 'a stakeholder communication'],
+  structure: ['a document outline', 'a section-flow revision', 'a full-draft reorganization', 'a transition pass'],
+}
+
+const ACTOR_BANK_BY_CLUSTER: Record<string, string[]> = {
+  narrative: ['the narrator', 'the protagonist', 'the character', 'the writer'],
+  scene: ['the character', 'the narrator', 'the writer', 'the editor'],
+  dialogue: ['the speaker', 'the character', 'the narrator', 'the writer'],
+  claim: ['the student', 'the writer', 'the analyst', 'the researcher'],
+  evidence: ['the writer', 'the analyst', 'the researcher', 'the student'],
+  sourceQuality: ['the researcher', 'the writer', 'the student', 'the analyst'],
+  reasoning: ['the writer', 'the analyst', 'the student', 'the editor'],
+  actionability: ['the team lead', 'the writer', 'the analyst', 'the manager'],
+  scannability: ['the writer', 'the team lead', 'the analyst', 'the editor'],
+  sentenceControl: ['the writer', 'the editor', 'the student', 'the analyst'],
+  paragraph: ['the writer', 'the student', 'the editor', 'the analyst'],
+  voiceTone: ['the writer', 'the author', 'the analyst', 'the student'],
+  grammarMechanics: ['the editor', 'the writer', 'the student', 'the analyst'],
+  revision: ['the writer', 'the student', 'the editor', 'the analyst'],
+  clarity: ['the writer', 'the student', 'the analyst', 'the editor'],
+  precision: ['the writer', 'the analyst', 'the student', 'the editor'],
+  audience: ['the writer', 'the communicator', 'the analyst', 'the team lead'],
+  structure: ['the writer', 'the editor', 'the student', 'the analyst'],
+}
+
+const OUTCOME_BANK_BY_CLUSTER: Record<string, string[]> = {
+  narrative: ['the stakes escalate through consequence', 'the timeline stays legible', 'the scene momentum holds', 'the next turn feels earned'],
+  scene: ['scene pressure rises beat by beat', 'the turn changes leverage', 'the blocking supports conflict', 'the ending forces a new decision'],
+  dialogue: ['each exchange changes leverage', 'subtext carries pressure', 'character intent becomes legible', 'the conversation advances conflict'],
+  claim: ['the position is arguable on first read', 'the paragraph advances one central line', 'the argument scope stays bounded', 'readers can test the claim'],
+  evidence: ['support matches claim scope', 'evidence is interpreted rather than listed', 'the paragraph earns its conclusion', 'readers can verify the reasoning'],
+  sourceQuality: ['source roles stay explicit', 'synthesis replaces source stacking', 'credibility improves with framing', 'readers can trace attribution quickly'],
+  reasoning: ['inference steps stay explicit', 'counterarguments are handled fairly', 'logic remains stable under objection', 'the conclusion feels earned'],
+  actionability: ['owners and deadlines are executable', 'next steps are unambiguous', 'handoff errors are reduced', 'the reader can act without follow-up'],
+  scannability: ['key decisions are findable in seconds', 'critical details stay front-loaded', 'reader navigation is immediate', 'the structure supports time pressure'],
+  sentenceControl: ['meaning lands on first read', 'processing load drops across lines', 'agency remains explicit', 'sentence rhythm supports clarity'],
+  paragraph: ['one paragraph job stays visible', 'support compounds toward the point', 'topic drift is contained', 'transitions preserve flow'],
+  voiceTone: ['tone aligns with audience stakes', 'authority feels earned', 'register stays consistent', 'trust improves without overclaiming'],
+  grammarMechanics: ['form no longer distracts from meaning', 'error noise drops across the page', 'readability improves sentence by sentence', 'trust holds through clean mechanics'],
+  revision: ['draft quality improves measurably', 'priority order saves revision effort', 'core weaknesses are reduced first', 'later passes preserve structural gains'],
+  clarity: ['readers can follow intent immediately', 'the controlling line stays stable', 'decision language stays explicit', 'the section no longer drifts'],
+  precision: ['terms are testable and specific', 'ambiguity shrinks in key lines', 'details become verifiable', 'claims are measurable'],
+  audience: ['reader needs are addressed directly', 'framing matches stakeholder context', 'objections are answered early', 'the message fits channel constraints'],
+  structure: ['section order supports reasoning', 'transitions carry the argument forward', 'each part earns its place', 'readers do not reconstruct the flow'],
+}
+
+const FAILURE_BANK_BY_CLUSTER: Record<string, string[]> = {
+  narrative: ['events feel disconnected', 'the timeline blurs at key turns', 'stakes flatten instead of escalating', 'outcomes feel imposed'],
+  scene: ['the scene stalls without a turn', 'blocking confuses the reader', 'conflict loses pressure mid-scene', 'the ending changes nothing'],
+  dialogue: ['lines carry exposition, not conflict', 'speaker intent is hard to track', 'the exchange repeats known facts', 'subtext is replaced by direct explanation'],
+  claim: ['the position remains broad', 'the paragraph circles without committing', 'scope drifts across sections', 'the claim cannot be tested'],
+  evidence: ['support appears without interpretation', 'examples do not match scope', 'data is listed without warrant', 'the conclusion outruns the proof'],
+  sourceQuality: ['sources are stacked without synthesis', 'credibility is assumed, not framed', 'attribution becomes uneven', 'source purpose stays implicit'],
+  reasoning: ['inference steps are skipped', 'objections are ignored', 'logic breaks under scrutiny', 'conclusions appear unearned'],
+  actionability: ['owners stay implicit', 'timing is left vague', 'sequence is unclear', 'execution requires follow-up clarification'],
+  scannability: ['key details are buried', 'sections are hard to navigate quickly', 'priority information is diluted', 'time-pressed readers miss decisions'],
+  sentenceControl: ['sentences require rereading', 'agency gets obscured', 'clauses pile up without hierarchy', 'wording creates avoidable friction'],
+  paragraph: ['topic drift takes over', 'support fragments across points', 'the paragraph job is unclear', 'transitions fail to bridge ideas'],
+  voiceTone: ['tone swings between registers', 'authority sounds inflated', 'stance softens into hedging', 'audience trust erodes'],
+  grammarMechanics: ['errors compete with meaning', 'punctuation disrupts flow', 'tense and agreement drift', 'mechanical noise persists across drafts'],
+  revision: ['surface edits hide structural gaps', 'revision order is unfocused', 'core weaknesses persist', 'changes are broad but low-impact'],
+  clarity: ['intent remains implicit', 'key terms drift across sections', 'decision language stays unclear', 'reader orientation breaks'],
+  precision: ['terms remain broad or vague', 'measurements are missing', 'details cannot be verified', 'terminology drifts between synonyms'],
+  audience: ['reader context is under-modeled', 'framing misses stakeholder needs', 'objections arrive unaddressed', 'channel fit breaks'],
+  structure: ['readers reconstruct the sequence manually', 'section order feels arbitrary', 'transitions drop key links', 'argument progression stalls'],
+}
+
 function inferCluster(node: SkillGraphNode) {
   const skill = (node.skill_name ?? '').trim().toLowerCase()
   if (skill && CLUSTER_BY_SKILL[skill]) {
@@ -470,23 +636,38 @@ const CLUSTER_GAP_SIGNAL: Record<string, string> = {
 }
 
 function objectiveSignal(node: SkillGraphNode, cluster: string) {
-  void node
-  return CLUSTER_SIGNAL[cluster] ?? `The draft shows observable control of ${node.title.toLowerCase()}.`
+  const signal = CLUSTER_SIGNAL[cluster] ?? 'The draft shows observable control in the target pattern.'
+  return sentence(removeObjectiveName(signal, node.title))
 }
 
 function objectiveGapSignal(node: SkillGraphNode, cluster: string) {
-  void node
-  return CLUSTER_GAP_SIGNAL[cluster] ?? `Control of ${node.title.toLowerCase()} is still inconsistent across the draft.`
+  const signal = CLUSTER_GAP_SIGNAL[cluster] ?? 'Control is still inconsistent across the draft.'
+  return sentence(removeObjectiveName(signal, node.title))
 }
 
 export function buildObjectiveExamples(node: SkillGraphNode): ObjectiveExampleSet {
   const cluster = inferCluster(node)
   const bundle = BUNDLES[cluster] ?? BUNDLES.clarity
   const key = `${node.code}:${node.title}:${node.stage}:${node.stage_order}`
+  const move = objectiveMove(node)
+  const moveClause = clause(move)
+  const focus = focusElement(node)
+  const context = pick(CONTEXT_BANK_BY_CLUSTER[cluster] ?? CONTEXT_BANK_BY_CLUSTER.clarity, `${key}:context`)
+  const actor = pick(ACTOR_BANK_BY_CLUSTER[cluster] ?? ACTOR_BANK_BY_CLUSTER.clarity, `${key}:actor`)
+  const outcome = pick(OUTCOME_BANK_BY_CLUSTER[cluster] ?? OUTCOME_BANK_BY_CLUSTER.clarity, `${key}:outcome`)
+  const failure = pick(FAILURE_BANK_BY_CLUSTER[cluster] ?? FAILURE_BANK_BY_CLUSTER.clarity, `${key}:failure`)
+  const goodCore = sentence(`In ${context}, ${actor} uses ${focus} by ${moveClause}, so ${outcome}`)
+  const badCore = sentence(`In ${context}, ${actor} skips ${focus}, so ${failure}`)
+  const goodSupport = sentence(`${pick(bundle.good, `${key}:good`)} ${objectiveSignal(node, cluster)}`)
+  const badSupport = sentence(`${pick(bundle.needsWork, `${key}:bad`)} ${objectiveGapSignal(node, cluster)}`)
+  const metMarker = objectiveMarker(node, 'met')
+  const missingMarker = objectiveMarker(node, 'missing')
 
   return {
-    good: `Good: ${pick(bundle.good, `${key}:good`)} ${objectiveSignal(node, cluster)}`,
-    needsWork: `Needs work: ${pick(bundle.needsWork, `${key}:bad`)} ${objectiveGapSignal(node, cluster)}`,
+    good: `Good: ${goodCore} ${goodSupport} ${metMarker}`.replace(/\s{2,}/g, ' ').trim(),
+    needsWork: `Needs work: ${badCore} ${badSupport} ${missingMarker}`
+      .replace(/\s{2,}/g, ' ')
+      .trim(),
     sources: bundle.sources,
     strategy: bundle.strategy,
   }

@@ -25,7 +25,12 @@ function sentence(value: string) {
 }
 
 function sanitizeProse(value: string) {
-  return value.replace(/\breally\b/gi, '').replace(/\bvery\b/gi, '').replace(/\s{2,}/g, ' ').trim()
+  return value
+    .replace(/\breally\b/gi, '')
+    .replace(/\bvery\b/gi, '')
+    .replace(/\bkind of\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
 }
 
 function objectiveGoal(node: SkillGraphNode) {
