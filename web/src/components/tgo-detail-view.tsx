@@ -10,7 +10,6 @@ import { getSkillGraph } from '@/lib/api'
 import { buildObjectiveConcepts } from '@/lib/objective-concepts'
 import { buildObjectiveDetail } from '@/lib/objective-details'
 import type { SkillGraphNode } from '@/lib/types'
-import { SkillLink } from './skill-link'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 
 export function TGODetailView({ code }: { code: string }) {
@@ -59,7 +58,7 @@ export function TGODetailView({ code }: { code: string }) {
   }
 
   if (!node) {
-    return <EmptyState title="Skill objective not found" body="This skill objective key is not in the current skill graph." actionHref="/tgos" actionLabel="Back to library" />
+    return <EmptyState title="Skill objective not found" body="This skill objective key is not in the current skill graph." actionHref="/skills" actionLabel="Back to library" />
   }
 
   return (
@@ -74,14 +73,12 @@ export function TGODetailView({ code }: { code: string }) {
       <WorkspaceCard>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <Subheading>Stage</Subheading>
-            <Text className="mt-2 text-sm">{node.stage.replace(/-/g, ' ')}</Text>
+            <Subheading>Objective code</Subheading>
+            <Text className="mt-2 text-sm">{concept?.key ?? node.code}</Text>
           </div>
           <div>
-            <Subheading>Skill family</Subheading>
-            <Text className="mt-2 text-sm">
-              {node.skill_name ? <SkillLink skill={node.skill_name}>{node.skill_name}</SkillLink> : 'Not set'}
-            </Text>
+            <Subheading>Stage</Subheading>
+            <Text className="mt-2 text-sm">{node.stage.replace(/-/g, ' ')}</Text>
           </div>
         </div>
         {node.mastery_hint ? (
@@ -116,20 +113,6 @@ export function TGODetailView({ code }: { code: string }) {
               <Text className="mt-2 text-sm text-amber-900 dark:text-amber-100">{objectiveDetail.badExample}</Text>
             </div>
           </div>
-
-          <Subheading className="mt-6">Next revision moves</Subheading>
-          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            {objectiveDetail.revisionMoves.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
-
-          <Subheading className="mt-6">Deterministic assessment focus</Subheading>
-          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            {objectiveDetail.assessmentFocus.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
         </WorkspaceCard>
       ) : null}
 

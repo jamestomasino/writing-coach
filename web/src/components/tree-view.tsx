@@ -1,11 +1,13 @@
 'use client'
 
 import { ArrowsPointingInIcon, ArrowsPointingOutIcon } from '@heroicons/react/20/solid'
+import { InformationCircleIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/badge'
 import { SkillTreeEdge, type EdgeBridge, type SkillTreeEdgeData } from '@/components/tree-edge'
 import { Eyebrow } from '@/components/eyebrow'
 import { Subheading } from '@/components/heading'
+import { Link } from '@/components/link'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { layoutTreeGraph, type LayoutEdgeRoute, type LayoutPoint } from '@/components/tree-layout'
@@ -28,6 +30,10 @@ import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
 type TreeNodeStatus = 'active' | 'completed' | 'unlocked' | 'locked'
+type ObjectiveRef = {
+  code: string
+  title: string
+}
 
 type GraphNodeData = {
   code: string
@@ -35,8 +41,8 @@ type GraphNodeData = {
   description: string
   stage: string
   stage_order: number
-  prerequisites: string[]
-  unlocks: string[]
+  prerequisites: ObjectiveRef[]
+  unlocks: ObjectiveRef[]
   mastery_hint?: string
   status: TreeNodeStatus
   selected: boolean
@@ -182,11 +188,14 @@ async function buildGraph(
   const unlocked = new Set((dashboard.upcoming_tgos ?? []).map((tgo) => tgo.code))
   const titleByCode = new Map(treeTGOs.map((tgo) => [tgo.code, tgo.title]))
 
-  const unlocks = new Map<string, string[]>()
+  const unlocks = new Map<string, ObjectiveRef[]>()
   for (const tgo of treeTGOs) {
     for (const prerequisite of tgo.prerequisites ?? []) {
       const next = unlocks.get(prerequisite) ?? []
-      next.push(titleByCode.get(tgo.code) ?? tgo.code)
+      next.push({
+        code: tgo.code,
+        title: titleByCode.get(tgo.code) ?? tgo.code,
+      })
       unlocks.set(prerequisite, next)
     }
   }
@@ -206,7 +215,10 @@ async function buildGraph(
       description: tgo.description,
       stage: tgo.stage,
       stage_order: tgo.stage_order,
-      prerequisites: (tgo.prerequisites ?? []).map((code) => titleByCode.get(code) ?? code),
+      prerequisites: (tgo.prerequisites ?? []).map((code) => ({
+        code,
+        title: titleByCode.get(code) ?? code,
+      })),
       unlocks: unlocks.get(tgo.code) ?? [],
       mastery_hint: tgo.mastery_hint,
       status,
@@ -616,7 +628,16 @@ export function TreeView() {
                   <div className="mt-4 space-y-5">
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <Subheading className="text-white">{selected.title}</Subheading>
+                        <div className="flex items-center gap-2">
+                          <Subheading className="text-white">{selected.title}</Subheading>
+                          <Link
+                            href={`/skills/${encodeURIComponent(selected.code)}`}
+                            aria-label={`Open ${selected.title} details`}
+                            className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-0.5 text-zinc-200 data-hover:text-white"
+                          >
+                            <InformationCircleIcon className="size-4" aria-hidden="true" />
+                          </Link>
+                        </div>
                         <div className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-zinc-200 uppercase">
                           {t(`status.${statusLabel(selected.status)}`)}
                         </div>
@@ -651,10 +672,17 @@ export function TreeView() {
                         ) : (
                           selected.prerequisites.map((prerequisite) => (
                             <div
-                              key={prerequisite}
-                              className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-200"
+                              key={prerequisite.code}
+                              className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-zinc-200"
                             >
-                              {prerequisite}
+                              <span>{prerequisite.title}</span>
+                              <Link
+                                href={`/skills/${encodeURIComponent(prerequisite.code)}`}
+                                aria-label={`Open ${prerequisite.title} details`}
+                                className="inline-flex items-center justify-center rounded-full p-0.5 text-zinc-300 data-hover:text-white"
+                              >
+                                <InformationCircleIcon className="size-3.5" aria-hidden="true" />
+                              </Link>
                             </div>
                           ))
                         )}
@@ -673,10 +701,17 @@ export function TreeView() {
                         ) : (
                           selected.unlocks.map((unlock) => (
                             <div
-                              key={unlock}
-                              className="rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1 text-xs text-amber-100"
+                              key={unlock.code}
+                              className="inline-flex items-center gap-1 rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1 text-xs text-amber-100"
                             >
-                              {unlock}
+                              <span>{unlock.title}</span>
+                              <Link
+                                href={`/skills/${encodeURIComponent(unlock.code)}`}
+                                aria-label={`Open ${unlock.title} details`}
+                                className="inline-flex items-center justify-center rounded-full p-0.5 text-amber-100/90 data-hover:text-white"
+                              >
+                                <InformationCircleIcon className="size-3.5" aria-hidden="true" />
+                              </Link>
                             </div>
                           ))
                         )}

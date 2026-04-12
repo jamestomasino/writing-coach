@@ -40,7 +40,6 @@ import {
 } from '@heroicons/react/16/solid'
 import {
   BeakerIcon,
-  BookOpenIcon,
   ChartBarSquareIcon,
   ClockIcon,
   FolderIcon,
@@ -301,10 +300,6 @@ export function ApplicationLayout({ children }: { children: React.ReactNode }) {
                   <SidebarItem href="/tree" current={pathname.startsWith('/tree')}>
                     <Squares2X2Icon />
                     <SidebarLabel>{t('skillMap')}</SidebarLabel>
-                  </SidebarItem>
-                  <SidebarItem href="/skills" current={pathname.startsWith('/skills')}>
-                    <BookOpenIcon />
-                    <SidebarLabel>{t('skillGuides')}</SidebarLabel>
                   </SidebarItem>
                   <SidebarItem href="/onboarding?mode=edit" current={pathname.startsWith('/onboarding')}>
                     <ArrowPathIcon />
