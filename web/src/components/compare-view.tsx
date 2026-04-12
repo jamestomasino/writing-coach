@@ -120,7 +120,9 @@ export function CompareView({ submissionId }: { submissionId: number }) {
             {comparison.skill_deltas.map((item) => (
               <div key={item.skill} className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold capitalize text-zinc-900 dark:text-white">{item.skill}</div>
+                  <div className="font-semibold capitalize text-zinc-900 dark:text-white">
+                    {t('scoreSignalLabel', { skill: item.skill })}
+                  </div>
                   <div className="flex items-center gap-2">
                     {item.deterministic_delta ? <Badge color="cyan">{t('scoreDeltaDeterministic')}</Badge> : null}
                     <Badge color={item.delta > 0 ? 'green' : item.delta < 0 ? 'amber' : 'zinc'}>

@@ -19,6 +19,7 @@ import {
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 import { MasteryProgress } from './mastery-progress'
+import { SkillLink } from './skill-link'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
@@ -282,7 +283,7 @@ export function ProgressView() {
                 {strongestSkills.map((item, index) => (
                   <div key={item}>
                     <div className="mb-1 flex items-center justify-between gap-4 text-sm">
-                      <span className="text-zinc-900 dark:text-white">{item}</span>
+                      <SkillLink skill={item} className="text-zinc-900 dark:text-white" />
                       <span className="text-zinc-500 dark:text-zinc-400">{t('signal')}</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">
@@ -304,7 +305,7 @@ export function ProgressView() {
                 {weakestSkills.map((item, index) => (
                   <div key={item}>
                     <div className="mb-1 flex items-center justify-between gap-4 text-sm">
-                      <span className="text-zinc-900 dark:text-white">{item}</span>
+                      <SkillLink skill={item} className="text-zinc-900 dark:text-white" />
                       <span className="text-zinc-500 dark:text-zinc-400">{t('attention')}</span>
                     </div>
                     <div className="h-2 rounded-full bg-stone-200 dark:bg-white/10">

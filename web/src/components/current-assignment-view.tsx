@@ -83,6 +83,44 @@ export function CurrentAssignmentView() {
   const busy = reviewing || preparingRevision || reviewPending
   const compareSubmissionID = workspace.submission?.id ?? 0
   const queuedReviewTime = formatLocalDateTime(reviewJob?.updated_at)
+  const activeSkillStates = dashboard.active_tgos.map((tgo) => ({
+    tgo,
+    state: skillLevelUpState(tgo),
+  }))
+  const readySkills = activeSkillStates.filter((item) => item.state.mode === 'ready')
+  const buildingSkills = activeSkillStates.filter((item) => item.state.mode === 'building_history')
+  const consolidatingSkills = activeSkillStates.filter((item) => item.state.mode === 'consolidating')
+  const minRemaining = buildingSkills.length
+    ? Math.min(...buildingSkills.map((item) => item.state.remainingHistory))
+    : 0
+  const maxRemaining = buildingSkills.length
+    ? Math.max(...buildingSkills.map((item) => item.state.remainingHistory))
+    : 0
+  const reviewWeaknessCount = review?.weaknesses?.length ?? 0
+  const shouldReviseNow = guidance.mode === 'hold' || guidance.mode === 'revise'
+  const shouldMoveToNewAssignment = guidance.mode === 'consolidate' && reviewWeaknessCount === 0 && buildingSkills.length === 0
+
+  const levelUpActionLine = shouldReviseNow
+    ? t('levelUpActionReviseNow')
+    : shouldMoveToNewAssignment
+      ? t('levelUpActionMoveOn')
+      : t('levelUpActionOneMorePass')
+
+  const levelUpDistanceLine =
+    buildingSkills.length > 0
+      ? minRemaining === maxRemaining
+        ? t('levelUpDistanceFixed', { count: minRemaining })
+        : t('levelUpDistanceRange', { min: minRemaining, max: maxRemaining })
+      : readySkills.length > 0
+        ? t('levelUpDistanceReady', { count: readySkills.length })
+        : t('levelUpDistanceConsolidating', { count: consolidatingSkills.length })
+
+  const levelUpExpectationLine =
+    shouldMoveToNewAssignment
+      ? t('levelUpExpectationNear')
+      : minRemaining >= 3
+        ? t('levelUpExpectationLonger')
+        : t('levelUpExpectationShort')
 
   if (!exercise) {
     return (
@@ -130,32 +168,6 @@ export function CurrentAssignmentView() {
           </>
         }
       />
-      <div data-testid="level-up-guidance-current-assignment">
-        <Callout
-          tone={guidance.mode === 'hold' ? 'warning' : 'active'}
-          eyebrow={t('levelUpEyebrow')}
-          title={
-            guidance.mode === 'hold'
-              ? t('levelUpTitleHold')
-              : guidance.mode === 'revise'
-                ? t('levelUpTitleRevise')
-                : t('levelUpTitleConsolidate')
-          }
-          body={
-            guidance.mode === 'hold'
-              ? t('levelUpBodyHold')
-              : guidance.mode === 'revise'
-                ? t('levelUpBodyRevise', { count: guidance.earlyCount })
-                : t('levelUpBodyConsolidate')
-          }
-        >
-          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <li>{t('levelUpBullet1')}</li>
-            <li>{t('levelUpBullet2')}</li>
-            <li>{t('levelUpBullet3')}</li>
-          </ul>
-        </Callout>
-      </div>
       {reviewPending ? (
         <TaskProgressState
           title={t('reviewProgressTitle')}
@@ -350,6 +362,34 @@ export function CurrentAssignmentView() {
             ))}
           </div>
         </WorkspaceCard>
+      </div>
+
+      <div data-testid="level-up-guidance-current-assignment">
+        <Callout
+          tone={guidance.mode === 'hold' ? 'warning' : 'active'}
+          eyebrow={t('levelUpEyebrow')}
+          title={
+            guidance.mode === 'hold'
+              ? t('levelUpTitleHold')
+              : guidance.mode === 'revise'
+                ? t('levelUpTitleRevise')
+                : t('levelUpTitleConsolidate')
+          }
+          body={
+            guidance.mode === 'hold'
+              ? t('levelUpBodyHold')
+              : guidance.mode === 'revise'
+                ? t('levelUpBodyRevise', { count: guidance.earlyCount })
+                : t('levelUpBodyConsolidate')
+          }
+        >
+          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <li>{levelUpActionLine}</li>
+            <li>{levelUpDistanceLine}</li>
+            <li>{levelUpExpectationLine}</li>
+            <li>{t('levelUpRuleLine')}</li>
+          </ul>
+        </Callout>
       </div>
 
       <WorkspaceCard>

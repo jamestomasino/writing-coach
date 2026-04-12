@@ -55,11 +55,12 @@ export function SkillScoreMeter({
   const domain = typeof evidence?.domain === 'string' ? evidence.domain : ''
   const findings = typeof evidence?.finding_count === 'number' ? evidence.finding_count : undefined
   const meaning = value >= 4 ? t('meaningStrong') : value === 3 ? t('meaningMixed') : t('meaningNeedsWork')
+  const signalLabel = t('signalLabel', { name: score.skill })
 
   return (
     <div className={compact ? 'space-y-2' : 'space-y-2.5'}>
       <div className="flex items-center justify-between gap-4">
-        <span className="font-semibold capitalize text-zinc-950 dark:text-white">{score.skill}</span>
+        <span className="font-semibold capitalize text-zinc-950 dark:text-white">{signalLabel}</span>
         <span className={`text-sm font-semibold ${tone.text}`}>{value}/5</span>
       </div>
       {source || version ? (

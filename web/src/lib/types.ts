@@ -43,6 +43,7 @@ export type TGO = {
   code: string
   title: string
   description: string
+  skill_name?: string
   stage: string
   skill_tier?: string
   stage_order: number
@@ -53,6 +54,29 @@ export type TGO = {
   mastery_stage?: string
   mastery_percent?: number
   mastery_evidence_count?: number
+}
+
+export type SkillGraphRegion = {
+  slug: string
+  title: string
+  description: string
+  seed_codes: string[]
+  priority_skills: string[]
+  node_codes: string[]
+}
+
+export type SkillGraphNode = TGO & {
+  source_tree_slug: string
+  source_tree_title: string
+  unlocks: string[]
+}
+
+export type SkillGraph = {
+  slug: string
+  title: string
+  description: string
+  regions: SkillGraphRegion[]
+  nodes: SkillGraphNode[]
 }
 
 export type Exercise = {
