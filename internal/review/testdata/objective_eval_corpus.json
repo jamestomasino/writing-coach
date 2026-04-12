@@ -1,0 +1,383 @@
+{
+  "version": "obj-eval-v1",
+  "min_pass_rate": 1.0,
+  "cases": [
+    {
+      "name": "academic quote integration vs source selection",
+      "type": "pairwise",
+      "tree_slug": "academic-essay-track",
+      "writing_type": "academic essay",
+      "skill_scores": [
+        {"skill": "source handling", "score": 3}
+      ],
+      "left_code": "academic-quote-integration",
+      "right_code": "academic-source-selection",
+      "left_wins_metrics": {
+        "nlp_claim_evidence_coverage": 60,
+        "nlp_evidence_marker_count": 4,
+        "nlp_unique_token_ratio": 38
+      },
+      "right_wins_metrics": {
+        "nlp_claim_evidence_coverage": 60,
+        "nlp_evidence_marker_count": 0,
+        "nlp_unique_token_ratio": 60
+      }
+    },
+    {
+      "name": "technical step clarity vs prereq clarity",
+      "type": "pairwise",
+      "tree_slug": "technical-writing-track",
+      "writing_type": "technical writing",
+      "skill_scores": [
+        {"skill": "actionability", "score": 3}
+      ],
+      "left_code": "technical-step-clarity",
+      "right_code": "technical-prereq-clarity",
+      "left_wins_metrics": {
+        "nlp_action_verb_density": 12,
+        "nlp_reference_specificity_score": 40,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_action_verb_density": 2,
+        "nlp_reference_specificity_score": 76,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "professional ask visibility vs ownership clarity",
+      "type": "pairwise",
+      "tree_slug": "professional-writing-track",
+      "writing_type": "professional writing",
+      "skill_scores": [
+        {"skill": "actionability", "score": 3}
+      ],
+      "left_code": "ask-visibility",
+      "right_code": "ownership-clarity",
+      "left_wins_metrics": {
+        "nlp_action_verb_density": 12,
+        "nlp_reference_specificity_score": 50,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_action_verb_density": 2,
+        "nlp_reference_specificity_score": 78,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "thought leadership claim clarity vs stakes articulation",
+      "type": "pairwise",
+      "tree_slug": "thought-leadership-track",
+      "writing_type": "thought leadership",
+      "skill_scores": [
+        {"skill": "claim clarity", "score": 3}
+      ],
+      "left_code": "claim-clarity",
+      "right_code": "stakes-articulation",
+      "left_wins_metrics": {
+        "nlp_claim_count": 4,
+        "nlp_claim_support_alignment": 45,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_claim_count": 1,
+        "nlp_claim_support_alignment": 78,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "persuasive claim vs stakes",
+      "type": "pairwise",
+      "tree_slug": "persuasive-writing-track",
+      "writing_type": "persuasive writing",
+      "skill_scores": [
+        {"skill": "claim clarity", "score": 3}
+      ],
+      "left_code": "persuasive-claim",
+      "right_code": "persuasive-stakes",
+      "left_wins_metrics": {
+        "nlp_claim_count": 4,
+        "nlp_claim_support_alignment": 45,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_claim_count": 1,
+        "nlp_claim_support_alignment": 78,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "memoir scene turn vs scene entry exit",
+      "type": "pairwise",
+      "tree_slug": "memoir-personal-narrative-track",
+      "writing_type": "memoir",
+      "skill_scores": [
+        {"skill": "scene architecture", "score": 3}
+      ],
+      "left_code": "memoir-scene-turn",
+      "right_code": "memoir-scene-entry-exit",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 2,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 3,
+        "nlp_transition_marker_density": 9,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "marketing claim clarity vs stakes articulation",
+      "type": "pairwise",
+      "tree_slug": "marketing-writing-track",
+      "writing_type": "marketing writing",
+      "skill_scores": [
+        {"skill": "claim clarity", "score": 3}
+      ],
+      "left_code": "marketing-claim-clarity",
+      "right_code": "marketing-stakes-articulation",
+      "left_wins_metrics": {
+        "nlp_claim_count": 4,
+        "nlp_claim_support_alignment": 45,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_claim_count": 1,
+        "nlp_claim_support_alignment": 78,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "content structure vs pivot lines",
+      "type": "pairwise",
+      "tree_slug": "content-marketing-track",
+      "writing_type": "content marketing",
+      "skill_scores": [
+        {"skill": "structural signposting", "score": 3}
+      ],
+      "left_code": "content-persuasive-structure",
+      "right_code": "content-persuasive-pivot-lines",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 4,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 3,
+        "nlp_transition_marker_density": 9,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "journalism example selection vs quote restraint",
+      "type": "pairwise",
+      "tree_slug": "journalism-reporting-track",
+      "writing_type": "journalism",
+      "skill_scores": [
+        {"skill": "evidence integration", "score": 3}
+      ],
+      "left_code": "journalism-example-selection",
+      "right_code": "journalism-quote-restraint",
+      "left_wins_metrics": {
+        "nlp_reference_specificity_score": 78,
+        "nlp_evidence_marker_count": 2,
+        "nlp_claim_support_alignment": 55,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_reference_specificity_score": 50,
+        "nlp_evidence_marker_count": 1,
+        "nlp_claim_support_alignment": 55,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "education quote integration vs source selection",
+      "type": "pairwise",
+      "tree_slug": "educational-writing-track",
+      "writing_type": "educational writing",
+      "skill_scores": [
+        {"skill": "source handling", "score": 3}
+      ],
+      "left_code": "education-academic-quote-integration",
+      "right_code": "education-academic-source-selection",
+      "left_wins_metrics": {
+        "nlp_claim_evidence_coverage": 60,
+        "nlp_evidence_marker_count": 4,
+        "nlp_unique_token_ratio": 38
+      },
+      "right_wins_metrics": {
+        "nlp_claim_evidence_coverage": 60,
+        "nlp_evidence_marker_count": 0,
+        "nlp_unique_token_ratio": 60
+      }
+    },
+    {
+      "name": "grant ask visibility vs ownership clarity",
+      "type": "pairwise",
+      "tree_slug": "grant-writing-track",
+      "writing_type": "grant writing",
+      "skill_scores": [
+        {"skill": "actionability", "score": 3}
+      ],
+      "left_code": "grant-ask-visibility",
+      "right_code": "grant-ownership-clarity",
+      "left_wins_metrics": {
+        "nlp_action_verb_density": 12,
+        "nlp_reference_specificity_score": 50,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_action_verb_density": 2,
+        "nlp_reference_specificity_score": 78,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "story scene architecture vs prose precision",
+      "type": "pairwise",
+      "tree_slug": "story-craft-track",
+      "writing_type": "fiction",
+      "skill_scores": [
+        {"skill": "scene architecture", "score": 3},
+        {"skill": "prose precision", "score": 3}
+      ],
+      "left_code": "story-scene-architecture",
+      "right_code": "story-prose-precision",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 7,
+        "nlp_readability_grade": 15,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 1,
+        "nlp_transition_marker_density": 2,
+        "nlp_readability_grade": 9,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "fantasy scene architecture vs prose precision",
+      "type": "pairwise",
+      "tree_slug": "fantasy-fiction-track",
+      "writing_type": "fantasy fiction",
+      "skill_scores": [
+        {"skill": "scene architecture", "score": 3},
+        {"skill": "prose precision", "score": 3}
+      ],
+      "left_code": "fantasy-story-scene-architecture",
+      "right_code": "fantasy-story-prose-precision",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 7,
+        "nlp_readability_grade": 15,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 1,
+        "nlp_transition_marker_density": 2,
+        "nlp_readability_grade": 9,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "science fiction scene architecture vs prose precision",
+      "type": "pairwise",
+      "tree_slug": "science-fiction-track",
+      "writing_type": "science fiction",
+      "skill_scores": [
+        {"skill": "scene architecture", "score": 3},
+        {"skill": "prose precision", "score": 3}
+      ],
+      "left_code": "scifi-story-scene-architecture",
+      "right_code": "scifi-story-prose-precision",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 7,
+        "nlp_readability_grade": 15,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 1,
+        "nlp_transition_marker_density": 2,
+        "nlp_readability_grade": 9,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "romance scene architecture vs prose precision",
+      "type": "pairwise",
+      "tree_slug": "romance-fiction-track",
+      "writing_type": "romance",
+      "skill_scores": [
+        {"skill": "scene architecture", "score": 3},
+        {"skill": "prose precision", "score": 3}
+      ],
+      "left_code": "romance-story-scene-architecture",
+      "right_code": "romance-story-prose-precision",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 7,
+        "nlp_readability_grade": 15,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 1,
+        "nlp_transition_marker_density": 2,
+        "nlp_readability_grade": 9,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "literary scene architecture vs prose precision",
+      "type": "pairwise",
+      "tree_slug": "literary-fiction-track",
+      "writing_type": "literary fiction",
+      "skill_scores": [
+        {"skill": "scene architecture", "score": 3},
+        {"skill": "prose precision", "score": 3}
+      ],
+      "left_code": "literary-story-scene-architecture",
+      "right_code": "literary-story-prose-precision",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 7,
+        "nlp_readability_grade": 15,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 1,
+        "nlp_transition_marker_density": 2,
+        "nlp_readability_grade": 9,
+        "nlp_topic_drift_score": 35
+      }
+    },
+    {
+      "name": "thriller scene architecture vs prose precision",
+      "type": "pairwise",
+      "tree_slug": "mystery-thriller-track",
+      "writing_type": "mystery",
+      "skill_scores": [
+        {"skill": "scene architecture", "score": 3},
+        {"skill": "prose precision", "score": 3}
+      ],
+      "left_code": "thriller-story-scene-architecture",
+      "right_code": "thriller-story-prose-precision",
+      "left_wins_metrics": {
+        "nlp_structural_signpost_count": 6,
+        "nlp_transition_marker_density": 7,
+        "nlp_readability_grade": 15,
+        "nlp_topic_drift_score": 35
+      },
+      "right_wins_metrics": {
+        "nlp_structural_signpost_count": 1,
+        "nlp_transition_marker_density": 2,
+        "nlp_readability_grade": 9,
+        "nlp_topic_drift_score": 35
+      }
+    }
+  ]
+}

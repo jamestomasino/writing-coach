@@ -6,4 +6,5 @@ cd "${repo_root}"
 
 go test ./cmd/... ./internal/...
 go run ./cmd/objective-rule-lint
+go run ./cmd/objective-score-eval
 ./scripts/test-pedagogy-integrity.sh
