@@ -217,7 +217,16 @@ func (s Server) processReviewSubmissionJob(ctx context.Context, job domain.AIJob
 		return fmt.Errorf("load curriculum state after review sync: %w", err)
 	}
 	reviewResult.Review.ID = reviewID
-	if err := s.emitReviewDecisionEvents(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, recommendation, len(reviewResult.Scores)); err != nil {
+	if err := s.emitReviewDecisionEvents(
+		ctx,
+		job.UserID,
+		job.TreeID,
+		job.EnrollmentID,
+		reviewResult.Review,
+		recommendation,
+		len(reviewResult.Scores),
+		len(objectiveScores),
+	); err != nil {
 		return fmt.Errorf("save decision events: %w", err)
 	}
 	if err := s.emitProgressionHoldTransitionEvent(ctx, job.UserID, job.TreeID, job.EnrollmentID, reviewResult.Review, stateBefore.ProgressionHoldActive, stateAfter.ProgressionHoldActive, stateAfter.ProgressionHoldReasonCode); err != nil {
