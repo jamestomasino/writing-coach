@@ -44,11 +44,21 @@ export function TGOLibraryView() {
   }, [])
 
   const normalized = query.trim().toLowerCase()
+  const uniqueObjectives = useMemo(() => {
+    const byCode = new Map<string, SkillGraphNode>()
+    for (const node of nodes) {
+      if (!byCode.has(node.code)) {
+        byCode.set(node.code, node)
+      }
+    }
+    return Array.from(byCode.values())
+  }, [nodes])
+
   const filtered = useMemo(() => {
-    const list = [...nodes].sort((a, b) => {
-      const treeCompare = a.source_tree_title.localeCompare(b.source_tree_title)
-      if (treeCompare !== 0) {
-        return treeCompare
+    const list = [...uniqueObjectives].sort((a, b) => {
+      const familyCompare = (a.skill_name ?? '').localeCompare(b.skill_name ?? '')
+      if (familyCompare !== 0) {
+        return familyCompare
       }
       if (a.stage_order !== b.stage_order) {
         return a.stage_order - b.stage_order
@@ -59,10 +69,10 @@ export function TGOLibraryView() {
       return list
     }
     return list.filter((item) => {
-      const haystack = `${item.title} ${item.code} ${item.description} ${item.source_tree_title} ${item.skill_name ?? ''}`.toLowerCase()
+      const haystack = `${item.title} ${item.code} ${item.description} ${item.skill_name ?? ''} ${item.stage}`.toLowerCase()
       return haystack.includes(normalized)
     })
-  }, [nodes, normalized])
+  }, [uniqueObjectives, normalized])
 
   const limited = filtered.slice(0, 250)
 
@@ -78,8 +88,8 @@ export function TGOLibraryView() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Objective guides"
-        title="TGO library"
-        intro="Every Terminal/Enabling objective has its own guide page. Search by title, code, or track."
+        title="Skill objective library"
+        intro="Each skill objective has one shared guide page. Search by title, code, or skill family."
       />
 
       <WorkspaceCard>
@@ -99,7 +109,7 @@ export function TGOLibraryView() {
             </div>
           </div>
           <div className="text-sm text-zinc-600 dark:text-zinc-300">
-            <div>Total objectives: {nodes.length}</div>
+            <div>Total objectives: {uniqueObjectives.length}</div>
             <div>Matches: {filtered.length}</div>
             {filtered.length > limited.length ? <div>Showing first {limited.length} matches. Refine search to narrow further.</div> : null}
           </div>
@@ -121,7 +131,8 @@ export function TGOLibraryView() {
                   <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-400">({node.code})</span>
                 </div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {node.source_tree_title} • {node.stage.replace(/-/g, ' ')}
+                  {node.skill_name ? `${node.skill_name} • ` : ''}
+                  {node.stage.replace(/-/g, ' ')}
                 </div>
               </div>
               <Text className="mt-2 text-sm">{node.description}</Text>

@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -246,23 +245,6 @@ func (s Server) archiveLegacyBootstrapTrack(ctx context.Context, user domain.Use
 		return user, err
 	}
 	return s.Store.UserBySlug(ctx, user.Slug)
-}
-
-func (s Server) uniqueGeneratedTreeSlug(ctx context.Context, base string) string {
-	base = strings.TrimSpace(base)
-	if base == "" {
-		base = "writer-track"
-	}
-	slug := base
-	for suffix := 2; ; suffix++ {
-		if _, err := s.Store.TreeBySlug(ctx, slug); err != nil {
-			if db.IsNotFound(err) {
-				return slug
-			}
-			return slug
-		}
-		slug = fmt.Sprintf("%s-%d", base, suffix)
-	}
 }
 
 func (s Server) userHasTrackProfile(ctx context.Context, userID int64) bool {

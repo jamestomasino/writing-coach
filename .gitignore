@@ -3,3 +3,5 @@
 .env
 web/node_modules/
 web/.next/
+.tmp/
+.writing-coach-e2e/

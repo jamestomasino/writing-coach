@@ -572,30 +572,6 @@ func (s Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func (s Server) reviewComparisonPayload(ctx context.Context, sub domain.Submission, currentReview domain.Review) map[string]any {
-	comparison := s.reviewComparison(ctx, sub, currentReview)
-	if comparison == nil {
-		return nil
-	}
-	return reviewComparisonMap(*comparison)
-}
-
-func (s Server) reviewComparison(ctx context.Context, sub domain.Submission, currentReview domain.Review) *review.Comparison {
-	previous, err := s.Store.PreviousSubmission(ctx, sub)
-	if err != nil {
-		return nil
-	}
-	previousReview, err := s.Store.LatestReviewForSubmission(ctx, previous.ID)
-	if err != nil {
-		return nil
-	}
-	comparison := review.CompareSubmissions(sub, previous, currentReview, previousReview)
-	if comparison.SkillSetMismatch {
-		log.Printf("comparison skill set mismatch: current_submission=%d baseline_submission=%d", sub.ID, previous.ID)
-	}
-	return &comparison
-}
-
 func reviewComparisonMap(comparison review.Comparison) map[string]any {
 	return map[string]any{
 		"summary":               comparison.Summary,
@@ -673,42 +649,6 @@ func comparisonPayload(ctx reviewInterventionContext) map[string]any {
 		return nil
 	}
 	return reviewComparisonMap(*ctx.Comparison)
-}
-
-func (s Server) runReviewWorker(ctx context.Context) {
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := s.Store.RequeueStaleReviewJobs(ctx, 3*time.Minute); err != nil {
-				log.Printf("review worker: requeue stale jobs failed: %v", err)
-			}
-			if err := s.processNextReviewJob(ctx); err != nil && !errors.Is(err, sql.ErrNoRows) {
-				log.Printf("review worker: process failed: %v", err)
-			}
-		}
-	}
-}
-
-func (s Server) processNextReviewJob(ctx context.Context) error {
-	job, err := s.Store.ClaimNextReviewJob(ctx)
-	if err != nil {
-		return err
-	}
-	log.Printf("review job started: job=%d submission=%d attempt=%d", job.ID, job.SubmissionID, job.AttemptCount)
-	if err := s.processReviewJob(ctx, job); err != nil {
-		log.Printf("review job failed: job=%d submission=%d attempt=%d err=%v", job.ID, job.SubmissionID, job.AttemptCount, err)
-		if failErr := s.Store.FailReviewJob(ctx, job, err.Error()); failErr != nil {
-			log.Printf("review job failure update failed: job=%d err=%v", job.ID, failErr)
-		}
-		return err
-	}
-	log.Printf("review job completed: job=%d submission=%d", job.ID, job.SubmissionID)
-	return nil
 }
 
 func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) error {

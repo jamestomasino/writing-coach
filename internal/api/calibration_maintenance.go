@@ -19,7 +19,6 @@ import (
 const calibrationRunKindScheduled = "scheduled"
 const calibrationRunKindManual = "manual"
 
-const calibrationStatusRunning = "running"
 const calibrationStatusSucceeded = "succeeded"
 const calibrationStatusFailed = "failed"
 

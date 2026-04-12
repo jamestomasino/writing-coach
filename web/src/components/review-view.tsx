@@ -5,6 +5,8 @@ import { Button } from '@/components/button'
 import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
+import { Link } from '@/components/link'
+import { hasSkillDetail, skillHref } from '@/lib/skill-details'
 import type { ReviewAnnotation } from '@/lib/types'
 import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useReviewWorkspace } from '@/lib/use-review-workspace'
@@ -202,12 +204,25 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.slice(0, 3).map((tgo) => {
               const state = skillLevelUpState(tgo)
+              const skillName = (tgo.skill_name ?? '').trim()
+              const showSkillInfo = skillName.length > 0 && hasSkillDetail(skillName)
               return (
                 <div
                   key={tgo.code}
                   className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm dark:border-white/10 dark:bg-white/5"
                 >
-                  <div className="font-semibold text-zinc-950 dark:text-white">{tgo.title}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold text-zinc-950 dark:text-white">{tgo.title}</div>
+                    {showSkillInfo ? (
+                      <Link
+                        href={skillHref(skillName)}
+                        aria-label={`Open ${skillName} details`}
+                        className="text-xs font-semibold text-zinc-500 underline decoration-zinc-300 decoration-2 underline-offset-2 data-hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-600 dark:data-hover:text-zinc-100"
+                      >
+                        (i)
+                      </Link>
+                    ) : null}
+                  </div>
                   <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
                     {t('unlockEvidenceLine', {
                       current: Math.max(0, tgo.mastery_evidence_count ?? 0),

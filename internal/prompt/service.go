@@ -473,14 +473,6 @@ func tgoCodes(tgos []domain.TGO) []string {
 	return out
 }
 
-func tgoTitles(tgos []domain.TGO) []string {
-	var out []string
-	for _, tgo := range tgos {
-		out = append(out, tgo.Title)
-	}
-	return out
-}
-
 func tgoSkills(tgos []domain.TGO) []string {
 	seen := map[string]bool{}
 	var out []string

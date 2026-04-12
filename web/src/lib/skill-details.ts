@@ -12,7 +12,6 @@ export type SkillDetail = {
   weakExample: string
   revisionMoves: string[]
   coachTip: string
-  contentSources: string[]
 }
 
 const SKILLS: Array<{ name: string; tier: SkillTier }> = [
@@ -112,12 +111,6 @@ function genericDetail(name: string, tier: SkillTier): SkillDetail {
       'Read it out loud and fix any part that feels confusing.',
     ],
     coachTip: 'Aim for simple, clear lines. Clear is strong.',
-    contentSources: [
-      'internal/domain/skills.go',
-      'internal/domain/tree_catalog.go (TGO descriptions and mastery hints)',
-      'docs/tree-library.md',
-      'docs/architecture.md',
-    ],
   }
 }
 

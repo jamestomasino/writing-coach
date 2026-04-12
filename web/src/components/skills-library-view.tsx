@@ -14,17 +14,17 @@ import { AppErrorState, LoadingState } from './status-state'
 const TIERS: Array<{ tier: SkillTier; label: string; description: string }> = [
   {
     tier: 'core',
-    label: 'Core skills',
+    label: 'Core skill families',
     description: 'These are the main skills the coach leans on most often.',
   },
   {
     tier: 'domain',
-    label: 'Domain skills',
+    label: 'Domain skill families',
     description: 'These add craft detail and help you shape stronger drafts.',
   },
   {
     tier: 'specialty',
-    label: 'Specialty skills',
+    label: 'Specialty skill families',
     description: 'These are advanced style and theme skills used in specific paths.',
   },
 ]
@@ -54,7 +54,7 @@ export function SkillsLibraryView() {
         setActiveNames(names)
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load active skills.')
+          setError(err instanceof Error ? err.message : 'Could not load active skill families.')
         }
       } finally {
         if (!cancelled) {
@@ -76,24 +76,21 @@ export function SkillsLibraryView() {
   }, [activeNames])
 
   if (loading) {
-    return <LoadingState label="Loading skill library..." />
+    return <LoadingState label="Loading skill family library..." />
   }
 
   if (error) {
-    return <AppErrorState title="Skill library unavailable" error={error} />
+    return <AppErrorState title="Skill family library unavailable" error={error} />
   }
 
   return (
     <div className="space-y-8">
       <WorkspaceCard>
-        <Eyebrow>Skill library</Eyebrow>
-        <Heading className="mt-3">Skill detail pages</Heading>
+        <Eyebrow>Skill families</Eyebrow>
+        <Heading className="mt-3">Skill family detail pages</Heading>
         <Text className="mt-3">
-          This view shows skills currently used by active curriculum objectives. Each skill has a plain-language guide
-          with examples and revision moves.
-        </Text>
-        <Text className="mt-2">
-          Active skills: {activeSkills.length} of {allSkillDetails.length} defined.
+          This page lists skill families. Skill objectives are listed separately in the{' '}
+          <Link href="/tgos">Skill objective library</Link>.
         </Text>
       </WorkspaceCard>
 
@@ -130,4 +127,3 @@ export function SkillsLibraryView() {
     </div>
   )
 }
-
