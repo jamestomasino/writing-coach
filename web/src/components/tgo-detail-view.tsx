@@ -94,7 +94,7 @@ export function TGODetailView({ code }: { code: string }) {
           <Subheading>Skill overview</Subheading>
           <Text className="mt-3">{objectiveDetail.skillOverview}</Text>
 
-          <Subheading>What this objective trains</Subheading>
+          <Subheading className="mt-6">What this objective trains</Subheading>
           <Text className="mt-3">{objectiveDetail.objectiveGoal}</Text>
           <Subheading className="mt-6">Why it matters now</Subheading>
           <Text className="mt-3">{objectiveDetail.whyThisObjective}</Text>
