@@ -11,83 +11,80 @@ import (
 )
 
 func (s *Store) SkillAverages(ctx context.Context, userID, treeID int64, limit int) (map[string]float64, error) {
-	rows, err := s.SQL.QueryContext(ctx, `
-		WITH recent_submissions AS (
-			SELECT DISTINCT sss.submission_id
-			FROM submission_skill_scores sss
-			JOIN submissions s ON s.id = sss.submission_id
-			WHERE s.user_id = ? AND s.tree_id = ? AND sss.score_source = 'deterministic'
-			ORDER BY sss.submission_id DESC
-			LIMIT ?
-		)
-		SELECT skill_name, AVG(score)
-		FROM submission_skill_scores
-		WHERE submission_id IN (SELECT submission_id FROM recent_submissions)
-		GROUP BY skill_name
-	`, userID, treeID, limit)
+	submissionIDs, err := s.recentReviewedSubmissionIDs(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	values := map[string]float64{}
-	for rows.Next() {
-		var skill string
-		var avg float64
-		if err := rows.Scan(&skill, &avg); err != nil {
+	type agg struct {
+		total int
+		count int
+	}
+	rollup := map[string]agg{}
+	for _, submissionID := range submissionIDs {
+		scores, err := s.SubmissionSkillScores(ctx, submissionID)
+		if err != nil {
 			return nil, err
 		}
-		values[skill] = avg
+		for _, score := range scores {
+			if strings.TrimSpace(score.ScoreSource) != "deterministic" {
+				continue
+			}
+			item := rollup[score.Skill]
+			item.total += score.Score
+			item.count++
+			rollup[score.Skill] = item
+		}
 	}
-	return values, rows.Err()
+	values := map[string]float64{}
+	for skill, item := range rollup {
+		if item.count == 0 {
+			continue
+		}
+		values[skill] = float64(item.total) / float64(item.count)
+	}
+	return values, nil
 }
 
 func (s *Store) RecentSkillScores(ctx context.Context, userID, treeID int64, skill string, limit int) ([]int, error) {
-	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT sss.score
-		FROM submission_skill_scores sss
-		JOIN submissions s ON s.id = sss.submission_id
-		WHERE sss.skill_name = ? AND s.user_id = ? AND s.tree_id = ? AND sss.score_source = 'deterministic'
-		ORDER BY sss.submission_id DESC
-		LIMIT ?
-	`, skill, userID, treeID, limit)
+	submissionIDs, err := s.recentReviewedSubmissionIDs(ctx, userID, treeID, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	var scores []int
-	for rows.Next() {
-		var score int
-		if err := rows.Scan(&score); err != nil {
+	for _, submissionID := range submissionIDs {
+		items, err := s.SubmissionSkillScores(ctx, submissionID)
+		if err != nil {
 			return nil, err
 		}
-		scores = append(scores, score)
+		for _, item := range items {
+			if strings.TrimSpace(item.ScoreSource) != "deterministic" || item.Skill != skill {
+				continue
+			}
+			scores = append(scores, item.Score)
+			break
+		}
+		if len(scores) == limit {
+			break
+		}
 	}
-	return scores, rows.Err()
+	return scores, nil
 }
 
 func (s *Store) LatestSkillScores(ctx context.Context, submissionID int64) (map[string]int, error) {
-	rows, err := s.SQL.QueryContext(ctx, `
-		SELECT skill_name, score
-		FROM submission_skill_scores
-		WHERE submission_id = ? AND score_source = 'deterministic'
-	`, submissionID)
+	items, err := s.SubmissionSkillScores(ctx, submissionID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	values := map[string]int{}
-	for rows.Next() {
-		var skill string
-		var score int
-		if err := rows.Scan(&skill, &score); err != nil {
-			return nil, err
+	for _, item := range items {
+		if strings.TrimSpace(item.ScoreSource) != "deterministic" {
+			continue
 		}
-		values[skill] = score
+		values[item.Skill] = item.Score
 	}
-	return values, rows.Err()
+	return values, nil
 }
 
 func (s *Store) ProgressReport(ctx context.Context, userID, treeID int64, prioritySkills []string, limit int) ([]string, error) {
@@ -384,6 +381,29 @@ func (s *Store) RecentExerciseTitles(ctx context.Context, userID, treeID int64, 
 		titles = append(titles, title)
 	}
 	return titles, rows.Err()
+}
+
+func (s *Store) recentReviewedSubmissionIDs(ctx context.Context, userID, treeID int64, limit int) ([]int64, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT DISTINCT r.submission_id
+		FROM reviews r
+		WHERE r.user_id = ? AND r.tree_id = ?
+		ORDER BY r.id DESC
+		LIMIT ?
+	`, userID, treeID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 func (s *Store) RecentExerciseSummaries(ctx context.Context, userID, treeID int64, limit int) ([]string, error) {

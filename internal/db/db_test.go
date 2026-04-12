@@ -189,6 +189,20 @@ func TestSaveReviewWithObjectiveScoresPersistsObjectiveRows(t *testing.T) {
 	if len(objectiveScores) != 3 {
 		t.Fatalf("expected 3 objective scores, got %d", len(objectiveScores))
 	}
+	var legacyRows int
+	if err := store.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM submission_skill_scores WHERE submission_id = ?`, subID).Scan(&legacyRows); err != nil {
+		t.Fatalf("count legacy rows: %v", err)
+	}
+	if legacyRows != 0 {
+		t.Fatalf("expected no legacy family score rows for objective-era review, got %d", legacyRows)
+	}
+	derivedSkills, err := store.SubmissionSkillScores(ctx, subID)
+	if err != nil {
+		t.Fatalf("submission skill scores fallback: %v", err)
+	}
+	if len(derivedSkills) != 3 {
+		t.Fatalf("expected derived skill scores from objective rows, got %d (%+v)", len(derivedSkills), derivedSkills)
+	}
 }
 
 func TestEnsureDefaultUserTreeSeedsTreeSpecificTGOs(t *testing.T) {
