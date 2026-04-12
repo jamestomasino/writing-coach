@@ -353,7 +353,8 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		return err
 	}
 	reviewResult.NextFocus = recommendation.Focus
-	reviewID, err := c.Store.SaveReview(ctx, reviewResult, scores)
+	objectiveScores := review.BuildObjectiveScores(sub.ID, activeTGOs, reviewResult.TGOAssessments, scores)
+	reviewID, err := c.Store.SaveReviewWithObjectiveScores(ctx, reviewResult, scores, objectiveScores)
 	if err != nil {
 		return err
 	}
@@ -382,7 +383,7 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		EventType:           "review_scored",
 		DecisionPayloadJSON: string(reviewScoredPayload),
 		RuleVersion:         "deterministic-scoring-v1",
-		EvidenceRefsJSON:    `["analyzer_report","submission_skill_scores"]`,
+		EvidenceRefsJSON:    `["analyzer_report","submission_skill_scores","submission_objective_scores"]`,
 	}); err != nil {
 		return err
 	}

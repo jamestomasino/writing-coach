@@ -561,6 +561,10 @@ func (s *Store) PreviousSubmission(ctx context.Context, sub domain.Submission) (
 }
 
 func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []domain.SkillScore) (int64, error) {
+	return s.SaveReviewWithObjectiveScores(ctx, review, scores, nil)
+}
+
+func (s *Store) SaveReviewWithObjectiveScores(ctx context.Context, review domain.Review, scores []domain.SkillScore, objectiveScores []domain.ObjectiveScore) (int64, error) {
 	tx, err := s.SQL.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -627,6 +631,26 @@ func (s *Store) SaveReview(ctx context.Context, review domain.Review, scores []d
 			INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
 			VALUES (?, ?, ?, ?, ?, ?)
 		`, review.SubmissionID, score.Skill, score.Score, scoreSource, scoreVersion, scoreEvidence); err != nil {
+			return 0, err
+		}
+	}
+	for _, score := range objectiveScores {
+		scoreSource := strings.TrimSpace(score.ScoreSource)
+		if scoreSource == "" {
+			scoreSource = "deterministic"
+		}
+		scoreVersion := strings.TrimSpace(score.ScoreVersion)
+		if scoreVersion == "" {
+			scoreVersion = "obj-det-v1"
+		}
+		scoreEvidence := strings.TrimSpace(score.ScoreEvidenceJSON)
+		if scoreEvidence == "" {
+			scoreEvidence = "{}"
+		}
+		if _, err = tx.ExecContext(ctx, `
+			INSERT INTO submission_objective_scores (submission_id, tgo_code, score, score_source, score_version, score_evidence_json)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`, review.SubmissionID, score.TGOCode, score.Score, scoreSource, scoreVersion, scoreEvidence); err != nil {
 			return 0, err
 		}
 	}
@@ -889,6 +913,10 @@ func (s *Store) LatestReviewForSubmission(ctx context.Context, submissionID int6
 	if err != nil {
 		return domain.Review{}, err
 	}
+	review.ObjectiveScores, err = s.SubmissionObjectiveScores(ctx, review.SubmissionID)
+	if err != nil {
+		return domain.Review{}, err
+	}
 	return review, nil
 }
 
@@ -927,6 +955,10 @@ func (s *Store) GetReview(ctx context.Context, reviewID int64) (domain.Review, e
 		return domain.Review{}, err
 	}
 	review.SkillScores, err = s.SubmissionSkillScores(ctx, review.SubmissionID)
+	if err != nil {
+		return domain.Review{}, err
+	}
+	review.ObjectiveScores, err = s.SubmissionObjectiveScores(ctx, review.SubmissionID)
 	if err != nil {
 		return domain.Review{}, err
 	}
@@ -974,6 +1006,10 @@ func (s *Store) ListReviews(ctx context.Context, userID, treeID, submissionID in
 		if err != nil {
 			return nil, err
 		}
+		reviews[i].ObjectiveScores, err = s.SubmissionObjectiveScores(ctx, reviews[i].SubmissionID)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return reviews, nil
 }
@@ -996,6 +1032,36 @@ func (s *Store) SubmissionSkillScores(ctx context.Context, submissionID int64) (
 		if err := rows.Scan(
 			&score.SubmissionID,
 			&score.Skill,
+			&score.Score,
+			&score.ScoreSource,
+			&score.ScoreVersion,
+			&score.ScoreEvidenceJSON,
+		); err != nil {
+			return nil, err
+		}
+		scores = append(scores, score)
+	}
+	return scores, rows.Err()
+}
+
+func (s *Store) SubmissionObjectiveScores(ctx context.Context, submissionID int64) ([]domain.ObjectiveScore, error) {
+	rows, err := s.SQL.QueryContext(ctx, `
+		SELECT submission_id, tgo_code, score, score_source, score_version, score_evidence_json
+		FROM submission_objective_scores
+		WHERE submission_id = ?
+		ORDER BY score DESC, tgo_code ASC
+	`, submissionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var scores []domain.ObjectiveScore
+	for rows.Next() {
+		var score domain.ObjectiveScore
+		if err := rows.Scan(
+			&score.SubmissionID,
+			&score.TGOCode,
 			&score.Score,
 			&score.ScoreSource,
 			&score.ScoreVersion,

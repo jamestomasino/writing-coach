@@ -8,8 +8,10 @@ import { Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { WorkspaceCard } from '@/components/workspace-card'
 import { getSkillGraph } from '@/lib/api'
+import { buildObjectiveDetail } from '@/lib/objective-details'
 import { getSkillDetailByName } from '@/lib/skill-details'
 import type { SkillGraphNode } from '@/lib/types'
+import { SkillLink } from './skill-link'
 import { AppErrorState, EmptyState, LoadingState } from './status-state'
 
 export function TGODetailView({ code }: { code: string }) {
@@ -47,6 +49,7 @@ export function TGODetailView({ code }: { code: string }) {
   const nodeByCode = useMemo(() => new Map(nodes.map((item) => [item.code, item])), [nodes])
   const node = nodeByCode.get(code)
   const skillDetail = node?.skill_name ? getSkillDetailByName(node.skill_name) : undefined
+  const objectiveDetail = node ? buildObjectiveDetail(node, skillDetail) : null
 
   if (loading) {
     return <LoadingState label="Loading objective guide..." />
@@ -84,7 +87,9 @@ export function TGODetailView({ code }: { code: string }) {
           </div>
           <div>
             <Subheading>Skill family</Subheading>
-            <Text className="mt-2 text-sm">{node.skill_name ?? 'Not set'}</Text>
+            <Text className="mt-2 text-sm">
+              {node.skill_name ? <SkillLink skill={node.skill_name}>{node.skill_name}</SkillLink> : 'Not set'}
+            </Text>
           </div>
         </div>
         {node.mastery_hint ? (
@@ -94,6 +99,47 @@ export function TGODetailView({ code }: { code: string }) {
           </div>
         ) : null}
       </WorkspaceCard>
+
+      {objectiveDetail ? (
+        <WorkspaceCard>
+          <Subheading>What this objective trains</Subheading>
+          <Text className="mt-3">{objectiveDetail.objectiveGoal}</Text>
+          <Subheading className="mt-6">Why it matters now</Subheading>
+          <Text className="mt-3">{objectiveDetail.whyThisObjective}</Text>
+
+          <Subheading className="mt-6">What success looks like</Subheading>
+          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            {objectiveDetail.successLooksLike.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-400/30 dark:bg-emerald-500/10">
+              <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Good example</div>
+              <Text className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">{objectiveDetail.goodExample}</Text>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-400/30 dark:bg-amber-500/10">
+              <div className="text-sm font-semibold text-amber-900 dark:text-amber-200">Needs work example</div>
+              <Text className="mt-2 text-sm text-amber-900 dark:text-amber-100">{objectiveDetail.badExample}</Text>
+            </div>
+          </div>
+
+          <Subheading className="mt-6">Next revision moves</Subheading>
+          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            {objectiveDetail.revisionMoves.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+
+          <Subheading className="mt-6">Deterministic assessment focus</Subheading>
+          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            {objectiveDetail.assessmentFocus.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+        </WorkspaceCard>
+      ) : null}
 
       <WorkspaceCard>
         <Subheading>Dependencies</Subheading>
@@ -127,7 +173,7 @@ export function TGODetailView({ code }: { code: string }) {
 
       {skillDetail ? (
         <WorkspaceCard>
-          <Subheading>How to practice this objective</Subheading>
+          <Subheading>Skill family crosswalk</Subheading>
           <Text className="mt-3">{skillDetail.whatItMeans}</Text>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-400/30 dark:bg-emerald-500/10">

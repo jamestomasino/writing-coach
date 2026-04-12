@@ -39,6 +39,7 @@ export function normalizeReview(review: Review): Review {
     weaknesses: arrayOrEmpty(review.weaknesses),
     analyzer_findings: arrayOrEmpty(review.analyzer_findings),
     skill_scores: arrayOrEmpty(review.skill_scores),
+    objective_scores: arrayOrEmpty(review.objective_scores),
     tgo_assessments: arrayOrEmpty(review.tgo_assessments),
     completed_tgo_checks: arrayOrEmpty(review.completed_tgo_checks),
     annotations: arrayOrEmpty(review.annotations),

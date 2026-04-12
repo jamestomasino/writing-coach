@@ -253,6 +253,15 @@ type scoreResponse struct {
 	ScoreEvidence map[string]any `json:"score_evidence,omitempty"`
 }
 
+type objectiveScoreResponse struct {
+	TGOCode       string         `json:"tgo_code"`
+	TGOTitle      string         `json:"tgo_title,omitempty"`
+	Score         int            `json:"score"`
+	ScoreSource   string         `json:"score_source,omitempty"`
+	ScoreVersion  string         `json:"score_version,omitempty"`
+	ScoreEvidence map[string]any `json:"score_evidence,omitempty"`
+}
+
 type tgoAssessmentResponse struct {
 	TGOCode  string `json:"tgo_code"`
 	TGOTitle string `json:"tgo_title,omitempty"`
@@ -261,21 +270,22 @@ type tgoAssessmentResponse struct {
 }
 
 type reviewResponse struct {
-	ID                 int64                   `json:"id"`
-	SubmissionID       int64                   `json:"submission_id"`
-	ReviewKind         string                  `json:"review_kind"`
-	ProviderNote       string                  `json:"provider_note,omitempty"`
-	Summary            string                  `json:"summary"`
-	Strengths          []string                `json:"strengths"`
-	Weaknesses         []string                `json:"weaknesses"`
-	AnalyzerFindings   []string                `json:"analyzer_findings"`
-	NextFocus          string                  `json:"next_focus"`
-	MetricWordCount    int                     `json:"metric_word_count"`
-	SkillScores        []scoreResponse         `json:"skill_scores"`
-	TGOAssessments     []tgoAssessmentResponse `json:"tgo_assessments"`
-	CompletedTGOChecks []tgoAssessmentResponse `json:"completed_tgo_checks"`
-	Annotations        []annotationResponse    `json:"annotations,omitempty"`
-	Artifacts          *reviewArtifactsPayload `json:"artifacts,omitempty"`
+	ID                 int64                    `json:"id"`
+	SubmissionID       int64                    `json:"submission_id"`
+	ReviewKind         string                   `json:"review_kind"`
+	ProviderNote       string                   `json:"provider_note,omitempty"`
+	Summary            string                   `json:"summary"`
+	Strengths          []string                 `json:"strengths"`
+	Weaknesses         []string                 `json:"weaknesses"`
+	AnalyzerFindings   []string                 `json:"analyzer_findings"`
+	NextFocus          string                   `json:"next_focus"`
+	MetricWordCount    int                      `json:"metric_word_count"`
+	SkillScores        []scoreResponse          `json:"skill_scores"`
+	ObjectiveScores    []objectiveScoreResponse `json:"objective_scores,omitempty"`
+	TGOAssessments     []tgoAssessmentResponse  `json:"tgo_assessments"`
+	CompletedTGOChecks []tgoAssessmentResponse  `json:"completed_tgo_checks"`
+	Annotations        []annotationResponse     `json:"annotations,omitempty"`
+	Artifacts          *reviewArtifactsPayload  `json:"artifacts,omitempty"`
 }
 
 type comparisonResponse struct {
@@ -753,7 +763,8 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 		return fmt.Errorf("sync curriculum: %w", err)
 	}
 	reviewResult.Review.NextFocus = recommendation.Focus
-	reviewID, err := s.Store.SaveReview(ctx, reviewResult.Review, reviewResult.Scores)
+	objectiveScores := review.BuildObjectiveScores(sub.ID, activeTGOs, reviewResult.Review.TGOAssessments, reviewResult.Scores)
+	reviewID, err := s.Store.SaveReviewWithObjectiveScores(ctx, reviewResult.Review, reviewResult.Scores, objectiveScores)
 	if err != nil {
 		return fmt.Errorf("save review: %w", err)
 	}
@@ -1403,6 +1414,7 @@ func toReviewResponse(reviewResult domain.Review) reviewResponse {
 		NextFocus:        reviewResult.NextFocus,
 		MetricWordCount:  reviewResult.MetricWordCount,
 		SkillScores:      toScoreResponses(reviewResult.SkillScores, reviewResult.TGOAssessments),
+		ObjectiveScores:  toObjectiveScoreResponses(reviewResult.ObjectiveScores),
 	}
 	for _, assessment := range reviewResult.TGOAssessments {
 		out.TGOAssessments = append(out.TGOAssessments, tgoAssessmentResponse{
@@ -1525,6 +1537,30 @@ func toScoreResponses(scores []domain.SkillScore, assessments []domain.TGOAssess
 	for _, score := range filtered {
 		item := scoreResponse{
 			Skill:        score.Skill,
+			Score:        score.Score,
+			ScoreSource:  score.ScoreSource,
+			ScoreVersion: score.ScoreVersion,
+		}
+		if strings.TrimSpace(score.ScoreEvidenceJSON) != "" && score.ScoreEvidenceJSON != "{}" {
+			var evidence map[string]any
+			if err := json.Unmarshal([]byte(score.ScoreEvidenceJSON), &evidence); err == nil && len(evidence) > 0 {
+				item.ScoreEvidence = evidence
+			}
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func toObjectiveScoreResponses(scores []domain.ObjectiveScore) []objectiveScoreResponse {
+	if len(scores) == 0 {
+		return nil
+	}
+	out := make([]objectiveScoreResponse, 0, len(scores))
+	for _, score := range scores {
+		item := objectiveScoreResponse{
+			TGOCode:      score.TGOCode,
+			TGOTitle:     tgoTitleForCode(score.TGOCode),
 			Score:        score.Score,
 			ScoreSource:  score.ScoreSource,
 			ScoreVersion: score.ScoreVersion,

@@ -24,7 +24,7 @@ func (s Server) emitReviewDecisionEvents(ctx context.Context, userID, treeID, en
 		EventType:           "review_scored",
 		DecisionPayloadJSON: string(scoredPayload),
 		RuleVersion:         "deterministic-scoring-v1",
-		EvidenceRefsJSON:    `["analyzer_report","submission_skill_scores"]`,
+		EvidenceRefsJSON:    `["analyzer_report","submission_skill_scores","submission_objective_scores"]`,
 	}); err != nil {
 		return err
 	}

@@ -117,6 +117,15 @@ export type SkillScore = {
   score_evidence?: Record<string, unknown>
 }
 
+export type ObjectiveScore = {
+  tgo_code: string
+  tgo_title?: string
+  score: number
+  score_source?: string
+  score_version?: string
+  score_evidence?: Record<string, unknown>
+}
+
 export type Review = {
   id: number
   submission_id: number
@@ -129,6 +138,7 @@ export type Review = {
   next_focus: string
   metric_word_count: number
   skill_scores: SkillScore[]
+  objective_scores?: ObjectiveScore[]
   tgo_assessments: TGOAssessment[]
   completed_tgo_checks: TGOAssessment[]
   annotations: ReviewAnnotation[]

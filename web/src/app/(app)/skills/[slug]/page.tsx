@@ -1,5 +1,6 @@
 import { Badge } from '@/components/badge'
 import { Eyebrow } from '@/components/eyebrow'
+import { SkillFamilyObjectives } from '@/components/skill-family-objectives'
 import { Heading, Subheading } from '@/components/heading'
 import { Link } from '@/components/link'
 import { Text } from '@/components/text'
@@ -94,6 +95,14 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
           <span className="font-semibold text-zinc-900 dark:text-white">Coach tip: </span>
           {detail.coachTip}
         </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard>
+        <Subheading>Skill objectives in this family</Subheading>
+        <Text className="mt-3 text-sm">
+          These are the objective-level checkpoints that currently map to this skill family in active trees.
+        </Text>
+        <SkillFamilyObjectives familyName={detail.name} />
       </WorkspaceCard>
 
       <WorkspaceCard>
