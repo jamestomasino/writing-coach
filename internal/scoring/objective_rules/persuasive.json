@@ -1,0 +1,809 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "rule_id": "objective.persuasive.actionability",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-action-target",
+        "persuasive-call-to-action",
+        "persuasive-campaign-thinking",
+        "persuasive-conclusion"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.actionability.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 7,
+          "delta": 1,
+          "reason": "actionability reward: explicit action language"
+        },
+        {
+          "id": "objective.persuasive.actionability.action-density-low",
+          "metric": "nlp_action_verb_density",
+          "max": 2,
+          "delta": -1,
+          "reason": "actionability penalty: weak action language"
+        },
+        {
+          "id": "objective.persuasive.actionability.temporal-clarity-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 70,
+          "delta": 1,
+          "reason": "actionability reward: timing and urgency are explicit"
+        },
+        {
+          "id": "objective.persuasive.actionability.temporal-clarity-low",
+          "metric": "nlp_temporal_clarity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "actionability penalty: timing is unclear"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.actionability.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "actionability penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_action_verb_density": 5
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["actionability", "ask", "next-step"]
+    },
+    {
+      "rule_id": "objective.persuasive.audience-alignment",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-audience",
+        "persuasive-audience-segmentation",
+        "persuasive-medium-fit",
+        "persuasive-positioning"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.audience-alignment.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "audience-alignment reward: audience context is specific"
+        },
+        {
+          "id": "objective.persuasive.audience-alignment.reference-specificity-low",
+          "metric": "nlp_reference_specificity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "audience-alignment penalty: audience context is generic"
+        },
+        {
+          "id": "objective.persuasive.audience-alignment.topic-drift-low",
+          "metric": "nlp_topic_drift_score",
+          "max": 45,
+          "delta": 1,
+          "reason": "audience-alignment reward: stays aligned to reader concerns"
+        },
+        {
+          "id": "objective.persuasive.audience-alignment.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "audience-alignment penalty: drifts away from reader concerns"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.audience-alignment.coverage-overload",
+          "category": "coverage",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "audience-alignment penalty: coverage findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["audience-alignment", "fit", "reader"]
+    },
+    {
+      "rule_id": "objective.persuasive.claim-clarity",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-claim",
+        "persuasive-headline",
+        "persuasive-stakes",
+        "persuasive-thesis-narrowing"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.claim-clarity.claim-count-high",
+          "metric": "nlp_claim_count",
+          "min": 2,
+          "delta": 1,
+          "reason": "claim-clarity reward: argument spine is explicit"
+        },
+        {
+          "id": "objective.persuasive.claim-clarity.claim-count-low",
+          "metric": "nlp_claim_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "claim-clarity penalty: argument spine is weak"
+        },
+        {
+          "id": "objective.persuasive.claim-clarity.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "claim-clarity reward: core claim is supported"
+        },
+        {
+          "id": "objective.persuasive.claim-clarity.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 40,
+          "delta": -1,
+          "reason": "claim-clarity penalty: core claim is weakly supported"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.claim-clarity.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "claim-clarity penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["claim-clarity", "thesis", "stakes"]
+    },
+    {
+      "rule_id": "objective.persuasive.clarity-and-coherence",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-plainstyle",
+        "persuasive-slogan-restraint"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.clarity-and-coherence.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 11,
+          "delta": 1,
+          "reason": "clarity-and-coherence reward: readability supports uptake"
+        },
+        {
+          "id": "objective.persuasive.clarity-and-coherence.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "clarity-and-coherence penalty: readability too dense"
+        },
+        {
+          "id": "objective.persuasive.clarity-and-coherence.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "clarity-and-coherence penalty: inflated language weakens signal"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.clarity-and-coherence.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "clarity-and-coherence penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["clarity-and-coherence", "plainstyle", "signal"]
+    },
+    {
+      "rule_id": "objective.persuasive.evidence-integration",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-case-study",
+        "persuasive-data-use",
+        "persuasive-evidence-basics",
+        "persuasive-example-selection",
+        "persuasive-quote-restraint",
+        "persuasive-sourced-authority"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.evidence-integration.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "evidence-integration reward: support strengthens claims"
+        },
+        {
+          "id": "objective.persuasive.evidence-integration.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 40,
+          "delta": -1,
+          "reason": "evidence-integration penalty: support is weak"
+        },
+        {
+          "id": "objective.persuasive.evidence-integration.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 3,
+          "delta": 1,
+          "reason": "evidence-integration reward: support markers are present"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.evidence-integration.coverage-overload",
+          "category": "coverage",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "evidence-integration penalty: coverage findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["evidence-integration", "support", "proof"]
+    },
+    {
+      "rule_id": "objective.persuasive.objection-handling",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-concession",
+        "persuasive-counterargument",
+        "persuasive-ethical-pressure",
+        "persuasive-objection-forecast"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.objection-handling.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "objection-handling reward: rebuttals are supported"
+        },
+        {
+          "id": "objective.persuasive.objection-handling.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 40,
+          "delta": -1,
+          "reason": "objection-handling penalty: rebuttals are unsupported"
+        },
+        {
+          "id": "objective.persuasive.objection-handling.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "objection-handling penalty: pushback handling loses thread"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.objection-handling.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "objection-handling penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["objection-handling", "resistance", "rebuttal"]
+    },
+    {
+      "rule_id": "objective.persuasive.reasoning-quality",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-analogy",
+        "persuasive-comparison",
+        "persuasive-consequence-modeling",
+        "persuasive-fallacy-avoidance",
+        "persuasive-logos",
+        "persuasive-paragraph-unity",
+        "persuasive-reason-order",
+        "persuasive-reasoning",
+        "persuasive-tradeoffs"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.reasoning-quality.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "reasoning-quality reward: logic is supported"
+        },
+        {
+          "id": "objective.persuasive.reasoning-quality.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 40,
+          "delta": -1,
+          "reason": "reasoning-quality penalty: logic is weakly supported"
+        },
+        {
+          "id": "objective.persuasive.reasoning-quality.paragraph-focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "reasoning-quality reward: paragraphs carry one clear move"
+        },
+        {
+          "id": "objective.persuasive.reasoning-quality.paragraph-focus-low",
+          "metric": "nlp_paragraph_focus_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "reasoning-quality penalty: paragraphs blur moves"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.reasoning-quality.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "reasoning-quality penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["reasoning-quality", "logic", "coherence"]
+    },
+    {
+      "rule_id": "objective.persuasive.revision-habits",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-evidence-pass",
+        "persuasive-logic-pass",
+        "persuasive-objection-pass",
+        "persuasive-revision-triage",
+        "persuasive-rhetoric-pass"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.revision-habits.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 11,
+          "delta": 1,
+          "reason": "revision-habits reward: final readability is controlled"
+        },
+        {
+          "id": "objective.persuasive.revision-habits.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "revision-habits penalty: readability remains too dense"
+        },
+        {
+          "id": "objective.persuasive.revision-habits.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 40,
+          "delta": 1,
+          "reason": "revision-habits reward: repetition reduced"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.revision-habits.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "revision-habits penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["revision-habits", "passes", "triage"]
+    },
+    {
+      "rule_id": "objective.persuasive.rhetorical-force",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-cadence",
+        "persuasive-ethos",
+        "persuasive-memory-line",
+        "persuasive-moral-language",
+        "persuasive-opening-hook",
+        "persuasive-pathos",
+        "persuasive-reframing",
+        "persuasive-repetition",
+        "persuasive-story-use",
+        "persuasive-tone-basics",
+        "persuasive-verb-force"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.rhetorical-force.passive-low",
+          "metric": "nlp_passive_sentences",
+          "max": 2,
+          "delta": 1,
+          "reason": "rhetorical-force reward: active syntax improves force"
+        },
+        {
+          "id": "objective.persuasive.rhetorical-force.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "delta": -1,
+          "reason": "rhetorical-force penalty: passive syntax blunts force"
+        },
+        {
+          "id": "objective.persuasive.rhetorical-force.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "rhetorical-force penalty: inflated language weakens trust"
+        },
+        {
+          "id": "objective.persuasive.rhetorical-force.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 8,
+          "delta": 1,
+          "reason": "rhetorical-force reward: verbs carry urgency"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.rhetorical-force.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "rhetorical-force penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["rhetorical-force", "cadence", "pressure"]
+    },
+    {
+      "rule_id": "objective.persuasive.structural-signposting",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": [
+        "persuasive-pivot-lines",
+        "persuasive-structure",
+        "persuasive-transitions"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.structural-signposting.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "structural-signposting reward: argument turns are visible"
+        },
+        {
+          "id": "objective.persuasive.structural-signposting.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "structural-signposting penalty: argument turns are obscured"
+        },
+        {
+          "id": "objective.persuasive.structural-signposting.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "delta": 1,
+          "reason": "structural-signposting reward: transitions carry reasoning"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.persuasive.structural-signposting.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "structural-signposting penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["structural-signposting", "arc", "progression"]
+    },
+
+    {
+      "rule_id": "objective.persuasive.claim-clarity.claim-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-claim"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.claim-clarity.claim-specific.claim-count-high",
+          "metric": "nlp_claim_count",
+          "min": 3,
+          "delta": 1,
+          "reason": "persuasive-claim reward: central claim is explicit and repeated"
+        },
+        {
+          "id": "objective.persuasive.claim-clarity.claim-specific.claim-count-low",
+          "metric": "nlp_claim_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "persuasive-claim penalty: central claim is underdeveloped"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-claim", "thesis", "position"]
+    },
+    {
+      "rule_id": "objective.persuasive.claim-clarity.stakes-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-stakes"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.claim-clarity.stakes-specific.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 72,
+          "delta": 1,
+          "reason": "persuasive-stakes reward: consequence claims are supported"
+        },
+        {
+          "id": "objective.persuasive.claim-clarity.stakes-specific.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 45,
+          "delta": -1,
+          "reason": "persuasive-stakes penalty: consequences are asserted not grounded"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-stakes", "consequence", "urgency"]
+    },
+    {
+      "rule_id": "objective.persuasive.reasoning-quality.reason-order-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-reason-order"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.reasoning-quality.reason-order-specific.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 8,
+          "delta": 1,
+          "reason": "persuasive-reason-order reward: reasons are explicitly sequenced"
+        },
+        {
+          "id": "objective.persuasive.reasoning-quality.reason-order-specific.transition-density-low",
+          "metric": "nlp_transition_marker_density",
+          "max": 3,
+          "delta": -1,
+          "reason": "persuasive-reason-order penalty: sequencing logic is weak"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-reason-order", "sequencing", "logic-flow"]
+    },
+    {
+      "rule_id": "objective.persuasive.reasoning-quality.consequence-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-consequence-modeling"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.reasoning-quality.consequence-specific.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 75,
+          "delta": 1,
+          "reason": "persuasive-consequence-modeling reward: consequence chain is grounded"
+        },
+        {
+          "id": "objective.persuasive.reasoning-quality.consequence-specific.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 45,
+          "delta": -1,
+          "reason": "persuasive-consequence-modeling penalty: consequence chain is weak"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-consequence-modeling", "outcomes", "if-then"]
+    },
+    {
+      "rule_id": "objective.persuasive.structural-signposting.structure-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-structure"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.structural-signposting.structure-specific.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "delta": 1,
+          "reason": "persuasive-structure reward: macro-arc is highly legible"
+        },
+        {
+          "id": "objective.persuasive.structural-signposting.structure-specific.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "persuasive-structure penalty: macro-arc is unclear"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-structure", "macro-arc", "architecture"]
+    },
+    {
+      "rule_id": "objective.persuasive.structural-signposting.pivot-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-pivot-lines"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.structural-signposting.pivot-specific.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 8,
+          "delta": 1,
+          "reason": "persuasive-pivot-lines reward: turning points are explicit"
+        },
+        {
+          "id": "objective.persuasive.structural-signposting.pivot-specific.transition-density-low",
+          "metric": "nlp_transition_marker_density",
+          "max": 3,
+          "delta": -1,
+          "reason": "persuasive-pivot-lines penalty: turns are abrupt or hidden"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-pivot-lines", "turns", "phase-shifts"]
+    },
+    {
+      "rule_id": "objective.persuasive.evidence-integration.example-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-example-selection"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.evidence-integration.example-specific.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 72,
+          "delta": 1,
+          "reason": "persuasive-example-selection reward: examples are strategically specific"
+        },
+        {
+          "id": "objective.persuasive.evidence-integration.example-specific.reference-specificity-low",
+          "metric": "nlp_reference_specificity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "persuasive-example-selection penalty: examples are generic"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-example-selection", "examples", "specificity"]
+    },
+    {
+      "rule_id": "objective.persuasive.evidence-integration.quote-restraint-specific",
+      "domain": "thought_leadership",
+      "track_slugs": ["persuasive-writing-track"],
+      "tgo_codes": ["persuasive-quote-restraint"],
+      "metric_rules": [
+        {
+          "id": "objective.persuasive.evidence-integration.quote-restraint-specific.evidence-markers-low",
+          "metric": "nlp_evidence_marker_count",
+          "max": 1,
+          "delta": 1,
+          "reason": "persuasive-quote-restraint reward: quotation load remains controlled"
+        },
+        {
+          "id": "objective.persuasive.evidence-integration.quote-restraint-specific.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 5,
+          "delta": -1,
+          "reason": "persuasive-quote-restraint penalty: quotation load overwhelms argument"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["persuasive-quote-restraint", "quotation-load", "authorial-control"]
+    }
+  ]
+}

@@ -1042,6 +1042,230 @@ func TestBuildObjectiveScoresThoughtLeadershipMetamorphicMonotonicity(t *testing
 	}
 }
 
+func TestBuildObjectiveScoresPersuasivePairwiseDiscrimination(t *testing.T) {
+	options := analyzer.ContextOptions{TreeSlug: "persuasive-writing-track", WritingType: "persuasive writing"}
+	shared := []domain.SkillScore{
+		{
+			SubmissionID:      94,
+			Skill:             "claim clarity",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-persuasive-claim-clarity"}`,
+		},
+		{
+			SubmissionID:      94,
+			Skill:             "reasoning quality",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-persuasive-reasoning"}`,
+		},
+		{
+			SubmissionID:      94,
+			Skill:             "structural signposting",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-persuasive-structure"}`,
+		},
+		{
+			SubmissionID:      94,
+			Skill:             "evidence integration",
+			Score:             3,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "det-v1",
+			ScoreEvidenceJSON: `{"rubric_id":"fixture-persuasive-evidence"}`,
+		},
+	}
+
+	cases := []struct {
+		name      string
+		leftCode  string
+		rightCode string
+		leftWins  analyzer.Report
+		rightWins analyzer.Report
+	}{
+		{
+			name:      "claim vs stakes",
+			leftCode:  "persuasive-claim",
+			rightCode: "persuasive-stakes",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_count":             4,
+				"nlp_claim_support_alignment": 45,
+				"nlp_topic_drift_score":       35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_claim_count":             1,
+				"nlp_claim_support_alignment": 78,
+				"nlp_topic_drift_score":       35,
+			}},
+		},
+		{
+			name:      "reason order vs consequence modeling",
+			leftCode:  "persuasive-reason-order",
+			rightCode: "persuasive-consequence-modeling",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_transition_marker_density": 8,
+				"nlp_claim_support_alignment":   45,
+				"nlp_paragraph_focus_score":     65,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_transition_marker_density": 2,
+				"nlp_claim_support_alignment":   78,
+				"nlp_paragraph_focus_score":     65,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "structure vs pivot lines",
+			leftCode:  "persuasive-structure",
+			rightCode: "persuasive-pivot-lines",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_transition_marker_density": 4,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 3,
+				"nlp_transition_marker_density": 9,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "example selection vs quote restraint",
+			leftCode:  "persuasive-example-selection",
+			rightCode: "persuasive-quote-restraint",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_reference_specificity_score": 78,
+				"nlp_evidence_marker_count":       2,
+				"nlp_claim_support_alignment":     55,
+				"nlp_topic_drift_score":           35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_reference_specificity_score": 50,
+				"nlp_evidence_marker_count":       1,
+				"nlp_claim_support_alignment":     55,
+				"nlp_topic_drift_score":           35,
+			}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			active := []domain.TGO{{Code: tc.leftCode}, {Code: tc.rightCode}}
+			assessments := []domain.TGOAssessment{
+				{TGOCode: tc.leftCode, Status: "developing"},
+				{TGOCode: tc.rightCode, Status: "developing"},
+			}
+
+			leftPass := BuildObjectiveScores(94, active, assessments, shared, tc.leftWins, options)
+			leftMap := objectiveScoreByCode(leftPass)
+			if leftMap[tc.leftCode].Score <= leftMap[tc.rightCode].Score {
+				t.Fatalf("expected %s score > %s score in leftWins scenario, got %d <= %d", tc.leftCode, tc.rightCode, leftMap[tc.leftCode].Score, leftMap[tc.rightCode].Score)
+			}
+
+			rightPass := BuildObjectiveScores(94, active, assessments, shared, tc.rightWins, options)
+			rightMap := objectiveScoreByCode(rightPass)
+			if rightMap[tc.rightCode].Score <= rightMap[tc.leftCode].Score {
+				t.Fatalf("expected %s score > %s score in rightWins scenario, got %d <= %d", tc.rightCode, tc.leftCode, rightMap[tc.rightCode].Score, rightMap[tc.leftCode].Score)
+			}
+		})
+	}
+}
+
+func TestBuildObjectiveScoresPersuasiveMetamorphicMonotonicity(t *testing.T) {
+	options := analyzer.ContextOptions{TreeSlug: "persuasive-writing-track", WritingType: "persuasive writing"}
+	cases := []struct {
+		name        string
+		code        string
+		skill       string
+		lowMetrics  map[string]int
+		highMetrics map[string]int
+	}{
+		{
+			name:  "persuasive claim improves with claim count",
+			code:  "persuasive-claim",
+			skill: "claim clarity",
+			lowMetrics: map[string]int{
+				"nlp_claim_count":             1,
+				"nlp_claim_support_alignment": 62,
+			},
+			highMetrics: map[string]int{
+				"nlp_claim_count":             4,
+				"nlp_claim_support_alignment": 62,
+			},
+		},
+		{
+			name:  "reason order improves with transition density",
+			code:  "persuasive-reason-order",
+			skill: "reasoning quality",
+			lowMetrics: map[string]int{
+				"nlp_transition_marker_density": 2,
+				"nlp_claim_support_alignment":   62,
+				"nlp_paragraph_focus_score":     65,
+			},
+			highMetrics: map[string]int{
+				"nlp_transition_marker_density": 8,
+				"nlp_claim_support_alignment":   62,
+				"nlp_paragraph_focus_score":     65,
+			},
+		},
+		{
+			name:  "pivot lines improves with transition density",
+			code:  "persuasive-pivot-lines",
+			skill: "structural signposting",
+			lowMetrics: map[string]int{
+				"nlp_transition_marker_density": 2,
+				"nlp_structural_signpost_count": 4,
+			},
+			highMetrics: map[string]int{
+				"nlp_transition_marker_density": 9,
+				"nlp_structural_signpost_count": 4,
+			},
+		},
+		{
+			name:  "example selection improves with reference specificity",
+			code:  "persuasive-example-selection",
+			skill: "evidence integration",
+			lowMetrics: map[string]int{
+				"nlp_reference_specificity_score": 45,
+				"nlp_claim_support_alignment":     65,
+			},
+			highMetrics: map[string]int{
+				"nlp_reference_specificity_score": 78,
+				"nlp_claim_support_alignment":     65,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			active := []domain.TGO{{Code: tc.code}}
+			assessments := []domain.TGOAssessment{{TGOCode: tc.code, Status: "developing"}}
+			scores := []domain.SkillScore{
+				{
+					SubmissionID:      95,
+					Skill:             tc.skill,
+					Score:             3,
+					ScoreSource:       "deterministic",
+					ScoreVersion:      "det-v1",
+					ScoreEvidenceJSON: `{"rubric_id":"metamorphic-persuasive-fixture"}`,
+				},
+			}
+
+			low := BuildObjectiveScores(95, active, assessments, scores, analyzer.Report{Metrics: tc.lowMetrics}, options)
+			high := BuildObjectiveScores(95, active, assessments, scores, analyzer.Report{Metrics: tc.highMetrics}, options)
+			lowScore := objectiveScoreByCode(low)[tc.code].Score
+			highScore := objectiveScoreByCode(high)[tc.code].Score
+			if highScore < lowScore {
+				t.Fatalf("metamorphic monotonicity violated for %s: %d -> %d", tc.code, lowScore, highScore)
+			}
+		})
+	}
+}
+
 func objectiveScoreByCode(scores []domain.ObjectiveScore) map[string]domain.ObjectiveScore {
 	out := map[string]domain.ObjectiveScore{}
 	for _, score := range scores {
