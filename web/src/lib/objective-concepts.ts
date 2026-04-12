@@ -19,17 +19,34 @@ const conceptTitleByKey: Record<string, string> = {
   'causal-clarity': 'Causal Clarity',
 }
 
-function stripTrackPrefix(code: string) {
-  const normalized = code.trim().toLowerCase()
-  if (!normalized.includes('-')) {
-    return normalized
-  }
-  return normalized.split('-').slice(1).join('-')
+const conceptAliasByTitle: Record<string, string> = {
+  'causal thread': 'causal clarity',
 }
 
-export function objectiveConceptKey(code: string) {
-  const suffix = stripTrackPrefix(code)
-  return conceptAliasBySuffix[suffix] ?? suffix
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function canonicalTitle(title: string) {
+  const normalized = title.trim().toLowerCase()
+  const mapped = conceptAliasByTitle[normalized] ?? normalized
+  return mapped
+}
+
+export function objectiveConceptKey(codeOrTitle: string) {
+  const normalized = codeOrTitle.trim().toLowerCase()
+  if (!normalized) {
+    return normalized
+  }
+  // Keep backward compatibility for direct code aliases.
+  if (conceptAliasBySuffix[normalized]) {
+    return conceptAliasBySuffix[normalized]
+  }
+  return slugify(canonicalTitle(normalized))
 }
 
 export function buildObjectiveConcepts(nodes: SkillGraphNode[]) {
@@ -37,7 +54,7 @@ export function buildObjectiveConcepts(nodes: SkillGraphNode[]) {
   const conceptByCode = new Map<string, string>()
 
   for (const node of nodes) {
-    const key = objectiveConceptKey(node.code)
+    const key = objectiveConceptKey(node.title)
     const list = conceptNodes.get(key) ?? []
     list.push(node)
     conceptNodes.set(key, list)
@@ -54,9 +71,14 @@ export function buildObjectiveConcepts(nodes: SkillGraphNode[]) {
     })
     const representative = sorted[0]
     const codes = sorted.map((item) => item.code)
+    const canonical = canonicalTitle(representative.title)
+    const defaultTitle = canonical
+      .split(' ')
+      .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
+      .join(' ')
     concepts.push({
       key,
-      title: conceptTitleByKey[key] ?? representative.title,
+      title: conceptTitleByKey[key] ?? defaultTitle,
       description: representative.description,
       skill_name: representative.skill_name,
       stage: representative.stage,
@@ -80,4 +102,3 @@ export function buildObjectiveConcepts(nodes: SkillGraphNode[]) {
   const conceptByKey = new Map(concepts.map((item) => [item.key, item]))
   return { concepts, conceptByKey, conceptByCode }
 }
-
