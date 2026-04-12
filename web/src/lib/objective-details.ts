@@ -54,14 +54,48 @@ function removeObjectiveName(text: string, objectiveTitle: string) {
   return out
 }
 
+function normalizeLearnerPhrasing(text: string) {
+  return text
+    .replace(/\bcontrol here\b/gi, 'reliable execution')
+    .replace(/\bthis area\b/gi, 'this pattern')
+    .replace(/\bintended move\b/gi, 'core effect')
+    .replace(/\brelevant paragraphs\b/gi, 'the draft')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function wordCount(text: string) {
+  return (text.match(/[A-Za-z]+/g) ?? []).length
+}
+
+function padExampleIfTooShort(text: string, kind: 'good' | 'bad') {
+  if (wordCount(text) >= 16) {
+    return text
+  }
+  const tail =
+    kind === 'good'
+      ? 'The effective move is explicit in the wording, so a learner can copy the pattern.'
+      : 'The weakness remains visible: a learner can identify what is missing and revise directly.'
+  return `${text} ${tail}`.trim()
+}
+
 function scrubObjectiveSelfReferences(detail: ObjectiveDetail, objectiveTitle: string): ObjectiveDetail {
+  const objectiveGoal = normalizeLearnerPhrasing(removeObjectiveName(detail.objectiveGoal, objectiveTitle))
+  const whyThisObjective = normalizeLearnerPhrasing(removeObjectiveName(detail.whyThisObjective, objectiveTitle))
+  const goodExample = padExampleIfTooShort(
+    normalizeLearnerPhrasing(removeObjectiveName(detail.goodExample, objectiveTitle)),
+    'good'
+  )
+  const badExample = padExampleIfTooShort(removeObjectiveName(detail.badExample, objectiveTitle), 'bad')
   return {
     ...detail,
-    objectiveGoal: removeObjectiveName(detail.objectiveGoal, objectiveTitle),
-    whyThisObjective: removeObjectiveName(detail.whyThisObjective, objectiveTitle),
-    goodExample: removeObjectiveName(detail.goodExample, objectiveTitle),
-    badExample: removeObjectiveName(detail.badExample, objectiveTitle),
-    successLooksLike: detail.successLooksLike.map((item) => removeObjectiveName(item, objectiveTitle)),
+    objectiveGoal,
+    whyThisObjective,
+    goodExample,
+    badExample,
+    successLooksLike: detail.successLooksLike.map((item) =>
+      normalizeLearnerPhrasing(removeObjectiveName(item, objectiveTitle))
+    ),
   }
 }
 
@@ -231,7 +265,10 @@ export function buildObjectiveDetail(node: SkillGraphNode, conceptKey?: string):
   const merged: ObjectiveDetail = {
     ...baseDetail,
     ...override,
-    successLooksLike: override.successLooksLike ?? baseDetail.successLooksLike,
+    skillOverview: baseDetail.skillOverview,
+    objectiveGoal: baseDetail.objectiveGoal,
+    whyThisObjective: baseDetail.whyThisObjective,
+    successLooksLike: baseDetail.successLooksLike,
     revisionMoves: override.revisionMoves ?? baseDetail.revisionMoves,
     assessmentFocus: override.assessmentFocus ?? baseDetail.assessmentFocus,
     exampleSources: override.exampleSources ?? baseDetail.exampleSources,
