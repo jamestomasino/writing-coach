@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tomasino/writing-coach/internal/analyzer"
 	"github.com/tomasino/writing-coach/internal/domain"
 )
 
@@ -36,7 +37,7 @@ func TestBuildObjectiveScoresHasPublicTGOCoverage(t *testing.T) {
 		}
 	}
 
-	out := BuildObjectiveScores(999, active, assessments, skillScores)
+	out := BuildObjectiveScores(999, active, assessments, skillScores, analyzer.Report{}, analyzer.ContextOptions{})
 	if len(out) != len(active) {
 		t.Fatalf("expected objective score per active TGO; got %d for %d active TGOs", len(out), len(active))
 	}
@@ -63,6 +64,13 @@ func TestBuildObjectiveScoresHasPublicTGOCoverage(t *testing.T) {
 		}
 		if strings.TrimSpace(anyToString(evidence["tgo_code"])) != code {
 			t.Fatalf("evidence tgo_code mismatch for %s: %+v", code, evidence)
+		}
+		ruleIDs, ok := evidence["objective_rule_ids"].([]any)
+		if !ok || len(ruleIDs) == 0 {
+			t.Fatalf("missing objective_rule_ids for %s: %+v", code, evidence)
+		}
+		if strings.TrimSpace(anyToString(evidence["trigger_summary"])) == "" {
+			t.Fatalf("missing trigger_summary for %s: %+v", code, evidence)
 		}
 	}
 	for _, item := range active {

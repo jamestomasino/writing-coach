@@ -703,7 +703,14 @@ func (s Server) processReviewJob(ctx context.Context, job domain.ReviewJob) erro
 		return fmt.Errorf("sync curriculum: %w", err)
 	}
 	reviewResult.Review.NextFocus = recommendation.Focus
-	objectiveScores := review.BuildObjectiveScores(sub.ID, activeTGOs, reviewResult.Review.TGOAssessments, reviewResult.Scores)
+	objectiveScores := review.BuildObjectiveScores(
+		sub.ID,
+		activeTGOs,
+		reviewResult.Review.TGOAssessments,
+		reviewResult.Scores,
+		reviewResult.AnalyzerReport,
+		analyzerContext,
+	)
 	reviewID, err := s.Store.SaveReviewWithObjectiveScores(ctx, reviewResult.Review, reviewResult.Scores, objectiveScores)
 	if err != nil {
 		return fmt.Errorf("save review: %w", err)
