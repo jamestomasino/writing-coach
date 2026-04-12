@@ -152,6 +152,8 @@ function main() {
   }
 
   const failures = []
+  const goodByText = new Map()
+  const badByText = new Map()
   for (const node of nodes) {
     const family = getSkillDetailByName(node.skill_name)
     const detail = buildObjectiveDetail(node, family)
@@ -186,6 +188,21 @@ function main() {
     }
     if (words(badBody) < 12) {
       failures.push(`${node.code}: badExample must include concrete detail (>= 12 words after label)`)
+    }
+
+    const normalizedGood = detail.goodExample.replace(/\s+/g, ' ').trim()
+    const normalizedBad = detail.badExample.replace(/\s+/g, ' ').trim()
+    const priorGood = goodByText.get(normalizedGood)
+    const priorBad = badByText.get(normalizedBad)
+    if (priorGood && priorGood !== node.code) {
+      failures.push(`${node.code}: goodExample duplicates ${priorGood}; every objective example must be unique`)
+    } else {
+      goodByText.set(normalizedGood, node.code)
+    }
+    if (priorBad && priorBad !== node.code) {
+      failures.push(`${node.code}: badExample duplicates ${priorBad}; every objective example must be unique`)
+    } else {
+      badByText.set(normalizedBad, node.code)
     }
 
     const stalePatterns = [
