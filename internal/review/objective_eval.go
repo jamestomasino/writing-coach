@@ -12,11 +12,12 @@ import (
 )
 
 type ObjectiveEvalCorpus struct {
-	Version            string                     `json:"version"`
-	MinPassRate        float64                    `json:"min_pass_rate"`
-	MaxPairwiseTieRate *float64                   `json:"max_pairwise_tie_rate,omitempty"`
-	TrackPolicies      []ObjectiveEvalTrackPolicy `json:"track_policies,omitempty"`
-	Cases              []ObjectiveEvalCase        `json:"cases"`
+	Version            string                      `json:"version"`
+	MinPassRate        float64                     `json:"min_pass_rate"`
+	MaxPairwiseTieRate *float64                    `json:"max_pairwise_tie_rate,omitempty"`
+	TrackPolicies      []ObjectiveEvalTrackPolicy  `json:"track_policies,omitempty"`
+	FamilyPolicies     []ObjectiveEvalFamilyPolicy `json:"family_policies,omitempty"`
+	Cases              []ObjectiveEvalCase         `json:"cases"`
 }
 
 type ObjectiveEvalTrackPolicy struct {
@@ -25,11 +26,20 @@ type ObjectiveEvalTrackPolicy struct {
 	MinChecks   *int     `json:"min_checks,omitempty"`
 }
 
+type ObjectiveEvalFamilyPolicy struct {
+	Family      string   `json:"family"`
+	MinPassRate *float64 `json:"min_pass_rate,omitempty"`
+	MinChecks   *int     `json:"min_checks,omitempty"`
+}
+
 type ObjectiveEvalCase struct {
+	ID               string         `json:"id"`
 	Name             string         `json:"name"`
 	Type             string         `json:"type"`
 	TreeSlug         string         `json:"tree_slug"`
 	WritingType      string         `json:"writing_type"`
+	Family           string         `json:"family"`
+	Tags             []string       `json:"tags,omitempty"`
 	SkillScores      []skillFixture `json:"skill_scores"`
 	LeftCode         string         `json:"left_code"`
 	RightCode        string         `json:"right_code"`
@@ -50,7 +60,21 @@ type ObjectiveEvalFailure struct {
 	Detail string
 }
 
+type ObjectiveEvalPolicyFailure struct {
+	Scope      string
+	ScopeID    string
+	Constraint string
+	Actual     float64
+	Required   float64
+	Message    string
+}
+
 type ObjectiveEvalTrackAggregate struct {
+	Checks int
+	Passes int
+}
+
+type ObjectiveEvalFamilyAggregate struct {
 	Checks int
 	Passes int
 }
@@ -66,8 +90,10 @@ type ObjectiveEvalResult struct {
 	PairwiseTieRate          float64
 	MaxPairwiseTieRate       *float64
 	TrackAggregates          map[string]ObjectiveEvalTrackAggregate
+	FamilyAggregates         map[string]ObjectiveEvalFamilyAggregate
 	Failures                 []ObjectiveEvalFailure
 	PolicyFailures           []string
+	PolicyFailureItems       []ObjectiveEvalPolicyFailure
 	PassedPolicyRequirements bool
 }
 
@@ -105,32 +131,42 @@ func EvaluateObjectiveScoreCorpus(raw []byte) (ObjectiveEvalResult, error) {
 	if c.MaxPairwiseTieRate != nil && (*c.MaxPairwiseTieRate < 0 || *c.MaxPairwiseTieRate > 1) {
 		return ObjectiveEvalResult{}, fmt.Errorf("max_pairwise_tie_rate must be within [0,1]")
 	}
+	if err := validateObjectiveEvalCaseMetadata(c.Cases); err != nil {
+		return ObjectiveEvalResult{}, err
+	}
 
 	result := ObjectiveEvalResult{
 		CorpusVersion:       strings.TrimSpace(c.Version),
 		RequiredMinPassRate: c.MinPassRate,
 		MaxPairwiseTieRate:  c.MaxPairwiseTieRate,
 		TrackAggregates:     map[string]ObjectiveEvalTrackAggregate{},
+		FamilyAggregates:    map[string]ObjectiveEvalFamilyAggregate{},
 	}
 
 	for idx, tc := range c.Cases {
+		caseID := strings.TrimSpace(tc.ID)
+		if caseID == "" {
+			caseID = fmt.Sprintf("case-%d", idx+1)
+		}
 		caseName := strings.TrimSpace(tc.Name)
 		if caseName == "" {
-			caseName = fmt.Sprintf("case-%d", idx+1)
+			caseName = caseID
 		}
+		caseLabel := caseID + " (" + caseName + ")"
 		options := analyzer.ContextOptions{TreeSlug: strings.TrimSpace(tc.TreeSlug), WritingType: strings.TrimSpace(tc.WritingType)}
 		skillScores := buildSkillScores(tc.SkillScores)
 		caseType := strings.ToLower(strings.TrimSpace(tc.Type))
 		if caseType == "" {
 			caseType = "pairwise"
 		}
+		family := normalizeFamily(tc.Family)
 
 		switch caseType {
 		case "pairwise":
 			leftCode := strings.TrimSpace(tc.LeftCode)
 			rightCode := strings.TrimSpace(tc.RightCode)
 			if leftCode == "" || rightCode == "" {
-				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseName, Detail: "pairwise case missing left_code or right_code"})
+				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseLabel, Detail: "pairwise case missing left_code or right_code"})
 				continue
 			}
 			active := []domain.TGO{{Code: leftCode}, {Code: rightCode}}
@@ -140,39 +176,47 @@ func EvaluateObjectiveScoreCorpus(raw []byte) (ObjectiveEvalResult, error) {
 			leftMap := objectiveEvalScoreByCode(leftPass)
 			result.TotalChecks++
 			result.PairwiseChecks++
-			agg := readTrackAggregate(result.TrackAggregates, options.TreeSlug)
-			agg.Checks++
+			trackAgg := readTrackAggregate(result.TrackAggregates, options.TreeSlug)
+			trackAgg.Checks++
+			familyAgg := readFamilyAggregate(result.FamilyAggregates, family)
+			familyAgg.Checks++
 			if leftMap[leftCode].Score == leftMap[rightCode].Score {
 				result.PairwiseTies++
 			}
 			if leftMap[leftCode].Score > leftMap[rightCode].Score {
 				result.PassedChecks++
-				agg.Passes++
+				trackAgg.Passes++
+				familyAgg.Passes++
 			} else {
-				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseName, Detail: fmt.Sprintf("leftWins expected %s>%s got %d<=%d", leftCode, rightCode, leftMap[leftCode].Score, leftMap[rightCode].Score)})
+				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseLabel, Detail: fmt.Sprintf("leftWins expected %s>%s got %d<=%d", leftCode, rightCode, leftMap[leftCode].Score, leftMap[rightCode].Score)})
 			}
-			writeTrackAggregate(result.TrackAggregates, options.TreeSlug, agg)
+			writeTrackAggregate(result.TrackAggregates, options.TreeSlug, trackAgg)
+			writeFamilyAggregate(result.FamilyAggregates, family, familyAgg)
 
 			rightPass := BuildObjectiveScores(900, active, assessments, skillScores, analyzer.Report{Metrics: tc.RightWinsMetrics}, options)
 			rightMap := objectiveEvalScoreByCode(rightPass)
 			result.TotalChecks++
 			result.PairwiseChecks++
-			agg = readTrackAggregate(result.TrackAggregates, options.TreeSlug)
-			agg.Checks++
+			trackAgg = readTrackAggregate(result.TrackAggregates, options.TreeSlug)
+			trackAgg.Checks++
+			familyAgg = readFamilyAggregate(result.FamilyAggregates, family)
+			familyAgg.Checks++
 			if rightMap[rightCode].Score == rightMap[leftCode].Score {
 				result.PairwiseTies++
 			}
 			if rightMap[rightCode].Score > rightMap[leftCode].Score {
 				result.PassedChecks++
-				agg.Passes++
+				trackAgg.Passes++
+				familyAgg.Passes++
 			} else {
-				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseName, Detail: fmt.Sprintf("rightWins expected %s>%s got %d<=%d", rightCode, leftCode, rightMap[rightCode].Score, rightMap[leftCode].Score)})
+				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseLabel, Detail: fmt.Sprintf("rightWins expected %s>%s got %d<=%d", rightCode, leftCode, rightMap[rightCode].Score, rightMap[leftCode].Score)})
 			}
-			writeTrackAggregate(result.TrackAggregates, options.TreeSlug, agg)
+			writeTrackAggregate(result.TrackAggregates, options.TreeSlug, trackAgg)
+			writeFamilyAggregate(result.FamilyAggregates, family, familyAgg)
 		case "monotonic":
 			code := strings.TrimSpace(tc.Code)
 			if code == "" {
-				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseName, Detail: "monotonic case missing code"})
+				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseLabel, Detail: "monotonic case missing code"})
 				continue
 			}
 			active := []domain.TGO{{Code: code}}
@@ -182,17 +226,21 @@ func EvaluateObjectiveScoreCorpus(raw []byte) (ObjectiveEvalResult, error) {
 			lowScore := objectiveEvalScoreByCode(low)[code].Score
 			highScore := objectiveEvalScoreByCode(high)[code].Score
 			result.TotalChecks++
-			agg := readTrackAggregate(result.TrackAggregates, options.TreeSlug)
-			agg.Checks++
+			trackAgg := readTrackAggregate(result.TrackAggregates, options.TreeSlug)
+			trackAgg.Checks++
+			familyAgg := readFamilyAggregate(result.FamilyAggregates, family)
+			familyAgg.Checks++
 			if highScore >= lowScore {
 				result.PassedChecks++
-				agg.Passes++
+				trackAgg.Passes++
+				familyAgg.Passes++
 			} else {
-				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseName, Detail: fmt.Sprintf("monotonic expected high>=low got %d<%d", highScore, lowScore)})
+				result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseLabel, Detail: fmt.Sprintf("monotonic expected high>=low got %d<%d", highScore, lowScore)})
 			}
-			writeTrackAggregate(result.TrackAggregates, options.TreeSlug, agg)
+			writeTrackAggregate(result.TrackAggregates, options.TreeSlug, trackAgg)
+			writeFamilyAggregate(result.FamilyAggregates, family, familyAgg)
 		default:
-			result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseName, Detail: "unknown case type: " + caseType})
+			result.Failures = append(result.Failures, ObjectiveEvalFailure{Case: caseLabel, Detail: "unknown case type: " + caseType})
 		}
 	}
 
@@ -205,10 +253,24 @@ func EvaluateObjectiveScoreCorpus(raw []byte) (ObjectiveEvalResult, error) {
 	}
 
 	if result.PassRate < c.MinPassRate {
-		result.PolicyFailures = append(result.PolicyFailures, fmt.Sprintf("pass rate %.3f below required %.3f", result.PassRate, c.MinPassRate))
+		addPolicyFailure(&result, ObjectiveEvalPolicyFailure{
+			Scope:      "global",
+			ScopeID:    "all",
+			Constraint: "min_pass_rate",
+			Actual:     result.PassRate,
+			Required:   c.MinPassRate,
+			Message:    fmt.Sprintf("pass rate %.3f below required %.3f", result.PassRate, c.MinPassRate),
+		})
 	}
 	if c.MaxPairwiseTieRate != nil && result.PairwiseTieRate > *c.MaxPairwiseTieRate {
-		result.PolicyFailures = append(result.PolicyFailures, fmt.Sprintf("pairwise tie rate %.3f above allowed %.3f", result.PairwiseTieRate, *c.MaxPairwiseTieRate))
+		addPolicyFailure(&result, ObjectiveEvalPolicyFailure{
+			Scope:      "global",
+			ScopeID:    "all",
+			Constraint: "max_pairwise_tie_rate",
+			Actual:     result.PairwiseTieRate,
+			Required:   *c.MaxPairwiseTieRate,
+			Message:    fmt.Sprintf("pairwise tie rate %.3f above allowed %.3f", result.PairwiseTieRate, *c.MaxPairwiseTieRate),
+		})
 	}
 	for _, policy := range c.TrackPolicies {
 		slug := strings.TrimSpace(policy.TreeSlug)
@@ -217,7 +279,14 @@ func EvaluateObjectiveScoreCorpus(raw []byte) (ObjectiveEvalResult, error) {
 		}
 		agg := readTrackAggregate(result.TrackAggregates, slug)
 		if policy.MinChecks != nil && agg.Checks < *policy.MinChecks {
-			result.PolicyFailures = append(result.PolicyFailures, fmt.Sprintf("track %s has %d checks below required min_checks %d", slug, agg.Checks, *policy.MinChecks))
+			addPolicyFailure(&result, ObjectiveEvalPolicyFailure{
+				Scope:      "track",
+				ScopeID:    slug,
+				Constraint: "min_checks",
+				Actual:     float64(agg.Checks),
+				Required:   float64(*policy.MinChecks),
+				Message:    fmt.Sprintf("track %s has %d checks below required min_checks %d", slug, agg.Checks, *policy.MinChecks),
+			})
 		}
 		if policy.MinPassRate != nil {
 			trackPassRate := 0.0
@@ -225,10 +294,51 @@ func EvaluateObjectiveScoreCorpus(raw []byte) (ObjectiveEvalResult, error) {
 				trackPassRate = float64(agg.Passes) / float64(agg.Checks)
 			}
 			if trackPassRate < *policy.MinPassRate {
-				result.PolicyFailures = append(result.PolicyFailures, fmt.Sprintf("track %s pass rate %.3f below required %.3f", slug, trackPassRate, *policy.MinPassRate))
+				addPolicyFailure(&result, ObjectiveEvalPolicyFailure{
+					Scope:      "track",
+					ScopeID:    slug,
+					Constraint: "min_pass_rate",
+					Actual:     trackPassRate,
+					Required:   *policy.MinPassRate,
+					Message:    fmt.Sprintf("track %s pass rate %.3f below required %.3f", slug, trackPassRate, *policy.MinPassRate),
+				})
 			}
 		}
 		writeTrackAggregate(result.TrackAggregates, slug, agg)
+	}
+	for _, policy := range c.FamilyPolicies {
+		family := normalizeFamily(policy.Family)
+		if family == "" {
+			continue
+		}
+		agg := readFamilyAggregate(result.FamilyAggregates, family)
+		if policy.MinChecks != nil && agg.Checks < *policy.MinChecks {
+			addPolicyFailure(&result, ObjectiveEvalPolicyFailure{
+				Scope:      "family",
+				ScopeID:    family,
+				Constraint: "min_checks",
+				Actual:     float64(agg.Checks),
+				Required:   float64(*policy.MinChecks),
+				Message:    fmt.Sprintf("family %s has %d checks below required min_checks %d", family, agg.Checks, *policy.MinChecks),
+			})
+		}
+		if policy.MinPassRate != nil {
+			familyPassRate := 0.0
+			if agg.Checks > 0 {
+				familyPassRate = float64(agg.Passes) / float64(agg.Checks)
+			}
+			if familyPassRate < *policy.MinPassRate {
+				addPolicyFailure(&result, ObjectiveEvalPolicyFailure{
+					Scope:      "family",
+					ScopeID:    family,
+					Constraint: "min_pass_rate",
+					Actual:     familyPassRate,
+					Required:   *policy.MinPassRate,
+					Message:    fmt.Sprintf("family %s pass rate %.3f below required %.3f", family, familyPassRate, *policy.MinPassRate),
+				})
+			}
+		}
+		writeFamilyAggregate(result.FamilyAggregates, family, agg)
 	}
 
 	result.PassedPolicyRequirements = len(result.Failures) == 0 && len(result.PolicyFailures) == 0
@@ -242,6 +352,50 @@ func SortedObjectiveEvalTrackSlugs(aggs map[string]ObjectiveEvalTrackAggregate) 
 	}
 	sort.Strings(slugs)
 	return slugs
+}
+
+func SortedObjectiveEvalFamilyNames(aggs map[string]ObjectiveEvalFamilyAggregate) []string {
+	names := make([]string, 0, len(aggs))
+	for name := range aggs {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func ObjectiveEvalTrackFailures(result ObjectiveEvalResult) map[string][]ObjectiveEvalPolicyFailure {
+	out := map[string][]ObjectiveEvalPolicyFailure{}
+	for _, item := range result.PolicyFailureItems {
+		if item.Scope != "track" {
+			continue
+		}
+		slug := normalizeTrackSlug(item.ScopeID)
+		out[slug] = append(out[slug], item)
+	}
+	return out
+}
+
+func validateObjectiveEvalCaseMetadata(cases []ObjectiveEvalCase) error {
+	seen := map[string]struct{}{}
+	for idx, item := range cases {
+		id := strings.TrimSpace(item.ID)
+		if id == "" {
+			return fmt.Errorf("case %d missing id", idx+1)
+		}
+		if _, ok := seen[id]; ok {
+			return fmt.Errorf("duplicate case id: %s", id)
+		}
+		seen[id] = struct{}{}
+		if normalizeFamily(item.Family) == "" {
+			return fmt.Errorf("case %s missing family", id)
+		}
+	}
+	return nil
+}
+
+func addPolicyFailure(result *ObjectiveEvalResult, item ObjectiveEvalPolicyFailure) {
+	result.PolicyFailures = append(result.PolicyFailures, item.Message)
+	result.PolicyFailureItems = append(result.PolicyFailureItems, item)
 }
 
 func buildSkillScores(items []skillFixture) []domain.SkillScore {
@@ -272,8 +426,7 @@ func objectiveEvalScoreByCode(scores []domain.ObjectiveScore) map[string]domain.
 }
 
 func readTrackAggregate(store map[string]ObjectiveEvalTrackAggregate, slug string) ObjectiveEvalTrackAggregate {
-	norm := normalizeTrackSlug(slug)
-	return store[norm]
+	return store[normalizeTrackSlug(slug)]
 }
 
 func writeTrackAggregate(store map[string]ObjectiveEvalTrackAggregate, slug string, agg ObjectiveEvalTrackAggregate) {
@@ -286,4 +439,16 @@ func normalizeTrackSlug(slug string) string {
 		return "unknown"
 	}
 	return trim
+}
+
+func readFamilyAggregate(store map[string]ObjectiveEvalFamilyAggregate, family string) ObjectiveEvalFamilyAggregate {
+	return store[normalizeFamily(family)]
+}
+
+func writeFamilyAggregate(store map[string]ObjectiveEvalFamilyAggregate, family string, agg ObjectiveEvalFamilyAggregate) {
+	store[normalizeFamily(family)] = agg
+}
+
+func normalizeFamily(family string) string {
+	return strings.TrimSpace(strings.ToLower(family))
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 func main() {
 	path := flag.String("corpus", "internal/review/testdata/objective_eval_corpus.json", "path to objective eval corpus JSON")
+	jsonOut := flag.Bool("json", false, "emit result JSON")
 	flag.Parse()
 
 	root, err := os.Getwd()
@@ -27,6 +29,17 @@ func main() {
 	if err != nil {
 		die("evaluate corpus", err)
 	}
+	if *jsonOut {
+		payload, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			die("encode result json", err)
+		}
+		fmt.Println(string(payload))
+		if !result.PassedPolicyRequirements {
+			dieMsg("objective eval corpus failed policy requirements")
+		}
+		return
+	}
 
 	fmt.Printf("objective-score-eval: corpus=%s version=%s\n", abs, strings.TrimSpace(result.CorpusVersion))
 	fmt.Printf("objective-score-eval: checks=%d passed=%d failed=%d pass_rate=%.3f required=%.3f\n", result.TotalChecks, result.PassedChecks, result.FailedChecks(), result.PassRate, result.RequiredMinPassRate)
@@ -41,6 +54,14 @@ func main() {
 			trackPassRate = float64(agg.Passes) / float64(agg.Checks)
 		}
 		fmt.Printf("objective-score-eval: track=%s checks=%d passed=%d failed=%d pass_rate=%.3f\n", slug, agg.Checks, agg.Passes, agg.Checks-agg.Passes, trackPassRate)
+	}
+	for _, family := range review.SortedObjectiveEvalFamilyNames(result.FamilyAggregates) {
+		agg := result.FamilyAggregates[family]
+		familyPassRate := 0.0
+		if agg.Checks > 0 {
+			familyPassRate = float64(agg.Passes) / float64(agg.Checks)
+		}
+		fmt.Printf("objective-score-eval: family=%s checks=%d passed=%d failed=%d pass_rate=%.3f\n", family, agg.Checks, agg.Passes, agg.Checks-agg.Passes, familyPassRate)
 	}
 
 	if len(result.Failures) > 0 {

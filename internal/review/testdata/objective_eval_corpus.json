@@ -1,6 +1,6 @@
 {
-  "version": "obj-eval-v1",
-  "min_pass_rate": 1.0,
+  "version": "obj-eval-v2",
+  "min_pass_rate": 1,
   "cases": [
     {
       "name": "academic quote integration vs source selection",
@@ -24,7 +24,14 @@
         "nlp_claim_evidence_coverage": 60,
         "nlp_evidence_marker_count": 0,
         "nlp_unique_token_ratio": 60
-      }
+      },
+      "id": "academic-quote-integration-vs-source-selection",
+      "family": "source_handling",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "technical step clarity vs prereq clarity",
@@ -48,7 +55,14 @@
         "nlp_action_verb_density": 2,
         "nlp_reference_specificity_score": 76,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "technical-step-clarity-vs-prereq-clarity",
+      "family": "actionability",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "professional ask visibility vs ownership clarity",
@@ -72,7 +86,14 @@
         "nlp_action_verb_density": 2,
         "nlp_reference_specificity_score": 78,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "professional-ask-visibility-vs-ownership-clarity",
+      "family": "actionability",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "thought leadership claim clarity vs stakes articulation",
@@ -96,7 +117,14 @@
         "nlp_claim_count": 1,
         "nlp_claim_support_alignment": 78,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "thought-leadership-claim-clarity-vs-stakes-articulation",
+      "family": "claim_clarity",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "persuasive claim vs stakes",
@@ -120,7 +148,14 @@
         "nlp_claim_count": 1,
         "nlp_claim_support_alignment": 78,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "persuasive-claim-vs-stakes",
+      "family": "claim_clarity",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "memoir scene turn vs scene entry exit",
@@ -144,7 +179,14 @@
         "nlp_structural_signpost_count": 3,
         "nlp_transition_marker_density": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "memoir-scene-turn-vs-scene-entry-exit",
+      "family": "scene_architecture",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "marketing claim clarity vs stakes articulation",
@@ -168,7 +210,14 @@
         "nlp_claim_count": 1,
         "nlp_claim_support_alignment": 78,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "marketing-claim-clarity-vs-stakes-articulation",
+      "family": "claim_clarity",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "content structure vs pivot lines",
@@ -192,7 +241,14 @@
         "nlp_structural_signpost_count": 3,
         "nlp_transition_marker_density": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "content-structure-vs-pivot-lines",
+      "family": "structural_signposting",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "journalism example selection vs quote restraint",
@@ -218,7 +274,14 @@
         "nlp_evidence_marker_count": 1,
         "nlp_claim_support_alignment": 55,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "journalism-example-selection-vs-quote-restraint",
+      "family": "evidence_integration",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "education quote integration vs source selection",
@@ -242,7 +305,14 @@
         "nlp_claim_evidence_coverage": 60,
         "nlp_evidence_marker_count": 0,
         "nlp_unique_token_ratio": 60
-      }
+      },
+      "id": "education-quote-integration-vs-source-selection",
+      "family": "source_handling",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "grant ask visibility vs ownership clarity",
@@ -266,7 +336,14 @@
         "nlp_action_verb_density": 2,
         "nlp_reference_specificity_score": 78,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "grant-ask-visibility-vs-ownership-clarity",
+      "family": "actionability",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "story scene architecture vs prose precision",
@@ -296,7 +373,14 @@
         "nlp_transition_marker_density": 2,
         "nlp_readability_grade": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "story-scene-architecture-vs-prose-precision",
+      "family": "scene_architecture",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "fantasy scene architecture vs prose precision",
@@ -326,7 +410,14 @@
         "nlp_transition_marker_density": 2,
         "nlp_readability_grade": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "fantasy-scene-architecture-vs-prose-precision",
+      "family": "scene_architecture",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "science fiction scene architecture vs prose precision",
@@ -356,7 +447,14 @@
         "nlp_transition_marker_density": 2,
         "nlp_readability_grade": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "science-fiction-scene-architecture-vs-prose-precision",
+      "family": "scene_architecture",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "romance scene architecture vs prose precision",
@@ -386,7 +484,14 @@
         "nlp_transition_marker_density": 2,
         "nlp_readability_grade": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "romance-scene-architecture-vs-prose-precision",
+      "family": "scene_architecture",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "literary scene architecture vs prose precision",
@@ -416,7 +521,14 @@
         "nlp_transition_marker_density": 2,
         "nlp_readability_grade": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "literary-scene-architecture-vs-prose-precision",
+      "family": "scene_architecture",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     },
     {
       "name": "thriller scene architecture vs prose precision",
@@ -446,94 +558,133 @@
         "nlp_transition_marker_density": 2,
         "nlp_readability_grade": 9,
         "nlp_topic_drift_score": 35
-      }
+      },
+      "id": "thriller-scene-architecture-vs-prose-precision",
+      "family": "scene_architecture",
+      "tags": [
+        "pairwise",
+        "adversarial",
+        "v2"
+      ]
     }
   ],
-  "max_pairwise_tie_rate": 0.0,
+  "max_pairwise_tie_rate": 0,
   "track_policies": [
     {
       "tree_slug": "story-craft-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "fantasy-fiction-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "science-fiction-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "romance-fiction-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "literary-fiction-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "mystery-thriller-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "thought-leadership-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "professional-writing-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "marketing-writing-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "content-marketing-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "journalism-reporting-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "educational-writing-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "grant-writing-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "academic-essay-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "technical-writing-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "persuasive-writing-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
       "min_checks": 2
     },
     {
       "tree_slug": "memoir-personal-narrative-track",
-      "min_pass_rate": 1.0,
+      "min_pass_rate": 1,
+      "min_checks": 2
+    }
+  ],
+  "family_policies": [
+    {
+      "family": "actionability",
+      "min_pass_rate": 1,
+      "min_checks": 6
+    },
+    {
+      "family": "claim_clarity",
+      "min_pass_rate": 1,
+      "min_checks": 6
+    },
+    {
+      "family": "evidence_integration",
+      "min_pass_rate": 1,
+      "min_checks": 2
+    },
+    {
+      "family": "scene_architecture",
+      "min_pass_rate": 1,
+      "min_checks": 14
+    },
+    {
+      "family": "source_handling",
+      "min_pass_rate": 1,
+      "min_checks": 4
+    },
+    {
+      "family": "structural_signposting",
+      "min_pass_rate": 1,
       "min_checks": 2
     }
   ]
