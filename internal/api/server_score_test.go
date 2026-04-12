@@ -62,3 +62,29 @@ func TestToScoreResponsesFiltersToAssessmentSkills(t *testing.T) {
 		}
 	}
 }
+
+func TestToObjectiveScoreResponses(t *testing.T) {
+	in := []domain.ObjectiveScore{
+		{
+			SubmissionID:      10,
+			TGOCode:           "story-causal-clarity",
+			Score:             4,
+			ScoreSource:       "deterministic",
+			ScoreVersion:      "obj-det-v1",
+			ScoreEvidenceJSON: `{"kind":"objective_deterministic_bridge","basis":"deterministic_skill_bridge"}`,
+		},
+	}
+	out := toObjectiveScoreResponses(in)
+	if len(out) != 1 {
+		t.Fatalf("expected one objective score, got %d", len(out))
+	}
+	if out[0].TGOCode != "story-causal-clarity" {
+		t.Fatalf("unexpected tgo code: %+v", out[0])
+	}
+	if out[0].TGOTitle == "" {
+		t.Fatalf("expected title resolution: %+v", out[0])
+	}
+	if out[0].ScoreEvidence == nil {
+		t.Fatalf("expected parsed objective score evidence: %+v", out[0])
+	}
+}

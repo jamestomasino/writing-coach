@@ -129,3 +129,71 @@ func TestCompareSubmissionsFiltersSkillDeltasToActiveAssessmentSkills(t *testing
 		}
 	}
 }
+
+func TestCompareSubmissionsPrefersObjectiveScoresWhenAvailable(t *testing.T) {
+	baseline := domain.Submission{ID: 30, WordCount: 300, Content: "baseline"}
+	current := domain.Submission{ID: 31, WordCount: 320, Content: "current"}
+	baselineReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 1, ScoreSource: "deterministic"},
+		},
+		ObjectiveScores: []domain.ObjectiveScore{
+			{SubmissionID: 30, TGOCode: "story-causal-clarity", Score: 3, ScoreSource: "deterministic"},
+			{SubmissionID: 30, TGOCode: "story-scene-architecture", Score: 3, ScoreSource: "deterministic"},
+		},
+	}
+	currentReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 5, ScoreSource: "deterministic"},
+		},
+		ObjectiveScores: []domain.ObjectiveScore{
+			{SubmissionID: 31, TGOCode: "story-causal-clarity", Score: 4, ScoreSource: "deterministic"},
+			{SubmissionID: 31, TGOCode: "story-scene-architecture", Score: 2, ScoreSource: "deterministic"},
+		},
+		Annotations: []domain.ReviewAnnotation{
+			{TGOCode: "story-causal-clarity", Quote: "He chose the bridge, so the flood took the road."},
+		},
+	}
+
+	got := CompareSubmissions(current, baseline, currentReview, baselineReview)
+	if len(got.SkillDeltas) != 2 {
+		t.Fatalf("expected objective deltas, got %+v", got.SkillDeltas)
+	}
+	foundTitle := false
+	for _, delta := range got.SkillDeltas {
+		if delta.Skill == "Causal Clarity" {
+			foundTitle = true
+			if len(delta.EvidenceQuotes) == 0 {
+				t.Fatalf("expected objective quote evidence for %+v", delta)
+			}
+		}
+	}
+	if !foundTitle {
+		t.Fatalf("expected objective title label in deltas, got %+v", got.SkillDeltas)
+	}
+}
+
+func TestCompareSubmissionsMixedEraFallsBackToSkillScores(t *testing.T) {
+	baseline := domain.Submission{ID: 40, WordCount: 260, Content: "baseline"}
+	current := domain.Submission{ID: 41, WordCount: 300, Content: "current"}
+	baselineReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 3, ScoreSource: "deterministic"},
+			{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+		},
+	}
+	currentReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic"},
+			{Skill: "scene architecture", Score: 2, ScoreSource: "deterministic"},
+		},
+		ObjectiveScores: []domain.ObjectiveScore{
+			{SubmissionID: 41, TGOCode: "story-causal-clarity", Score: 4, ScoreSource: "deterministic"},
+		},
+	}
+
+	got := CompareSubmissions(current, baseline, currentReview, baselineReview)
+	if len(got.SkillDeltas) != 2 {
+		t.Fatalf("expected legacy skill deltas in mixed era, got %+v", got.SkillDeltas)
+	}
+}

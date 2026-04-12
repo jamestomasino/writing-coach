@@ -11,4 +11,5 @@ fi
 npm run lint
 npm run check:i18n-timezone
 npm run check:skill-details
+npm run check:objective-details
 npm run build

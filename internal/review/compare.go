@@ -38,8 +38,15 @@ type SkillDelta struct {
 func CompareSubmissions(current, baseline domain.Submission, currentReview domain.Review, baselineReview domain.Review) Comparison {
 	added, removed := diffWordSets(baseline.Content, current.Content)
 	persisting, addressed := weaknessDelta(baselineReview.Weaknesses, currentReview.Weaknesses)
-	allowedSkills := allowedSignalSkills(currentReview.TGOAssessments)
-	skillDeltas, skillSetMismatch := scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations, allowedSkills)
+	var skillDeltas []SkillDelta
+	var skillSetMismatch bool
+	switch {
+	case len(currentReview.ObjectiveScores) > 0 && len(baselineReview.ObjectiveScores) > 0:
+		skillDeltas, skillSetMismatch = objectiveScoreDelta(baselineReview.ObjectiveScores, currentReview.ObjectiveScores, currentReview.Annotations)
+	default:
+		allowedSkills := allowedSignalSkills(currentReview.TGOAssessments)
+		skillDeltas, skillSetMismatch = scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations, allowedSkills)
+	}
 
 	summary := "Revision changes are mixed."
 	switch {
@@ -187,6 +194,57 @@ func scoreDelta(baseline, current []domain.SkillScore, annotations []domain.Revi
 	return out, skillSetMismatch
 }
 
+func objectiveScoreDelta(baseline, current []domain.ObjectiveScore, annotations []domain.ReviewAnnotation) ([]SkillDelta, bool) {
+	baselineMap := authoritativeObjectiveMap(baseline)
+	currentMap := authoritativeObjectiveMap(current)
+	if len(currentMap) == 0 {
+		return nil, false
+	}
+	skillSetMismatch := !sameObjectiveKeys(baselineMap, currentMap)
+	keys := make([]string, 0, len(currentMap))
+	for code := range currentMap {
+		if _, ok := baselineMap[code]; ok {
+			keys = append(keys, code)
+		}
+	}
+	sort.Strings(keys)
+	if len(keys) > 8 {
+		keys = keys[:8]
+	}
+	out := make([]SkillDelta, 0, len(keys))
+	for _, code := range keys {
+		cur := currentMap[code]
+		base := baselineMap[code]
+		delta := cur.Score - base.Score
+		direction := "flat"
+		switch {
+		case delta > 0:
+			direction = "up"
+		case delta < 0:
+			direction = "down"
+		}
+		baselineRules := appliedRules(base.ScoreEvidenceJSON)
+		currentRules := appliedRules(cur.ScoreEvidenceJSON)
+		label := code
+		if tgo, ok := domain.TGOByCode(code); ok {
+			label = tgo.Title
+		}
+		out = append(out, SkillDelta{
+			Skill:              label,
+			BaselineScore:      base.Score,
+			CurrentScore:       cur.Score,
+			Delta:              delta,
+			Direction:          direction,
+			EvidenceQuotes:     objectiveEvidenceQuotes(code, annotations),
+			BaselineRules:      baselineRules,
+			CurrentRules:       currentRules,
+			DeltaExplanation:   deltaExplanation(delta, baselineRules, currentRules),
+			DeterministicDelta: strings.TrimSpace(base.ScoreSource) == "deterministic" || strings.TrimSpace(cur.ScoreSource) == "deterministic",
+		})
+	}
+	return out, skillSetMismatch
+}
+
 func filterSkillMap(input map[string]domain.SkillScore, allowed map[string]bool) map[string]domain.SkillScore {
 	if len(input) == 0 || len(allowed) == 0 {
 		return input
@@ -217,6 +275,28 @@ func allowedSignalSkills(assessments []domain.TGOAssessment) map[string]bool {
 		return nil
 	}
 	return out
+}
+
+func authoritativeObjectiveMap(scores []domain.ObjectiveScore) map[string]domain.ObjectiveScore {
+	primary := map[string]domain.ObjectiveScore{}
+	fallback := map[string]domain.ObjectiveScore{}
+	for _, score := range scores {
+		code := strings.TrimSpace(score.TGOCode)
+		if code == "" {
+			continue
+		}
+		if strings.TrimSpace(score.ScoreSource) == "deterministic" {
+			primary[code] = score
+			continue
+		}
+		if _, ok := fallback[code]; !ok {
+			fallback[code] = score
+		}
+	}
+	if len(primary) > 0 {
+		return primary
+	}
+	return fallback
 }
 
 func authoritativeSkillMap(scores []domain.SkillScore) map[string]domain.SkillScore {
@@ -337,7 +417,43 @@ func evidenceQuotesForSkill(skill string, annotations []domain.ReviewAnnotation)
 	return out
 }
 
+func objectiveEvidenceQuotes(code string, annotations []domain.ReviewAnnotation) []string {
+	key := strings.TrimSpace(code)
+	if key == "" || len(annotations) == 0 {
+		return nil
+	}
+	out := make([]string, 0, 2)
+	seen := map[string]bool{}
+	for _, ann := range annotations {
+		if strings.TrimSpace(ann.TGOCode) != key {
+			continue
+		}
+		quote := strings.TrimSpace(ann.Quote)
+		if quote == "" || seen[quote] {
+			continue
+		}
+		out = append(out, quote)
+		seen[quote] = true
+		if len(out) == 2 {
+			break
+		}
+	}
+	return out
+}
+
 func sameSkillKeys(left, right map[string]domain.SkillScore) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for key := range left {
+		if _, ok := right[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func sameObjectiveKeys(left, right map[string]domain.ObjectiveScore) bool {
 	if len(left) != len(right) {
 		return false
 	}

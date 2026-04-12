@@ -340,6 +340,7 @@ func (s *Store) ResetUserData(ctx context.Context, userID int64) error {
 	statements := []string{
 		`DELETE FROM review_artifacts WHERE review_id IN (SELECT id FROM reviews WHERE user_id = ?)`,
 		`DELETE FROM review_tgo_assessments WHERE review_id IN (SELECT id FROM reviews WHERE user_id = ?)`,
+		`DELETE FROM submission_objective_scores WHERE submission_id IN (SELECT id FROM submissions WHERE user_id = ?)`,
 		`DELETE FROM submission_skill_scores WHERE submission_id IN (SELECT id FROM submissions WHERE user_id = ?)`,
 		`DELETE FROM reviews WHERE user_id = ?`,
 		`DELETE FROM submissions WHERE user_id = ?`,

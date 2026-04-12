@@ -110,6 +110,87 @@ func TestMigrateSeedAndProgress(t *testing.T) {
 	}
 }
 
+func TestSaveReviewWithObjectiveScoresPersistsObjectiveRows(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "objective_scores.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, treeID, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+	exID, err := store.SaveExercise(ctx, domain.Exercise{
+		UserID:          userID,
+		TreeID:          treeID,
+		Title:           "Objective Persistence",
+		Brief:           "Brief",
+		Constraints:     []string{"one"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity", "story-scene-architecture", "story-prose-precision"},
+		SuccessCriteria: []string{"two"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	subID, err := store.SaveSubmission(ctx, domain.Submission{
+		UserID:     userID,
+		TreeID:     treeID,
+		ExerciseID: exID,
+		Content:    "A short scene with pressure.",
+		WordCount:  6,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	_, err = store.SaveReviewWithObjectiveScores(ctx, domain.Review{
+		UserID:           userID,
+		TreeID:           treeID,
+		SubmissionID:     subID,
+		ReviewKind:       "deterministic",
+		Summary:          "Summary",
+		Strengths:        []string{"s"},
+		Weaknesses:       []string{"w"},
+		AnalyzerFindings: []string{"f"},
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "story-causal-clarity", Status: "secure", Evidence: "clear cause/effect"},
+			{TGOCode: "story-scene-architecture", Status: "developing", Evidence: "middle turn is soft"},
+			{TGOCode: "story-prose-precision", Status: "secure", Evidence: "tightened lines"},
+		},
+		NextFocus:       "narrative clarity",
+		MetricWordCount: 6,
+	}, []domain.SkillScore{
+		{SubmissionID: subID, Skill: "narrative clarity", Score: 4, ScoreSource: "deterministic"},
+		{SubmissionID: subID, Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+		{SubmissionID: subID, Skill: "prose precision", Score: 4, ScoreSource: "deterministic"},
+	}, []domain.ObjectiveScore{
+		{SubmissionID: subID, TGOCode: "story-causal-clarity", Score: 4, ScoreSource: "deterministic"},
+		{SubmissionID: subID, TGOCode: "story-scene-architecture", Score: 3, ScoreSource: "deterministic"},
+		{SubmissionID: subID, TGOCode: "story-prose-precision", Score: 4, ScoreSource: "deterministic"},
+	})
+	if err != nil {
+		t.Fatalf("save review with objective scores: %v", err)
+	}
+
+	objectiveScores, err := store.SubmissionObjectiveScores(ctx, subID)
+	if err != nil {
+		t.Fatalf("submission objective scores: %v", err)
+	}
+	if len(objectiveScores) != 3 {
+		t.Fatalf("expected 3 objective scores, got %d", len(objectiveScores))
+	}
+}
+
 func TestEnsureDefaultUserTreeSeedsTreeSpecificTGOs(t *testing.T) {
 	root := t.TempDir()
 	store, err := Open(filepath.Join(root, "test.db"))

@@ -285,6 +285,7 @@ type Review struct {
 	CreatedAt          time.Time
 	MetricWordCount    int
 	SkillScores        []SkillScore
+	ObjectiveScores    []ObjectiveScore
 }
 
 type ReviewAnnotation struct {
@@ -307,6 +308,15 @@ type ReviewArtifacts struct {
 type SkillScore struct {
 	SubmissionID      int64
 	Skill             string
+	Score             int
+	ScoreSource       string
+	ScoreVersion      string
+	ScoreEvidenceJSON string
+}
+
+type ObjectiveScore struct {
+	SubmissionID      int64
+	TGOCode           string
 	Score             int
 	ScoreSource       string
 	ScoreVersion      string
