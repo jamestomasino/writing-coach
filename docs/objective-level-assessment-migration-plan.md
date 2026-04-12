@@ -1,6 +1,6 @@
 # Objective-Level Assessment Migration Plan
 
-- Status: Draft for implementation
+- Status: In progress (Phases 0-3 complete; Phase 4 partial)
 - Date: 2026-04-12
 - Owner: Product + Engineering
 
@@ -173,6 +173,18 @@ Exit criteria:
 
 - Objective-level scoring is stable in production.
 - Legacy records remain accessible.
+
+Current implementation checkpoint (2026-04-12):
+
+- Completed:
+  - Legacy learner Draft Signals UI removed from review/compare/timeline.
+  - Mixed-era compare adapter added (objective-era vs legacy-era).
+  - Objective-era review writes now persist objective rows as primary.
+  - Legacy skill-score reads remain compatible via derived fallback when objective rows exist.
+  - Decision-event evidence refs now reflect objective-only, legacy-only, or mixed evidence sources.
+- Remaining:
+  - Legacy write path still exists for explicit legacy-only review flows and test fixtures.
+  - Calibration/reporting consumers still operate on legacy skill-family aggregates; objective-native rollups are a follow-up migration.
 
 ## 8) Test Plan
 
