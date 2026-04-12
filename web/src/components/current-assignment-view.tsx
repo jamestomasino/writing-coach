@@ -9,7 +9,6 @@ import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { formatLocalDateTime } from '@/lib/datetime'
 import { computeLevelUpGuidance } from '@/lib/level-up-guidance'
-import { hasSkillDetail, skillHref } from '@/lib/skill-details'
 import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useCurrentAssignmentWorkspace } from '@/lib/use-current-assignment-workspace'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, InformationCircleIcon, SparklesIcon } from '@heroicons/react/16/solid'
@@ -22,8 +21,8 @@ import { ProviderProvenance } from './provider-provenance'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
 import { WorkspaceCard } from './workspace-card'
 
-function tierLabel(tier?: string, fallback?: string) {
-  return (tier ?? fallback ?? '').replace(/-/g, ' ')
+function stageLabel(stage?: string) {
+  return (stage ?? '').replace(/-/g, ' ')
 }
 
 export function CurrentAssignmentView() {
@@ -340,23 +339,22 @@ export function CurrentAssignmentView() {
                 className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
               >
                 {(() => {
-                  const skillName = (tgo.skill_name ?? '').trim()
-                  const showSkillInfo = skillName.length > 0 && hasSkillDetail(skillName)
+                  const showSkillInfo = tgo.code.trim().length > 0
                   return (
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2">
                         <Strong>{tgo.title}</Strong>
                         {showSkillInfo ? (
                           <Link
-                            href={skillHref(skillName)}
-                            aria-label={`Open ${skillName} details`}
+                            href={`/skills/${encodeURIComponent(tgo.code)}`}
+                            aria-label={`Open ${tgo.title} details`}
                             className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-0.5 text-zinc-500 data-hover:text-zinc-900 dark:border-white/15 dark:bg-black/10 dark:text-zinc-400 dark:data-hover:text-zinc-100"
                           >
                             <InformationCircleIcon className="size-4" aria-hidden="true" />
                           </Link>
                         ) : null}
                       </div>
-                      <Badge color="cyan">{tierLabel(tgo.skill_tier, tgo.stage)}</Badge>
+                      <Badge color="cyan">{stageLabel(tgo.stage)}</Badge>
                     </div>
                   )
                 })()}

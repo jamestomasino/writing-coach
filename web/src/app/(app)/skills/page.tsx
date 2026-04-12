@@ -1,10 +1,10 @@
-import { SkillsLibraryView } from '@/components/skills-library-view'
+import { TGOLibraryView } from '@/components/tgo-library-view'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Skills',
+  title: 'Skill Objectives',
 }
 
 export default function SkillsPage() {
-  return <SkillsLibraryView />
+  return <TGOLibraryView />
 }

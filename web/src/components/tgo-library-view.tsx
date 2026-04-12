@@ -73,7 +73,7 @@ export function TGOLibraryView() {
       <PageHeader
         eyebrow="Skill objectives"
         title="Skill objective library"
-        intro="Each skill objective has one shared guide page. Search by title, code, or skill family."
+        intro="Each skill objective has one shared guide page. Search by title, code, description, or stage."
       />
 
       <WorkspaceCard>
@@ -106,7 +106,7 @@ export function TGOLibraryView() {
           {limited.map((concept) => (
             <Link
               key={concept.key}
-              href={`/tgos/${encodeURIComponent(concept.key)}`}
+              href={`/skills/${encodeURIComponent(concept.key)}`}
               className="block rounded-xl border border-stone-200 bg-stone-50 p-4 data-hover:border-stone-300 data-hover:bg-white dark:border-white/10 dark:bg-white/5 dark:data-hover:border-white/20"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -115,7 +115,6 @@ export function TGOLibraryView() {
                   <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-400">({concept.key})</span>
                 </div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {concept.skill_name ? `${concept.skill_name} • ` : ''}
                   {concept.stage.replace(/-/g, ' ')}
                 </div>
               </div>

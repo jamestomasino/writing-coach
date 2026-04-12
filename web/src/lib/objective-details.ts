@@ -148,7 +148,7 @@ function revisionMovesForObjective(node: SkillGraphNode) {
 }
 
 export function buildObjectiveDetail(node: SkillGraphNode): ObjectiveDetail {
-  const skillFamily = (node.skill_name ?? '').trim() || 'unmapped skill family'
+  const skillFamily = (node.skill_name ?? '').trim() || 'unmapped objective cluster'
   const objectiveGoal = objectiveGoalForCode(node.code, node.title, node.description)
   const whyThisObjective = whyNowForCode(node.code, node.title, node.mastery_hint ?? '')
 

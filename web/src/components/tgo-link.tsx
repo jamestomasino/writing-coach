@@ -14,7 +14,7 @@ export function TgoLink({ code, label, className }: TgoLinkProps) {
   }
   return (
     <Link
-      href={`/tgos/${encodeURIComponent(value)}`}
+      href={`/skills/${encodeURIComponent(value)}`}
       className={clsx(
         className,
         'underline decoration-zinc-300 decoration-2 underline-offset-2 data-hover:decoration-zinc-600 dark:decoration-zinc-600 dark:data-hover:decoration-zinc-200'

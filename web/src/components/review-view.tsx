@@ -6,7 +6,6 @@ import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { Link } from '@/components/link'
-import { hasSkillDetail, skillHref } from '@/lib/skill-details'
 import type { ReviewAnnotation } from '@/lib/types'
 import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useReviewWorkspace } from '@/lib/use-review-workspace'
@@ -204,8 +203,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
           <div className="mt-4 space-y-3">
             {dashboard.active_tgos.slice(0, 3).map((tgo) => {
               const state = skillLevelUpState(tgo)
-              const skillName = (tgo.skill_name ?? '').trim()
-              const showSkillInfo = skillName.length > 0 && hasSkillDetail(skillName)
+              const showSkillInfo = tgo.code.trim().length > 0
               return (
                 <div
                   key={tgo.code}
@@ -215,8 +213,8 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                     <div className="font-semibold text-zinc-950 dark:text-white">{tgo.title}</div>
                     {showSkillInfo ? (
                       <Link
-                        href={skillHref(skillName)}
-                        aria-label={`Open ${skillName} details`}
+                        href={`/skills/${encodeURIComponent(tgo.code)}`}
+                        aria-label={`Open ${tgo.title} details`}
                         className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-0.5 text-zinc-500 data-hover:text-zinc-900 dark:border-white/15 dark:bg-black/10 dark:text-zinc-400 dark:data-hover:text-zinc-100"
                       >
                         <InformationCircleIcon className="size-4" aria-hidden="true" />
