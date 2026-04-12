@@ -60,3 +60,15 @@ func TestAllTechnicalPublicObjectivesHaveManifestCoverage(t *testing.T) {
 		}
 	}
 }
+
+func TestAllProfessionalPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("professional-writing-track")
+	if !ok {
+		t.Fatal("missing professional track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainProfessional) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}

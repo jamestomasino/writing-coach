@@ -59,6 +59,9 @@ func main() {
 			if strings.HasPrefix(code, "technical-") && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainTechnical) {
 				failures = append(failures, fmt.Sprintf("objective=%s missing technical objective-rules manifest coverage", code))
 			}
+			if tree.Slug == "professional-writing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainProfessional) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing professional objective-rules manifest coverage", code))
+			}
 		}
 	}
 

@@ -1,0 +1,782 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "rule_id": "objective.professional.actionability",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "ask-visibility",
+        "deadline-clarity",
+        "decision-framing",
+        "decision-language",
+        "document-closings",
+        "ownership-clarity",
+        "proof-of-action"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.actionability.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 7,
+          "delta": 1,
+          "reason": "actionability reward: request language is directive"
+        },
+        {
+          "id": "objective.professional.actionability.action-density-low",
+          "metric": "nlp_action_verb_density",
+          "max": 2,
+          "delta": -1,
+          "reason": "actionability penalty: action language is too weak"
+        },
+        {
+          "id": "objective.professional.actionability.temporal-clarity-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 70,
+          "delta": 1,
+          "reason": "actionability reward: timing is explicit"
+        },
+        {
+          "id": "objective.professional.actionability.temporal-clarity-low",
+          "metric": "nlp_temporal_clarity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "actionability penalty: timing and urgency are unclear"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.actionability.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "actionability penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_action_verb_density": 5
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["actionability", "ask", "next-step"]
+    },
+    {
+      "rule_id": "objective.professional.audience-alignment",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "cross-functional-translation",
+        "professional-audience-alignment",
+        "stakeholder-sensitivity"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.audience-alignment.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "audience-alignment reward: references are audience-ready"
+        },
+        {
+          "id": "objective.professional.audience-alignment.reference-specificity-low",
+          "metric": "nlp_reference_specificity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "audience-alignment penalty: references are vague"
+        },
+        {
+          "id": "objective.professional.audience-alignment.topic-drift-low",
+          "metric": "nlp_topic_drift_score",
+          "max": 45,
+          "delta": 1,
+          "reason": "audience-alignment reward: message stays reader-focused"
+        },
+        {
+          "id": "objective.professional.audience-alignment.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "audience-alignment penalty: message drifts away from reader needs"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.audience-alignment.coverage-overload",
+          "category": "coverage",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "audience-alignment penalty: coverage findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["audience-alignment", "stakeholder", "translation"]
+    },
+    {
+      "rule_id": "objective.professional.clarity-and-coherence",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "alignment-language",
+        "assumption-marking",
+        "context-first",
+        "objective-clarity",
+        "risk-articulation",
+        "spec-clarity",
+        "status-update-control",
+        "terminology-consistency",
+        "tradeoff-language"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.clarity-and-coherence.paragraph-focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "clarity-and-coherence reward: paragraph focus supports comprehension"
+        },
+        {
+          "id": "objective.professional.clarity-and-coherence.paragraph-focus-low",
+          "metric": "nlp_paragraph_focus_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "clarity-and-coherence penalty: paragraph focus is weak"
+        },
+        {
+          "id": "objective.professional.clarity-and-coherence.topic-drift-low",
+          "metric": "nlp_topic_drift_score",
+          "max": 45,
+          "delta": 1,
+          "reason": "clarity-and-coherence reward: document stays on-task"
+        },
+        {
+          "id": "objective.professional.clarity-and-coherence.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "clarity-and-coherence penalty: off-topic drift causes ambiguity"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.clarity-and-coherence.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "clarity-and-coherence penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_paragraph_focus_score": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["clarity", "coherence", "orientation"]
+    },
+    {
+      "rule_id": "objective.professional.evidence-integration",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "professional-evidence-integration",
+        "quantification-basics",
+        "supporting-rationale"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.evidence-integration.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "evidence-integration reward: claims are supported"
+        },
+        {
+          "id": "objective.professional.evidence-integration.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 40,
+          "delta": -1,
+          "reason": "evidence-integration penalty: claims are weakly supported"
+        },
+        {
+          "id": "objective.professional.evidence-integration.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 3,
+          "delta": 1,
+          "reason": "evidence-integration reward: support markers are present"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.evidence-integration.coverage-overload",
+          "category": "coverage",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "evidence-integration penalty: coverage findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["evidence", "rationale", "support"]
+    },
+    {
+      "rule_id": "objective.professional.revision-habits",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "clarity-pass-professional",
+        "format-pass-professional",
+        "revision-triage-professional",
+        "tone-pass-professional"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.revision-habits.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 11,
+          "delta": 1,
+          "reason": "revision-habits reward: final readability is controlled"
+        },
+        {
+          "id": "objective.professional.revision-habits.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "revision-habits penalty: readability remains too dense"
+        },
+        {
+          "id": "objective.professional.revision-habits.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 40,
+          "delta": 1,
+          "reason": "revision-habits reward: repetition cleaned up"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.revision-habits.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "revision-habits penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["revision-habits", "passes", "draft-control"]
+    },
+    {
+      "rule_id": "objective.professional.scannability",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "annotation-restraint",
+        "bullet-discipline",
+        "email-thread-discipline",
+        "front-loaded-summary",
+        "heading-discipline",
+        "professional-scannability",
+        "reader-load-control",
+        "summary-vs-detail-balance",
+        "table-use",
+        "visual-grouping"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.scannability.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "scannability reward: signposting supports skim behavior"
+        },
+        {
+          "id": "objective.professional.scannability.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "scannability penalty: signposting is thin"
+        },
+        {
+          "id": "objective.professional.scannability.markers-high",
+          "metric": "nlp_scannability_marker_count",
+          "min": 6,
+          "delta": 1,
+          "reason": "scannability reward: marker density helps navigation"
+        },
+        {
+          "id": "objective.professional.scannability.markers-low",
+          "metric": "nlp_scannability_marker_count",
+          "max": 2,
+          "delta": -1,
+          "reason": "scannability penalty: marker density is weak"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.scannability.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "scannability penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_scannability_marker_count": 5
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["scannability", "layout", "navigation"]
+    },
+    {
+      "rule_id": "objective.professional.sentence-economy",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "active-voice-control",
+        "professional-sentence-economy"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.sentence-economy.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 10,
+          "delta": 1,
+          "reason": "sentence-economy reward: readability target met"
+        },
+        {
+          "id": "objective.professional.sentence-economy.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "sentence-economy penalty: readability too dense"
+        },
+        {
+          "id": "objective.professional.sentence-economy.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 35,
+          "delta": 1,
+          "reason": "sentence-economy reward: repetition controlled"
+        },
+        {
+          "id": "objective.professional.sentence-economy.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "sentence-economy penalty: repetition overload"
+        },
+        {
+          "id": "objective.professional.sentence-economy.passive-low",
+          "metric": "nlp_passive_sentences",
+          "max": 2,
+          "delta": 1,
+          "reason": "sentence-economy reward: active sentence control"
+        },
+        {
+          "id": "objective.professional.sentence-economy.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "delta": -1,
+          "reason": "sentence-economy penalty: passive load is high"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.sentence-economy.sentence-overload",
+          "category": "sentence control",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "sentence-economy penalty: sentence-control findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "word_count": 250
+        },
+        "max_metrics": {
+          "nlp_readability_grade": 10
+        }
+      },
+      "evidence_labels": ["sentence-economy", "concision", "line-level"]
+    },
+    {
+      "rule_id": "objective.professional.structural-signposting",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "bridge-lines",
+        "meeting-note-clarity",
+        "professional-structural-signposting",
+        "proposal-structure",
+        "reusable-template-thinking",
+        "section-order"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.structural-signposting.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "structural-signposting reward: section signals are explicit"
+        },
+        {
+          "id": "objective.professional.structural-signposting.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "structural-signposting penalty: section signals are weak"
+        },
+        {
+          "id": "objective.professional.structural-signposting.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "delta": 1,
+          "reason": "structural-signposting reward: transitions connect major sections"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.structural-signposting.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "structural-signposting penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["structural-signposting", "sections", "sequence"]
+    },
+    {
+      "rule_id": "objective.professional.tone-calibration",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": [
+        "bad-news-delivery",
+        "confidence-without-overclaiming",
+        "conflict-de-escalation",
+        "directness-with-respect",
+        "document-openings",
+        "executive-briefing-style",
+        "persuasion-with-restraint",
+        "professional-tone-calibration"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.professional.tone-calibration.passive-low",
+          "metric": "nlp_passive_sentences",
+          "max": 2,
+          "delta": 1,
+          "reason": "tone-calibration reward: direct voice supports accountability"
+        },
+        {
+          "id": "objective.professional.tone-calibration.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "delta": -1,
+          "reason": "tone-calibration penalty: indirect voice obscures responsibility"
+        },
+        {
+          "id": "objective.professional.tone-calibration.modifier-overload-low",
+          "metric": "nlp_modifier_overload_ratio",
+          "max": 18,
+          "delta": 1,
+          "reason": "tone-calibration reward: tone remains controlled and precise"
+        },
+        {
+          "id": "objective.professional.tone-calibration.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "tone-calibration penalty: hedging and intensifiers weaken signal"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.professional.tone-calibration.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "tone-calibration penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["tone-calibration", "directness", "professionalism"]
+    },
+    {
+      "rule_id": "objective.professional.actionability.ask-visibility-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["ask-visibility"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.actionability.ask-visibility.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 8,
+          "delta": 1,
+          "reason": "ask-visibility reward: explicit action language"
+        },
+        {
+          "id": "objective.professional.actionability.ask-visibility.action-density-low",
+          "metric": "nlp_action_verb_density",
+          "max": 2,
+          "delta": -1,
+          "reason": "ask-visibility penalty: weak action language"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["ask-visibility", "request", "directive"]
+    },
+    {
+      "rule_id": "objective.professional.actionability.ownership-clarity-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["ownership-clarity"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.actionability.ownership-clarity.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 70,
+          "delta": 1,
+          "reason": "ownership-clarity reward: owners and entities are explicit"
+        },
+        {
+          "id": "objective.professional.actionability.ownership-clarity.reference-specificity-low",
+          "metric": "nlp_reference_specificity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "ownership-clarity penalty: accountable owner is vague"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["ownership-clarity", "owner", "responsibility"]
+    },
+    {
+      "rule_id": "objective.professional.sentence-economy.active-voice-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["active-voice-control"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.sentence-economy.active-voice.passive-low",
+          "metric": "nlp_passive_sentences",
+          "max": 1,
+          "delta": 1,
+          "reason": "active-voice reward: passive usage controlled"
+        },
+        {
+          "id": "objective.professional.sentence-economy.active-voice.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 4,
+          "delta": -1,
+          "reason": "active-voice penalty: passive usage high"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["active-voice-control", "agency", "responsibility"]
+    },
+    {
+      "rule_id": "objective.professional.sentence-economy.sentence-economy-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["professional-sentence-economy"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.sentence-economy.sentence-economy.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 30,
+          "delta": 1,
+          "reason": "sentence-economy reward: low repetition"
+        },
+        {
+          "id": "objective.professional.sentence-economy.sentence-economy.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 58,
+          "delta": -1,
+          "reason": "sentence-economy penalty: repetition high"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["sentence-economy", "concision", "signal"]
+    },
+    {
+      "rule_id": "objective.professional.scannability.front-loaded-summary-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["front-loaded-summary"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.scannability.front-loaded-summary.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "delta": 1,
+          "reason": "front-loaded-summary reward: opening signposts are strong"
+        },
+        {
+          "id": "objective.professional.scannability.front-loaded-summary.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "front-loaded-summary penalty: opening signposts are weak"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["front-loaded-summary", "opening", "summary"]
+    },
+    {
+      "rule_id": "objective.professional.scannability.heading-discipline-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["heading-discipline"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.scannability.heading-discipline.markers-high",
+          "metric": "nlp_scannability_marker_count",
+          "min": 8,
+          "delta": 1,
+          "reason": "heading-discipline reward: headings and markers support navigation"
+        },
+        {
+          "id": "objective.professional.scannability.heading-discipline.markers-low",
+          "metric": "nlp_scannability_marker_count",
+          "max": 2,
+          "delta": -1,
+          "reason": "heading-discipline penalty: headings and markers are sparse"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["heading-discipline", "headings", "scan-path"]
+    },
+    {
+      "rule_id": "objective.professional.evidence-integration.supporting-rationale-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["supporting-rationale"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.evidence-integration.supporting-rationale.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 72,
+          "delta": 1,
+          "reason": "supporting-rationale reward: recommendation support is explicit"
+        },
+        {
+          "id": "objective.professional.evidence-integration.supporting-rationale.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 45,
+          "delta": -1,
+          "reason": "supporting-rationale penalty: recommendation support is weak"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["supporting-rationale", "constraints", "justification"]
+    },
+    {
+      "rule_id": "objective.professional.evidence-integration.quantification-basics-specific",
+      "domain": "professional",
+      "track_slugs": ["professional-writing-track"],
+      "tgo_codes": ["quantification-basics"],
+      "metric_rules": [
+        {
+          "id": "objective.professional.evidence-integration.quantification-basics.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "quantification-basics reward: numerical support is present"
+        },
+        {
+          "id": "objective.professional.evidence-integration.quantification-basics.evidence-markers-low",
+          "metric": "nlp_evidence_marker_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "quantification-basics penalty: numerical support is missing"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["quantification-basics", "numbers", "precision"]
+    }
+  ]
+}
