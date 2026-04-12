@@ -14,6 +14,7 @@ import (
 	"github.com/tomasino/writing-coach/internal/config"
 	"github.com/tomasino/writing-coach/internal/db"
 	"github.com/tomasino/writing-coach/internal/domain"
+	"github.com/tomasino/writing-coach/internal/review"
 )
 
 const calibrationRunKindScheduled = "scheduled"
@@ -23,6 +24,10 @@ const calibrationStatusSucceeded = "succeeded"
 const calibrationStatusFailed = "failed"
 
 const adminNotificationKindCalibrationCompleted = "calibration_run_completed"
+
+var evaluateObjectiveCalibrationCorpus = func() (review.ObjectiveEvalResult, error) {
+	return review.EvaluateObjectiveScoreCorpus(review.DefaultObjectiveEvalCorpus())
+}
 
 type calibrationMaintainer struct {
 	store *db.Store
@@ -123,6 +128,7 @@ func (m *calibrationMaintainer) RunOnce(ctx context.Context, runKind string, tri
 	run.Status = calibrationStatusSucceeded
 	run.CompletedAt = time.Now().UTC()
 	run.TrackLearnings, run.DomainLearnings, run.Highlights, run.Recommendations, run.DataAdequate = analyzeCalibrationSnapshots(snapshots, hybridSignals, run.MinSamples)
+	run.Highlights, run.Recommendations, run.DataAdequate = applyObjectiveEvalCalibrationGate(run.Highlights, run.Recommendations, run.DataAdequate)
 	for _, item := range run.TrackLearnings {
 		run.SubmissionCount += item.SubmissionCount
 		run.DeterministicScoreCount += item.DeterministicScoreCount
@@ -346,4 +352,29 @@ func writingTypeForTreeSlug(treeSlug string) string {
 		return tree.Title
 	}
 	return treeSlug
+}
+
+func applyObjectiveEvalCalibrationGate(highlights []string, recommendations []string, dataAdequate bool) ([]string, []string, bool) {
+	result, err := evaluateObjectiveCalibrationCorpus()
+	if err != nil {
+		highlights = append(highlights, "Deterministic objective-score validation could not run.")
+		recommendations = append(recommendations, "Fix objective-score evaluation corpus or loader errors before approving threshold tuning.")
+		return highlights, recommendations, false
+	}
+	if result.PassedPolicyRequirements {
+		return highlights, recommendations, dataAdequate
+	}
+
+	highlights = append(highlights, fmt.Sprintf("Deterministic objective-score gate failed (checks=%d pass_rate=%.3f required=%.3f).", result.TotalChecks, result.PassRate, result.RequiredMinPassRate))
+	if result.MaxPairwiseTieRate != nil {
+		highlights = append(highlights, fmt.Sprintf("Pairwise tie-rate %.3f exceeded maximum %.3f.", result.PairwiseTieRate, *result.MaxPairwiseTieRate))
+	}
+	for i, item := range result.PolicyFailures {
+		if i >= 3 {
+			break
+		}
+		recommendations = append(recommendations, "Objective eval policy failure: "+item)
+	}
+	recommendations = append(recommendations, "Do not approve automatic threshold tuning until objective-score policy checks pass.")
+	return highlights, recommendations, false
 }

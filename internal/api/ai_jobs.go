@@ -143,6 +143,9 @@ func (s Server) processReviewSubmissionJob(ctx context.Context, job domain.AIJob
 		return fmt.Errorf("load submission: %w", err)
 	}
 	if existing, err := s.Store.LatestReviewForSubmission(ctx, sub.ID); err == nil {
+		if err := s.ensureReviewDecisionEvents(ctx, job.UserID, job.TreeID, job.EnrollmentID, existing); err != nil {
+			return fmt.Errorf("backfill decision events for existing review: %w", err)
+		}
 		return s.Store.CompleteAIJob(ctx, job.ID, 0, existing.ID, "")
 	}
 	activeTGOs, err := s.Store.ActiveTGOs(ctx, job.EnrollmentID)
