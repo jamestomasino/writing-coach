@@ -1,6 +1,6 @@
 # Objective-Level Assessment Migration Plan
 
-- Status: In progress (Phases 0-3 complete; Phase 4 partial)
+- Status: Complete (Phases 0-4 complete)
 - Date: 2026-04-12
 - Owner: Product + Engineering
 
@@ -163,7 +163,7 @@ Exit criteria:
 - No Draft Signals UI remains in learner flows.
 - Users can interpret objective progress without ambiguity.
 
-## Phase 4: Legacy Sunset (Optional, Deferred)
+## Phase 4: Legacy Sunset
 
 1. Stop writing legacy `submission_skill_scores` for new reviews.
 2. Keep read support for old records.
@@ -182,9 +182,9 @@ Current implementation checkpoint (2026-04-12):
   - Objective-era review writes now persist objective rows as primary.
   - Legacy skill-score reads remain compatible via derived fallback when objective rows exist.
   - Decision-event evidence refs now reflect objective-only, legacy-only, or mixed evidence sources.
+  - Calibration snapshots now support objective-era and mixed-era submissions, preferring objective hybrid/deterministic rows when available and falling back to legacy rows when objective rows are absent.
 - Remaining:
-  - Legacy write path still exists for explicit legacy-only review flows and test fixtures.
-  - Calibration/reporting consumers still operate on legacy skill-family aggregates; objective-native rollups are a follow-up migration.
+  - No open Phase 0-4 migration items. Keep compatibility support for legacy historical records and fixtures as intended.
 
 ## 8) Test Plan
 
