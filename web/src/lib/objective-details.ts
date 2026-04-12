@@ -18,6 +18,7 @@ export type ObjectiveDetail = {
   assessmentFocus: string[]
   exampleSources?: Array<{ label: string; url: string }>
   exampleStrategy?: string
+  studentReadinessCheck?: string
 }
 
 function slugify(value: string) {
