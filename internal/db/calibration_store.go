@@ -186,6 +186,44 @@ func (s *Store) ListRecentCalibrationRuns(ctx context.Context, limit int) ([]dom
 	return runs, rows.Err()
 }
 
+func (s *Store) GetCalibrationRun(ctx context.Context, runID int64) (domain.CalibrationRun, error) {
+	if runID <= 0 {
+		return domain.CalibrationRun{}, fmt.Errorf("invalid run id")
+	}
+	row := s.SQL.QueryRowContext(ctx, `
+		SELECT
+			id,
+			run_kind,
+			status,
+			COALESCE(triggered_by_user_id, 0),
+			min_samples,
+			limit_per_track,
+			submission_count,
+			deterministic_score_count,
+			data_adequate,
+			approval_status,
+			COALESCE(approved_by_user_id, 0),
+			approved_at,
+			approval_notes,
+			track_learnings_json,
+			domain_learnings_json,
+			highlights_json,
+			recommendations_json,
+			error_text,
+			started_at,
+			completed_at,
+			created_at,
+			updated_at
+		FROM calibration_runs
+		WHERE id = ?
+	`, runID)
+	run, err := scanCalibrationRun(row)
+	if err != nil {
+		return domain.CalibrationRun{}, err
+	}
+	return run, nil
+}
+
 func (s *Store) SaveAdminNotification(ctx context.Context, notification domain.AdminNotification) error {
 	if strings.TrimSpace(notification.Kind) == "" {
 		notification.Kind = "general"

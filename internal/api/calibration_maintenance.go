@@ -128,7 +128,7 @@ func (m *calibrationMaintainer) RunOnce(ctx context.Context, runKind string, tri
 	run.Status = calibrationStatusSucceeded
 	run.CompletedAt = time.Now().UTC()
 	run.TrackLearnings, run.DomainLearnings, run.Highlights, run.Recommendations, run.DataAdequate = analyzeCalibrationSnapshots(snapshots, hybridSignals, run.MinSamples)
-	run.Highlights, run.Recommendations, run.DataAdequate = applyObjectiveEvalCalibrationGate(run.Highlights, run.Recommendations, run.DataAdequate)
+	run.TrackLearnings, run.Highlights, run.Recommendations, run.DataAdequate = applyObjectiveEvalCalibrationGate(run.TrackLearnings, run.Highlights, run.Recommendations, run.DataAdequate)
 	for _, item := range run.TrackLearnings {
 		run.SubmissionCount += item.SubmissionCount
 		run.DeterministicScoreCount += item.DeterministicScoreCount
@@ -354,15 +354,25 @@ func writingTypeForTreeSlug(treeSlug string) string {
 	return treeSlug
 }
 
-func applyObjectiveEvalCalibrationGate(highlights []string, recommendations []string, dataAdequate bool) ([]string, []string, bool) {
+func applyObjectiveEvalCalibrationGate(tracks []domain.CalibrationTrackLearning, highlights []string, recommendations []string, dataAdequate bool) ([]domain.CalibrationTrackLearning, []string, []string, bool) {
 	result, err := evaluateObjectiveCalibrationCorpus()
 	if err != nil {
 		highlights = append(highlights, "Deterministic objective-score validation could not run.")
 		recommendations = append(recommendations, "Fix objective-score evaluation corpus or loader errors before approving threshold tuning.")
-		return highlights, recommendations, false
+		return tracks, highlights, recommendations, false
+	}
+	trackFailures := review.ObjectiveEvalTrackFailures(result)
+	for i := range tracks {
+		slug := strings.TrimSpace(tracks[i].TreeSlug)
+		if _, ok := trackFailures[slug]; !ok {
+			continue
+		}
+		if !calibrationIssueExists(tracks[i].Issues, "objective_eval_policy_failed") {
+			tracks[i].Issues = append(tracks[i].Issues, "objective_eval_policy_failed")
+		}
 	}
 	if result.PassedPolicyRequirements {
-		return highlights, recommendations, dataAdequate
+		return tracks, highlights, recommendations, dataAdequate
 	}
 
 	highlights = append(highlights, fmt.Sprintf("Deterministic objective-score gate failed (checks=%d pass_rate=%.3f required=%.3f).", result.TotalChecks, result.PassRate, result.RequiredMinPassRate))
@@ -375,6 +385,19 @@ func applyObjectiveEvalCalibrationGate(highlights []string, recommendations []st
 		}
 		recommendations = append(recommendations, "Objective eval policy failure: "+item)
 	}
+	if len(trackFailures) > 0 {
+		recommendations = append(recommendations, fmt.Sprintf("%d track(s) failed objective policy checks; keep those tracks blocked for tuning unless an explicit override is documented.", len(trackFailures)))
+	}
 	recommendations = append(recommendations, "Do not approve automatic threshold tuning until objective-score policy checks pass.")
-	return highlights, recommendations, false
+	return tracks, highlights, recommendations, false
+}
+
+func calibrationIssueExists(issues []string, issue string) bool {
+	target := strings.TrimSpace(issue)
+	for _, item := range issues {
+		if strings.TrimSpace(item) == target {
+			return true
+		}
+	}
+	return false
 }

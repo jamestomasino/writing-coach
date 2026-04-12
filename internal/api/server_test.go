@@ -5032,18 +5032,32 @@ func TestAdminCalibrationEndpointsRunAndReadNotifications(t *testing.T) {
 		t.Fatalf("run read status = %d", readResp.StatusCode)
 	}
 
-	approvalReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/admin/calibration/runs/%d/approval", testServer.URL, runPayload.Run.ID), strings.NewReader(`{"status":"approved","notes":"validated"}`))
+	approvalBlockedReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/admin/calibration/runs/%d/approval", testServer.URL, runPayload.Run.ID), strings.NewReader(`{"status":"approved","notes":"validated"}`))
 	if err != nil {
 		t.Fatalf("build approval request: %v", err)
+	}
+	approvalBlockedReq.Header.Set("Content-Type", "application/json")
+	approvalBlockedResp, err := http.DefaultClient.Do(approvalBlockedReq)
+	if err != nil {
+		t.Fatalf("post approval: %v", err)
+	}
+	defer approvalBlockedResp.Body.Close()
+	if approvalBlockedResp.StatusCode != http.StatusConflict {
+		t.Fatalf("approval blocked status = %d", approvalBlockedResp.StatusCode)
+	}
+
+	approvalReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/admin/calibration/runs/%d/approval", testServer.URL, runPayload.Run.ID), strings.NewReader(`{"status":"approved","notes":"override: low sample calibration run approved for exploratory tuning only"}`))
+	if err != nil {
+		t.Fatalf("build override approval request: %v", err)
 	}
 	approvalReq.Header.Set("Content-Type", "application/json")
 	approvalResp, err := http.DefaultClient.Do(approvalReq)
 	if err != nil {
-		t.Fatalf("post approval: %v", err)
+		t.Fatalf("post override approval: %v", err)
 	}
 	defer approvalResp.Body.Close()
 	if approvalResp.StatusCode != http.StatusOK {
-		t.Fatalf("approval status = %d", approvalResp.StatusCode)
+		t.Fatalf("override approval status = %d", approvalResp.StatusCode)
 	}
 }
 

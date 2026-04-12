@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -206,6 +207,22 @@ func (s Server) handleAdminCalibrationRunApproval(w http.ResponseWriter, r *http
 	if status == "" {
 		status = "pending"
 	}
+	if status == "approved" {
+		run, err := s.Store.GetCalibrationRun(r.Context(), runID)
+		if err != nil {
+			apiStatus := http.StatusBadRequest
+			if db.IsNotFound(err) {
+				apiStatus = http.StatusNotFound
+			}
+			writeError(w, apiStatus, err)
+			return
+		}
+		needsOverride, reason := requiresCalibrationApprovalOverride(run, status, payload.Notes)
+		if needsOverride {
+			writeError(w, http.StatusConflict, errors.New(reason))
+			return
+		}
+	}
 	if err := s.Store.UpdateCalibrationRunApproval(r.Context(), runID, status, 0, payload.Notes); err != nil {
 		apiStatus := http.StatusBadRequest
 		if db.IsNotFound(err) {
@@ -215,6 +232,38 @@ func (s Server) handleAdminCalibrationRunApproval(w http.ResponseWriter, r *http
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"run_id": runID, "approval_status": status})
+}
+
+func requiresCalibrationApprovalOverride(run domain.CalibrationRun, status string, notes string) (bool, string) {
+	if strings.TrimSpace(strings.ToLower(status)) != "approved" {
+		return false, ""
+	}
+	if run.DataAdequate && !runHasObjectivePolicyTrackFailures(run) {
+		return false, ""
+	}
+	if isValidCalibrationOverrideNote(notes) {
+		return false, ""
+	}
+	return true, "approval blocked: run includes objective/data gate failures; add override notes prefixed with 'override:' and at least 20 characters"
+}
+
+func runHasObjectivePolicyTrackFailures(run domain.CalibrationRun) bool {
+	for _, track := range run.TrackLearnings {
+		for _, issue := range track.Issues {
+			if strings.TrimSpace(issue) == "objective_eval_policy_failed" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isValidCalibrationOverrideNote(notes string) bool {
+	trim := strings.TrimSpace(notes)
+	if len(trim) < 20 {
+		return false
+	}
+	return strings.HasPrefix(strings.ToLower(trim), "override:")
 }
 
 func toCalibrationRunResponses(runs []domain.CalibrationRun) []calibrationRunResponse {
