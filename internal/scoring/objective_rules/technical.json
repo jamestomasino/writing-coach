@@ -1,0 +1,740 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "rule_id": "objective.technical.actionability",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-prereq-clarity",
+        "technical-remediation-order",
+        "technical-result-visibility",
+        "technical-sequence-control",
+        "technical-step-clarity"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.actionability.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 8,
+          "delta": 1,
+          "reason": "actionability reward: action-verb density supports execution"
+        },
+        {
+          "id": "objective.technical.actionability.action-density-low",
+          "metric": "nlp_action_verb_density",
+          "max": 3,
+          "delta": -1,
+          "reason": "actionability penalty: low action-verb density"
+        },
+        {
+          "id": "objective.technical.actionability.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "actionability reward: references are specific"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.actionability.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "actionability penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_action_verb_density": 6
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["actionability", "execution", "steps"]
+    },
+    {
+      "rule_id": "objective.technical.accuracy",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-ambiguity-hunting",
+        "technical-compatibility-notes",
+        "technical-constraint-language",
+        "technical-deprecation-notes",
+        "technical-edge-case-signaling",
+        "technical-error-prevention",
+        "technical-release-note-discipline",
+        "technical-symptom-cause",
+        "technical-troubleshooting-basics",
+        "technical-versioning-signals"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.accuracy.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "accuracy reward: claims align with support"
+        },
+        {
+          "id": "objective.technical.accuracy.claim-support-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 40,
+          "delta": -1,
+          "reason": "accuracy penalty: claims weakly supported"
+        },
+        {
+          "id": "objective.technical.accuracy.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 68,
+          "delta": 1,
+          "reason": "accuracy reward: references are precise"
+        },
+        {
+          "id": "objective.technical.accuracy.temporal-clarity-low",
+          "metric": "nlp_temporal_clarity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "accuracy penalty: temporal clarity is weak"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.accuracy.coverage-overload",
+          "category": "coverage",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "accuracy penalty: coverage findings"
+        },
+        {
+          "id": "objective.technical.accuracy.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "accuracy penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": ["accuracy", "risk", "correctness"]
+    },
+    {
+      "rule_id": "objective.technical.technical-precision",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-active-voice",
+        "technical-api-surface-clarity",
+        "technical-code-comment-restraint",
+        "technical-glossary-handling",
+        "technical-logging-guidance",
+        "technical-parameter-docs",
+        "technical-sentence-economy",
+        "technical-state-models",
+        "technical-term-control"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.technical-precision.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 10,
+          "delta": 1,
+          "reason": "technical precision reward: readability within target"
+        },
+        {
+          "id": "objective.technical.technical-precision.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "technical precision penalty: readability too high"
+        },
+        {
+          "id": "objective.technical.technical-precision.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 35,
+          "delta": 1,
+          "reason": "technical precision reward: low repetition"
+        },
+        {
+          "id": "objective.technical.technical-precision.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "technical precision penalty: high repetition"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.technical-precision.sentence-overload",
+          "category": "sentence control",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "technical precision penalty: sentence-control findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "word_count": 450
+        },
+        "max_metrics": {
+          "nlp_readability_grade": 9
+        }
+      },
+      "evidence_labels": ["technical-precision", "terminology", "syntax"]
+    },
+    {
+      "rule_id": "objective.technical.scannability",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-heading-discipline",
+        "technical-list-design",
+        "technical-opening-summary",
+        "technical-paragraph-economy",
+        "technical-reference-layout",
+        "technical-screenshot-judgment"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.scannability.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "scannability reward: structural signposts present"
+        },
+        {
+          "id": "objective.technical.scannability.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "scannability penalty: weak signposting"
+        },
+        {
+          "id": "objective.technical.scannability.markers-high",
+          "metric": "nlp_scannability_marker_count",
+          "min": 7,
+          "delta": 1,
+          "reason": "scannability reward: scan markers are dense"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.scannability.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "scannability penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_scannability_marker_count": 6
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["scannability", "navigation", "layout"]
+    },
+    {
+      "rule_id": "objective.technical.structural-signposting",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-cross-links",
+        "technical-section-order",
+        "technical-structure-basics"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.structural-signposting.topic-drift-low",
+          "metric": "nlp_topic_drift_score",
+          "max": 45,
+          "delta": 1,
+          "reason": "structural-signposting reward: low topic drift"
+        },
+        {
+          "id": "objective.technical.structural-signposting.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 70,
+          "delta": -1,
+          "reason": "structural-signposting penalty: high topic drift"
+        },
+        {
+          "id": "objective.technical.structural-signposting.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "structural-signposting reward: section cues present"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.structural-signposting.structure-overload",
+          "category": "structure",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "structural-signposting penalty: structure findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 45
+        }
+      },
+      "evidence_labels": ["structure", "sections", "flow"]
+    },
+    {
+      "rule_id": "objective.technical.user-goal-alignment",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-ownership-signals",
+        "technical-reader-context",
+        "technical-scope-control",
+        "technical-task-vs-reference",
+        "technical-user-goal"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.user-goal-alignment.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "user-goal reward: context references are specific"
+        },
+        {
+          "id": "objective.technical.user-goal-alignment.paragraph-focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "user-goal reward: paragraph focus supports intent"
+        },
+        {
+          "id": "objective.technical.user-goal-alignment.paragraph-focus-low",
+          "metric": "nlp_paragraph_focus_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "user-goal penalty: paragraph focus drifts from intent"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.user-goal-alignment.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "user-goal penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["user-goal", "audience", "alignment"]
+    },
+    {
+      "rule_id": "objective.technical.revision-habits",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-accuracy-pass",
+        "technical-consistency-pass",
+        "technical-example-pass",
+        "technical-final-polish",
+        "technical-navigation-pass",
+        "technical-shortening-pass",
+        "technical-support-pass",
+        "technical-triage",
+        "technical-user-walkthrough"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.revision-habits.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 35,
+          "delta": 1,
+          "reason": "revision-habits reward: redundancy reduced"
+        },
+        {
+          "id": "objective.technical.revision-habits.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "revision-habits penalty: redundancy persists"
+        },
+        {
+          "id": "objective.technical.revision-habits.topic-drift-low",
+          "metric": "nlp_topic_drift_score",
+          "max": 45,
+          "delta": 1,
+          "reason": "revision-habits reward: focus maintained after revision"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.revision-habits.readability-overload",
+          "category": "readability",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "revision-habits penalty: readability findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "word_count": 350
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["revision", "process", "quality"]
+    },
+    {
+      "rule_id": "objective.technical.example-quality",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-example-basics",
+        "technical-example-minimality",
+        "technical-example-realism",
+        "technical-input-output"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.example-quality.examples-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 2,
+          "delta": 1,
+          "reason": "example-quality reward: explicit example markers present"
+        },
+        {
+          "id": "objective.technical.example-quality.examples-low",
+          "metric": "nlp_evidence_marker_count",
+          "max": 0,
+          "delta": -1,
+          "reason": "example-quality penalty: no explicit example markers"
+        },
+        {
+          "id": "objective.technical.example-quality.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "delta": 1,
+          "reason": "example-quality reward: example support aligns with claims"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.example-quality.coverage-overload",
+          "category": "coverage",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "example-quality penalty: coverage findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        }
+      },
+      "evidence_labels": ["examples", "quality", "support"]
+    },
+    {
+      "rule_id": "objective.technical.tone-control",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": [
+        "technical-tone-control"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.technical.tone-control.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 10,
+          "delta": 1,
+          "reason": "tone-control reward: readable, neutral prose"
+        },
+        {
+          "id": "objective.technical.tone-control.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "tone-control penalty: readability drift"
+        }
+      ],
+      "category_rules": [
+        {
+          "id": "objective.technical.tone-control.clarity-overload",
+          "category": "clarity",
+          "max_hits": 1,
+          "delta": -1,
+          "reason": "tone-control penalty: clarity findings"
+        }
+      ],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["tone", "clarity", "neutrality"]
+    },
+    {
+      "rule_id": "objective.technical.actionability.step-clarity-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-step-clarity"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.actionability.step-clarity.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 10,
+          "delta": 1,
+          "reason": "step-clarity reward: high action verb density"
+        },
+        {
+          "id": "objective.technical.actionability.step-clarity.action-density-low",
+          "metric": "nlp_action_verb_density",
+          "max": 3,
+          "delta": -1,
+          "reason": "step-clarity penalty: low action verb density"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["step-clarity", "actions", "procedures"]
+    },
+    {
+      "rule_id": "objective.technical.actionability.prereq-clarity-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-prereq-clarity"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.actionability.prereq-clarity.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 70,
+          "delta": 1,
+          "reason": "prereq-clarity reward: prerequisites are specific"
+        },
+        {
+          "id": "objective.technical.actionability.prereq-clarity.reference-specificity-low",
+          "metric": "nlp_reference_specificity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "prereq-clarity penalty: prerequisites are vague"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["prereq-clarity", "setup", "requirements"]
+    },
+    {
+      "rule_id": "objective.technical.technical-precision.active-voice-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-active-voice"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.technical-precision.active-voice.passive-low",
+          "metric": "nlp_passive_sentences",
+          "max": 1,
+          "delta": 1,
+          "reason": "active-voice reward: passive usage controlled"
+        },
+        {
+          "id": "objective.technical.technical-precision.active-voice.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 4,
+          "delta": -1,
+          "reason": "active-voice penalty: passive usage high"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["active-voice", "agency", "style"]
+    },
+    {
+      "rule_id": "objective.technical.technical-precision.sentence-economy-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-sentence-economy"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.technical-precision.sentence-economy.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 35,
+          "delta": 1,
+          "reason": "sentence-economy reward: low repetition"
+        },
+        {
+          "id": "objective.technical.technical-precision.sentence-economy.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "sentence-economy penalty: high repetition"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["sentence-economy", "concision", "signal"]
+    },
+    {
+      "rule_id": "objective.technical.scannability.opening-summary-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-opening-summary"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.scannability.opening-summary.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "delta": 1,
+          "reason": "opening-summary reward: strong opening signposts"
+        },
+        {
+          "id": "objective.technical.scannability.opening-summary.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "opening-summary penalty: weak opening signposts"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["opening-summary", "framing", "scan"]
+    },
+    {
+      "rule_id": "objective.technical.scannability.reference-layout-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-reference-layout"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.scannability.reference-layout.scan-markers-high",
+          "metric": "nlp_scannability_marker_count",
+          "min": 8,
+          "delta": 1,
+          "reason": "reference-layout reward: scan markers support lookup"
+        },
+        {
+          "id": "objective.technical.scannability.reference-layout.scan-markers-low",
+          "metric": "nlp_scannability_marker_count",
+          "max": 3,
+          "delta": -1,
+          "reason": "reference-layout penalty: insufficient scan markers"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["reference-layout", "lookup", "scan"]
+    },
+    {
+      "rule_id": "objective.technical.accuracy.troubleshooting-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-troubleshooting-basics"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.accuracy.troubleshooting.alignment-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 72,
+          "delta": 1,
+          "reason": "troubleshooting reward: symptoms map to causes and actions"
+        },
+        {
+          "id": "objective.technical.accuracy.troubleshooting.alignment-low",
+          "metric": "nlp_claim_support_alignment",
+          "max": 45,
+          "delta": -1,
+          "reason": "troubleshooting penalty: weak symptom-cause-action alignment"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["troubleshooting", "diagnosis", "remediation"]
+    },
+    {
+      "rule_id": "objective.technical.accuracy.versioning-specific",
+      "domain": "technical",
+      "track_slugs": ["technical-writing-track"],
+      "tgo_codes": ["technical-versioning-signals"],
+      "metric_rules": [
+        {
+          "id": "objective.technical.accuracy.versioning.temporal-clarity-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 70,
+          "delta": 1,
+          "reason": "versioning reward: temporal signaling is clear"
+        },
+        {
+          "id": "objective.technical.accuracy.versioning.temporal-clarity-low",
+          "metric": "nlp_temporal_clarity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "versioning penalty: temporal signaling is weak"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {}
+      },
+      "evidence_labels": ["versioning", "temporal", "compatibility"]
+    }
+  ]
+}

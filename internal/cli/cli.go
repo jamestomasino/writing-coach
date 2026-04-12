@@ -339,9 +339,11 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	if profile, err := c.Store.OnboardingProfileByEnrollmentID(ctx, c.AppContext.EnrollmentID); err == nil {
 		analyzerContext = analyzer.ContextFromProfile(c.AppContext.TreeSlug, profile)
 	}
-	reviewResult, scores := c.Reviews.ReviewSubmissionWithOptions(ctx, sub, activeTGOs, completedTGOs, review.Options{
+	reviewExecution := c.Reviews.ReviewSubmissionDetailedWithOptions(ctx, sub, activeTGOs, completedTGOs, review.Options{
 		AnalyzerContext: analyzerContext,
 	})
+	reviewResult := reviewExecution.Review
+	scores := reviewExecution.Scores
 	reviewResult.UserID = c.AppContext.UserID
 	reviewResult.TreeID = c.AppContext.TreeID
 	stateBefore, err := c.Store.GetCurriculumState(ctx, c.AppContext.EnrollmentID)
@@ -353,7 +355,14 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		return err
 	}
 	reviewResult.NextFocus = recommendation.Focus
-	objectiveScores := review.BuildObjectiveScores(sub.ID, activeTGOs, reviewResult.TGOAssessments, scores)
+	objectiveScores := review.BuildObjectiveScores(
+		sub.ID,
+		activeTGOs,
+		reviewResult.TGOAssessments,
+		scores,
+		reviewExecution.AnalyzerReport,
+		analyzerContext,
+	)
 	reviewID, err := c.Store.SaveReviewWithObjectiveScores(ctx, reviewResult, scores, objectiveScores)
 	if err != nil {
 		return err
