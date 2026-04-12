@@ -1,5 +1,4 @@
 import { buildObjectiveExamples } from './objective-example-library'
-import { getSkillDetailByName } from './skill-details'
 import type { SkillGraphNode } from './types'
 
 export type GeneratedObjectiveDetail = {
@@ -36,6 +35,37 @@ function sanitizeProse(value: string) {
 function lowerFirst(value: string) {
   if (!value) return value
   return value[0].toLowerCase() + value.slice(1)
+}
+
+function stripTrailingPunctuation(value: string) {
+  return value.trim().replace(/[.!?]+$/, '')
+}
+
+function firstSentence(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  const match = trimmed.match(/^(.+?[.!?])(?:\s|$)/)
+  return (match?.[1] ?? trimmed).trim()
+}
+
+function definitionFromOverview(value: string, title: string) {
+  const base = stripTrailingPunctuation(firstSentence(value))
+  if (!base) {
+    return sentence(`${title} means applying this objective clearly and consistently in the draft`)
+  }
+  const normalized = base
+    .replace(/^this objective teaches\s+/i, `${title} means `)
+    .replace(/^this objective is about\s+/i, `${title} means `)
+    .replace(/^this objective means\s+/i, `${title} means `)
+    .replace(/^this skill teaches\s+/i, `${title} means `)
+    .replace(/^this skill is about\s+/i, `${title} means `)
+    .replace(/^this skill means\s+/i, `${title} means `)
+    .replace(/^this objective\s+/i, `${title} `)
+    .replace(/^this skill\s+/i, `${title} `)
+  if (/^[-a-z0-9 ,'"()]+means\b/i.test(normalized)) {
+    return sentence(normalized)
+  }
+  return sentence(`${title} means ${lowerFirst(normalized)}`)
 }
 
 const WHY_OVERRIDE_BY_CODE: Record<string, string> = {
@@ -817,29 +847,12 @@ function assessmentFocus(node: SkillGraphNode) {
 }
 
 function skillOverview(node: SkillGraphNode) {
-  const objectiveMove = sentence(sanitizeProse(node.description || 'Build visible, repeatable control in this objective area'))
-  const marker = sentence(
-    sanitizeProse(
-      (node.mastery_hint || 'Readers can point to clear evidence of control in the draft')
-        .replace(/\breally\b/gi, '')
-        .replace(/\bvery\b/gi, '')
-        .replace(/\bkind of\b/gi, '')
-    )
-  )
   const override = skillOverviewOverride(node)
   if (override) {
-    return `${sentence(override)} ${sentence(`In practice, you train this by ${lowerFirst(objectiveMove)}`)} ${sentence(
-      `You can treat it as working when ${lowerFirst(marker)}`
-    )}`.trim()
+    return definitionFromOverview(override, node.title)
   }
-  const skill = (node.skill_name ?? '').trim()
-  const detail = skill ? getSkillDetailByName(skill) : undefined
-  const familyContext = detail
-    ? sentence(`This objective sits inside ${skill} and focuses on one high-leverage move for transfer across assignments`)
-    : sentence(`This objective focuses on one high-leverage move for transfer across assignments`)
-  return `${familyContext} ${sentence(`In practice, you train this by ${lowerFirst(objectiveMove)}`)} ${sentence(
-    `You can treat it as working when ${lowerFirst(marker)}`
-  )}`.trim()
+  const description = sentence(sanitizeProse(node.description || 'apply this objective clearly and consistently in the draft'))
+  return definitionFromOverview(description, node.title)
 }
 
 function studentReadinessCheck(node: SkillGraphNode) {
