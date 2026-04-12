@@ -372,7 +372,50 @@ func (s *Store) ListCalibrationHybridSignalSnapshots(ctx context.Context, defaul
 		limitPerTrack = 200
 	}
 	rows, err := s.SQL.QueryContext(ctx, `
-		WITH track_ranked AS (
+		WITH objective_hybrid_ranked AS (
+			SELECT
+				sos.submission_id,
+				sos.tgo_code AS metric_key,
+				sos.score_evidence_json,
+				ROW_NUMBER() OVER (
+					PARTITION BY sos.submission_id, sos.tgo_code
+					ORDER BY sos.id DESC
+				) AS rn
+			FROM submission_objective_scores sos
+			WHERE sos.score_source = 'hybrid'
+		),
+		skill_hybrid_ranked AS (
+			SELECT
+				sss.submission_id,
+				sss.skill_name AS metric_key,
+				sss.score_evidence_json,
+				ROW_NUMBER() OVER (
+					PARTITION BY sss.submission_id, sss.skill_name
+					ORDER BY sss.id DESC
+				) AS rn
+			FROM submission_skill_scores sss
+			WHERE sss.score_source = 'hybrid'
+		),
+		submissions_with_objective_hybrid AS (
+			SELECT DISTINCT submission_id
+			FROM objective_hybrid_ranked
+			WHERE rn = 1
+		),
+		ranked_hybrid AS (
+			SELECT submission_id, metric_key, score_evidence_json
+			FROM objective_hybrid_ranked
+			WHERE rn = 1
+			UNION ALL
+			SELECT shr.submission_id, shr.metric_key, shr.score_evidence_json
+			FROM skill_hybrid_ranked shr
+			WHERE shr.rn = 1
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM submissions_with_objective_hybrid soh
+				WHERE soh.submission_id = shr.submission_id
+			  )
+		),
+		track_ranked AS (
 			SELECT
 				s.id AS submission_id,
 				COALESCE(NULLIF(t.slug, ''), NULLIF(u.active_tree_slug, ''), ?) AS tree_slug,
@@ -388,28 +431,15 @@ func (s *Store) ListCalibrationHybridSignalSnapshots(ctx context.Context, defaul
 			SELECT submission_id, tree_slug
 			FROM track_ranked
 			WHERE track_rank <= ?
-		),
-		latest_hybrid AS (
-			SELECT
-				sss.submission_id,
-				sss.skill_name,
-				sss.score_evidence_json,
-				ROW_NUMBER() OVER (
-					PARTITION BY sss.submission_id, sss.skill_name
-					ORDER BY sss.id DESC
-				) AS rn
-			FROM submission_skill_scores sss
-			WHERE sss.score_source = 'hybrid'
 		)
 		SELECT
 			sampled.tree_slug,
-			COUNT(latest_hybrid.skill_name) AS hybrid_score_count,
-			COALESCE(SUM(CASE WHEN json_extract(latest_hybrid.score_evidence_json, '$.conflict') = 1 THEN 1 ELSE 0 END), 0) AS conflict_count,
-			COALESCE(SUM(CASE WHEN ABS(COALESCE(json_extract(latest_hybrid.score_evidence_json, '$.applied_delta'), 0)) > 0 THEN 1 ELSE 0 END), 0) AS adjusted_count
+			COUNT(ranked_hybrid.metric_key) AS hybrid_score_count,
+			COALESCE(SUM(CASE WHEN json_extract(ranked_hybrid.score_evidence_json, '$.conflict') = 1 THEN 1 ELSE 0 END), 0) AS conflict_count,
+			COALESCE(SUM(CASE WHEN ABS(COALESCE(json_extract(ranked_hybrid.score_evidence_json, '$.applied_delta'), 0)) > 0 THEN 1 ELSE 0 END), 0) AS adjusted_count
 		FROM sampled
-		LEFT JOIN latest_hybrid
-			ON latest_hybrid.submission_id = sampled.submission_id
-			AND latest_hybrid.rn = 1
+		LEFT JOIN ranked_hybrid
+			ON ranked_hybrid.submission_id = sampled.submission_id
 		GROUP BY sampled.tree_slug
 		ORDER BY hybrid_score_count DESC, sampled.tree_slug ASC
 	`, defaultTreeSlug, defaultTreeSlug, limitPerTrack)

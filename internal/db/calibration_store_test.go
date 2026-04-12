@@ -251,3 +251,117 @@ func TestListCalibrationTrackSnapshotsPrefersObjectiveScoresWhenPresent(t *testi
 		t.Fatalf("average score = %.2f", found.AverageScore)
 	}
 }
+
+func TestListCalibrationHybridSignalSnapshotsPrefersObjectiveHybridWhenPresent(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, treeID, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+	exerciseID, err := store.SaveExercise(ctx, domain.Exercise{
+		UserID:          userID,
+		TreeID:          treeID,
+		Title:           "Calibration hybrid sample",
+		Brief:           "Draft for hybrid calibration",
+		Constraints:     []string{"single paragraph"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity", "story-scene-architecture"},
+		SuccessCriteria: []string{"clear causality"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+
+	// Submission 1: mixed-era data. Objective hybrid rows should be preferred.
+	submission1, err := store.SaveSubmission(ctx, domain.Submission{
+		UserID:     userID,
+		TreeID:     treeID,
+		ExerciseID: exerciseID,
+		Content:    "Submission one",
+		WordCount:  2,
+	})
+	if err != nil {
+		t.Fatalf("save submission1: %v", err)
+	}
+	if _, err := store.SQL.ExecContext(ctx, `
+		INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
+		VALUES
+			(?, 'narrative clarity', 3, 'hybrid', 'hyb-v1', '{"conflict":1,"applied_delta":1}'),
+			(?, 'scene architecture', 4, 'hybrid', 'hyb-v1', '{"conflict":0,"applied_delta":0}')
+	`, submission1, submission1); err != nil {
+		t.Fatalf("insert submission1 skill hybrid rows: %v", err)
+	}
+	if _, err := store.SQL.ExecContext(ctx, `
+		INSERT INTO submission_objective_scores (submission_id, tgo_code, score, score_source, score_version, score_evidence_json)
+		VALUES
+			(?, 'story-causal-clarity', 4, 'hybrid', 'obj-hyb-v1', '{"conflict":1,"applied_delta":1}'),
+			(?, 'story-scene-architecture', 4, 'hybrid', 'obj-hyb-v1', '{"conflict":0,"applied_delta":0}')
+	`, submission1, submission1); err != nil {
+		t.Fatalf("insert submission1 objective hybrid rows: %v", err)
+	}
+
+	// Submission 2: legacy-only hybrid data should still count via fallback.
+	submission2, err := store.SaveSubmission(ctx, domain.Submission{
+		UserID:     userID,
+		TreeID:     treeID,
+		ExerciseID: exerciseID,
+		Content:    "Submission two",
+		WordCount:  2,
+	})
+	if err != nil {
+		t.Fatalf("save submission2: %v", err)
+	}
+	if _, err := store.SQL.ExecContext(ctx, `
+		INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
+		VALUES
+			(?, 'prose precision', 4, 'hybrid', 'hyb-v1', '{"conflict":1,"applied_delta":2}'),
+			(?, 'prose precision', 4, 'hybrid', 'hyb-v1', '{"conflict":0,"applied_delta":0}'),
+			(?, 'image freshness', 3, 'hybrid', 'hyb-v1', '{"conflict":0,"applied_delta":0}')
+	`, submission2, submission2, submission2); err != nil {
+		t.Fatalf("insert submission2 skill hybrid rows: %v", err)
+	}
+
+	snapshots, err := store.ListCalibrationHybridSignalSnapshots(ctx, domain.GlobalSkillGraphSlug, 50)
+	if err != nil {
+		t.Fatalf("list calibration hybrid snapshots: %v", err)
+	}
+	if len(snapshots) == 0 {
+		t.Fatal("expected at least one hybrid snapshot")
+	}
+	var found *domain.CalibrationHybridSignalSnapshot
+	for i := range snapshots {
+		if snapshots[i].TreeSlug == "story-craft-track" {
+			found = &snapshots[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected snapshot for story-craft-track, got %+v", snapshots)
+	}
+	// Submission 1 contributes 2 objective rows; submission 2 contributes latest 2 skill rows.
+	if found.HybridScoreCount != 4 {
+		t.Fatalf("hybrid score count = %d", found.HybridScoreCount)
+	}
+	// Conflicts should include only objective-preferred rows for submission 1 plus latest legacy rows for submission 2.
+	if found.ConflictCount != 1 {
+		t.Fatalf("conflict count = %d", found.ConflictCount)
+	}
+	// Adjusted includes applied_delta != 0 rows only.
+	if found.AdjustedCount != 1 {
+		t.Fatalf("adjusted count = %d", found.AdjustedCount)
+	}
+}
