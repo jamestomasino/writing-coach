@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
@@ -86,5 +87,51 @@ func TestEmitProgressionHoldTransitionEventWritesActivation(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("expected progression_hold_activated event, got %#v", events)
+	}
+}
+
+func TestReviewScoredEvidenceRefsJSON(t *testing.T) {
+	tests := []struct {
+		name      string
+		skill     int
+		objective int
+		expect    []string
+	}{
+		{
+			name:      "objective only",
+			skill:     0,
+			objective: 3,
+			expect:    []string{"analyzer_report", "submission_objective_scores"},
+		},
+		{
+			name:      "legacy only",
+			skill:     3,
+			objective: 0,
+			expect:    []string{"analyzer_report", "submission_skill_scores"},
+		},
+		{
+			name:      "mixed",
+			skill:     3,
+			objective: 3,
+			expect:    []string{"analyzer_report", "submission_skill_scores", "submission_objective_scores"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := reviewScoredEvidenceRefsJSON(tc.skill, tc.objective)
+			var got []string
+			if err := json.Unmarshal([]byte(raw), &got); err != nil {
+				t.Fatalf("unmarshal refs: %v", err)
+			}
+			if len(got) != len(tc.expect) {
+				t.Fatalf("expected %d refs, got %d (%v)", len(tc.expect), len(got), got)
+			}
+			for idx := range tc.expect {
+				if got[idx] != tc.expect[idx] {
+					t.Fatalf("refs mismatch at %d: expected %q got %q", idx, tc.expect[idx], got[idx])
+				}
+			}
+		})
 	}
 }

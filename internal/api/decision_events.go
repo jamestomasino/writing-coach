@@ -8,12 +8,36 @@ import (
 	"github.com/tomasino/writing-coach/internal/domain"
 )
 
-func (s Server) emitReviewDecisionEvents(ctx context.Context, userID, treeID, enrollmentID int64, reviewResult domain.Review, recommendation curriculum.Recommendation, scoreCount int) error {
+func reviewScoredEvidenceRefsJSON(skillScoreCount, objectiveScoreCount int) string {
+	refs := []string{"analyzer_report"}
+	if skillScoreCount > 0 {
+		refs = append(refs, "submission_skill_scores")
+	}
+	if objectiveScoreCount > 0 {
+		refs = append(refs, "submission_objective_scores")
+	}
+	return string(mustJSON(refs))
+}
+
+func (s Server) emitReviewDecisionEvents(
+	ctx context.Context,
+	userID, treeID, enrollmentID int64,
+	reviewResult domain.Review,
+	recommendation curriculum.Recommendation,
+	skillScoreCount int,
+	objectiveScoreCount int,
+) error {
+	scoreCount := skillScoreCount
+	if objectiveScoreCount > 0 {
+		scoreCount = objectiveScoreCount
+	}
 	scoredPayload, _ := json.Marshal(map[string]any{
-		"review_kind":       reviewResult.ReviewKind,
-		"provider_note":     reviewResult.ProviderNote,
-		"score_row_count":   scoreCount,
-		"analyzer_findings": len(reviewResult.AnalyzerFindings),
+		"review_kind":               reviewResult.ReviewKind,
+		"provider_note":             reviewResult.ProviderNote,
+		"score_row_count":           scoreCount,
+		"skill_score_row_count":     skillScoreCount,
+		"objective_score_row_count": objectiveScoreCount,
+		"analyzer_findings":         len(reviewResult.AnalyzerFindings),
 	})
 	if err := s.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
 		UserID:              userID,
@@ -24,7 +48,7 @@ func (s Server) emitReviewDecisionEvents(ctx context.Context, userID, treeID, en
 		EventType:           "review_scored",
 		DecisionPayloadJSON: string(scoredPayload),
 		RuleVersion:         "deterministic-scoring-v1",
-		EvidenceRefsJSON:    `["analyzer_report","submission_skill_scores","submission_objective_scores"]`,
+		EvidenceRefsJSON:    reviewScoredEvidenceRefsJSON(skillScoreCount, objectiveScoreCount),
 	}); err != nil {
 		return err
 	}

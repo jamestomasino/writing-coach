@@ -368,11 +368,17 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	scoreRowCount := len(scores)
+	if len(objectiveScores) > 0 {
+		scoreRowCount = len(objectiveScores)
+	}
 	reviewScoredPayload, _ := json.Marshal(map[string]any{
-		"review_kind":       reviewResult.ReviewKind,
-		"provider_note":     reviewResult.ProviderNote,
-		"score_row_count":   len(scores),
-		"analyzer_findings": len(reviewResult.AnalyzerFindings),
+		"review_kind":               reviewResult.ReviewKind,
+		"provider_note":             reviewResult.ProviderNote,
+		"score_row_count":           scoreRowCount,
+		"skill_score_row_count":     len(scores),
+		"objective_score_row_count": len(objectiveScores),
+		"analyzer_findings":         len(reviewResult.AnalyzerFindings),
 	})
 	if err := c.Store.SaveDecisionEvent(ctx, domain.DecisionEvent{
 		UserID:              c.AppContext.UserID,
@@ -383,7 +389,7 @@ func (c CLI) runReview(ctx context.Context, args []string) error {
 		EventType:           "review_scored",
 		DecisionPayloadJSON: string(reviewScoredPayload),
 		RuleVersion:         "deterministic-scoring-v1",
-		EvidenceRefsJSON:    `["analyzer_report","submission_skill_scores","submission_objective_scores"]`,
+		EvidenceRefsJSON:    reviewScoredEvidenceRefsJSON(len(scores), len(objectiveScores)),
 	}); err != nil {
 		return err
 	}
@@ -662,4 +668,16 @@ func (c CLI) runCompare(ctx context.Context, args []string) error {
 		fmt.Printf("persisting weaknesses: %s\n", strings.Join(comparison.PersistingWeaknesses, "; "))
 	}
 	return nil
+}
+
+func reviewScoredEvidenceRefsJSON(skillScoreCount, objectiveScoreCount int) string {
+	refs := []string{"analyzer_report"}
+	if skillScoreCount > 0 {
+		refs = append(refs, "submission_skill_scores")
+	}
+	if objectiveScoreCount > 0 {
+		refs = append(refs, "submission_objective_scores")
+	}
+	bytes, _ := json.Marshal(refs)
+	return string(bytes)
 }
