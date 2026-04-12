@@ -168,3 +168,75 @@ func TestAllGrantWritingPublicObjectivesHaveManifestCoverage(t *testing.T) {
 		}
 	}
 }
+
+func TestAllStoryCraftPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("story-craft-track")
+	if !ok {
+		t.Fatal("missing story-craft track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainFiction) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllFantasyFictionPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("fantasy-fiction-track")
+	if !ok {
+		t.Fatal("missing fantasy-fiction track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainFantasy) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllScienceFictionPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("science-fiction-track")
+	if !ok {
+		t.Fatal("missing science-fiction track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainFiction) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllRomanceFictionPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("romance-fiction-track")
+	if !ok {
+		t.Fatal("missing romance-fiction track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainFiction) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllLiteraryFictionPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("literary-fiction-track")
+	if !ok {
+		t.Fatal("missing literary-fiction track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainFiction) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllMysteryThrillerPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("mystery-thriller-track")
+	if !ok {
+		t.Fatal("missing mystery-thriller track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainFiction) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}

@@ -1587,6 +1587,46 @@ func TestBuildObjectiveScoresCloneTrackPairwiseDiscrimination(t *testing.T) {
 				"nlp_topic_drift_score":           35,
 			}},
 		},
+		{
+			name:      "story scene architecture vs prose precision",
+			treeSlug:  "story-craft-track",
+			writing:   "fiction",
+			skill:     "scene architecture",
+			leftCode:  "story-scene-architecture",
+			rightCode: "story-prose-precision",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_transition_marker_density": 7,
+				"nlp_readability_grade":         15,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 1,
+				"nlp_transition_marker_density": 2,
+				"nlp_readability_grade":         9,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
+		{
+			name:      "fantasy scene architecture vs prose precision",
+			treeSlug:  "fantasy-fiction-track",
+			writing:   "fantasy fiction",
+			skill:     "scene architecture",
+			leftCode:  "fantasy-story-scene-architecture",
+			rightCode: "fantasy-story-prose-precision",
+			leftWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_transition_marker_density": 7,
+				"nlp_readability_grade":         15,
+				"nlp_topic_drift_score":         35,
+			}},
+			rightWins: analyzer.Report{Metrics: map[string]int{
+				"nlp_structural_signpost_count": 1,
+				"nlp_transition_marker_density": 2,
+				"nlp_readability_grade":         9,
+				"nlp_topic_drift_score":         35,
+			}},
+		},
 	}
 
 	for _, tc := range cases {
@@ -1706,6 +1746,36 @@ func TestBuildObjectiveScoresCloneTrackMetamorphicMonotonicity(t *testing.T) {
 			highMetrics: map[string]int{
 				"nlp_action_verb_density":         12,
 				"nlp_reference_specificity_score": 60,
+			},
+		},
+		{
+			name:     "story scene architecture improves with signposts",
+			treeSlug: "story-craft-track",
+			writing:  "fiction",
+			code:     "story-scene-architecture",
+			skill:    "scene architecture",
+			lowMetrics: map[string]int{
+				"nlp_structural_signpost_count": 1,
+				"nlp_transition_marker_density": 6,
+			},
+			highMetrics: map[string]int{
+				"nlp_structural_signpost_count": 6,
+				"nlp_transition_marker_density": 6,
+			},
+		},
+		{
+			name:     "fantasy prose precision improves with readability",
+			treeSlug: "fantasy-fiction-track",
+			writing:  "fantasy fiction",
+			code:     "fantasy-story-prose-precision",
+			skill:    "prose precision",
+			lowMetrics: map[string]int{
+				"nlp_readability_grade":         15,
+				"nlp_semantic_repetition_ratio": 45,
+			},
+			highMetrics: map[string]int{
+				"nlp_readability_grade":         9,
+				"nlp_semantic_repetition_ratio": 45,
 			},
 		},
 	}
