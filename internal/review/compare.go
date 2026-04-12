@@ -43,6 +43,22 @@ func CompareSubmissions(current, baseline domain.Submission, currentReview domai
 	switch {
 	case len(currentReview.ObjectiveScores) > 0 && len(baselineReview.ObjectiveScores) > 0:
 		skillDeltas, skillSetMismatch = objectiveScoreDelta(baselineReview.ObjectiveScores, currentReview.ObjectiveScores, currentReview.Annotations)
+	case len(currentReview.ObjectiveScores) > 0 && len(baselineReview.SkillScores) > 0:
+		allowedSkills := allowedSignalSkills(currentReview.TGOAssessments)
+		skillDeltas, skillSetMismatch = scoreDelta(
+			baselineReview.SkillScores,
+			objectiveScoresToSkillScores(currentReview.ObjectiveScores),
+			currentReview.Annotations,
+			allowedSkills,
+		)
+	case len(currentReview.SkillScores) > 0 && len(baselineReview.ObjectiveScores) > 0:
+		allowedSkills := allowedSignalSkills(currentReview.TGOAssessments)
+		skillDeltas, skillSetMismatch = scoreDelta(
+			objectiveScoresToSkillScores(baselineReview.ObjectiveScores),
+			currentReview.SkillScores,
+			currentReview.Annotations,
+			allowedSkills,
+		)
 	default:
 		allowedSkills := allowedSignalSkills(currentReview.TGOAssessments)
 		skillDeltas, skillSetMismatch = scoreDelta(baselineReview.SkillScores, currentReview.SkillScores, currentReview.Annotations, allowedSkills)
@@ -273,6 +289,79 @@ func allowedSignalSkills(assessments []domain.TGOAssessment) map[string]bool {
 	}
 	if len(out) == 0 {
 		return nil
+	}
+	return out
+}
+
+func objectiveScoresToSkillScores(scores []domain.ObjectiveScore) []domain.SkillScore {
+	if len(scores) == 0 {
+		return nil
+	}
+	authoritative := authoritativeObjectiveMap(scores)
+	if len(authoritative) == 0 {
+		return nil
+	}
+	codes := make([]string, 0, len(authoritative))
+	for code := range authoritative {
+		codes = append(codes, code)
+	}
+	sort.Strings(codes)
+	type agg struct {
+		total    int
+		count    int
+		source   string
+		version  string
+		evidence string
+	}
+	bySkill := map[string]agg{}
+	for _, code := range codes {
+		score := authoritative[code]
+		skill := strings.TrimSpace(domain.TGOCodeToSkill[code])
+		if skill == "" {
+			continue
+		}
+		item := bySkill[skill]
+		item.total += score.Score
+		item.count++
+		if item.source == "" {
+			item.source = strings.TrimSpace(score.ScoreSource)
+		}
+		if item.version == "" {
+			item.version = strings.TrimSpace(score.ScoreVersion)
+		}
+		if item.evidence == "" {
+			item.evidence = strings.TrimSpace(score.ScoreEvidenceJSON)
+		}
+		bySkill[skill] = item
+	}
+	if len(bySkill) == 0 {
+		return nil
+	}
+	skills := make([]string, 0, len(bySkill))
+	for skill := range bySkill {
+		skills = append(skills, skill)
+	}
+	sort.Strings(skills)
+	out := make([]domain.SkillScore, 0, len(skills))
+	for _, skill := range skills {
+		item := bySkill[skill]
+		if item.count == 0 {
+			continue
+		}
+		avg := int(float64(item.total)/float64(item.count) + 0.5)
+		if avg < 1 {
+			avg = 1
+		}
+		if avg > 5 {
+			avg = 5
+		}
+		out = append(out, domain.SkillScore{
+			Skill:             skill,
+			Score:             avg,
+			ScoreSource:       item.source,
+			ScoreVersion:      item.version,
+			ScoreEvidenceJSON: item.evidence,
+		})
 	}
 	return out
 }
