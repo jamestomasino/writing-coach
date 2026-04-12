@@ -2,7 +2,7 @@ import { TGODetailView } from '@/components/tgo-detail-view'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Objective guide',
+  title: 'Skill objective guide',
 }
 
 export default async function TGODetailPage({ params }: { params: Promise<{ code: string }> }) {

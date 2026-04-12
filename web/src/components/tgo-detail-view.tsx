@@ -7,6 +7,7 @@ import { Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { WorkspaceCard } from '@/components/workspace-card'
 import { getSkillGraph } from '@/lib/api'
+import { buildObjectiveConcepts } from '@/lib/objective-concepts'
 import { buildObjectiveDetail } from '@/lib/objective-details'
 import type { SkillGraphNode } from '@/lib/types'
 import { SkillLink } from './skill-link'
@@ -44,16 +45,9 @@ export function TGODetailView({ code }: { code: string }) {
     }
   }, [])
 
-  const nodeByCode = useMemo(() => {
-    const byCode = new Map<string, SkillGraphNode>()
-    for (const item of nodes) {
-      if (!byCode.has(item.code)) {
-        byCode.set(item.code, item)
-      }
-    }
-    return byCode
-  }, [nodes])
-  const node = nodeByCode.get(code)
+  const conceptData = useMemo(() => buildObjectiveConcepts(nodes), [nodes])
+  const concept = conceptData.conceptByKey.get(code) ?? conceptData.conceptByKey.get(conceptData.conceptByCode.get(code) ?? '')
+  const node = concept?.representative
   const objectiveDetail = node ? buildObjectiveDetail(node) : null
 
   if (loading) {
@@ -61,20 +55,20 @@ export function TGODetailView({ code }: { code: string }) {
   }
 
   if (error) {
-    return <AppErrorState title="Objective guide unavailable" error={error} />
+    return <AppErrorState title="Skill objective guide unavailable" error={error} />
   }
 
   if (!node) {
-    return <EmptyState title="Objective not found" body="This objective code is not in the current skill graph." actionHref="/tgos" actionLabel="Back to library" />
+    return <EmptyState title="Skill objective not found" body="This skill objective key is not in the current skill graph." actionHref="/tgos" actionLabel="Back to library" />
   }
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Objective guide"
-        title={node.title}
-        intro={node.description}
-        actions={<Badge color="zinc">{node.code}</Badge>}
+        eyebrow="Skill objective guide"
+        title={concept?.title ?? node.title}
+        intro={concept?.description ?? node.description}
+        actions={<Badge color="zinc">{concept?.key ?? node.code}</Badge>}
       />
 
       <WorkspaceCard>
