@@ -86,6 +86,24 @@ func main() {
 			if tree.Slug == "grant-writing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainProfessional) {
 				failures = append(failures, fmt.Sprintf("objective=%s missing grant-writing objective-rules manifest coverage", code))
 			}
+			if tree.Slug == "story-craft-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFiction) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing story-craft objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "fantasy-fiction-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFantasy) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing fantasy-fiction objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "science-fiction-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFiction) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing science-fiction objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "romance-fiction-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFiction) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing romance-fiction objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "literary-fiction-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFiction) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing literary-fiction objective-rules manifest coverage", code))
+			}
+			if tree.Slug == "mystery-thriller-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainFiction) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing mystery-thriller objective-rules manifest coverage", code))
+			}
 		}
 	}
 

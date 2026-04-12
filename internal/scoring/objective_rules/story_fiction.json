@@ -1,0 +1,985 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "rule_id": "objective.fiction-story.audience-alignment",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-beta-awareness",
+        "literary-story-beta-awareness",
+        "romance-story-beta-awareness",
+        "scifi-story-beta-awareness",
+        "story-beta-awareness",
+        "thriller-story-beta-awareness"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.audience-alignment.reference-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "audience alignment reward: audience cues are concrete"
+        },
+        {
+          "id": "objective.fiction-story.audience-alignment.reference-low",
+          "metric": "nlp_reference_specificity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "audience alignment penalty: audience cues are vague"
+        },
+        {
+          "id": "objective.fiction-story.audience-alignment.drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "audience alignment penalty: reader focus drifts"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "audience-alignment",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.descriptive-precision",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-sensory-balance",
+        "literary-story-sensory-balance",
+        "romance-story-sensory-balance",
+        "scifi-story-sensory-balance",
+        "story-sensory-balance",
+        "thriller-story-sensory-balance"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.descriptive-precision.unique-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 40,
+          "delta": 1,
+          "reason": "imagery reward: language remains specific"
+        },
+        {
+          "id": "objective.fiction-story.descriptive-precision.unique-low",
+          "metric": "nlp_unique_token_ratio",
+          "max": 28,
+          "delta": -1,
+          "reason": "imagery penalty: stock phrasing dominates"
+        },
+        {
+          "id": "objective.fiction-story.descriptive-precision.modifier-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "imagery penalty: over-modification blurs images"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 35
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "descriptive-precision",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.dialogue-intelligence",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-dialogue-under-strain",
+        "fantasy-story-silence",
+        "fantasy-story-status-dynamics",
+        "fantasy-story-subtext-basics",
+        "fantasy-story-voice-difference",
+        "literary-story-dialogue-under-strain",
+        "literary-story-silence",
+        "literary-story-status-dynamics",
+        "literary-story-subtext-basics",
+        "literary-story-voice-difference",
+        "romance-story-dialogue-under-strain",
+        "romance-story-silence",
+        "romance-story-status-dynamics",
+        "romance-story-subtext-basics",
+        "romance-story-voice-difference",
+        "scifi-story-dialogue-under-strain",
+        "scifi-story-silence",
+        "scifi-story-status-dynamics",
+        "scifi-story-subtext-basics",
+        "scifi-story-voice-difference",
+        "story-dialogue-under-strain",
+        "story-silence",
+        "story-status-dynamics",
+        "story-subtext-basics",
+        "story-voice-difference",
+        "thriller-story-dialogue-under-strain",
+        "thriller-story-silence",
+        "thriller-story-status-dynamics",
+        "thriller-story-subtext-basics",
+        "thriller-story-voice-difference"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.dialogue-intelligence.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 38,
+          "delta": 1,
+          "reason": "dialogue intelligence reward: dialogue lines avoid redundant beats"
+        },
+        {
+          "id": "objective.fiction-story.dialogue-intelligence.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 62,
+          "delta": -1,
+          "reason": "dialogue intelligence penalty: dialogue repeats without progression"
+        },
+        {
+          "id": "objective.fiction-story.dialogue-intelligence.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 6,
+          "delta": 1,
+          "reason": "dialogue intelligence reward: exchanges move action"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "dialogue-intelligence",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.emotional-compression",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-emotional-arc",
+        "fantasy-story-emotional-compression",
+        "fantasy-story-wound-pattern",
+        "literary-story-emotional-arc",
+        "literary-story-emotional-compression",
+        "literary-story-wound-pattern",
+        "romance-story-emotional-arc",
+        "romance-story-emotional-compression",
+        "romance-story-wound-pattern",
+        "scifi-story-emotional-arc",
+        "scifi-story-emotional-compression",
+        "scifi-story-wound-pattern",
+        "story-emotional-arc",
+        "story-emotional-compression",
+        "story-wound-pattern",
+        "thriller-story-emotional-arc",
+        "thriller-story-emotional-compression",
+        "thriller-story-wound-pattern"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.emotional-compression.modifier-low",
+          "metric": "nlp_modifier_overload_ratio",
+          "max": 18,
+          "delta": 1,
+          "reason": "emotional compression reward: emotion is restrained"
+        },
+        {
+          "id": "objective.fiction-story.emotional-compression.modifier-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "emotional compression penalty: emotional inflation"
+        },
+        {
+          "id": "objective.fiction-story.emotional-compression.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "delta": -1,
+          "reason": "emotional compression penalty: passive distance weakens immediacy"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "emotional-compression",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.image-freshness",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-atmosphere",
+        "fantasy-story-description-focus",
+        "fantasy-story-final-resonance",
+        "fantasy-story-image-freshness",
+        "literary-story-atmosphere",
+        "literary-story-description-focus",
+        "literary-story-final-resonance",
+        "literary-story-image-freshness",
+        "romance-story-atmosphere",
+        "romance-story-description-focus",
+        "romance-story-final-resonance",
+        "romance-story-image-freshness",
+        "scifi-story-atmosphere",
+        "scifi-story-description-focus",
+        "scifi-story-final-resonance",
+        "scifi-story-image-freshness",
+        "story-atmosphere",
+        "story-description-focus",
+        "story-final-resonance",
+        "story-image-freshness",
+        "thriller-story-atmosphere",
+        "thriller-story-description-focus",
+        "thriller-story-final-resonance",
+        "thriller-story-image-freshness"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.image-freshness.unique-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 40,
+          "delta": 1,
+          "reason": "imagery reward: language remains specific"
+        },
+        {
+          "id": "objective.fiction-story.image-freshness.unique-low",
+          "metric": "nlp_unique_token_ratio",
+          "max": 28,
+          "delta": -1,
+          "reason": "imagery penalty: stock phrasing dominates"
+        },
+        {
+          "id": "objective.fiction-story.image-freshness.modifier-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "delta": -1,
+          "reason": "imagery penalty: over-modification blurs images"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_unique_token_ratio": 35
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "image-freshness",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.narrative-clarity",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-backstory-restraint",
+        "fantasy-story-causal-clarity",
+        "fantasy-story-exposition-control",
+        "fantasy-story-point-of-view",
+        "literary-story-backstory-restraint",
+        "literary-story-causal-clarity",
+        "literary-story-exposition-control",
+        "literary-story-point-of-view",
+        "romance-story-backstory-restraint",
+        "romance-story-causal-clarity",
+        "romance-story-exposition-control",
+        "romance-story-point-of-view",
+        "scifi-story-backstory-restraint",
+        "scifi-story-causal-clarity",
+        "scifi-story-exposition-control",
+        "scifi-story-point-of-view",
+        "story-backstory-restraint",
+        "story-causal-clarity",
+        "story-exposition-control",
+        "story-point-of-view",
+        "thriller-story-backstory-restraint",
+        "thriller-story-causal-clarity",
+        "thriller-story-exposition-control",
+        "thriller-story-point-of-view"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.narrative-clarity.temporal-high",
+          "metric": "nlp_temporal_clarity_score",
+          "min": 70,
+          "delta": 1,
+          "reason": "narrative clarity reward: timeline is legible"
+        },
+        {
+          "id": "objective.fiction-story.narrative-clarity.temporal-low",
+          "metric": "nlp_temporal_clarity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "narrative clarity penalty: timeline is unclear"
+        },
+        {
+          "id": "objective.fiction-story.narrative-clarity.focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "narrative clarity reward: paragraph focus supports tracking"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_temporal_clarity_score": 65
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "narrative-clarity",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.prose-precision",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-metaphor-restraint",
+        "fantasy-story-paragraph-momentum",
+        "fantasy-story-prose-precision",
+        "fantasy-story-rhythm-control",
+        "literary-story-metaphor-restraint",
+        "literary-story-paragraph-momentum",
+        "literary-story-prose-precision",
+        "literary-story-rhythm-control",
+        "romance-story-metaphor-restraint",
+        "romance-story-paragraph-momentum",
+        "romance-story-prose-precision",
+        "romance-story-rhythm-control",
+        "scifi-story-metaphor-restraint",
+        "scifi-story-paragraph-momentum",
+        "scifi-story-prose-precision",
+        "scifi-story-rhythm-control",
+        "story-metaphor-restraint",
+        "story-paragraph-momentum",
+        "story-prose-precision",
+        "story-rhythm-control",
+        "thriller-story-metaphor-restraint",
+        "thriller-story-paragraph-momentum",
+        "thriller-story-prose-precision",
+        "thriller-story-rhythm-control"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.prose-precision.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 11,
+          "delta": 1,
+          "reason": "prose precision reward: readability supports control"
+        },
+        {
+          "id": "objective.fiction-story.prose-precision.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "prose precision penalty: readability too dense"
+        },
+        {
+          "id": "objective.fiction-story.prose-precision.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "prose precision penalty: repetitive phrasing"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "prose-precision",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.revision-habits",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-clarity-pass",
+        "fantasy-story-language-pass",
+        "fantasy-story-revision-triage",
+        "fantasy-story-scene-cutting",
+        "literary-story-clarity-pass",
+        "literary-story-language-pass",
+        "literary-story-revision-triage",
+        "literary-story-scene-cutting",
+        "romance-story-clarity-pass",
+        "romance-story-language-pass",
+        "romance-story-revision-triage",
+        "romance-story-scene-cutting",
+        "scifi-story-clarity-pass",
+        "scifi-story-language-pass",
+        "scifi-story-revision-triage",
+        "scifi-story-scene-cutting",
+        "story-clarity-pass",
+        "story-language-pass",
+        "story-revision-triage",
+        "story-scene-cutting",
+        "thriller-story-clarity-pass",
+        "thriller-story-language-pass",
+        "thriller-story-revision-triage",
+        "thriller-story-scene-cutting"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.revision-habits.readability-good",
+          "metric": "nlp_readability_grade",
+          "max": 11,
+          "delta": 1,
+          "reason": "revision habits reward: readability improved"
+        },
+        {
+          "id": "objective.fiction-story.revision-habits.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "delta": -1,
+          "reason": "revision habits penalty: readability unresolved"
+        },
+        {
+          "id": "objective.fiction-story.revision-habits.repetition-low",
+          "metric": "nlp_semantic_repetition_ratio",
+          "max": 40,
+          "delta": 1,
+          "reason": "revision habits reward: redundancy reduced"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {},
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "revision-habits",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.scene-architecture",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-conflict-design",
+        "fantasy-story-entrance-exit",
+        "fantasy-story-reversal",
+        "fantasy-story-scene-architecture",
+        "fantasy-story-spatial-legibility",
+        "fantasy-story-tension-growth",
+        "fantasy-story-transition-flow",
+        "literary-story-conflict-design",
+        "literary-story-entrance-exit",
+        "literary-story-reversal",
+        "literary-story-scene-architecture",
+        "literary-story-spatial-legibility",
+        "literary-story-tension-growth",
+        "literary-story-transition-flow",
+        "romance-story-conflict-design",
+        "romance-story-entrance-exit",
+        "romance-story-reversal",
+        "romance-story-scene-architecture",
+        "romance-story-spatial-legibility",
+        "romance-story-tension-growth",
+        "romance-story-transition-flow",
+        "scifi-story-conflict-design",
+        "scifi-story-entrance-exit",
+        "scifi-story-reversal",
+        "scifi-story-scene-architecture",
+        "scifi-story-spatial-legibility",
+        "scifi-story-tension-growth",
+        "scifi-story-transition-flow",
+        "story-conflict-design",
+        "story-entrance-exit",
+        "story-reversal",
+        "story-scene-architecture",
+        "story-spatial-legibility",
+        "story-tension-growth",
+        "story-transition-flow",
+        "thriller-story-conflict-design",
+        "thriller-story-entrance-exit",
+        "thriller-story-reversal",
+        "thriller-story-scene-architecture",
+        "thriller-story-spatial-legibility",
+        "thriller-story-tension-growth",
+        "thriller-story-transition-flow"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.scene-architecture.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "scene architecture reward: scene turns are legible"
+        },
+        {
+          "id": "objective.fiction-story.scene-architecture.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "scene architecture penalty: scene turns are unclear"
+        },
+        {
+          "id": "objective.fiction-story.scene-architecture.transition-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "delta": 1,
+          "reason": "scene architecture reward: scene transitions are explicit"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "scene-architecture",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.story-development",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-change-arc",
+        "fantasy-story-character-goal",
+        "fantasy-story-character-need",
+        "fantasy-story-contradiction",
+        "fantasy-story-plot-escalation",
+        "fantasy-story-relationship-pressure",
+        "fantasy-story-subplot-use",
+        "fantasy-story-theme-pressure",
+        "literary-story-change-arc",
+        "literary-story-character-goal",
+        "literary-story-character-need",
+        "literary-story-contradiction",
+        "literary-story-plot-escalation",
+        "literary-story-relationship-pressure",
+        "literary-story-subplot-use",
+        "literary-story-theme-pressure",
+        "romance-story-change-arc",
+        "romance-story-character-goal",
+        "romance-story-character-need",
+        "romance-story-contradiction",
+        "romance-story-plot-escalation",
+        "romance-story-relationship-pressure",
+        "romance-story-subplot-use",
+        "romance-story-theme-pressure",
+        "scifi-story-change-arc",
+        "scifi-story-character-goal",
+        "scifi-story-character-need",
+        "scifi-story-contradiction",
+        "scifi-story-plot-escalation",
+        "scifi-story-relationship-pressure",
+        "scifi-story-subplot-use",
+        "scifi-story-theme-pressure",
+        "story-change-arc",
+        "story-character-goal",
+        "story-character-need",
+        "story-contradiction",
+        "story-plot-escalation",
+        "story-relationship-pressure",
+        "story-subplot-use",
+        "story-theme-pressure",
+        "thriller-story-change-arc",
+        "thriller-story-character-goal",
+        "thriller-story-character-need",
+        "thriller-story-contradiction",
+        "thriller-story-plot-escalation",
+        "thriller-story-relationship-pressure",
+        "thriller-story-subplot-use",
+        "thriller-story-theme-pressure"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.story-development.focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "story development reward: beats have clear function"
+        },
+        {
+          "id": "objective.fiction-story.story-development.focus-low",
+          "metric": "nlp_paragraph_focus_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "story development penalty: beats diffuse"
+        },
+        {
+          "id": "objective.fiction-story.story-development.drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "story development penalty: narrative thread drifts"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_paragraph_focus_score": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "story-development",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.structure-and-pacing",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-climax-construction",
+        "fantasy-story-ending-payoff",
+        "fantasy-story-middle-management",
+        "fantasy-story-opening-grip",
+        "fantasy-story-scene-sequencing",
+        "literary-story-climax-construction",
+        "literary-story-ending-payoff",
+        "literary-story-middle-management",
+        "literary-story-opening-grip",
+        "literary-story-scene-sequencing",
+        "romance-story-climax-construction",
+        "romance-story-ending-payoff",
+        "romance-story-middle-management",
+        "romance-story-opening-grip",
+        "romance-story-scene-sequencing",
+        "scifi-story-climax-construction",
+        "scifi-story-ending-payoff",
+        "scifi-story-middle-management",
+        "scifi-story-opening-grip",
+        "scifi-story-scene-sequencing",
+        "story-climax-construction",
+        "story-ending-payoff",
+        "story-middle-management",
+        "story-opening-grip",
+        "story-scene-sequencing",
+        "thriller-story-climax-construction",
+        "thriller-story-ending-payoff",
+        "thriller-story-middle-management",
+        "thriller-story-opening-grip",
+        "thriller-story-scene-sequencing"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.structure-and-pacing.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "delta": 1,
+          "reason": "structure and pacing reward: macro arc is legible"
+        },
+        {
+          "id": "objective.fiction-story.structure-and-pacing.signposts-low",
+          "metric": "nlp_structural_signpost_count",
+          "max": 1,
+          "delta": -1,
+          "reason": "structure and pacing penalty: macro arc is obscured"
+        },
+        {
+          "id": "objective.fiction-story.structure-and-pacing.transition-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "delta": 1,
+          "reason": "structure and pacing reward: transitions sustain momentum"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "structure-and-pacing",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.symbolic-control",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-motif",
+        "literary-story-motif",
+        "romance-story-motif",
+        "scifi-story-motif",
+        "story-motif",
+        "thriller-story-motif"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.symbolic-control.lexical-high",
+          "metric": "nlp_lexical_density",
+          "min": 48,
+          "delta": 1,
+          "reason": "symbolic control reward: motifs stay conceptually dense"
+        },
+        {
+          "id": "objective.fiction-story.symbolic-control.lexical-low",
+          "metric": "nlp_lexical_density",
+          "max": 34,
+          "delta": -1,
+          "reason": "symbolic control penalty: motifs stay shallow"
+        },
+        {
+          "id": "objective.fiction-story.symbolic-control.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "delta": -1,
+          "reason": "symbolic control penalty: symbolic recurrence becomes repetitive"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_lexical_density": 44
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "symbolic-control",
+        "fiction",
+        "storycraft"
+      ]
+    },
+    {
+      "rule_id": "objective.fiction-story.worldbuilding-economy",
+      "domain": "fiction",
+      "track_slugs": [
+        "story-craft-track",
+        "fantasy-fiction-track",
+        "science-fiction-track",
+        "romance-fiction-track",
+        "literary-fiction-track",
+        "mystery-thriller-track"
+      ],
+      "tgo_codes": [
+        "fantasy-story-history-pressure",
+        "fantasy-story-object-handling",
+        "fantasy-story-setting-pressure",
+        "fantasy-story-social-structure",
+        "fantasy-story-worldbuilding-economy",
+        "literary-story-history-pressure",
+        "literary-story-object-handling",
+        "literary-story-setting-pressure",
+        "literary-story-social-structure",
+        "literary-story-worldbuilding-economy",
+        "romance-story-history-pressure",
+        "romance-story-object-handling",
+        "romance-story-setting-pressure",
+        "romance-story-social-structure",
+        "romance-story-worldbuilding-economy",
+        "scifi-story-history-pressure",
+        "scifi-story-object-handling",
+        "scifi-story-setting-pressure",
+        "scifi-story-social-structure",
+        "scifi-story-worldbuilding-economy",
+        "story-history-pressure",
+        "story-object-handling",
+        "story-setting-pressure",
+        "story-social-structure",
+        "story-worldbuilding-economy",
+        "thriller-story-history-pressure",
+        "thriller-story-object-handling",
+        "thriller-story-setting-pressure",
+        "thriller-story-social-structure",
+        "thriller-story-worldbuilding-economy"
+      ],
+      "metric_rules": [
+        {
+          "id": "objective.fiction-story.worldbuilding-economy.reference-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "delta": 1,
+          "reason": "worldbuilding economy reward: concrete details anchor the world"
+        },
+        {
+          "id": "objective.fiction-story.worldbuilding-economy.reference-low",
+          "metric": "nlp_reference_specificity_score",
+          "max": 45,
+          "delta": -1,
+          "reason": "worldbuilding economy penalty: setting details stay vague"
+        },
+        {
+          "id": "objective.fiction-story.worldbuilding-economy.drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "delta": -1,
+          "reason": "worldbuilding economy penalty: world detail derails scene purpose"
+        }
+      ],
+      "category_rules": [],
+      "top_score_gate": {
+        "require_rule_trigger_count": 1,
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        }
+      },
+      "evidence_labels": [
+        "worldbuilding-economy",
+        "fiction",
+        "storycraft"
+      ]
+    }
+  ]
+}
