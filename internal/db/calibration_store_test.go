@@ -162,3 +162,92 @@ func TestCalibrationRunAndNotificationLifecycle(t *testing.T) {
 		t.Fatalf("unread notifications after read = %d", unread)
 	}
 }
+
+func TestListCalibrationTrackSnapshotsPrefersObjectiveScoresWhenPresent(t *testing.T) {
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "test.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	if err := store.Migrate(ctx, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if err := store.EnsureSeedData(ctx, "Tester"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	userID, treeID, _, err := store.EnsureDefaultUserTree(ctx, "tester", "Tester", "story-craft-track")
+	if err != nil {
+		t.Fatalf("default user tree: %v", err)
+	}
+	exerciseID, err := store.SaveExercise(ctx, domain.Exercise{
+		UserID:          userID,
+		TreeID:          treeID,
+		Title:           "Calibration objective sample",
+		Brief:           "Draft for objective calibration",
+		Constraints:     []string{"single paragraph"},
+		FocusSkills:     []string{"narrative clarity"},
+		TGOCodes:        []string{"story-causal-clarity", "story-scene-architecture"},
+		SuccessCriteria: []string{"clear causality"},
+		GenerationKind:  "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("save exercise: %v", err)
+	}
+	submissionID, err := store.SaveSubmission(ctx, domain.Submission{
+		UserID:     userID,
+		TreeID:     treeID,
+		ExerciseID: exerciseID,
+		Content:    "A clear scene with a focused turn.",
+		WordCount:  8,
+	})
+	if err != nil {
+		t.Fatalf("save submission: %v", err)
+	}
+	// Insert a legacy deterministic family score; objective rows should take precedence.
+	if _, err := store.SQL.ExecContext(ctx, `
+		INSERT INTO submission_skill_scores (submission_id, skill_name, score, score_source, score_version, score_evidence_json)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, submissionID, "narrative clarity", 1, "deterministic", "det-v2", `{}`); err != nil {
+		t.Fatalf("insert deterministic legacy score: %v", err)
+	}
+	if _, err := store.SQL.ExecContext(ctx, `
+		INSERT INTO submission_objective_scores (submission_id, tgo_code, score, score_source, score_version, score_evidence_json)
+		VALUES (?, ?, ?, 'deterministic', 'obj-det-v1', '{}'),
+		       (?, ?, ?, 'deterministic', 'obj-det-v1', '{}')
+	`, submissionID, "story-causal-clarity", 4, submissionID, "story-scene-architecture", 5); err != nil {
+		t.Fatalf("insert deterministic objective scores: %v", err)
+	}
+
+	snapshots, err := store.ListCalibrationTrackSnapshots(ctx, domain.GlobalSkillGraphSlug, 50)
+	if err != nil {
+		t.Fatalf("list calibration snapshots: %v", err)
+	}
+	if len(snapshots) == 0 {
+		t.Fatal("expected at least one calibration snapshot")
+	}
+	var found *domain.CalibrationTrackSnapshot
+	for i := range snapshots {
+		if snapshots[i].TreeSlug == "story-craft-track" {
+			found = &snapshots[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected snapshot for story-craft-track, got %+v", snapshots)
+	}
+	if found.SubmissionCount != 1 {
+		t.Fatalf("submission count = %d", found.SubmissionCount)
+	}
+	if found.DeterministicScoreCount != 2 {
+		t.Fatalf("expected objective-preferred score count 2, got %d", found.DeterministicScoreCount)
+	}
+	if found.TopScoreCount != 1 {
+		t.Fatalf("top score count = %d", found.TopScoreCount)
+	}
+	if found.AverageScore < 4.49 || found.AverageScore > 4.51 {
+		t.Fatalf("average score = %.2f", found.AverageScore)
+	}
+}

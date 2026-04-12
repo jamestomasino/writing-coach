@@ -276,10 +276,22 @@ func (s *Store) ListCalibrationTrackSnapshots(ctx context.Context, defaultTreeSl
 		limitPerTrack = 200
 	}
 	rows, err := s.SQL.QueryContext(ctx, `
-		WITH ranked_scores AS (
+		WITH objective_ranked AS (
+			SELECT
+				sos.submission_id,
+				sos.tgo_code AS metric_key,
+				sos.score,
+				ROW_NUMBER() OVER (
+					PARTITION BY sos.submission_id, sos.tgo_code
+					ORDER BY sos.id DESC
+				) AS rn
+			FROM submission_objective_scores sos
+			WHERE sos.score_source = 'deterministic'
+		),
+		skill_ranked AS (
 			SELECT
 				submission_id,
-				skill_name,
+				skill_name AS metric_key,
 				score,
 				ROW_NUMBER() OVER (
 					PARTITION BY submission_id, skill_name
@@ -287,6 +299,25 @@ func (s *Store) ListCalibrationTrackSnapshots(ctx context.Context, defaultTreeSl
 				) AS rn
 			FROM submission_skill_scores
 			WHERE score_source = 'deterministic'
+		),
+		submissions_with_objective AS (
+			SELECT DISTINCT submission_id
+			FROM objective_ranked
+			WHERE rn = 1
+		),
+		ranked_scores AS (
+			SELECT submission_id, metric_key, score
+			FROM objective_ranked
+			WHERE rn = 1
+			UNION ALL
+			SELECT sr.submission_id, sr.metric_key, sr.score
+			FROM skill_ranked sr
+			WHERE sr.rn = 1
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM submissions_with_objective so
+				WHERE so.submission_id = sr.submission_id
+			  )
 		),
 		track_ranked AS (
 			SELECT
@@ -314,7 +345,6 @@ func (s *Store) ListCalibrationTrackSnapshots(ctx context.Context, defaultTreeSl
 		FROM sampled
 		LEFT JOIN ranked_scores rs
 			ON rs.submission_id = sampled.submission_id
-			AND rs.rn = 1
 		GROUP BY sampled.tree_slug
 		ORDER BY submission_count DESC, sampled.tree_slug ASC
 	`, defaultTreeSlug, defaultTreeSlug, limitPerTrack)
