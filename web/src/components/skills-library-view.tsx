@@ -114,7 +114,7 @@ export function SkillsLibraryView() {
                 <Link
                   key={skill.slug}
                   href={`/skills/${skill.slug}`}
-                  className="rounded-2xl border border-stone-200 bg-stone-50 p-4 data-hover:border-stone-300 data-hover:bg-white dark:border-white/10 dark:bg-white/5 dark:data-hover:border-white/20"
+                  className="rounded-2xl border border-stone-200 bg-stone-50 p-4 data-hover:border-stone-300 data-hover:bg-white dark:border-white/10 dark:bg-white/5 dark:data-hover:border-white/20 dark:data-hover:bg-white/10"
                 >
                   <div className="font-semibold capitalize text-zinc-900 dark:text-white">{skill.name}</div>
                   <Text className="mt-2 text-sm">{skill.oneLine}</Text>
