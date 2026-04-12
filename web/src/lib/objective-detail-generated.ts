@@ -53,17 +53,62 @@ function clipWords(value: string, maxWords: number) {
 function objectiveGoal(node: SkillGraphNode) {
   const rawDescription = node.description || `Practice ${node.title.toLowerCase()} in a visible, repeatable way`
   const description = sentence(sanitizeProse(rawDescription))
-  const mastery = node.mastery_hint ? sentence(`Target mastery marker: ${node.mastery_hint}`) : ''
-  return `${description}${mastery ? ` ${mastery}` : ''}`.trim()
+  return description
 }
 
 function whyThisObjective(node: SkillGraphNode) {
+  const skill = (node.skill_name ?? '').toLowerCase()
   const stage = stageLabel(node.stage)
-  const base = sentence(`This objective builds ${stage} for ${node.title.toLowerCase()}`)
-  const mastery = node.mastery_hint
-    ? sentence(`When this holds: ${clipWords(node.mastery_hint, 14)}`)
-    : sentence('When this holds, readers can follow the draft without reconstructing intent')
-  return `${base} ${mastery}`.trim()
+  const stageHint = stage.includes('revision') ? 'during revision' : 'while drafting'
+
+  if (skill.includes('narrative') || skill.includes('story') || skill.includes('scene')) {
+    return `${sentence(
+      `This matters now because narrative writing loses momentum when readers cannot track cause, pressure, and consequence ${stageHint}`
+    )} ${sentence(
+      'When this control is strong, scenes feel intentional, stakes escalate cleanly, and readers stay oriented inside the story instead of decoding what happened'
+    )}`.trim()
+  }
+  if (skill.includes('claim') || skill.includes('thesis') || skill.includes('analysis') || skill.includes('reasoning')) {
+    return `${sentence(
+      `This matters now because analytical writing persuades only when the central position and supporting logic are explicit ${stageHint}`
+    )} ${sentence(
+      'When this control is weak, readers may understand your topic but still reject your conclusion because the reasoning path feels incomplete'
+    )}`.trim()
+  }
+  if (skill.includes('evidence') || skill.includes('source')) {
+    return `${sentence(
+      `This matters now because readers trust evidence only when support is relevant, framed, and connected to a clear claim ${stageHint}`
+    )} ${sentence(
+      'Strong control here prevents source dumping, improves credibility, and makes it obvious why each citation belongs in the paragraph'
+    )}`.trim()
+  }
+  if (skill.includes('tone') || skill.includes('voice') || skill.includes('audience')) {
+    return `${sentence(
+      `This matters now because tone and voice shape whether readers trust your intent and stay engaged ${stageHint}`
+    )} ${sentence(
+      'When audience fit is off, even accurate points can sound evasive, inflated, or dismissive, which weakens the writing outcome'
+    )}`.trim()
+  }
+  if (skill.includes('actionability') || skill.includes('scannability') || skill.includes('professional format')) {
+    return `${sentence(
+      `This matters now because practical writing succeeds only when readers can find key information quickly and act on it ${stageHint}`
+    )} ${sentence(
+      'Without this control, readers spend time searching for owners, decisions, or next steps, and execution quality drops even when the content is correct'
+    )}`.trim()
+  }
+  if (skill.includes('grammar') || skill.includes('spelling') || skill.includes('mechanics') || skill.includes('precision')) {
+    return `${sentence(
+      `This matters now because sentence-level control protects clarity, precision, and credibility ${stageHint}`
+    )} ${sentence(
+      'Mechanical noise and vague wording force readers to re-interpret basic meaning, which distracts from your argument and weakens trust'
+    )}`.trim()
+  }
+
+  return `${sentence(
+    `This matters now because missing control in this area makes writing harder to follow ${stageHint}`
+  )} ${sentence(
+    'When this objective is stable, readers spend cognitive effort on your ideas rather than on reconstructing sentence-level intent'
+  )}`.trim()
 }
 
 function successLooksLike(node: SkillGraphNode) {

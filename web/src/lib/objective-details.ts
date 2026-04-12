@@ -29,6 +29,42 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function removeObjectiveName(text: string, objectiveTitle: string) {
+  const cleanedTitle = objectiveTitle.trim()
+  if (!cleanedTitle) {
+    return text
+  }
+  const variants = new Set<string>([cleanedTitle])
+  const normalized = cleanedTitle.replace(/[^A-Za-z0-9\s]+/g, ' ').replace(/\s+/g, ' ').trim()
+  if (normalized) {
+    variants.add(normalized)
+  }
+
+  let out = text
+  for (const variant of variants) {
+    const pattern = new RegExp(`\\b${escapeRegex(variant).replace(/\s+/g, '\\s+')}\\b`, 'gi')
+    out = out.replace(pattern, 'this skill')
+  }
+  out = out.replace(/\bthis skill\s+skill\b/gi, 'this skill')
+  out = out.replace(/\s{2,}/g, ' ').trim()
+  return out
+}
+
+function scrubObjectiveSelfReferences(detail: ObjectiveDetail, objectiveTitle: string): ObjectiveDetail {
+  return {
+    ...detail,
+    objectiveGoal: removeObjectiveName(detail.objectiveGoal, objectiveTitle),
+    whyThisObjective: removeObjectiveName(detail.whyThisObjective, objectiveTitle),
+    goodExample: removeObjectiveName(detail.goodExample, objectiveTitle),
+    badExample: removeObjectiveName(detail.badExample, objectiveTitle),
+    successLooksLike: detail.successLooksLike.map((item) => removeObjectiveName(item, objectiveTitle)),
+  }
+}
+
 function sentence(value: string, fallback: string) {
   const trimmed = value.trim()
   if (!trimmed) {
@@ -189,10 +225,10 @@ export function buildObjectiveDetail(node: SkillGraphNode, conceptKey?: string):
   }
 
   if (!override) {
-    return baseDetail
+    return scrubObjectiveSelfReferences(baseDetail, node.title)
   }
 
-  return {
+  const merged: ObjectiveDetail = {
     ...baseDetail,
     ...override,
     successLooksLike: override.successLooksLike ?? baseDetail.successLooksLike,
@@ -200,4 +236,5 @@ export function buildObjectiveDetail(node: SkillGraphNode, conceptKey?: string):
     assessmentFocus: override.assessmentFocus ?? baseDetail.assessmentFocus,
     exampleSources: override.exampleSources ?? baseDetail.exampleSources,
   }
+  return scrubObjectiveSelfReferences(merged, node.title)
 }

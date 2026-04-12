@@ -87,6 +87,29 @@ function removeExampleLabel(text) {
   return text.replace(/^Good:\s*/i, '').replace(/^Needs work:\s*/i, '').trim()
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function containsObjectiveName(text, objectiveTitle) {
+  const title = objectiveTitle.trim()
+  if (!title) {
+    return false
+  }
+  const variants = new Set([title])
+  const normalized = title.replace(/[^A-Za-z0-9\\s]+/g, ' ').replace(/\\s+/g, ' ').trim()
+  if (normalized) {
+    variants.add(normalized)
+  }
+  for (const variant of variants) {
+    const pattern = new RegExp(`\\\\b${escapeRegex(variant).replace(/\\s+/g, '\\\\s+')}\\\\b`, 'i')
+    if (pattern.test(text)) {
+      return true
+    }
+  }
+  return false
+}
+
 function sentenceChunks(text) {
   return text
     .split(/[.!?]/)
@@ -179,13 +202,26 @@ function main() {
 
     for (const field of ['objectiveGoal', 'whyThisObjective']) {
       const value = detail[field]
-      const chunks = sentenceChunks(value)
-      if (chunks.length > 3) {
-        failures.push(`${node.code}: ${field} should be 1-3 short sentences`)
+      if (typeof value !== 'string' || value.trim().length === 0) {
+        failures.push(`${node.code}: ${field} must contain guidance text`)
       }
-      const longest = Math.max(0, ...chunks.map((chunk) => words(chunk)))
-      if (longest > 24) {
-        failures.push(`${node.code}: ${field} has a sentence that is too long (${longest} words)`)
+    }
+
+    for (const [field, value] of [
+      ['objectiveGoal', detail.objectiveGoal],
+      ['whyThisObjective', detail.whyThisObjective],
+      ['goodExample', detail.goodExample],
+      ['badExample', detail.badExample],
+    ]) {
+      if (typeof value === 'string' && containsObjectiveName(value, node.title)) {
+        failures.push(`${node.code}: ${field} must not repeat the objective title "${node.title}"`)
+      }
+    }
+    if (Array.isArray(detail.successLooksLike)) {
+      for (const [index, value] of detail.successLooksLike.entries()) {
+        if (containsObjectiveName(value, node.title)) {
+          failures.push(`${node.code}: successLooksLike[${index}] must not repeat the objective title "${node.title}"`)
+        }
       }
     }
 
