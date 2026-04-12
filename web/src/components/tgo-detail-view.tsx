@@ -70,24 +70,12 @@ export function TGODetailView({ code }: { code: string }) {
         actions={<Badge color="zinc">{concept?.key ?? node.code}</Badge>}
       />
 
-      <WorkspaceCard>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Subheading>Objective code</Subheading>
-            <Text className="mt-2 text-sm">{concept?.key ?? node.code}</Text>
-          </div>
-          <div>
-            <Subheading>Stage</Subheading>
-            <Text className="mt-2 text-sm">{node.stage.replace(/-/g, ' ')}</Text>
-          </div>
+      {node.mastery_hint ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-400/30 dark:bg-emerald-500/10">
+          <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Mastery marker</div>
+          <Text className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">{node.mastery_hint}</Text>
         </div>
-        {node.mastery_hint ? (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-400/30 dark:bg-emerald-500/10">
-            <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Mastery marker</div>
-            <Text className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">{node.mastery_hint}</Text>
-          </div>
-        ) : null}
-      </WorkspaceCard>
+      ) : null}
 
       {objectiveDetail ? (
         <WorkspaceCard>
