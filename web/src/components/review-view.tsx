@@ -6,6 +6,7 @@ import { CardHeader } from '@/components/card-header'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { Link } from '@/components/link'
+import { objectiveConceptKey } from '@/lib/objective-concepts'
 import type { ReviewAnnotation } from '@/lib/types'
 import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useReviewWorkspace } from '@/lib/use-review-workspace'
@@ -213,7 +214,7 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                     <div className="font-semibold text-zinc-950 dark:text-white">{tgo.title}</div>
                     {showSkillInfo ? (
                       <Link
-                        href={`/skills/${encodeURIComponent(tgo.code)}`}
+                        href={`/skills/${encodeURIComponent(objectiveConceptKey(tgo.title))}`}
                         aria-label={`Open ${tgo.title} details`}
                         className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-0.5 text-zinc-500 data-hover:text-zinc-900 dark:border-white/15 dark:bg-black/10 dark:text-zinc-400 dark:data-hover:text-zinc-100"
                       >

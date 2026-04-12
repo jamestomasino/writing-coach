@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { Link } from '@/components/link'
+import { objectiveConceptKey } from '@/lib/objective-concepts'
 
 type TgoLinkProps = {
   code: string
@@ -14,7 +15,7 @@ export function TgoLink({ code, label, className }: TgoLinkProps) {
   }
   return (
     <Link
-      href={`/skills/${encodeURIComponent(value)}`}
+      href={`/skills/${encodeURIComponent(objectiveConceptKey(value))}`}
       className={clsx(
         className,
         'underline decoration-zinc-300 decoration-2 underline-offset-2 data-hover:decoration-zinc-600 dark:decoration-zinc-600 dark:data-hover:decoration-zinc-200'

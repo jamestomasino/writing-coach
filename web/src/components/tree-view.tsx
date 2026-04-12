@@ -11,6 +11,7 @@ import { Link } from '@/components/link'
 import { PageHeader } from '@/components/page-header'
 import { Text } from '@/components/text'
 import { layoutTreeGraph, type LayoutEdgeRoute, type LayoutPoint } from '@/components/tree-layout'
+import { objectiveConceptKey } from '@/lib/objective-concepts'
 import type { Dashboard, Tree } from '@/lib/types'
 import { useTrackDashboardData } from '@/lib/use-track-dashboard-data'
 import {
@@ -631,7 +632,7 @@ export function TreeView() {
                         <div className="flex items-center gap-2">
                           <Subheading className="text-white">{selected.title}</Subheading>
                           <Link
-                            href={`/skills/${encodeURIComponent(selected.code)}`}
+                            href={`/skills/${encodeURIComponent(objectiveConceptKey(selected.title))}`}
                             aria-label={`Open ${selected.title} details`}
                             className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-0.5 text-zinc-200 data-hover:text-white"
                           >
@@ -677,7 +678,7 @@ export function TreeView() {
                             >
                               <span>{prerequisite.title}</span>
                               <Link
-                                href={`/skills/${encodeURIComponent(prerequisite.code)}`}
+                                href={`/skills/${encodeURIComponent(objectiveConceptKey(prerequisite.title))}`}
                                 aria-label={`Open ${prerequisite.title} details`}
                                 className="inline-flex items-center justify-center rounded-full p-0.5 text-zinc-300 data-hover:text-white"
                               >
@@ -706,7 +707,7 @@ export function TreeView() {
                             >
                               <span>{unlock.title}</span>
                               <Link
-                                href={`/skills/${encodeURIComponent(unlock.code)}`}
+                                href={`/skills/${encodeURIComponent(objectiveConceptKey(unlock.title))}`}
                                 aria-label={`Open ${unlock.title} details`}
                                 className="inline-flex items-center justify-center rounded-full p-0.5 text-amber-100/90 data-hover:text-white"
                               >
