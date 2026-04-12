@@ -450,9 +450,9 @@ function objectiveMarker(node: SkillGraphNode, mode: 'met' | 'missing') {
       .trim()
   )
   if (mode === 'met') {
-    return sentence(`Mastery marker visible: ${marker}`)
+    return marker
   }
-  return sentence(`Missing marker: ${marker}`)
+  return marker
 }
 
 function focusElement(node: SkillGraphNode) {
