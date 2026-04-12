@@ -865,21 +865,6 @@ func (s Server) saveExercise(ctx context.Context, ex domain.Exercise) (int64, er
 	return id, nil
 }
 
-func (s Server) createNextExercise(ctx context.Context, appContext session.Context) (domain.Exercise, error) {
-	ex, err := s.generateNextExercise(ctx, appContext)
-	if err != nil {
-		return domain.Exercise{}, err
-	}
-	ex.UserID = appContext.UserID
-	ex.TreeID = appContext.TreeID
-	id, err := s.saveExercise(ctx, ex)
-	if err != nil {
-		return domain.Exercise{}, err
-	}
-	ex.ID = id
-	return ex, nil
-}
-
 func (s Server) setActiveTGOsForSelection(ctx context.Context, appContext session.Context, codes []string) error {
 	if len(codes) != 3 {
 		return fmt.Errorf("exactly 3 TGOs must be selected")

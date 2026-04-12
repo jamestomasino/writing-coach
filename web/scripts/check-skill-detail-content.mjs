@@ -109,10 +109,6 @@ function main() {
     if (!Array.isArray(item.revisionMoves) || item.revisionMoves.length < 2 || item.revisionMoves.length > 4) {
       failures.push(`${item.name}: revisionMoves must contain 2-4 action items`)
     }
-    if (!Array.isArray(item.contentSources) || item.contentSources.length === 0) {
-      failures.push(`${item.name}: contentSources must not be empty`)
-    }
-
     if (typeof item.oneLine === 'string' && words(item.oneLine) > 18) {
       failures.push(`${item.name}: oneLine is too long (${words(item.oneLine)} words)`)
     }

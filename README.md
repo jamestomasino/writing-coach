@@ -73,6 +73,7 @@ For a safer production release flow with copied-data staging and rollback script
 Use repo-root commands for backend and frontend independently:
 
 - Backend tests: `./scripts/test-backend.sh`
+- Backend coverage snapshot: `./scripts/test-coverage.sh`
 - Frontend checks: `./scripts/test-frontend.sh`
 - Combined checks: `make test`
 

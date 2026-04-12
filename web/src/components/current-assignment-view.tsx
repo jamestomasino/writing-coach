@@ -9,12 +9,14 @@ import { Strong, Text } from '@/components/text'
 import { Textarea } from '@/components/textarea'
 import { formatLocalDateTime } from '@/lib/datetime'
 import { computeLevelUpGuidance } from '@/lib/level-up-guidance'
+import { hasSkillDetail, skillHref } from '@/lib/skill-details'
 import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useCurrentAssignmentWorkspace } from '@/lib/use-current-assignment-workspace'
 import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
+import { Link } from './link'
 import { MasteryProgress } from './mastery-progress'
 import { ProviderProvenance } from './provider-provenance'
 import { AppErrorState, EmptyState, LoadingState, TaskProgressState } from './status-state'
@@ -337,10 +339,27 @@ export function CurrentAssignmentView() {
                 key={tgo.code}
                 className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-white/10 dark:bg-white/5"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <Strong>{tgo.title}</Strong>
-                  <Badge color="cyan">{tierLabel(tgo.skill_tier, tgo.stage)}</Badge>
-                </div>
+                {(() => {
+                  const skillName = (tgo.skill_name ?? '').trim()
+                  const showSkillInfo = skillName.length > 0 && hasSkillDetail(skillName)
+                  return (
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <Strong>{tgo.title}</Strong>
+                        {showSkillInfo ? (
+                          <Link
+                            href={skillHref(skillName)}
+                            aria-label={`Open ${skillName} details`}
+                            className="text-xs font-semibold text-zinc-500 underline decoration-zinc-300 decoration-2 underline-offset-2 data-hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-600 dark:data-hover:text-zinc-100"
+                          >
+                            (i)
+                          </Link>
+                        ) : null}
+                      </div>
+                      <Badge color="cyan">{tierLabel(tgo.skill_tier, tgo.stage)}</Badge>
+                    </div>
+                  )
+                })()}
                 <Text className="mt-2">{tgo.description}</Text>
                 <MasteryProgress tgo={tgo} />
                 {(() => {

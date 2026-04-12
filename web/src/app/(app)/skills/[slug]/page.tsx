@@ -2,7 +2,6 @@ import { Badge } from '@/components/badge'
 import { Eyebrow } from '@/components/eyebrow'
 import { SkillFamilyObjectives } from '@/components/skill-family-objectives'
 import { Heading, Subheading } from '@/components/heading'
-import { Link } from '@/components/link'
 import { Text } from '@/components/text'
 import { allSkillDetails, getSkillDetailBySlug } from '@/lib/skill-details'
 import { WorkspaceCard } from '@/components/workspace-card'
@@ -105,18 +104,6 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
         <SkillFamilyObjectives familyName={detail.name} />
       </WorkspaceCard>
 
-      <WorkspaceCard>
-        <Subheading>Content sources</Subheading>
-        <Text className="mt-3">These guides are generated from app curriculum data and internal pedagogy documentation.</Text>
-        <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-          {detail.contentSources.map((source) => (
-            <li key={source}>• {source}</li>
-          ))}
-        </ul>
-        <Text className="mt-4 text-sm">
-          Want the full list? <Link href="/skills">Go back to the skill library.</Link>
-        </Text>
-      </WorkspaceCard>
     </div>
   )
 }
