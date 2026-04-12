@@ -96,3 +96,15 @@ func TestAllPersuasivePublicObjectivesHaveManifestCoverage(t *testing.T) {
 		}
 	}
 }
+
+func TestAllMemoirPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("memoir-personal-narrative-track")
+	if !ok {
+		t.Fatal("missing memoir track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainFiction) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
