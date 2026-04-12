@@ -1,0 +1,949 @@
+{
+  "version": "obj-manifest-v1",
+  "rule_sets": [
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "actionability",
+        "application",
+        "next-move"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.actionability.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 7,
+          "reason": "actionability reward: insight translates to concrete moves"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.actionability.action-density-low",
+          "max": 2,
+          "metric": "nlp_action_verb_density",
+          "reason": "actionability penalty: insight remains abstract"
+        }
+      ],
+      "rule_id": "objective.journalism.actionability",
+      "tgo_codes": [
+        "journalism-actionable-insight"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_action_verb_density": 5
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "coverage",
+          "delta": -1,
+          "id": "objective.journalism.audience-alignment.coverage-overload",
+          "max_hits": 1,
+          "reason": "audience-alignment penalty: coverage findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "audience-alignment",
+        "reader",
+        "fit"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.audience-alignment.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 65,
+          "reason": "audience-alignment reward: examples and references feel reader-specific"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.audience-alignment.reference-specificity-low",
+          "max": 45,
+          "metric": "nlp_reference_specificity_score",
+          "reason": "audience-alignment penalty: claims are generic"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.audience-alignment.topic-drift-low",
+          "max": 45,
+          "metric": "nlp_topic_drift_score",
+          "reason": "audience-alignment reward: writing stays on audience problem"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.audience-alignment.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "reason": "audience-alignment penalty: drift breaks reader fit"
+        }
+      ],
+      "rule_id": "objective.journalism.audience-alignment",
+      "tgo_codes": [
+        "journalism-audience-alignment",
+        "journalism-audience-segmentation",
+        "journalism-platform-fit",
+        "journalism-reader-objection-forecasting",
+        "journalism-reader-pain-mapping"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_reference_specificity_score": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.journalism.authority-and-voice.readability-overload",
+          "max_hits": 1,
+          "reason": "authority-and-voice penalty: readability findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "authority-and-voice",
+        "credibility",
+        "tone"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.authority-and-voice.passive-low",
+          "max": 2,
+          "metric": "nlp_passive_sentences",
+          "reason": "authority-and-voice reward: direct constructions support authority"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.authority-and-voice.passive-high",
+          "metric": "nlp_passive_sentences",
+          "min": 6,
+          "reason": "authority-and-voice penalty: passive overuse weakens ownership"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.authority-and-voice.modifier-overload-low",
+          "max": 18,
+          "metric": "nlp_modifier_overload_ratio",
+          "reason": "authority-and-voice reward: language remains controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.authority-and-voice.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "reason": "authority-and-voice penalty: hedging and inflation blur force"
+        }
+      ],
+      "rule_id": "objective.journalism.authority-and-voice",
+      "tgo_codes": [
+        "journalism-authority-and-voice",
+        "journalism-cadence-variety",
+        "journalism-ending-that-lands",
+        "journalism-ending-that-opens",
+        "journalism-opening-hook",
+        "journalism-opening-that-frames",
+        "journalism-source-framing",
+        "journalism-trust-building-specificity"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "clarity",
+          "delta": -1,
+          "id": "objective.journalism.claim-clarity.clarity-overload",
+          "max_hits": 1,
+          "reason": "claim-clarity penalty: clarity findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "claim-clarity",
+        "argument",
+        "stakes"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.claim-clarity.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "reason": "claim-clarity reward: core claim is supported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.claim-clarity.claim-support-low",
+          "max": 40,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "claim-clarity penalty: claim support is weak"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.claim-clarity.claim-count-high",
+          "metric": "nlp_claim_count",
+          "min": 2,
+          "reason": "claim-clarity reward: argument structure contains explicit claims"
+        }
+      ],
+      "rule_id": "objective.journalism.claim-clarity",
+      "tgo_codes": [
+        "journalism-claim-clarity",
+        "journalism-counterargument-handling",
+        "journalism-headline-framing",
+        "journalism-problem-framing",
+        "journalism-stakes-articulation",
+        "journalism-thesis-placement"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.journalism.clarity-and-coherence.structure-overload",
+          "max_hits": 1,
+          "reason": "clarity-and-coherence penalty: structure findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "clarity-and-coherence",
+        "flow",
+        "precision"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.clarity-and-coherence.paragraph-focus-high",
+          "metric": "nlp_paragraph_focus_score",
+          "min": 65,
+          "reason": "clarity-and-coherence reward: paragraph control supports understanding"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.clarity-and-coherence.paragraph-focus-low",
+          "max": 45,
+          "metric": "nlp_paragraph_focus_score",
+          "reason": "clarity-and-coherence penalty: paragraph drift increases effort"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.clarity-and-coherence.topic-drift-low",
+          "max": 45,
+          "metric": "nlp_topic_drift_score",
+          "reason": "clarity-and-coherence reward: argument stays coherent"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.clarity-and-coherence.topic-drift-high",
+          "metric": "nlp_topic_drift_score",
+          "min": 60,
+          "reason": "clarity-and-coherence penalty: argument drift weakens coherence"
+        }
+      ],
+      "rule_id": "objective.journalism.clarity-and-coherence",
+      "tgo_codes": [
+        "journalism-paragraph-focus",
+        "journalism-scaffolding-load",
+        "journalism-strategic-repetition",
+        "journalism-terminology-discipline"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_paragraph_focus_score": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "coverage",
+          "delta": -1,
+          "id": "objective.journalism.evidence-integration.coverage-overload",
+          "max_hits": 1,
+          "reason": "evidence-integration penalty: coverage findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "evidence-integration",
+        "support",
+        "proof"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.evidence-integration.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 65,
+          "reason": "evidence-integration reward: support strengthens claims"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.evidence-integration.claim-support-low",
+          "max": 40,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "evidence-integration penalty: support does not carry claims"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.evidence-integration.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 3,
+          "reason": "evidence-integration reward: support markers are present"
+        }
+      ],
+      "rule_id": "objective.journalism.evidence-integration",
+      "tgo_codes": [
+        "journalism-analogy-selection",
+        "journalism-case-study-use",
+        "journalism-data-interpretation",
+        "journalism-evidence-integration",
+        "journalism-evidence-proportion",
+        "journalism-example-selection",
+        "journalism-quote-restraint"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_claim_support_alignment": 60
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "insight-density",
+        "novelty",
+        "framework"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.insight-density.lexical-density-high",
+          "metric": "nlp_lexical_density",
+          "min": 48,
+          "reason": "insight-density reward: conceptual signal is dense"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.insight-density.lexical-density-low",
+          "max": 35,
+          "metric": "nlp_lexical_density",
+          "reason": "insight-density penalty: language is too generic"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.insight-density.unique-token-high",
+          "metric": "nlp_unique_token_ratio",
+          "min": 42,
+          "reason": "insight-density reward: language shows non-generic distinctions"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.insight-density.unique-token-low",
+          "max": 28,
+          "metric": "nlp_unique_token_ratio",
+          "reason": "insight-density penalty: repetition flattens novelty"
+        }
+      ],
+      "rule_id": "objective.journalism.insight-density",
+      "tgo_codes": [
+        "journalism-concept-bridging",
+        "journalism-conceptual-compression",
+        "journalism-framework-construction",
+        "journalism-implication-expansion",
+        "journalism-insight-density",
+        "journalism-novel-distinction",
+        "journalism-portable-takeaway",
+        "journalism-thought-contrast"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {
+          "nlp_lexical_density": 45
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "readability",
+          "delta": -1,
+          "id": "objective.journalism.revision-habits.readability-overload",
+          "max_hits": 1,
+          "reason": "revision-habits penalty: readability findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "revision-habits",
+        "passes",
+        "triage"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.revision-habits.readability-good",
+          "max": 11,
+          "metric": "nlp_readability_grade",
+          "reason": "revision-habits reward: final readability is controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.revision-habits.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "reason": "revision-habits penalty: prose remains too dense"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.revision-habits.repetition-low",
+          "max": 40,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "revision-habits reward: redundancy reduced"
+        }
+      ],
+      "rule_id": "objective.journalism.revision-habits",
+      "tgo_codes": [
+        "journalism-clarity-pass-thought",
+        "journalism-evidence-pass-thought",
+        "journalism-revision-triage-thought",
+        "journalism-voice-pass-thought"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "sentence control",
+          "delta": -1,
+          "id": "objective.journalism.sentence-economy.sentence-overload",
+          "max_hits": 1,
+          "reason": "sentence-economy penalty: sentence-control findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "sentence-economy",
+        "concision",
+        "line-level"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.sentence-economy.readability-good",
+          "max": 10,
+          "metric": "nlp_readability_grade",
+          "reason": "sentence-economy reward: readability target met"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.sentence-economy.readability-high",
+          "metric": "nlp_readability_grade",
+          "min": 14,
+          "reason": "sentence-economy penalty: readability too dense"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.sentence-economy.repetition-low",
+          "max": 35,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "sentence-economy reward: repetition controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.sentence-economy.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 60,
+          "reason": "sentence-economy penalty: repetition overload"
+        }
+      ],
+      "rule_id": "objective.journalism.sentence-economy",
+      "tgo_codes": [
+        "journalism-sentence-economy",
+        "journalism-sentence-pressure",
+        "journalism-verb-forward-style"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_readability_grade": 10
+        },
+        "min_metrics": {
+          "word_count": 300
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [
+        {
+          "category": "structure",
+          "delta": -1,
+          "id": "objective.journalism.structural-signposting.structure-overload",
+          "max_hits": 1,
+          "reason": "structural-signposting penalty: structure findings"
+        }
+      ],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "structural-signposting",
+        "arc",
+        "navigation"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.structural-signposting.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 4,
+          "reason": "structural-signposting reward: major turns are explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.structural-signposting.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "structural-signposting penalty: major turns are implicit"
+        },
+        {
+          "delta": 1,
+          "id": "objective.journalism.structural-signposting.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 6,
+          "reason": "structural-signposting reward: transition density supports arc"
+        }
+      ],
+      "rule_id": "objective.journalism.structural-signposting",
+      "tgo_codes": [
+        "journalism-argument-arc",
+        "journalism-bridge-sentences",
+        "journalism-section-ordering",
+        "journalism-series-thinking",
+        "journalism-structural-signposting"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 50
+        },
+        "min_metrics": {
+          "nlp_structural_signpost_count": 3
+        },
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "tone-calibration",
+        "voice-control",
+        "trust"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.tone-calibration.modifier-overload-low",
+          "max": 18,
+          "metric": "nlp_modifier_overload_ratio",
+          "reason": "tone-calibration reward: modifier load remains controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.tone-calibration.modifier-overload-high",
+          "metric": "nlp_modifier_overload_ratio",
+          "min": 30,
+          "reason": "tone-calibration penalty: inflation weakens trust"
+        }
+      ],
+      "rule_id": "objective.journalism.tone-calibration",
+      "tgo_codes": [
+        "journalism-tone-calibration-thought"
+      ],
+      "top_score_gate": {
+        "max_metrics": {
+          "nlp_topic_drift_score": 55
+        },
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "claim-clarity",
+        "thesis",
+        "spine"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.claim-clarity.claim-clarity.claim-count-high",
+          "metric": "nlp_claim_count",
+          "min": 3,
+          "reason": "claim-clarity reward: argument spine is explicit"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.claim-clarity.claim-clarity.claim-count-low",
+          "max": 1,
+          "metric": "nlp_claim_count",
+          "reason": "claim-clarity penalty: argument spine underdeveloped"
+        }
+      ],
+      "rule_id": "objective.journalism.claim-clarity.claim-clarity-specific",
+      "tgo_codes": [
+        "journalism-claim-clarity"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "stakes-articulation",
+        "consequence",
+        "importance"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.claim-clarity.stakes-articulation.claim-support-high",
+          "metric": "nlp_claim_support_alignment",
+          "min": 72,
+          "reason": "stakes-articulation reward: consequences are well supported"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.claim-clarity.stakes-articulation.claim-support-low",
+          "max": 45,
+          "metric": "nlp_claim_support_alignment",
+          "reason": "stakes-articulation penalty: consequences feel asserted not argued"
+        }
+      ],
+      "rule_id": "objective.journalism.claim-clarity.stakes-articulation-specific",
+      "tgo_codes": [
+        "journalism-stakes-articulation"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "sentence-pressure",
+        "momentum",
+        "density"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.sentence-economy.sentence-pressure.repetition-low",
+          "max": 30,
+          "metric": "nlp_semantic_repetition_ratio",
+          "reason": "sentence-pressure reward: each sentence advances new signal"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.sentence-economy.sentence-pressure.repetition-high",
+          "metric": "nlp_semantic_repetition_ratio",
+          "min": 58,
+          "reason": "sentence-pressure penalty: sentences idle on repeated phrasing"
+        }
+      ],
+      "rule_id": "objective.journalism.sentence-economy.sentence-pressure-specific",
+      "tgo_codes": [
+        "journalism-sentence-pressure"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "verb-forward-style",
+        "verbs",
+        "force"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.sentence-economy.verb-forward-style.action-density-high",
+          "metric": "nlp_action_verb_density",
+          "min": 10,
+          "reason": "verb-forward-style reward: verbs carry decisions"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.sentence-economy.verb-forward-style.action-density-low",
+          "max": 3,
+          "metric": "nlp_action_verb_density",
+          "reason": "verb-forward-style penalty: nominalized style weakens force"
+        }
+      ],
+      "rule_id": "objective.journalism.sentence-economy.verb-forward-style-specific",
+      "tgo_codes": [
+        "journalism-verb-forward-style"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "bridge-sentences",
+        "transitions",
+        "argument-linking"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.structural-signposting.bridge-sentences.transition-density-high",
+          "metric": "nlp_transition_marker_density",
+          "min": 8,
+          "reason": "bridge-sentences reward: section logic is explicitly connected"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.structural-signposting.bridge-sentences.transition-density-low",
+          "max": 3,
+          "metric": "nlp_transition_marker_density",
+          "reason": "bridge-sentences penalty: transitions fail to carry argument"
+        }
+      ],
+      "rule_id": "objective.journalism.structural-signposting.bridge-sentences-specific",
+      "tgo_codes": [
+        "journalism-bridge-sentences"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "section-ordering",
+        "sequence",
+        "logic"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.structural-signposting.section-ordering.signposts-high",
+          "metric": "nlp_structural_signpost_count",
+          "min": 5,
+          "reason": "section-ordering reward: argumentative sequence is legible"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.structural-signposting.section-ordering.signposts-low",
+          "max": 1,
+          "metric": "nlp_structural_signpost_count",
+          "reason": "section-ordering penalty: sequence is hard to follow"
+        }
+      ],
+      "rule_id": "objective.journalism.structural-signposting.section-ordering-specific",
+      "tgo_codes": [
+        "journalism-section-ordering"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "example-selection",
+        "specificity",
+        "fit"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.evidence-integration.example-selection.reference-specificity-high",
+          "metric": "nlp_reference_specificity_score",
+          "min": 72,
+          "reason": "example-selection reward: examples are specific and targeted"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.evidence-integration.example-selection.reference-specificity-low",
+          "max": 45,
+          "metric": "nlp_reference_specificity_score",
+          "reason": "example-selection penalty: examples are generic"
+        }
+      ],
+      "rule_id": "objective.journalism.evidence-integration.example-selection-specific",
+      "tgo_codes": [
+        "journalism-example-selection"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    },
+    {
+      "category_rules": [],
+      "domain": "thought_leadership",
+      "evidence_labels": [
+        "quote-restraint",
+        "quotation-load",
+        "authorial-ownership"
+      ],
+      "metric_rules": [
+        {
+          "delta": 1,
+          "id": "objective.journalism.evidence-integration.quote-restraint.evidence-markers-low",
+          "max": 1,
+          "metric": "nlp_evidence_marker_count",
+          "reason": "quote-restraint reward: quotation load remains controlled"
+        },
+        {
+          "delta": -1,
+          "id": "objective.journalism.evidence-integration.quote-restraint.evidence-markers-high",
+          "metric": "nlp_evidence_marker_count",
+          "min": 5,
+          "reason": "quote-restraint penalty: quote saturation crowds argument"
+        }
+      ],
+      "rule_id": "objective.journalism.evidence-integration.quote-restraint-specific",
+      "tgo_codes": [
+        "journalism-quote-restraint"
+      ],
+      "top_score_gate": {
+        "max_metrics": {},
+        "min_metrics": {},
+        "require_rule_trigger_count": 1
+      },
+      "track_slugs": [
+        "journalism-reporting-track"
+      ]
+    }
+  ]
+}

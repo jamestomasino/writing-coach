@@ -108,3 +108,63 @@ func TestAllMemoirPublicObjectivesHaveManifestCoverage(t *testing.T) {
 		}
 	}
 }
+
+func TestAllMarketingPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("marketing-writing-track")
+	if !ok {
+		t.Fatal("missing marketing track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainMarketing) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllContentMarketingPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("content-marketing-track")
+	if !ok {
+		t.Fatal("missing content marketing track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainMarketing) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllJournalismPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("journalism-reporting-track")
+	if !ok {
+		t.Fatal("missing journalism track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainThoughtLeadership) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllEducationalPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("educational-writing-track")
+	if !ok {
+		t.Fatal("missing educational track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainTechnical) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
+
+func TestAllGrantWritingPublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("grant-writing-track")
+	if !ok {
+		t.Fatal("missing grant-writing track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainProfessional) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
