@@ -62,6 +62,9 @@ func main() {
 			if tree.Slug == "professional-writing-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainProfessional) {
 				failures = append(failures, fmt.Sprintf("objective=%s missing professional objective-rules manifest coverage", code))
 			}
+			if tree.Slug == "thought-leadership-track" && !objective_rules.HasAnyForCodeDomain(code, analyzer.DomainThoughtLeadership) {
+				failures = append(failures, fmt.Sprintf("objective=%s missing thought-leadership objective-rules manifest coverage", code))
+			}
 		}
 	}
 
