@@ -8,7 +8,10 @@
       "tree_slug": "academic-essay-track",
       "writing_type": "academic essay",
       "skill_scores": [
-        {"skill": "source handling", "score": 3}
+        {
+          "skill": "source handling",
+          "score": 3
+        }
       ],
       "left_code": "academic-quote-integration",
       "right_code": "academic-source-selection",
@@ -29,7 +32,10 @@
       "tree_slug": "technical-writing-track",
       "writing_type": "technical writing",
       "skill_scores": [
-        {"skill": "actionability", "score": 3}
+        {
+          "skill": "actionability",
+          "score": 3
+        }
       ],
       "left_code": "technical-step-clarity",
       "right_code": "technical-prereq-clarity",
@@ -50,7 +56,10 @@
       "tree_slug": "professional-writing-track",
       "writing_type": "professional writing",
       "skill_scores": [
-        {"skill": "actionability", "score": 3}
+        {
+          "skill": "actionability",
+          "score": 3
+        }
       ],
       "left_code": "ask-visibility",
       "right_code": "ownership-clarity",
@@ -71,7 +80,10 @@
       "tree_slug": "thought-leadership-track",
       "writing_type": "thought leadership",
       "skill_scores": [
-        {"skill": "claim clarity", "score": 3}
+        {
+          "skill": "claim clarity",
+          "score": 3
+        }
       ],
       "left_code": "claim-clarity",
       "right_code": "stakes-articulation",
@@ -92,7 +104,10 @@
       "tree_slug": "persuasive-writing-track",
       "writing_type": "persuasive writing",
       "skill_scores": [
-        {"skill": "claim clarity", "score": 3}
+        {
+          "skill": "claim clarity",
+          "score": 3
+        }
       ],
       "left_code": "persuasive-claim",
       "right_code": "persuasive-stakes",
@@ -113,7 +128,10 @@
       "tree_slug": "memoir-personal-narrative-track",
       "writing_type": "memoir",
       "skill_scores": [
-        {"skill": "scene architecture", "score": 3}
+        {
+          "skill": "scene architecture",
+          "score": 3
+        }
       ],
       "left_code": "memoir-scene-turn",
       "right_code": "memoir-scene-entry-exit",
@@ -134,7 +152,10 @@
       "tree_slug": "marketing-writing-track",
       "writing_type": "marketing writing",
       "skill_scores": [
-        {"skill": "claim clarity", "score": 3}
+        {
+          "skill": "claim clarity",
+          "score": 3
+        }
       ],
       "left_code": "marketing-claim-clarity",
       "right_code": "marketing-stakes-articulation",
@@ -155,7 +176,10 @@
       "tree_slug": "content-marketing-track",
       "writing_type": "content marketing",
       "skill_scores": [
-        {"skill": "structural signposting", "score": 3}
+        {
+          "skill": "structural signposting",
+          "score": 3
+        }
       ],
       "left_code": "content-persuasive-structure",
       "right_code": "content-persuasive-pivot-lines",
@@ -176,7 +200,10 @@
       "tree_slug": "journalism-reporting-track",
       "writing_type": "journalism",
       "skill_scores": [
-        {"skill": "evidence integration", "score": 3}
+        {
+          "skill": "evidence integration",
+          "score": 3
+        }
       ],
       "left_code": "journalism-example-selection",
       "right_code": "journalism-quote-restraint",
@@ -199,7 +226,10 @@
       "tree_slug": "educational-writing-track",
       "writing_type": "educational writing",
       "skill_scores": [
-        {"skill": "source handling", "score": 3}
+        {
+          "skill": "source handling",
+          "score": 3
+        }
       ],
       "left_code": "education-academic-quote-integration",
       "right_code": "education-academic-source-selection",
@@ -220,7 +250,10 @@
       "tree_slug": "grant-writing-track",
       "writing_type": "grant writing",
       "skill_scores": [
-        {"skill": "actionability", "score": 3}
+        {
+          "skill": "actionability",
+          "score": 3
+        }
       ],
       "left_code": "grant-ask-visibility",
       "right_code": "grant-ownership-clarity",
@@ -241,8 +274,14 @@
       "tree_slug": "story-craft-track",
       "writing_type": "fiction",
       "skill_scores": [
-        {"skill": "scene architecture", "score": 3},
-        {"skill": "prose precision", "score": 3}
+        {
+          "skill": "scene architecture",
+          "score": 3
+        },
+        {
+          "skill": "prose precision",
+          "score": 3
+        }
       ],
       "left_code": "story-scene-architecture",
       "right_code": "story-prose-precision",
@@ -265,8 +304,14 @@
       "tree_slug": "fantasy-fiction-track",
       "writing_type": "fantasy fiction",
       "skill_scores": [
-        {"skill": "scene architecture", "score": 3},
-        {"skill": "prose precision", "score": 3}
+        {
+          "skill": "scene architecture",
+          "score": 3
+        },
+        {
+          "skill": "prose precision",
+          "score": 3
+        }
       ],
       "left_code": "fantasy-story-scene-architecture",
       "right_code": "fantasy-story-prose-precision",
@@ -289,8 +334,14 @@
       "tree_slug": "science-fiction-track",
       "writing_type": "science fiction",
       "skill_scores": [
-        {"skill": "scene architecture", "score": 3},
-        {"skill": "prose precision", "score": 3}
+        {
+          "skill": "scene architecture",
+          "score": 3
+        },
+        {
+          "skill": "prose precision",
+          "score": 3
+        }
       ],
       "left_code": "scifi-story-scene-architecture",
       "right_code": "scifi-story-prose-precision",
@@ -313,8 +364,14 @@
       "tree_slug": "romance-fiction-track",
       "writing_type": "romance",
       "skill_scores": [
-        {"skill": "scene architecture", "score": 3},
-        {"skill": "prose precision", "score": 3}
+        {
+          "skill": "scene architecture",
+          "score": 3
+        },
+        {
+          "skill": "prose precision",
+          "score": 3
+        }
       ],
       "left_code": "romance-story-scene-architecture",
       "right_code": "romance-story-prose-precision",
@@ -337,8 +394,14 @@
       "tree_slug": "literary-fiction-track",
       "writing_type": "literary fiction",
       "skill_scores": [
-        {"skill": "scene architecture", "score": 3},
-        {"skill": "prose precision", "score": 3}
+        {
+          "skill": "scene architecture",
+          "score": 3
+        },
+        {
+          "skill": "prose precision",
+          "score": 3
+        }
       ],
       "left_code": "literary-story-scene-architecture",
       "right_code": "literary-story-prose-precision",
@@ -361,8 +424,14 @@
       "tree_slug": "mystery-thriller-track",
       "writing_type": "mystery",
       "skill_scores": [
-        {"skill": "scene architecture", "score": 3},
-        {"skill": "prose precision", "score": 3}
+        {
+          "skill": "scene architecture",
+          "score": 3
+        },
+        {
+          "skill": "prose precision",
+          "score": 3
+        }
       ],
       "left_code": "thriller-story-scene-architecture",
       "right_code": "thriller-story-prose-precision",
@@ -378,6 +447,94 @@
         "nlp_readability_grade": 9,
         "nlp_topic_drift_score": 35
       }
+    }
+  ],
+  "max_pairwise_tie_rate": 0.0,
+  "track_policies": [
+    {
+      "tree_slug": "story-craft-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "fantasy-fiction-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "science-fiction-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "romance-fiction-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "literary-fiction-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "mystery-thriller-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "thought-leadership-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "professional-writing-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "marketing-writing-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "content-marketing-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "journalism-reporting-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "educational-writing-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "grant-writing-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "academic-essay-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "technical-writing-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "persuasive-writing-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
+    },
+    {
+      "tree_slug": "memoir-personal-narrative-track",
+      "min_pass_rate": 1.0,
+      "min_checks": 2
     }
   ]
 }
