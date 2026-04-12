@@ -173,7 +173,7 @@ func TestCompareSubmissionsPrefersObjectiveScoresWhenAvailable(t *testing.T) {
 	}
 }
 
-func TestCompareSubmissionsMixedEraFallsBackToSkillScores(t *testing.T) {
+func TestCompareSubmissionsMixedEraUsesObjectiveDerivedSkillDeltas(t *testing.T) {
 	baseline := domain.Submission{ID: 40, WordCount: 260, Content: "baseline"}
 	current := domain.Submission{ID: 41, WordCount: 300, Content: "current"}
 	baselineReview := domain.Review{
@@ -193,7 +193,52 @@ func TestCompareSubmissionsMixedEraFallsBackToSkillScores(t *testing.T) {
 	}
 
 	got := CompareSubmissions(current, baseline, currentReview, baselineReview)
+	if len(got.SkillDeltas) != 1 {
+		t.Fatalf("expected mixed-era delta overlap from objective scores, got %+v", got.SkillDeltas)
+	}
+	if got.SkillDeltas[0].Skill != "narrative clarity" {
+		t.Fatalf("expected narrative clarity overlap delta, got %+v", got.SkillDeltas)
+	}
+}
+
+func TestCompareSubmissionsMixedEraDerivesCurrentSkillDeltasFromObjectiveScores(t *testing.T) {
+	baseline := domain.Submission{ID: 50, WordCount: 260, Content: "baseline"}
+	current := domain.Submission{ID: 51, WordCount: 300, Content: "current"}
+	baselineReview := domain.Review{
+		SkillScores: []domain.SkillScore{
+			{Skill: "narrative clarity", Score: 2, ScoreSource: "deterministic"},
+			{Skill: "scene architecture", Score: 3, ScoreSource: "deterministic"},
+		},
+	}
+	currentReview := domain.Review{
+		ObjectiveScores: []domain.ObjectiveScore{
+			{SubmissionID: 51, TGOCode: "story-causal-clarity", Score: 4, ScoreSource: "deterministic"},
+			{SubmissionID: 51, TGOCode: "story-scene-architecture", Score: 2, ScoreSource: "deterministic"},
+		},
+		TGOAssessments: []domain.TGOAssessment{
+			{TGOCode: "story-causal-clarity", Status: "developing"},
+			{TGOCode: "story-scene-architecture", Status: "developing"},
+		},
+	}
+
+	got := CompareSubmissions(current, baseline, currentReview, baselineReview)
 	if len(got.SkillDeltas) != 2 {
-		t.Fatalf("expected legacy skill deltas in mixed era, got %+v", got.SkillDeltas)
+		t.Fatalf("expected mixed-era deltas from objective scores, got %+v", got.SkillDeltas)
+	}
+	expected := map[string]struct {
+		base int
+		cur  int
+	}{
+		"narrative clarity": {base: 2, cur: 4},
+		"scene architecture": {base: 3, cur: 2},
+	}
+	for _, delta := range got.SkillDeltas {
+		match, ok := expected[delta.Skill]
+		if !ok {
+			t.Fatalf("unexpected mixed-era delta skill: %+v", delta)
+		}
+		if delta.BaselineScore != match.base || delta.CurrentScore != match.cur {
+			t.Fatalf("unexpected mixed-era scores for %s: %+v", delta.Skill, delta)
+		}
 	}
 }
