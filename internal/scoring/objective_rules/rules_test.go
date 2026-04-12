@@ -84,3 +84,15 @@ func TestAllThoughtLeadershipPublicObjectivesHaveManifestCoverage(t *testing.T) 
 		}
 	}
 }
+
+func TestAllPersuasivePublicObjectivesHaveManifestCoverage(t *testing.T) {
+	tree, ok := domain.BuiltInTreeBySlug("persuasive-writing-track")
+	if !ok {
+		t.Fatal("missing persuasive track")
+	}
+	for _, tgo := range tree.TGOs {
+		if !HasAnyForCodeDomain(tgo.Code, analyzer.DomainThoughtLeadership) {
+			t.Fatalf("missing manifest coverage for %s", tgo.Code)
+		}
+	}
+}
