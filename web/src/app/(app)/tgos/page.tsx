@@ -2,7 +2,7 @@ import { TGOLibraryView } from '@/components/tgo-library-view'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Objective guides',
+  title: 'Skill objective guides',
 }
 
 export default function TGOPage() {
