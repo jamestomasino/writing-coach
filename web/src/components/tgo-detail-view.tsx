@@ -49,7 +49,7 @@ export function TGODetailView({ code }: { code: string }) {
   const conceptData = useMemo(() => buildObjectiveConcepts(nodes), [nodes])
   const concept = conceptData.conceptByKey.get(code) ?? conceptData.conceptByKey.get(conceptData.conceptByCode.get(code) ?? '')
   const node = concept?.representative
-  const objectiveDetail = node ? buildObjectiveDetail(node) : null
+  const objectiveDetail = node ? buildObjectiveDetail(node, concept?.key) : null
 
   useEffect(() => {
     if (!concept?.key) {
@@ -91,6 +91,9 @@ export function TGODetailView({ code }: { code: string }) {
 
       {objectiveDetail ? (
         <WorkspaceCard>
+          <Subheading>Skill overview</Subheading>
+          <Text className="mt-3">{objectiveDetail.skillOverview}</Text>
+
           <Subheading>What this objective trains</Subheading>
           <Text className="mt-3">{objectiveDetail.objectiveGoal}</Text>
           <Subheading className="mt-6">Why it matters now</Subheading>
@@ -113,6 +116,36 @@ export function TGODetailView({ code }: { code: string }) {
               <Text className="mt-2 text-sm text-amber-900 dark:text-amber-100">{objectiveDetail.badExample}</Text>
             </div>
           </div>
+
+          <Subheading className="mt-6">Revision moves</Subheading>
+          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            {objectiveDetail.revisionMoves.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+
+          <Subheading className="mt-6">Assessment focus</Subheading>
+          <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            {objectiveDetail.assessmentFocus.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+
+          {objectiveDetail.exampleSources?.length ? (
+            <>
+              <Subheading className="mt-6">Example sources</Subheading>
+              <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                {objectiveDetail.exampleSources.map((source) => (
+                  <li key={`${source.label}:${source.url}`}>
+                    •{' '}
+                    <a className="underline decoration-zinc-400 underline-offset-2 hover:decoration-zinc-700 dark:decoration-zinc-500 dark:hover:decoration-zinc-200" href={source.url} target="_blank" rel="noreferrer">
+                      {source.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </WorkspaceCard>
       ) : null}
 

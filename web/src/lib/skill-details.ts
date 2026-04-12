@@ -135,6 +135,38 @@ function applyPattern(detail: SkillDetail): SkillDetail {
     })
   }
 
+  if (has('clarity and coherence')) {
+    return withPatch({
+      oneLine: 'This skill keeps your main point easy to follow.',
+      whatItMeans: 'Make each paragraph connect to one clear through-line.',
+      whyItMatters: 'Readers trust writing they can track without re-reading.',
+      strongExample: 'Strong: "Costs rose 18%, so we cut scope and shipped on time."',
+      weakExample: 'Weak: "A lot changed, and the project ended up different somehow."',
+      revisionMoves: [
+        'Name the main point at the top of each section.',
+        'Cut lines that do not support the section goal.',
+        'Link each section to the next with one bridge sentence.',
+      ],
+      coachTip: 'If readers ask "wait, what is the point?", coherence is slipping.',
+    })
+  }
+
+  if (has('assignment alignment')) {
+    return withPatch({
+      oneLine: 'This skill keeps the draft aligned to the assignment ask.',
+      whatItMeans: 'Answer the prompt directly before adding extra context.',
+      whyItMatters: 'Strong writing can still fail when it misses the task.',
+      strongExample: 'Strong: "The brief asks for two risks, so this section ranks and explains both."',
+      weakExample: 'Weak: "The writing is polished, but it answers a different question."',
+      revisionMoves: [
+        'Write the exact prompt asks into a checklist.',
+        'Mark where each ask is answered in the draft.',
+        'Cut strong paragraphs that do not serve the prompt.',
+      ],
+      coachTip: 'First satisfy the assignment contract, then optimize style.',
+    })
+  }
+
   if (has('dialogue')) {
     return withPatch({
       oneLine: 'This skill makes spoken lines sound real and useful.',
@@ -183,6 +215,54 @@ function applyPattern(detail: SkillDetail): SkillDetail {
     })
   }
 
+  if (has('story development')) {
+    return withPatch({
+      oneLine: 'This skill builds meaningful change across the story.',
+      whatItMeans: 'Give characters goals, pressure, and consequences that escalate.',
+      whyItMatters: 'Stories feel flat when events do not force harder choices.',
+      strongExample: 'Strong: "She hides the letter, loses her ally, and must face the hearing alone."',
+      weakExample: 'Weak: "Scenes happen, but nothing changes the character path."',
+      revisionMoves: [
+        'Mark each scene with a goal, obstacle, and consequence.',
+        'Raise stakes after each major decision point.',
+        'Cut scenes that do not change character or plot pressure.',
+      ],
+      coachTip: 'If the same person leaves every scene unchanged, raise pressure.',
+    })
+  }
+
+  if (has('worldbuilding economy')) {
+    return withPatch({
+      oneLine: 'This skill reveals world detail without slowing the story.',
+      whatItMeans: 'Introduce setting facts only when they affect current action.',
+      whyItMatters: 'Dense lore blocks momentum when readers need immediate stakes.',
+      strongExample: 'Strong: "The gate tax matters now because it strips her last coin before escape."',
+      weakExample: 'Weak: "Three pages of history appear before the first conflict starts."',
+      revisionMoves: [
+        'Move lore details next to the action they change.',
+        'Cut world facts that have no scene consequence.',
+        'Show one setting rule through character choice.',
+      ],
+      coachTip: 'World detail should create pressure, not pause it.',
+    })
+  }
+
+  if (has('emotional compression')) {
+    return withPatch({
+      oneLine: 'This skill shows emotion through action and image.',
+      whatItMeans: 'Replace emotion labels with gesture, diction, and consequence.',
+      whyItMatters: 'Readers feel more when emotion is dramatized, not announced.',
+      strongExample: 'Strong: "He folds the letter twice, then tears only his own signature."',
+      weakExample: 'Weak: "He was very sad and deeply upset about everything."',
+      revisionMoves: [
+        'Replace one emotion label with a physical action.',
+        'Add one concrete sensory detail to carry feeling.',
+        'Cut adverbs that explain emotion the scene already shows.',
+      ],
+      coachTip: 'Name emotion less often; stage it more clearly.',
+    })
+  }
+
   if (has('word choice') || has('prose precision') || has('descriptive') || has('image')) {
     return withPatch({
       oneLine: 'This skill makes your writing vivid and exact.',
@@ -228,6 +308,102 @@ function applyPattern(detail: SkillDetail): SkillDetail {
         'Answer one likely reader objection directly.',
       ],
       coachTip: 'Clear claim, clear reason, clear support.',
+    })
+  }
+
+  if (has('example quality')) {
+    return withPatch({
+      oneLine: 'This skill picks examples that directly prove your point.',
+      whatItMeans: 'Choose evidence that matches scope, audience, and claim.',
+      whyItMatters: 'Weak examples make strong arguments look ungrounded.',
+      strongExample: 'Strong: "Use Q2 support logs because the proposal changes support staffing."',
+      weakExample: 'Weak: "Use any interesting anecdote, even if it is unrelated."',
+      revisionMoves: [
+        'Link each example to one specific claim.',
+        'Replace broad anecdotes with scoped, relevant cases.',
+        'Explain in one line why the example is representative.',
+      ],
+      coachTip: 'The best example is not the loudest one; it is the tightest fit.',
+    })
+  }
+
+  if (has('reflection depth')) {
+    return withPatch({
+      oneLine: 'This skill turns reflection into specific learning.',
+      whatItMeans: 'Describe what changed, why it changed, and what to repeat.',
+      whyItMatters: 'Reflection without specifics does not improve future drafts.',
+      strongExample: 'Strong: "Cutting the opener raised clarity, so next time I will front-load the ask."',
+      weakExample: 'Weak: "I learned a lot and will keep improving somehow."',
+      revisionMoves: [
+        'Name one concrete change and its outcome.',
+        'Link one mistake to a repeatable revision rule.',
+        'Write one measurable goal for the next draft.',
+      ],
+      coachTip: 'Good reflection produces a next-draft rule, not a mood.',
+    })
+  }
+
+  if (has('lineation')) {
+    return withPatch({
+      oneLine: 'This skill uses line breaks to control emphasis and pace.',
+      whatItMeans: 'Break lines where sound, image, or syntax gains force.',
+      whyItMatters: 'Random breaks make poems feel accidental instead of intentional.',
+      strongExample: 'Strong: "I kept the key / not for escape / but for proof."',
+      weakExample: 'Weak: "I kept / the key not / for escape but for / proof."',
+      revisionMoves: [
+        'Read each line break aloud for pressure and pause.',
+        'Move weak breaks to words with stronger stress.',
+        'Keep syntactic units clear unless fracture is intentional.',
+      ],
+      coachTip: 'A line break should add meaning, not just shape.',
+    })
+  }
+
+  if (has('sonic patterning')) {
+    return withPatch({
+      oneLine: 'This skill shapes sound to reinforce meaning.',
+      whatItMeans: 'Use rhythm, echo, and contrast without forcing rhyme.',
+      whyItMatters: 'Sound pattern can carry emotion before logic catches up.',
+      strongExample: 'Strong: "Cold coins clicked in the cup; the clock kept counting."',
+      weakExample: 'Weak: "Words are random in sound and flatten the line."',
+      revisionMoves: [
+        'Read the draft aloud and mark dull stretches.',
+        'Add light sound echoes on key words, not every line.',
+        'Cut accidental tongue-twisters that block flow.',
+      ],
+      coachTip: 'Sound should support the moment, not distract from it.',
+    })
+  }
+
+  if (has('stanza movement')) {
+    return withPatch({
+      oneLine: 'This skill makes each stanza advance thought or tension.',
+      whatItMeans: 'Treat stanza breaks as turns, not decorative spacing.',
+      whyItMatters: 'Without movement, stanzas feel like chopped paragraphs.',
+      strongExample: 'Strong: "Stanza one names the wound; stanza two tests a response; stanza three reframes it."',
+      weakExample: 'Weak: "Each stanza repeats the same idea with new line breaks."',
+      revisionMoves: [
+        'Name the function of each stanza in one phrase.',
+        'Cut or merge stanzas that repeat without turning.',
+        'Start each new stanza with a fresh pressure point.',
+      ],
+      coachTip: 'A stanza break should change direction, depth, or stakes.',
+    })
+  }
+
+  if (has('visual exposition')) {
+    return withPatch({
+      oneLine: 'This skill explains visual information with clear narrative focus.',
+      whatItMeans: 'Guide readers through what to look at and why it matters.',
+      whyItMatters: 'Unfocused description makes visuals harder, not easier, to read.',
+      strongExample: 'Strong: "The peak at week six marks the failed rollout, then recovery begins after patch 2."',
+      weakExample: 'Weak: "The chart has many lines and looks complicated overall."',
+      revisionMoves: [
+        'Start with the one visual pattern that matters most.',
+        'Mark the moment where the trend changes direction.',
+        'Link the visual pattern to the decision it supports.',
+      ],
+      coachTip: 'Describe visuals in decision order, not scan order.',
     })
   }
 

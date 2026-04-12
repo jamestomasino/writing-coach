@@ -1,9 +1,14 @@
 import type { SkillGraphNode } from './types'
+import { buildGeneratedObjectiveDetail } from './objective-detail-generated'
+import { OBJECTIVE_DETAIL_OVERRIDES } from './objective-detail-overrides'
+import { buildObjectiveExamples } from './objective-example-library'
+import { getSkillDetailByName } from './skill-details'
 
 export type ObjectiveDetail = {
   code: string
   title: string
   skillFamily: string
+  skillOverview: string
   objectiveGoal: string
   whyThisObjective: string
   successLooksLike: string[]
@@ -11,6 +16,16 @@ export type ObjectiveDetail = {
   badExample: string
   revisionMoves: string[]
   assessmentFocus: string[]
+  exampleSources?: Array<{ label: string; url: string }>
+  exampleStrategy?: string
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 function sentence(value: string, fallback: string) {
@@ -147,30 +162,41 @@ function revisionMovesForObjective(node: SkillGraphNode) {
   return moves.slice(0, 3)
 }
 
-export function buildObjectiveDetail(node: SkillGraphNode): ObjectiveDetail {
+export function buildObjectiveDetail(node: SkillGraphNode, conceptKey?: string): ObjectiveDetail {
   const skillFamily = (node.skill_name ?? '').trim() || 'unmapped objective cluster'
-  const objectiveGoal = objectiveGoalForCode(node.code, node.title, node.description)
-  const whyThisObjective = whyNowForCode(node.code, node.title, node.mastery_hint ?? '')
+  const generated = buildGeneratedObjectiveDetail(node)
+  const override =
+    (conceptKey ? OBJECTIVE_DETAIL_OVERRIDES[conceptKey] : undefined) ??
+    OBJECTIVE_DETAIL_OVERRIDES[node.code] ??
+    OBJECTIVE_DETAIL_OVERRIDES[slugify(node.title)]
 
-  const successLooksLike = [
-    sentence(`The draft shows clear evidence of ${node.title.toLowerCase()}`, 'The draft shows clear objective evidence.'),
-    sentence(`The pattern repeats in more than one part of the draft`, 'The pattern is repeatable, not isolated.'),
-    sentence(`The same control holds in later drafts`, 'Control holds across revisions.'),
-  ]
-
-  const goodExample = `Good: The writing clearly demonstrates ${node.title.toLowerCase()} in a way the reader can track without pausing to decode intent.`
-  const badExample = `Needs work: The writing gestures at ${node.title.toLowerCase()}, but the reader has to guess what changed, when it changed, or why it matters.`
-
-  return {
+  const baseDetail: ObjectiveDetail = {
     code: node.code,
     title: node.title,
     skillFamily,
-    objectiveGoal,
-    whyThisObjective,
-    successLooksLike,
-    goodExample,
-    badExample,
-    revisionMoves: revisionMovesForObjective(node),
-    assessmentFocus: assessmentFocusForCode(node.code),
+    skillOverview: generated.skillOverview,
+    objectiveGoal: generated.objectiveGoal,
+    whyThisObjective: generated.whyThisObjective,
+    successLooksLike: generated.successLooksLike,
+    goodExample: generated.goodExample,
+    badExample: generated.badExample,
+    revisionMoves: generated.revisionMoves,
+    assessmentFocus: generated.assessmentFocus,
+    exampleSources: generated.exampleSources,
+    exampleStrategy: generated.exampleStrategy,
+    studentReadinessCheck: generated.studentReadinessCheck,
+  }
+
+  if (!override) {
+    return baseDetail
+  }
+
+  return {
+    ...baseDetail,
+    ...override,
+    successLooksLike: override.successLooksLike ?? baseDetail.successLooksLike,
+    revisionMoves: override.revisionMoves ?? baseDetail.revisionMoves,
+    assessmentFocus: override.assessmentFocus ?? baseDetail.assessmentFocus,
+    exampleSources: override.exampleSources ?? baseDetail.exampleSources,
   }
 }
