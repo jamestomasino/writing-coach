@@ -12,7 +12,7 @@ import { computeLevelUpGuidance } from '@/lib/level-up-guidance'
 import { hasSkillDetail, skillHref } from '@/lib/skill-details'
 import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useCurrentAssignmentWorkspace } from '@/lib/use-current-assignment-workspace'
-import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/16/solid'
+import { ArrowPathIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, InformationCircleIcon, SparklesIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
@@ -350,9 +350,9 @@ export function CurrentAssignmentView() {
                           <Link
                             href={skillHref(skillName)}
                             aria-label={`Open ${skillName} details`}
-                            className="text-xs font-semibold text-zinc-500 underline decoration-zinc-300 decoration-2 underline-offset-2 data-hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-600 dark:data-hover:text-zinc-100"
+                            className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-0.5 text-zinc-500 data-hover:text-zinc-900 dark:border-white/15 dark:bg-black/10 dark:text-zinc-400 dark:data-hover:text-zinc-100"
                           >
-                            (i)
+                            <InformationCircleIcon className="size-4" aria-hidden="true" />
                           </Link>
                         ) : null}
                       </div>

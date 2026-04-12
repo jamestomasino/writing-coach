@@ -10,7 +10,7 @@ import { hasSkillDetail, skillHref } from '@/lib/skill-details'
 import type { ReviewAnnotation } from '@/lib/types'
 import { skillLevelUpState } from '@/lib/skill-level-up'
 import { useReviewWorkspace } from '@/lib/use-review-workspace'
-import { ArrowPathIcon } from '@heroicons/react/16/solid'
+import { ArrowPathIcon, InformationCircleIcon } from '@heroicons/react/16/solid'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 import { ProviderProvenance } from './provider-provenance'
@@ -217,9 +217,9 @@ export function ReviewView({ reviewId }: { reviewId: number }) {
                       <Link
                         href={skillHref(skillName)}
                         aria-label={`Open ${skillName} details`}
-                        className="text-xs font-semibold text-zinc-500 underline decoration-zinc-300 decoration-2 underline-offset-2 data-hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-600 dark:data-hover:text-zinc-100"
+                        className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-0.5 text-zinc-500 data-hover:text-zinc-900 dark:border-white/15 dark:bg-black/10 dark:text-zinc-400 dark:data-hover:text-zinc-100"
                       >
-                        (i)
+                        <InformationCircleIcon className="size-4" aria-hidden="true" />
                       </Link>
                     ) : null}
                   </div>
