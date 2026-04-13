@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Tom-Johnston/mamba v0.2.0
-	modernc.org/sqlite v1.48.1
+	modernc.org/sqlite v1.48.2
 )
 
 require (
